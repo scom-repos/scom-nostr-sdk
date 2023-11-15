@@ -1,0 +1,64 @@
+{    
+    "env": "testnet",
+    "logo": "logo",
+    "main": "@scom/dapp",
+    "assets": "@modules/assets",
+    "moduleDir": "modules",
+    "modules": {
+        "@modules/assets": {
+            "path": "assets"
+        },
+        "@modules/module1": {
+            "path": "module1"
+        }
+    },
+    "dependencies": {
+    },
+    "menus": [
+        {
+            "caption": "Module 1",
+            "url": "/module1",
+            "module": "@modules/module1",
+            "params": {},
+            "menus": []
+        }
+    ],    
+    "wallets": [
+        {
+          "name": "metamask"
+        }
+    ],
+    "networks": [
+        {
+          "name": "Ethereum",
+          "chainId": 1,
+          "img": "eth",
+          "rpc": "https://mainnet.infura.io/v3/{InfuraId}",
+          "env": "mainnet",
+          "explorerName": "Etherscan",
+          "explorerTxUrl": "https://etherscan.io/tx/",
+          "explorerAddressUrl": "https://etherscan.io/address/"
+        },
+        {
+          "name": "Binance Smart Chain",
+          "chainId": 56,
+          "img": "bsc",
+          "rpc": "https://bsc-dataseed.binance.org/",   
+          "env": "mainnet",
+          "explorerName": "BSCScan",
+          "explorerTxUrl": "https://bscscan.com/tx/",
+          "explorerAddressUrl": "https://bscscan.com/address/"
+        },
+        {
+          "name": "BSC Testnet",
+          "chainId": 97,
+          "img": "bsc",
+          "rpc": "https://data-seed-prebsc-1-s1.binance.org:8545/",   
+          "env": "testnet",
+          "explorerName": "BSCScan",
+          "explorerTxUrl": "https://testnet.bscscan.com/tx/",
+          "explorerAddressUrl": "https://testnet.bscscan.com/address/"
+        }
+    ],
+    "copyright": "&#169; 2022 IJS Technologies. All rights reserved."
+}
