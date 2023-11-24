@@ -217,7 +217,7 @@ function genBech32(encoding: 'bech32' | 'bech32m') {
     prefix: Prefix,
     words: number[] | Uint8Array,
     limit: number | false = 90
-  ): `${Lowercase<Prefix>}1${string}` {
+  ): `${Prefix}1${string}` {
     if (typeof prefix !== 'string')
       throw new Error(`bech32.encode prefix should be string, not ${typeof prefix}`);
     if (!Array.isArray(words) || (words.length && typeof words[0] !== 'number'))
@@ -227,7 +227,7 @@ function genBech32(encoding: 'bech32' | 'bech32m') {
       throw new TypeError(`Length ${actualLength} exceeds limit ${limit}`);
     const lowered = prefix.toLowerCase();
     const sum = bechChecksum(lowered, words, ENCODING_CONST);
-    return `${lowered}1${BECH_ALPHABET.encode(words)}${sum}` as `${Lowercase<Prefix>}1${string}`;
+    return `${lowered}1${BECH_ALPHABET.encode(words)}${sum}` as `${Prefix}1${string}`;
   }
 
   function decode<Prefix extends string>(

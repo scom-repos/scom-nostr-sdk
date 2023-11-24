@@ -1078,7 +1078,7 @@ declare module "@scom/scom-nostr-sdk/nostr/nip19.ts" {
     export type DecodeResult = {
         [P in keyof Prefixes]: DecodeValue<P>;
     }[keyof Prefixes];
-    export function decode<Prefix extends keyof Prefixes>(nip19: `${Prefix}1${string}`): DecodeValue<Prefix>;
+    export function decode<Prefix extends keyof Prefixes>(nip19: `${Lowercase<Prefix>}1${string}`): DecodeValue<Prefix>;
     export function decode(nip19: string): DecodeResult;
     export function nsecEncode(hex: string): `nsec1${string}`;
     export function npubEncode(hex: string): `npub1${string}`;
@@ -1094,4 +1094,5 @@ declare module "@scom/scom-nostr-sdk" {
     export * as Keys from "@scom/scom-nostr-sdk/nostr/keys.ts";
     export * as Nip19 from "@scom/scom-nostr-sdk/nostr/nip19.ts";
     export * as Bech32 from "@scom/scom-nostr-sdk/bech32.ts";
+    export { secp256k1 } from "@scom/scom-nostr-sdk/curves/secp256k1.ts";
 }
