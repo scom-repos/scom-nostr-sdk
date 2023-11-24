@@ -145,11 +145,13 @@ export function wrapConstructor<T extends Hash<T>>(hashCons: () => Hash<T>) {
  * Secure PRNG. Uses `crypto.getRandomValues`, which defers to OS.
  */
 let crypto: any;
-export function randomBytes(bytesLength = 32): Uint8Array {
-  if (!crypto && typeof(module) == 'object' && module['exports'])
-    crypto = require('crypto')
-  else if (typeof window === 'object')
-    crypto = window.crypto;
+export function randomBytes(bytesLength = 32): Uint8Array {    
+  if (typeof window === 'object')
+    crypto = window.crypto
+  else{
+    // @ts-ignore
+    crypto = require('crypto');
+  }
   if (crypto && typeof crypto.getRandomValues === 'function') {
     return crypto.getRandomValues(new Uint8Array(bytesLength));
   }
