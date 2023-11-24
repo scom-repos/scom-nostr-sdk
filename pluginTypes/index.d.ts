@@ -1,5 +1,5 @@
-/// <amd-module name="@scom/scom-nostr-sdk/hashes/_assert.ts" />
-declare module "@scom/scom-nostr-sdk/hashes/_assert.ts" {
+/// <amd-module name="@scom/scom-social-sdk/core/hashes/_assert.ts" />
+declare module "@scom/scom-social-sdk/core/hashes/_assert.ts" {
     function number(n: number): void;
     function bool(b: boolean): void;
     function bytes(b: Uint8Array | undefined, ...lengths: number[]): void;
@@ -23,8 +23,8 @@ declare module "@scom/scom-nostr-sdk/hashes/_assert.ts" {
     };
     export default assert;
 }
-/// <amd-module name="@scom/scom-nostr-sdk/hashes/utils.ts" />
-declare module "@scom/scom-nostr-sdk/hashes/utils.ts" {
+/// <amd-module name="@scom/scom-social-sdk/core/hashes/utils.ts" />
+declare module "@scom/scom-social-sdk/core/hashes/utils.ts" {
     /*! noble-hashes - MIT License (c) 2022 Paul Miller (paulmillr.com) */
     export type TypedArray = Int8Array | Uint8ClampedArray | Uint8Array | Uint16Array | Int16Array | Uint32Array | Int32Array;
     export const createView: (arr: TypedArray) => DataView;
@@ -81,14 +81,11 @@ declare module "@scom/scom-nostr-sdk/hashes/utils.ts" {
         blockLen: number;
         create(): Hash<T>;
     };
-    /**
-     * Secure PRNG. Uses `crypto.getRandomValues`, which defers to OS.
-     */
     export function randomBytes(bytesLength?: number): Uint8Array;
 }
-/// <amd-module name="@scom/scom-nostr-sdk/hashes/_sha2.ts" />
-declare module "@scom/scom-nostr-sdk/hashes/_sha2.ts" {
-    import { Hash, Input } from "@scom/scom-nostr-sdk/hashes/utils.ts";
+/// <amd-module name="@scom/scom-social-sdk/core/hashes/_sha2.ts" />
+declare module "@scom/scom-social-sdk/core/hashes/_sha2.ts" {
+    import { Hash, Input } from "@scom/scom-social-sdk/core/hashes/utils.ts";
     export abstract class SHA2<T extends SHA2<T>> extends Hash<T> {
         readonly blockLen: number;
         outputLen: number;
@@ -112,9 +109,9 @@ declare module "@scom/scom-nostr-sdk/hashes/_sha2.ts" {
         _cloneInto(to?: T): T;
     }
 }
-/// <amd-module name="@scom/scom-nostr-sdk/hashes/sha256.ts" />
-declare module "@scom/scom-nostr-sdk/hashes/sha256.ts" {
-    import { SHA2 } from "@scom/scom-nostr-sdk/hashes/_sha2.ts";
+/// <amd-module name="@scom/scom-social-sdk/core/hashes/sha256.ts" />
+declare module "@scom/scom-social-sdk/core/hashes/sha256.ts" {
+    import { SHA2 } from "@scom/scom-social-sdk/core/hashes/_sha2.ts";
     class SHA256 extends SHA2<SHA256> {
         A: number;
         B: number;
@@ -136,20 +133,20 @@ declare module "@scom/scom-nostr-sdk/hashes/sha256.ts" {
      * @param message - data that would be hashed
      */
     export const sha256: {
-        (msg: import("@scom/scom-nostr-sdk/hashes/utils.ts").Input): Uint8Array;
+        (msg: import("@scom/scom-social-sdk/core/hashes/utils.ts").Input): Uint8Array;
         outputLen: number;
         blockLen: number;
-        create(): import("@scom/scom-nostr-sdk/hashes/utils.ts").Hash<SHA256>;
+        create(): import("@scom/scom-social-sdk/core/hashes/utils.ts").Hash<SHA256>;
     };
     export const sha224: {
-        (msg: import("@scom/scom-nostr-sdk/hashes/utils.ts").Input): Uint8Array;
+        (msg: import("@scom/scom-social-sdk/core/hashes/utils.ts").Input): Uint8Array;
         outputLen: number;
         blockLen: number;
-        create(): import("@scom/scom-nostr-sdk/hashes/utils.ts").Hash<SHA256>;
+        create(): import("@scom/scom-social-sdk/core/hashes/utils.ts").Hash<SHA256>;
     };
 }
-/// <amd-module name="@scom/scom-nostr-sdk/curves/abstract/utils.ts" />
-declare module "@scom/scom-nostr-sdk/curves/abstract/utils.ts" {
+/// <amd-module name="@scom/scom-social-sdk/core/curves/abstract/utils.ts" />
+declare module "@scom/scom-social-sdk/core/curves/abstract/utils.ts" {
     export type Hex = Uint8Array | string;
     export type PrivKey = Hex | bigint;
     export type CHash = {
@@ -241,8 +238,8 @@ declare module "@scom/scom-nostr-sdk/curves/abstract/utils.ts" {
     };
     export function validateObject<T extends Record<string, any>>(object: T, validators: ValMap<T>, optValidators?: ValMap<T>): T;
 }
-/// <amd-module name="@scom/scom-nostr-sdk/curves/abstract/modular.ts" />
-declare module "@scom/scom-nostr-sdk/curves/abstract/modular.ts" {
+/// <amd-module name="@scom/scom-social-sdk/core/curves/abstract/modular.ts" />
+declare module "@scom/scom-social-sdk/core/curves/abstract/modular.ts" {
     export function mod(a: bigint, b: bigint): bigint;
     /**
      * Efficiently raise num to power and do modular division.
@@ -365,10 +362,10 @@ declare module "@scom/scom-nostr-sdk/curves/abstract/modular.ts" {
      */
     export function mapHashToField(key: Uint8Array, fieldOrder: bigint, isLE?: boolean): Uint8Array;
 }
-/// <amd-module name="@scom/scom-nostr-sdk/curves/abstract/curve.ts" />
-declare module "@scom/scom-nostr-sdk/curves/abstract/curve.ts" {
+/// <amd-module name="@scom/scom-social-sdk/core/curves/abstract/curve.ts" />
+declare module "@scom/scom-social-sdk/core/curves/abstract/curve.ts" {
     /*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) */
-    import { IField } from "@scom/scom-nostr-sdk/curves/abstract/modular.ts";
+    import { IField } from "@scom/scom-social-sdk/core/curves/abstract/modular.ts";
     export type AffinePoint<T> = {
         x: T;
         y: T;
@@ -437,13 +434,13 @@ declare module "@scom/scom-nostr-sdk/curves/abstract/curve.ts" {
         p: bigint;
     }>;
 }
-/// <amd-module name="@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts" />
-declare module "@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts" {
+/// <amd-module name="@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts" />
+declare module "@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts" {
     /*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) */
-    import * as mod from "@scom/scom-nostr-sdk/curves/abstract/modular.ts";
-    import * as ut from "@scom/scom-nostr-sdk/curves/abstract/utils.ts";
-    import { CHash, Hex, PrivKey } from "@scom/scom-nostr-sdk/curves/abstract/utils.ts";
-    import { Group, GroupConstructor, BasicCurve, AffinePoint } from "@scom/scom-nostr-sdk/curves/abstract/curve.ts";
+    import * as mod from "@scom/scom-social-sdk/core/curves/abstract/modular.ts";
+    import * as ut from "@scom/scom-social-sdk/core/curves/abstract/utils.ts";
+    import { CHash, Hex, PrivKey } from "@scom/scom-social-sdk/core/curves/abstract/utils.ts";
+    import { Group, GroupConstructor, BasicCurve, AffinePoint } from "@scom/scom-social-sdk/core/curves/abstract/curve.ts";
     export type { AffinePoint };
     type HmacFnSync = (key: Uint8Array, ...messages: Uint8Array[]) => Uint8Array;
     type EndomorphismOpts = {
@@ -680,12 +677,12 @@ declare module "@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts" {
         y: T;
     };
 }
-/// <amd-module name="@scom/scom-nostr-sdk/curves/abstract/hash-to-curve.ts" />
-declare module "@scom/scom-nostr-sdk/curves/abstract/hash-to-curve.ts" {
+/// <amd-module name="@scom/scom-social-sdk/core/curves/abstract/hash-to-curve.ts" />
+declare module "@scom/scom-social-sdk/core/curves/abstract/hash-to-curve.ts" {
     /*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) */
-    import type { Group, GroupConstructor, AffinePoint } from "@scom/scom-nostr-sdk/curves/abstract/curve.ts";
-    import { IField } from "@scom/scom-nostr-sdk/curves/abstract/modular.ts";
-    import { CHash } from "@scom/scom-nostr-sdk/curves/abstract/utils.ts";
+    import type { Group, GroupConstructor, AffinePoint } from "@scom/scom-social-sdk/core/curves/abstract/curve.ts";
+    import { IField } from "@scom/scom-social-sdk/core/curves/abstract/modular.ts";
+    import { CHash } from "@scom/scom-social-sdk/core/curves/abstract/utils.ts";
     /**
      * * `DST` is a domain separation tag, defined in section 2.2.5
      * * `p` characteristic of F, where F is a finite field of characteristic p and order q = p^m
@@ -738,9 +735,9 @@ declare module "@scom/scom-nostr-sdk/curves/abstract/hash-to-curve.ts" {
         encodeToCurve(msg: Uint8Array, options?: htfBasicOpts): H2CPoint<T>;
     };
 }
-/// <amd-module name="@scom/scom-nostr-sdk/hashes/hmac.ts" />
-declare module "@scom/scom-nostr-sdk/hashes/hmac.ts" {
-    import { Hash, CHash, Input } from "@scom/scom-nostr-sdk/hashes/utils.ts";
+/// <amd-module name="@scom/scom-social-sdk/core/hashes/hmac.ts" />
+declare module "@scom/scom-social-sdk/core/hashes/hmac.ts" {
+    import { Hash, CHash, Input } from "@scom/scom-social-sdk/core/hashes/utils.ts";
     export class HMAC<T extends Hash<T>> extends Hash<HMAC<T>> {
         oHash: T;
         iHash: T;
@@ -766,11 +763,11 @@ declare module "@scom/scom-nostr-sdk/hashes/hmac.ts" {
         create(hash: CHash, key: Input): HMAC<any>;
     };
 }
-/// <amd-module name="@scom/scom-nostr-sdk/curves/_shortw_utils.ts" />
-declare module "@scom/scom-nostr-sdk/curves/_shortw_utils.ts" {
-    import { randomBytes } from "@scom/scom-nostr-sdk/hashes/utils.ts";
-    import { CurveType } from "@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts";
-    import { CHash } from "@scom/scom-nostr-sdk/curves/abstract/utils.ts";
+/// <amd-module name="@scom/scom-social-sdk/core/curves/_shortw_utils.ts" />
+declare module "@scom/scom-social-sdk/core/curves/_shortw_utils.ts" {
+    import { randomBytes } from "@scom/scom-social-sdk/core/hashes/utils.ts";
+    import { CurveType } from "@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts";
+    import { CHash } from "@scom/scom-social-sdk/core/curves/abstract/utils.ts";
     export function getHash(hash: CHash): {
         hash: CHash;
         hmac: (key: Uint8Array, ...msgs: Uint8Array[]) => Uint8Array;
@@ -778,11 +775,11 @@ declare module "@scom/scom-nostr-sdk/curves/_shortw_utils.ts" {
     };
     type CurveDef = Readonly<Omit<CurveType, 'hash' | 'hmac' | 'randomBytes'>>;
     export function createCurve(curveDef: CurveDef, defHash: CHash): Readonly<{
-        create: (hash: CHash) => import("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts").CurveFn;
+        create: (hash: CHash) => import("@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts").CurveFn;
         CURVE: Readonly<{
             readonly nBitLength: number;
             readonly nByteLength: number;
-            readonly Fp: import("@scom/scom-nostr-sdk/curves/abstract/modular.ts").IField<bigint>;
+            readonly Fp: import("@scom/scom-social-sdk/core/curves/abstract/modular.ts").IField<bigint>;
             readonly n: bigint;
             readonly h: bigint;
             readonly hEff?: bigint;
@@ -802,8 +799,8 @@ declare module "@scom/scom-nostr-sdk/curves/_shortw_utils.ts" {
                     k2: bigint;
                 };
             };
-            readonly isTorsionFree?: (c: import("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts").ProjConstructor<bigint>, point: import("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts").ProjPointType<bigint>) => boolean;
-            readonly clearCofactor?: (c: import("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts").ProjConstructor<bigint>, point: import("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts").ProjPointType<bigint>) => import("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts").ProjPointType<bigint>;
+            readonly isTorsionFree?: (c: import("@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts").ProjConstructor<bigint>, point: import("@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts").ProjPointType<bigint>) => boolean;
+            readonly clearCofactor?: (c: import("@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts").ProjConstructor<bigint>, point: import("@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts").ProjPointType<bigint>) => import("@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts").ProjPointType<bigint>;
             readonly hash: CHash;
             readonly hmac: (key: Uint8Array, ...messages: Uint8Array[]) => Uint8Array;
             readonly randomBytes: (bytesLength?: number) => Uint8Array;
@@ -812,35 +809,35 @@ declare module "@scom/scom-nostr-sdk/curves/_shortw_utils.ts" {
             readonly bits2int_modN?: (bytes: Uint8Array) => bigint;
             readonly p: bigint;
         }>;
-        getPublicKey: (privateKey: import("@scom/scom-nostr-sdk/curves/abstract/utils.ts").PrivKey, isCompressed?: boolean) => Uint8Array;
-        getSharedSecret: (privateA: import("@scom/scom-nostr-sdk/curves/abstract/utils.ts").PrivKey, publicB: import("@scom/scom-nostr-sdk/curves/abstract/utils.ts").Hex, isCompressed?: boolean) => Uint8Array;
-        sign: (msgHash: import("@scom/scom-nostr-sdk/curves/abstract/utils.ts").Hex, privKey: import("@scom/scom-nostr-sdk/curves/abstract/utils.ts").PrivKey, opts?: import("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts").SignOpts) => import("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts").RecoveredSignatureType;
-        verify: (signature: import("@scom/scom-nostr-sdk/curves/abstract/utils.ts").Hex | {
+        getPublicKey: (privateKey: import("@scom/scom-social-sdk/core/curves/abstract/utils.ts").PrivKey, isCompressed?: boolean) => Uint8Array;
+        getSharedSecret: (privateA: import("@scom/scom-social-sdk/core/curves/abstract/utils.ts").PrivKey, publicB: import("@scom/scom-social-sdk/core/curves/abstract/utils.ts").Hex, isCompressed?: boolean) => Uint8Array;
+        sign: (msgHash: import("@scom/scom-social-sdk/core/curves/abstract/utils.ts").Hex, privKey: import("@scom/scom-social-sdk/core/curves/abstract/utils.ts").PrivKey, opts?: import("@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts").SignOpts) => import("@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts").RecoveredSignatureType;
+        verify: (signature: import("@scom/scom-social-sdk/core/curves/abstract/utils.ts").Hex | {
             r: bigint;
             s: bigint;
-        }, msgHash: import("@scom/scom-nostr-sdk/curves/abstract/utils.ts").Hex, publicKey: import("@scom/scom-nostr-sdk/curves/abstract/utils.ts").Hex, opts?: import("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts").VerOpts) => boolean;
-        ProjectivePoint: import("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts").ProjConstructor<bigint>;
-        Signature: import("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts").SignatureConstructor;
+        }, msgHash: import("@scom/scom-social-sdk/core/curves/abstract/utils.ts").Hex, publicKey: import("@scom/scom-social-sdk/core/curves/abstract/utils.ts").Hex, opts?: import("@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts").VerOpts) => boolean;
+        ProjectivePoint: import("@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts").ProjConstructor<bigint>;
+        Signature: import("@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts").SignatureConstructor;
         utils: {
-            normPrivateKeyToScalar: (key: import("@scom/scom-nostr-sdk/curves/abstract/utils.ts").PrivKey) => bigint;
-            isValidPrivateKey(privateKey: import("@scom/scom-nostr-sdk/curves/abstract/utils.ts").PrivKey): boolean;
+            normPrivateKeyToScalar: (key: import("@scom/scom-social-sdk/core/curves/abstract/utils.ts").PrivKey) => bigint;
+            isValidPrivateKey(privateKey: import("@scom/scom-social-sdk/core/curves/abstract/utils.ts").PrivKey): boolean;
             randomPrivateKey: () => Uint8Array;
-            precompute: (windowSize?: number, point?: import("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts").ProjPointType<bigint>) => import("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts").ProjPointType<bigint>;
+            precompute: (windowSize?: number, point?: import("@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts").ProjPointType<bigint>) => import("@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts").ProjPointType<bigint>;
         };
     }>;
 }
-/// <amd-module name="@scom/scom-nostr-sdk/curves/secp256k1.ts" />
-declare module "@scom/scom-nostr-sdk/curves/secp256k1.ts" {
-    import { mod } from "@scom/scom-nostr-sdk/curves/abstract/modular.ts";
-    import { ProjPointType as PointType } from "@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts";
-    import type { Hex, PrivKey } from "@scom/scom-nostr-sdk/curves/abstract/utils.ts";
-    import { bytesToNumberBE, numberToBytesBE } from "@scom/scom-nostr-sdk/curves/abstract/utils.ts";
+/// <amd-module name="@scom/scom-social-sdk/core/curves/secp256k1.ts" />
+declare module "@scom/scom-social-sdk/core/curves/secp256k1.ts" {
+    import { mod } from "@scom/scom-social-sdk/core/curves/abstract/modular.ts";
+    import { ProjPointType as PointType } from "@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts";
+    import type { Hex, PrivKey } from "@scom/scom-social-sdk/core/curves/abstract/utils.ts";
+    import { bytesToNumberBE, numberToBytesBE } from "@scom/scom-social-sdk/core/curves/abstract/utils.ts";
     export const secp256k1: Readonly<{
-        create: (hash: import("@scom/scom-nostr-sdk/curves/abstract/utils.ts").CHash) => import("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts").CurveFn;
+        create: (hash: import("@scom/scom-social-sdk/core/curves/abstract/utils.ts").CHash) => import("@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts").CurveFn;
         CURVE: Readonly<{
             readonly nBitLength: number;
             readonly nByteLength: number;
-            readonly Fp: import("@scom/scom-nostr-sdk/curves/abstract/modular.ts").IField<bigint>;
+            readonly Fp: import("@scom/scom-social-sdk/core/curves/abstract/modular.ts").IField<bigint>;
             readonly n: bigint;
             readonly h: bigint;
             readonly hEff?: bigint;
@@ -860,9 +857,9 @@ declare module "@scom/scom-nostr-sdk/curves/secp256k1.ts" {
                     k2: bigint;
                 };
             };
-            readonly isTorsionFree?: (c: import("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts").ProjConstructor<bigint>, point: PointType<bigint>) => boolean;
-            readonly clearCofactor?: (c: import("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts").ProjConstructor<bigint>, point: PointType<bigint>) => PointType<bigint>;
-            readonly hash: import("@scom/scom-nostr-sdk/curves/abstract/utils.ts").CHash;
+            readonly isTorsionFree?: (c: import("@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts").ProjConstructor<bigint>, point: PointType<bigint>) => boolean;
+            readonly clearCofactor?: (c: import("@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts").ProjConstructor<bigint>, point: PointType<bigint>) => PointType<bigint>;
+            readonly hash: import("@scom/scom-social-sdk/core/curves/abstract/utils.ts").CHash;
             readonly hmac: (key: Uint8Array, ...messages: Uint8Array[]) => Uint8Array;
             readonly randomBytes: (bytesLength?: number) => Uint8Array;
             lowS: boolean;
@@ -872,13 +869,13 @@ declare module "@scom/scom-nostr-sdk/curves/secp256k1.ts" {
         }>;
         getPublicKey: (privateKey: PrivKey, isCompressed?: boolean) => Uint8Array;
         getSharedSecret: (privateA: PrivKey, publicB: Hex, isCompressed?: boolean) => Uint8Array;
-        sign: (msgHash: Hex, privKey: PrivKey, opts?: import("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts").SignOpts) => import("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts").RecoveredSignatureType;
+        sign: (msgHash: Hex, privKey: PrivKey, opts?: import("@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts").SignOpts) => import("@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts").RecoveredSignatureType;
         verify: (signature: Hex | {
             r: bigint;
             s: bigint;
-        }, msgHash: Hex, publicKey: Hex, opts?: import("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts").VerOpts) => boolean;
-        ProjectivePoint: import("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts").ProjConstructor<bigint>;
-        Signature: import("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts").SignatureConstructor;
+        }, msgHash: Hex, publicKey: Hex, opts?: import("@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts").VerOpts) => boolean;
+        ProjectivePoint: import("@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts").ProjConstructor<bigint>;
+        Signature: import("@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts").SignatureConstructor;
         utils: {
             normPrivateKeyToScalar: (key: PrivKey) => bigint;
             isValidPrivateKey(privateKey: PrivKey): boolean;
@@ -920,18 +917,19 @@ declare module "@scom/scom-nostr-sdk/curves/secp256k1.ts" {
             mod: typeof mod;
         };
     };
-    export const hashToCurve: (msg: Uint8Array, options?: import("@scom/scom-nostr-sdk/curves/abstract/hash-to-curve.ts").htfBasicOpts) => import("@scom/scom-nostr-sdk/curves/abstract/hash-to-curve.ts").H2CPoint<bigint>;
-    export const encodeToCurve: (msg: Uint8Array, options?: import("@scom/scom-nostr-sdk/curves/abstract/hash-to-curve.ts").htfBasicOpts) => import("@scom/scom-nostr-sdk/curves/abstract/hash-to-curve.ts").H2CPoint<bigint>;
+    export const hashToCurve: (msg: Uint8Array, options?: import("@scom/scom-social-sdk/core/curves/abstract/hash-to-curve.ts").htfBasicOpts) => import("@scom/scom-social-sdk/core/curves/abstract/hash-to-curve.ts").H2CPoint<bigint>;
+    export const encodeToCurve: (msg: Uint8Array, options?: import("@scom/scom-social-sdk/core/curves/abstract/hash-to-curve.ts").htfBasicOpts) => import("@scom/scom-social-sdk/core/curves/abstract/hash-to-curve.ts").H2CPoint<bigint>;
     export function schnorrGetExtPubKeyY(priv: PrivKey): Uint8Array;
 }
-/// <amd-module name="@scom/scom-nostr-sdk/nostr/keys.ts" />
-declare module "@scom/scom-nostr-sdk/nostr/keys.ts" {
+/// <amd-module name="@scom/scom-social-sdk/core/nostr/keys.ts" />
+declare module "@scom/scom-social-sdk/core/nostr/keys.ts" {
     export function generatePrivateKey(): string;
     export function getPublicKey(privateKey: string): string;
     export function getPublicKeyY(privateKey: string): string;
+    export function getSharedSecret(privateKey: string, publicKey: string): string;
 }
-/// <amd-module name="@scom/scom-nostr-sdk/nostr/event.ts" />
-declare module "@scom/scom-nostr-sdk/nostr/event.ts" {
+/// <amd-module name="@scom/scom-social-sdk/core/nostr/event.ts" />
+declare module "@scom/scom-social-sdk/core/nostr/event.ts" {
     export const utf8Encoder: TextEncoder;
     /** Designates a verified event signature. */
     export const verifiedSymbol: unique symbol;
@@ -993,8 +991,8 @@ declare module "@scom/scom-nostr-sdk/nostr/event.ts" {
     /** Calculate the signature for an event. */
     export function getSignature(event: UnsignedEvent<number>, key: string): string;
 }
-/// <amd-module name="@scom/scom-nostr-sdk/bech32.ts" />
-declare module "@scom/scom-nostr-sdk/bech32.ts" {
+/// <amd-module name="@scom/scom-social-sdk/core/bech32.ts" />
+declare module "@scom/scom-social-sdk/core/bech32.ts" {
     /**
      * @__NO_SIDE_EFFECTS__
      */
@@ -1013,7 +1011,7 @@ declare module "@scom/scom-nostr-sdk/bech32.ts" {
         bytes: Uint8Array;
     }
     export const bech32: {
-        encode: <Prefix extends string>(prefix: Prefix, words: number[] | Uint8Array, limit?: number | false) => `${Lowercase<Prefix>}1${string}`;
+        encode: <Prefix extends string>(prefix: Prefix, words: number[] | Uint8Array, limit?: number | false) => `${Prefix}1${string}`;
         decode: {
             <Prefix_1 extends string>(str: `${Prefix_1}1${string}`, limit?: number | false): Bech32Decoded<Prefix_1>;
             (str: string, limit?: number | false): Bech32Decoded;
@@ -1025,7 +1023,7 @@ declare module "@scom/scom-nostr-sdk/bech32.ts" {
         toWords: (from: Uint8Array) => number[];
     };
     export const bech32m: {
-        encode: <Prefix extends string>(prefix: Prefix, words: number[] | Uint8Array, limit?: number | false) => `${Lowercase<Prefix>}1${string}`;
+        encode: <Prefix extends string>(prefix: Prefix, words: number[] | Uint8Array, limit?: number | false) => `${Prefix}1${string}`;
         decode: {
             <Prefix_1 extends string>(str: `${Prefix_1}1${string}`, limit?: number | false): Bech32Decoded<Prefix_1>;
             (str: string, limit?: number | false): Bech32Decoded;
@@ -1037,8 +1035,8 @@ declare module "@scom/scom-nostr-sdk/bech32.ts" {
         toWords: (from: Uint8Array) => number[];
     };
 }
-/// <amd-module name="@scom/scom-nostr-sdk/nostr/nip19.ts" />
-declare module "@scom/scom-nostr-sdk/nostr/nip19.ts" {
+/// <amd-module name="@scom/scom-social-sdk/core/nostr/nip19.ts" />
+declare module "@scom/scom-social-sdk/core/nostr/nip19.ts" {
     export const utf8Decoder: TextDecoder;
     export const utf8Encoder: TextEncoder;
     /**
@@ -1088,11 +1086,14 @@ declare module "@scom/scom-nostr-sdk/nostr/nip19.ts" {
     export function naddrEncode(addr: AddressPointer): `naddr1${string}`;
     export function nrelayEncode(url: string): `nrelay1${string}`;
 }
-/// <amd-module name="@scom/scom-nostr-sdk" />
-declare module "@scom/scom-nostr-sdk" {
-    export * as Event from "@scom/scom-nostr-sdk/nostr/event.ts";
-    export * as Keys from "@scom/scom-nostr-sdk/nostr/keys.ts";
-    export * as Nip19 from "@scom/scom-nostr-sdk/nostr/nip19.ts";
-    export * as Bech32 from "@scom/scom-nostr-sdk/bech32.ts";
-    export { secp256k1 } from "@scom/scom-nostr-sdk/curves/secp256k1.ts";
+/// <amd-module name="@scom/scom-social-sdk/core/index.ts" />
+declare module "@scom/scom-social-sdk/core/index.ts" {
+    export * as Event from "@scom/scom-social-sdk/core/nostr/event.ts";
+    export * as Keys from "@scom/scom-social-sdk/core/nostr/keys.ts";
+    export * as Nip19 from "@scom/scom-social-sdk/core/nostr/nip19.ts";
+    export * as Bech32 from "@scom/scom-social-sdk/core/bech32.ts";
+}
+/// <amd-module name="@scom/scom-social-sdk" />
+declare module "@scom/scom-social-sdk" {
+    export { Event, Keys, Nip19, Bech32 } from "@scom/scom-social-sdk/core/index.ts";
 }

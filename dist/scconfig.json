@@ -1,5 +1,5 @@
 {
-    "name": "@scom/scom-nostr-sdk",
+    "name": "@scom/scom-social-sdk",
     "type": "widget",
     "version": "0.1.0",
     "dependencies": []

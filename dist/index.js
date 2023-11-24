@@ -1,8 +1,8 @@
-define("@scom/scom-nostr-sdk/hashes/_assert.ts", ["require", "exports"], function (require, exports) {
+define("@scom/scom-social-sdk/core/hashes/_assert.ts", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.output = exports.exists = exports.hash = exports.bytes = exports.bool = exports.number = void 0;
-    ///<amd-module name='@scom/scom-nostr-sdk/hashes/_assert.ts'/> 
+    ///<amd-module name='@scom/scom-social-sdk/core/hashes/_assert.ts'/> 
     // adopted from https://github.com/paulmillr/noble-hashes
     function number(n) {
         if (!Number.isSafeInteger(n) || n < 0)
@@ -46,10 +46,10 @@ define("@scom/scom-nostr-sdk/hashes/_assert.ts", ["require", "exports"], functio
     const assert = { number, bool, bytes, hash, exists, output };
     exports.default = assert;
 });
-///<amd-module name='@scom/scom-nostr-sdk/hashes/utils.ts'/> 
+///<amd-module name='@scom/scom-social-sdk/core/hashes/utils.ts'/> 
 // adopted from https://github.com/paulmillr/noble-hashes
 /*! noble-hashes - MIT License (c) 2022 Paul Miller (paulmillr.com) */
-define("@scom/scom-nostr-sdk/hashes/utils.ts", ["require", "exports"], function (require, exports) {
+define("@scom/scom-social-sdk/core/hashes/utils.ts", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.randomBytes = exports.wrapConstructor = exports.Hash = exports.concatBytes = exports.toBytes = exports.utf8ToBytes = exports.hexToBytes = exports.bytesToHex = exports.rotr = exports.createView = void 0;
@@ -167,7 +167,14 @@ define("@scom/scom-nostr-sdk/hashes/utils.ts", ["require", "exports"], function 
     /**
      * Secure PRNG. Uses `crypto.getRandomValues`, which defers to OS.
      */
+    let crypto;
     function randomBytes(bytesLength = 32) {
+        if (typeof window === 'object')
+            crypto = window.crypto;
+        else {
+            // @ts-ignore
+            crypto = require('crypto');
+        }
         if (crypto && typeof crypto.getRandomValues === 'function') {
             return crypto.getRandomValues(new Uint8Array(bytesLength));
         }
@@ -175,7 +182,7 @@ define("@scom/scom-nostr-sdk/hashes/utils.ts", ["require", "exports"], function 
     }
     exports.randomBytes = randomBytes;
 });
-define("@scom/scom-nostr-sdk/hashes/_sha2.ts", ["require", "exports", "@scom/scom-nostr-sdk/hashes/_assert.ts", "@scom/scom-nostr-sdk/hashes/utils.ts"], function (require, exports, _assert_1, utils_1) {
+define("@scom/scom-social-sdk/core/hashes/_sha2.ts", ["require", "exports", "@scom/scom-social-sdk/core/hashes/_assert.ts", "@scom/scom-social-sdk/core/hashes/utils.ts"], function (require, exports, _assert_1, utils_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.SHA2 = void 0;
@@ -292,7 +299,7 @@ define("@scom/scom-nostr-sdk/hashes/_sha2.ts", ["require", "exports", "@scom/sco
     }
     exports.SHA2 = SHA2;
 });
-define("@scom/scom-nostr-sdk/hashes/sha256.ts", ["require", "exports", "@scom/scom-nostr-sdk/hashes/_sha2.ts", "@scom/scom-nostr-sdk/hashes/utils.ts"], function (require, exports, _sha2_1, utils_2) {
+define("@scom/scom-social-sdk/core/hashes/sha256.ts", ["require", "exports", "@scom/scom-social-sdk/core/hashes/_sha2.ts", "@scom/scom-social-sdk/core/hashes/utils.ts"], function (require, exports, _sha2_1, utils_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.sha224 = exports.sha256 = void 0;
@@ -420,11 +427,11 @@ define("@scom/scom-nostr-sdk/hashes/sha256.ts", ["require", "exports", "@scom/sc
     exports.sha256 = (0, utils_2.wrapConstructor)(() => new SHA256());
     exports.sha224 = (0, utils_2.wrapConstructor)(() => new SHA224());
 });
-define("@scom/scom-nostr-sdk/curves/abstract/utils.ts", ["require", "exports"], function (require, exports) {
+define("@scom/scom-social-sdk/core/curves/abstract/utils.ts", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.validateObject = exports.createHmacDrbg = exports.bitMask = exports.bitSet = exports.bitGet = exports.bitLen = exports.utf8ToBytes = exports.equalBytes = exports.concatBytes = exports.ensureBytes = exports.numberToVarBytesBE = exports.numberToBytesLE = exports.numberToBytesBE = exports.bytesToNumberLE = exports.bytesToNumberBE = exports.hexToBytes = exports.hexToNumber = exports.numberToHexUnpadded = exports.bytesToHex = void 0;
-    ///<amd-module name='@scom/scom-nostr-sdk/curves/abstract/utils.ts'/> 
+    ///<amd-module name='@scom/scom-social-sdk/core/curves/abstract/utils.ts'/> 
     // adopted from https://github.com/paulmillr/noble-curves
     /*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) */
     // 100 lines of code in the file are duplicated from noble-hashes (utils).
@@ -724,7 +731,7 @@ define("@scom/scom-nostr-sdk/curves/abstract/utils.ts", ["require", "exports"], 
 // const z2 = validateObject(o, { a: 'isSafeInteger' }, { c: 'zz' });
 // const z3 = validateObject(o, { test: 'boolean', z: 'bug' });
 // const z4 = validateObject(o, { a: 'boolean', z: 'bug' });
-define("@scom/scom-nostr-sdk/curves/abstract/modular.ts", ["require", "exports", "@scom/scom-nostr-sdk/curves/abstract/utils.ts"], function (require, exports, utils_3) {
+define("@scom/scom-social-sdk/core/curves/abstract/modular.ts", ["require", "exports", "@scom/scom-social-sdk/core/curves/abstract/utils.ts"], function (require, exports, utils_3) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.mapHashToField = exports.getMinHashLength = exports.getFieldBytesLength = exports.hashToPrivateScalar = exports.FpSqrtEven = exports.FpSqrtOdd = exports.Field = exports.nLength = exports.FpIsSquare = exports.FpDiv = exports.FpInvertBatch = exports.FpPow = exports.validateField = exports.isNegativeLE = exports.FpSqrt = exports.tonelliShanks = exports.invert = exports.pow2 = exports.pow = exports.mod = void 0;
@@ -1161,7 +1168,7 @@ define("@scom/scom-nostr-sdk/curves/abstract/modular.ts", ["require", "exports",
     }
     exports.mapHashToField = mapHashToField;
 });
-define("@scom/scom-nostr-sdk/curves/abstract/curve.ts", ["require", "exports", "@scom/scom-nostr-sdk/curves/abstract/modular.ts", "@scom/scom-nostr-sdk/curves/abstract/utils.ts"], function (require, exports, modular_1, utils_4) {
+define("@scom/scom-social-sdk/core/curves/abstract/curve.ts", ["require", "exports", "@scom/scom-social-sdk/core/curves/abstract/modular.ts", "@scom/scom-social-sdk/core/curves/abstract/utils.ts"], function (require, exports, modular_1, utils_4) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.validateBasic = exports.wNAF = void 0;
@@ -1319,7 +1326,7 @@ define("@scom/scom-nostr-sdk/curves/abstract/curve.ts", ["require", "exports", "
     }
     exports.validateBasic = validateBasic;
 });
-define("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts", ["require", "exports", "@scom/scom-nostr-sdk/curves/abstract/modular.ts", "@scom/scom-nostr-sdk/curves/abstract/utils.ts", "@scom/scom-nostr-sdk/curves/abstract/utils.ts", "@scom/scom-nostr-sdk/curves/abstract/curve.ts"], function (require, exports, mod, ut, utils_5, curve_1) {
+define("@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts", ["require", "exports", "@scom/scom-social-sdk/core/curves/abstract/modular.ts", "@scom/scom-social-sdk/core/curves/abstract/utils.ts", "@scom/scom-social-sdk/core/curves/abstract/utils.ts", "@scom/scom-social-sdk/core/curves/abstract/curve.ts"], function (require, exports, mod, ut, utils_5, curve_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.mapToCurveSimpleSWU = exports.SWUFpSqrtRatio = exports.weierstrass = exports.weierstrassPoints = exports.DER = void 0;
@@ -2377,7 +2384,7 @@ define("@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts", ["require", "expor
     }
     exports.mapToCurveSimpleSWU = mapToCurveSimpleSWU;
 });
-define("@scom/scom-nostr-sdk/curves/abstract/hash-to-curve.ts", ["require", "exports", "@scom/scom-nostr-sdk/curves/abstract/modular.ts", "@scom/scom-nostr-sdk/curves/abstract/utils.ts"], function (require, exports, modular_2, utils_6) {
+define("@scom/scom-social-sdk/core/curves/abstract/hash-to-curve.ts", ["require", "exports", "@scom/scom-social-sdk/core/curves/abstract/modular.ts", "@scom/scom-social-sdk/core/curves/abstract/utils.ts"], function (require, exports, modular_2, utils_6) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.createHasher = exports.isogenyMap = exports.hash_to_field = exports.expand_message_xof = exports.expand_message_xmd = void 0;
@@ -2557,7 +2564,7 @@ define("@scom/scom-nostr-sdk/curves/abstract/hash-to-curve.ts", ["require", "exp
     }
     exports.createHasher = createHasher;
 });
-define("@scom/scom-nostr-sdk/hashes/hmac.ts", ["require", "exports", "@scom/scom-nostr-sdk/hashes/_assert.ts", "@scom/scom-nostr-sdk/hashes/utils.ts"], function (require, exports, _assert_2, utils_7) {
+define("@scom/scom-social-sdk/core/hashes/hmac.ts", ["require", "exports", "@scom/scom-social-sdk/core/hashes/_assert.ts", "@scom/scom-social-sdk/core/hashes/utils.ts"], function (require, exports, _assert_2, utils_7) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.hmac = exports.HMAC = void 0;
@@ -2638,7 +2645,7 @@ define("@scom/scom-nostr-sdk/hashes/hmac.ts", ["require", "exports", "@scom/scom
     exports.hmac = hmac;
     exports.hmac.create = (hash, key) => new HMAC(hash, key);
 });
-define("@scom/scom-nostr-sdk/curves/_shortw_utils.ts", ["require", "exports", "@scom/scom-nostr-sdk/hashes/hmac.ts", "@scom/scom-nostr-sdk/hashes/utils.ts", "@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts"], function (require, exports, hmac_1, utils_8, weierstrass_1) {
+define("@scom/scom-social-sdk/core/curves/_shortw_utils.ts", ["require", "exports", "@scom/scom-social-sdk/core/hashes/hmac.ts", "@scom/scom-social-sdk/core/hashes/utils.ts", "@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts"], function (require, exports, hmac_1, utils_8, weierstrass_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.createCurve = exports.getHash = void 0;
@@ -2657,7 +2664,7 @@ define("@scom/scom-nostr-sdk/curves/_shortw_utils.ts", ["require", "exports", "@
     }
     exports.createCurve = createCurve;
 });
-define("@scom/scom-nostr-sdk/curves/secp256k1.ts", ["require", "exports", "@scom/scom-nostr-sdk/hashes/sha256.ts", "@scom/scom-nostr-sdk/hashes/utils.ts", "@scom/scom-nostr-sdk/curves/abstract/modular.ts", "@scom/scom-nostr-sdk/curves/abstract/weierstrass.ts", "@scom/scom-nostr-sdk/curves/abstract/utils.ts", "@scom/scom-nostr-sdk/curves/abstract/hash-to-curve.ts", "@scom/scom-nostr-sdk/curves/_shortw_utils.ts"], function (require, exports, sha256_1, utils_9, modular_3, weierstrass_2, utils_10, hash_to_curve_1, _shortw_utils_1) {
+define("@scom/scom-social-sdk/core/curves/secp256k1.ts", ["require", "exports", "@scom/scom-social-sdk/core/hashes/sha256.ts", "@scom/scom-social-sdk/core/hashes/utils.ts", "@scom/scom-social-sdk/core/curves/abstract/modular.ts", "@scom/scom-social-sdk/core/curves/abstract/weierstrass.ts", "@scom/scom-social-sdk/core/curves/abstract/utils.ts", "@scom/scom-social-sdk/core/curves/abstract/hash-to-curve.ts", "@scom/scom-social-sdk/core/curves/_shortw_utils.ts"], function (require, exports, sha256_1, utils_9, modular_3, weierstrass_2, utils_10, hash_to_curve_1, _shortw_utils_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.schnorrGetExtPubKeyY = exports.encodeToCurve = exports.hashToCurve = exports.schnorr = exports.secp256k1 = void 0;
@@ -2913,10 +2920,10 @@ define("@scom/scom-nostr-sdk/curves/secp256k1.ts", ["require", "exports", "@scom
     }
     exports.schnorrGetExtPubKeyY = schnorrGetExtPubKeyY;
 });
-define("@scom/scom-nostr-sdk/nostr/keys.ts", ["require", "exports", "@scom/scom-nostr-sdk/curves/secp256k1.ts", "@scom/scom-nostr-sdk/hashes/utils.ts"], function (require, exports, secp256k1_1, utils_11) {
+define("@scom/scom-social-sdk/core/nostr/keys.ts", ["require", "exports", "@scom/scom-social-sdk/core/curves/secp256k1.ts", "@scom/scom-social-sdk/core/hashes/utils.ts"], function (require, exports, secp256k1_1, utils_11) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.getPublicKeyY = exports.getPublicKey = exports.generatePrivateKey = void 0;
+    exports.getSharedSecret = exports.getPublicKeyY = exports.getPublicKey = exports.generatePrivateKey = void 0;
     function generatePrivateKey() {
         return (0, utils_11.bytesToHex)(secp256k1_1.schnorr.utils.randomPrivateKey());
     }
@@ -2929,8 +2936,12 @@ define("@scom/scom-nostr-sdk/nostr/keys.ts", ["require", "exports", "@scom/scom-
         return (0, utils_11.bytesToHex)((0, secp256k1_1.schnorrGetExtPubKeyY)(privateKey));
     }
     exports.getPublicKeyY = getPublicKeyY;
+    function getSharedSecret(privateKey, publicKey) {
+        return (0, utils_11.bytesToHex)(secp256k1_1.secp256k1.getSharedSecret(privateKey, publicKey));
+    }
+    exports.getSharedSecret = getSharedSecret;
 });
-define("@scom/scom-nostr-sdk/nostr/event.ts", ["require", "exports", "@scom/scom-nostr-sdk/curves/secp256k1.ts", "@scom/scom-nostr-sdk/hashes/sha256.ts", "@scom/scom-nostr-sdk/hashes/utils.ts", "@scom/scom-nostr-sdk/nostr/keys.ts"], function (require, exports, secp256k1_2, sha256_2, utils_12, keys_1) {
+define("@scom/scom-social-sdk/core/nostr/event.ts", ["require", "exports", "@scom/scom-social-sdk/core/curves/secp256k1.ts", "@scom/scom-social-sdk/core/hashes/sha256.ts", "@scom/scom-social-sdk/core/hashes/utils.ts", "@scom/scom-social-sdk/core/nostr/keys.ts"], function (require, exports, secp256k1_2, sha256_2, utils_12, keys_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.getSignature = exports.signEvent = exports.verifySignature = exports.validateEvent = exports.getEventHash = exports.serializeEvent = exports.finishEvent = exports.getBlankEvent = exports.Kind = exports.verifiedSymbol = exports.utf8Encoder = void 0;
@@ -3053,11 +3064,11 @@ define("@scom/scom-nostr-sdk/nostr/event.ts", ["require", "exports", "@scom/scom
     }
     exports.getSignature = getSignature;
 });
-define("@scom/scom-nostr-sdk/bech32.ts", ["require", "exports"], function (require, exports) {
+define("@scom/scom-social-sdk/core/bech32.ts", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.bech32m = exports.bech32 = exports.assertNumber = void 0;
-    ///<amd-module name='@scom/scom-nostr-sdk/bech32.ts'/> 
+    ///<amd-module name='@scom/scom-social-sdk/core/bech32.ts'/> 
     // adopted from https://github.com/paulmillr/scure-base
     /**
      * @__NO_SIDE_EFFECTS__
@@ -3301,7 +3312,7 @@ define("@scom/scom-nostr-sdk/bech32.ts", ["require", "exports"], function (requi
     exports.bech32 = genBech32('bech32');
     exports.bech32m = genBech32('bech32m');
 });
-define("@scom/scom-nostr-sdk/nostr/nip19.ts", ["require", "exports", "@scom/scom-nostr-sdk/hashes/utils.ts", "@scom/scom-nostr-sdk/bech32.ts"], function (require, exports, utils_13, bech32_1) {
+define("@scom/scom-social-sdk/core/nostr/nip19.ts", ["require", "exports", "@scom/scom-social-sdk/core/hashes/utils.ts", "@scom/scom-social-sdk/core/bech32.ts"], function (require, exports, utils_13, bech32_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.nrelayEncode = exports.naddrEncode = exports.neventEncode = exports.nprofileEncode = exports.noteEncode = exports.npubEncode = exports.nsecEncode = exports.decode = exports.BECH32_REGEX = exports.utf8Encoder = exports.utf8Decoder = void 0;
@@ -3493,13 +3504,22 @@ define("@scom/scom-nostr-sdk/nostr/nip19.ts", ["require", "exports", "@scom/scom
         return (0, utils_13.concatBytes)(...entries);
     }
 });
-define("@scom/scom-nostr-sdk", ["require", "exports", "@scom/scom-nostr-sdk/nostr/event.ts", "@scom/scom-nostr-sdk/nostr/keys.ts", "@scom/scom-nostr-sdk/nostr/nip19.ts", "@scom/scom-nostr-sdk/bech32.ts"], function (require, exports, Event, Keys, Nip19, Bech32) {
+define("@scom/scom-social-sdk/core/index.ts", ["require", "exports", "@scom/scom-social-sdk/core/nostr/event.ts", "@scom/scom-social-sdk/core/nostr/keys.ts", "@scom/scom-social-sdk/core/nostr/nip19.ts", "@scom/scom-social-sdk/core/bech32.ts"], function (require, exports, Event, Keys, Nip19, Bech32) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Bech32 = exports.Nip19 = exports.Keys = exports.Event = void 0;
-    ///<amd-module name='@scom/scom-nostr-sdk'/> 
+    ///<amd-module name='@scom/scom-social-sdk/core/index.ts'/> 
     exports.Event = Event;
     exports.Keys = Keys;
     exports.Nip19 = Nip19;
     exports.Bech32 = Bech32;
+});
+define("@scom/scom-social-sdk", ["require", "exports", "@scom/scom-social-sdk/core/index.ts"], function (require, exports, index_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Bech32 = exports.Nip19 = exports.Keys = exports.Event = void 0;
+    Object.defineProperty(exports, "Event", { enumerable: true, get: function () { return index_1.Event; } });
+    Object.defineProperty(exports, "Keys", { enumerable: true, get: function () { return index_1.Keys; } });
+    Object.defineProperty(exports, "Nip19", { enumerable: true, get: function () { return index_1.Nip19; } });
+    Object.defineProperty(exports, "Bech32", { enumerable: true, get: function () { return index_1.Bech32; } });
 });

@@ -1,4 +1,6 @@
-export * as Event from "./nostr/event";
-export * as Keys from "./nostr/keys";
-export * as Nip19 from "./nostr/nip19";
-export * as Bech32 from "./bech32";
+export {
+    Event,
+    Keys,
+    Nip19,
+    Bech32
+} from './core/index'
