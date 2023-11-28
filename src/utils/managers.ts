@@ -176,7 +176,7 @@ class NostrCachedWebSocketManager extends NostrWebSocketManager {
     }
 }
 
-export class NostrEventManager {
+class NostrEventManager {
     private _relays: string[];
     private _cachedServer: string;
     private _websocketManager: NostrWebSocketManager;
@@ -575,6 +575,30 @@ export class NostrEventManager {
 
 }
 
+interface ISocialEventManager {
+    fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
+    fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
+    fetchProfileFeedCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    fetchHomeFeedCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
+    fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
+    fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<INostrEvent[]>;
+    fetchUserCommunities(pubKey: string): Promise<INostrEvent[]>;
+    fetchUserSubscribedCommunities(pubKey: string): Promise<INostrEvent[]>;
+    fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
+    fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
+    fetchNotes(options: IFetchNotesOptions): Promise<INostrEvent[]>;
+    fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
+    fetchReplies(options: IFetchRepliesOptions): Promise<INostrEvent[]>;
+    fetchFollowing(npubs: string[]): Promise<INostrEvent[]>;
+    postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
+    updateCommunity(info: ICommunityInfo, privateKey: string): Promise<void>;
+    updateUserCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
+    submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
+    submitNewAccount(content: INostrMetadataContent, privateKey: string): Promise<void>;
+}
+
 export {
-    INostrEvent
+    INostrEvent,
+    NostrEventManager,
+    ISocialEventManager
 }

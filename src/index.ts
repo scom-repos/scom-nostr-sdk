@@ -7,5 +7,6 @@ export {
 export {
     INostrMetadataContent,
     INostrEvent,
-    NostrEventManager
+    NostrEventManager,
+    ISocialEventManager
 } from './utils/index'
