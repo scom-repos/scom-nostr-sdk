@@ -1,16 +1,19 @@
-{    
+{ 
     "compilerOptions": {
-        "target": "ES2017",        
-        "moduleResolution": "Node",
-        "experimentalDecorators": true,        
-        "jsx": "preserve",      
-        "jsxFactory": "this.$render",
-        "jsxFragmentFactory": "this.$render",
-        "esModuleInterop": true,        
-        "forceConsistentCasingInFileNames": true,        
-        "declaration": false,        
+        "target": "es2017",
+        "module": "commonjs",
+        "esModuleInterop": true,
+        "removeComments": true,
+        "declarationDir": "types",
+        "declaration": true,
+        "outDir": "lib",
         "baseUrl": "."
     },
-    "include": ["src/**/*.ts","src/**/*.tsx"],
-    "exclude": ["node_modules"]
-}
+    "include": [
+      "src/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "test"
+    ]
+  }
