@@ -1,5 +1,5 @@
-import { Nip19, Event } from "../core/index";
-import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrMetadataContent } from "./interfaces";
+import { Nip19, Event, Keys } from "../core/index";
+import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrMetadataContent, IRetrieveCommunityPostKeysOptions } from "./interfaces";
 
 interface INostrEvent {
     id: string;  // 32-bytes lowercase hex-encoded sha256
@@ -27,9 +27,20 @@ interface IFetchRepliesOptions {
     decodedIds?: string[];
 }
 
+function determineWebSocketType() {
+	if (typeof window !== "undefined"){
+        return WebSocket;
+	}
+	else{
+        // @ts-ignore
+        let WebSocket = require('ws');
+        return WebSocket;
+	};
+};
+
 class NostrWebSocketManager {
     protected _url: string;
-    protected ws: WebSocket;
+    protected ws: any;
     protected requestCallbackMap: Record<string, (message: any) => void> = {};
 
     constructor(url) {
@@ -44,17 +55,6 @@ class NostrWebSocketManager {
         this._url = url;
     }
 
-    createWebSocket() {
-        if (typeof window === 'object') {
-            this.ws = new WebSocket(this._url);
-        }
-        else{
-            // @ts-ignore
-            let WebSocket = require('ws');
-            this.ws = new WebSocket(this._url);
-        }
-    }
-
     generateRandomNumber(): string {
         let randomNumber = '';
         for (let i = 0; i < 10; i++) {
@@ -64,6 +64,7 @@ class NostrWebSocketManager {
     }
 
     establishConnection(requestId: string, cb: (message: any) => void) {
+        const WebSocket = determineWebSocketType();
         this.requestCallbackMap[requestId] = cb;
         return new Promise<WebSocket>((resolve) => {
             const openListener = () => {
@@ -72,7 +73,7 @@ class NostrWebSocketManager {
                 resolve(this.ws);
             }
             if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
-                this.createWebSocket();
+                this.ws = new WebSocket(this._url);
                 this.ws.addEventListener('open', openListener);
                 this.ws.addEventListener('message', (event) => {
                     const messageStr = event.data.toString();
@@ -305,6 +306,17 @@ class NostrEventManager {
         };
         const events = await this._websocketManager.fetchWebSocketEvents(request);
         return events;
+    }
+
+    async fetchCommunity(creatorId: string, communityId: string) {
+        const decodedCreatorId = creatorId.startsWith('npub1') ? Nip19.decode(creatorId).data : creatorId;
+        let infoMsg: any = {
+            kinds: [34550],
+            authors: [decodedCreatorId],
+            "#d": [communityId]
+        };
+        const events = await this._websocketManager.fetchWebSocketEvents(infoMsg);
+        return events;        
     }
 
     async fetchCommunityFeed(creatorId: string, communityId: string) {
@@ -584,6 +596,7 @@ interface ISocialEventManager {
     fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<INostrEvent[]>;
     fetchUserCommunities(pubKey: string): Promise<INostrEvent[]>;
     fetchUserSubscribedCommunities(pubKey: string): Promise<INostrEvent[]>;
+    fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
     fetchNotes(options: IFetchNotesOptions): Promise<INostrEvent[]>;
@@ -597,8 +610,158 @@ interface ISocialEventManager {
     submitNewAccount(content: INostrMetadataContent, privateKey: string): Promise<void>;
 }
 
+class SocialDataManager {
+    private _socialEventManager: ISocialEventManager;
+
+    constructor(relays: string[], cachedServer: string) {
+        this._socialEventManager = new NostrEventManager(relays, cachedServer);
+    }
+
+    get socialEventManager() {
+        return this._socialEventManager;
+    }
+
+    hexStringToUint8Array(hexString: string): Uint8Array {
+        return new Uint8Array(hexString.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
+    }
+
+    base64ToUtf8(base64: string): string {
+        if (typeof window !== "undefined"){
+            return atob(base64);
+        }
+        else {
+            // @ts-ignore
+            return Buffer.from(base64, 'base64').toString('utf8');
+        }
+    }
+
+    async decryptMessage(ourPrivateKey: string, theirPublicKey: string, encryptedData: string): Promise<string> {
+        const [encryptedMessage, ivBase64] = encryptedData.split('?iv=');
+        
+        const sharedSecret = Keys.getSharedSecret(ourPrivateKey, '02' + theirPublicKey);
+        const sharedX = this.hexStringToUint8Array(sharedSecret.slice(2)); 
+        let decryptedMessage;
+        if (typeof window !== "undefined"){
+            const iv = Uint8Array.from(atob(ivBase64), c => c.charCodeAt(0));
+            const key = await crypto.subtle.importKey('raw', sharedX, { name: 'AES-CBC' }, false, ['decrypt']);
+            const decryptedBuffer = await crypto.subtle.decrypt({ name: 'AES-CBC', iv }, key, Uint8Array.from(atob(encryptedMessage), c => c.charCodeAt(0)));
+            decryptedMessage = new TextDecoder().decode(decryptedBuffer);
+        }
+        else {
+            // @ts-ignore
+            const crypto = require('crypto');
+            // @ts-ignore
+            const iv = Buffer.from(ivBase64, 'base64');
+            const decipher = crypto.createDecipheriv('aes-256-cbc', sharedX, iv);
+            // @ts-ignore
+            let decrypted = decipher.update(Buffer.from(encryptedMessage, 'base64'));
+            // @ts-ignore
+            decrypted = Buffer.concat([decrypted, decipher.final()]);
+            decryptedMessage = decrypted.toString('utf8');
+        }
+
+        return decryptedMessage;
+    }
+
+    extractCommunityInfo(event: INostrEvent) {
+        const communityId = event.tags.find(tag => tag[0] === 'd')?.[1];
+        const description = event.tags.find(tag => tag[0] === 'description')?.[1];
+        const image = event.tags.find(tag => tag[0] === 'image')?.[1];
+        const creatorId = Nip19.npubEncode(event.pubkey);
+        const moderatorIds = event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'moderator').map(tag => Nip19.npubEncode(tag[1]));
+        const scpTag = event.tags.find(tag => tag[0] === 'scp');
+        let scpData;
+        if (scpTag && scpTag[1] === '1') {
+            const scpDataStr = this.base64ToUtf8(scpTag[2]);
+            if (!scpDataStr.startsWith('$scp:')) return null;
+            scpData = JSON.parse(scpDataStr.substring(5));
+        }
+        const communityUri = `34550:${event.pubkey}:${communityId}`;
+        
+        return {
+            creatorId,
+            moderatorIds,
+            communityUri,
+            communityId,
+            description,
+            bannerImgUrl: image,
+            scpData,
+            eventData: event
+        }
+    }
+
+    async retrieveCommunityEvents(creatorId: string, communityId: string) {
+        const feedEvents = await this._socialEventManager.fetchCommunityFeed(creatorId, communityId);
+        const notes = feedEvents.filter(event => event.kind === 1);
+        const communityEvent = feedEvents.find(event => event.kind === 34550);
+        if (!communityEvent) throw new Error('No info event found');
+        const communityInfo = this.extractCommunityInfo(communityEvent);
+        if (!communityInfo) throw new Error('No info event found');
+
+        return {
+            notes,
+            info: communityInfo
+        }
+    }
+
+    extractPostScpData(noteEvent: INostrEvent) {
+        const scpTag = noteEvent.tags.find(tag => tag[0] === 'scp');
+        let scpData;
+        if (scpTag && scpTag[1] === '2') {
+            const scpDataStr = this.base64ToUtf8(scpTag[2]);
+            if (!scpDataStr.startsWith('$scp:')) return null;
+            scpData = JSON.parse(scpDataStr.substring(5));
+        }
+        return scpData;
+    }
+
+    async retrievePostPrivateKey(noteEvent: INostrEvent, communityUri: string, communityPrivateKey: string) {
+        let key: string | null = null;
+        let postScpData = this.extractPostScpData(noteEvent);
+        try {
+            const postPrivateKey = await this.decryptMessage(communityPrivateKey, noteEvent.pubkey, postScpData.encryptedKey);
+            const messageContentStr = await this.decryptMessage(postPrivateKey, noteEvent.pubkey, noteEvent.content);
+            const messageContent = JSON.parse(messageContentStr);
+            if (communityUri === messageContent.communityUri) {
+                key = postPrivateKey;
+            }
+        } 
+        catch (e) {
+            // console.error(e);
+        }
+        return key;
+    }
+
+    async retrieveCommunityPostKeys(options: IRetrieveCommunityPostKeysOptions) {
+        const communityEvents = await this.retrieveCommunityEvents(options.creatorId, options.communityId);
+        const communityInfo = communityEvents.info;
+        const notes = communityEvents.notes;
+        
+        let noteIdToPrivateKey: Record<string, string> = {};
+        if (options.privateKey) {
+            let communityPrivateKey = await this.decryptMessage(options.privateKey, communityInfo.eventData.pubkey, communityInfo.scpData.encryptedKey);
+            for (const note of notes) {
+                const postPrivateKey = await this.retrievePostPrivateKey(note, communityInfo.communityUri, communityPrivateKey);
+                if (postPrivateKey) {
+                    noteIdToPrivateKey[note.id] = postPrivateKey;
+                }
+            }
+        }
+        else if (options.gatekeeperUrl) {
+            let url = `${options.gatekeeperUrl}/api/communities/v0/post-keys?creatorId=${options.creatorId}&communityId=${options.communityId}`;
+            let response = await fetch(url);
+            let result = await response.json();
+            if (result.success) {
+                noteIdToPrivateKey = result.data;
+            }
+        }
+        return noteIdToPrivateKey;
+    }
+}
+
 export {
     INostrEvent,
     NostrEventManager,
-    ISocialEventManager
+    ISocialEventManager,
+    SocialDataManager
 }

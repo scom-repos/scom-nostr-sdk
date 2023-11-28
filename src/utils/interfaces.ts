@@ -53,3 +53,10 @@ export interface INewCommunityPostInfo {
 	conversationPath?: IConversationPath;
 	scpData?: ICommunityPostScpData;
 }
+
+export interface IRetrieveCommunityPostKeysOptions {
+	creatorId: string;
+	communityId: string; 
+	privateKey?: string;
+	gatekeeperUrl?: string;
+}

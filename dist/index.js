@@ -3527,7 +3527,19 @@ define("@scom/scom-social-sdk/utils/interfaces.ts", ["require", "exports"], func
 define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts"], function (require, exports, index_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.NostrEventManager = void 0;
+    exports.SocialDataManager = exports.NostrEventManager = void 0;
+    function determineWebSocketType() {
+        if (typeof window !== "undefined") {
+            return WebSocket;
+        }
+        else {
+            // @ts-ignore
+            let WebSocket = require('ws');
+            return WebSocket;
+        }
+        ;
+    }
+    ;
     class NostrWebSocketManager {
         constructor(url) {
             this.requestCallbackMap = {};
@@ -3539,16 +3551,6 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
         set url(url) {
             this._url = url;
         }
-        createWebSocket() {
-            if (typeof window === 'object') {
-                this.ws = new WebSocket(this._url);
-            }
-            else {
-                // @ts-ignore
-                let WebSocket = require('ws');
-                this.ws = new WebSocket(this._url);
-            }
-        }
         generateRandomNumber() {
             let randomNumber = '';
             for (let i = 0; i < 10; i++) {
@@ -3557,6 +3559,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             return randomNumber;
         }
         establishConnection(requestId, cb) {
+            const WebSocket = determineWebSocketType();
             this.requestCallbackMap[requestId] = cb;
             return new Promise((resolve) => {
                 const openListener = () => {
@@ -3565,7 +3568,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                     resolve(this.ws);
                 };
                 if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
-                    this.createWebSocket();
+                    this.ws = new WebSocket(this._url);
                     this.ws.addEventListener('open', openListener);
                     this.ws.addEventListener('message', (event) => {
                         const messageStr = event.data.toString();
@@ -3777,6 +3780,16 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                 authors: [decodedPubKey]
             };
             const events = await this._websocketManager.fetchWebSocketEvents(request);
+            return events;
+        }
+        async fetchCommunity(creatorId, communityId) {
+            const decodedCreatorId = creatorId.startsWith('npub1') ? index_1.Nip19.decode(creatorId).data : creatorId;
+            let infoMsg = {
+                kinds: [34550],
+                authors: [decodedCreatorId],
+                "#d": [communityId]
+            };
+            const events = await this._websocketManager.fetchWebSocketEvents(infoMsg);
             return events;
         }
         async fetchCommunityFeed(creatorId, communityId) {
@@ -4037,20 +4050,159 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
         }
     }
     exports.NostrEventManager = NostrEventManager;
+    class SocialDataManager {
+        constructor(relays, cachedServer) {
+            this._socialEventManager = new NostrEventManager(relays, cachedServer);
+        }
+        get socialEventManager() {
+            return this._socialEventManager;
+        }
+        hexStringToUint8Array(hexString) {
+            return new Uint8Array(hexString.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+        }
+        base64ToUtf8(base64) {
+            if (typeof window !== "undefined") {
+                return atob(base64);
+            }
+            else {
+                // @ts-ignore
+                return Buffer.from(base64, 'base64').toString('utf8');
+            }
+        }
+        async decryptMessage(ourPrivateKey, theirPublicKey, encryptedData) {
+            const [encryptedMessage, ivBase64] = encryptedData.split('?iv=');
+            const sharedSecret = index_1.Keys.getSharedSecret(ourPrivateKey, '02' + theirPublicKey);
+            const sharedX = this.hexStringToUint8Array(sharedSecret.slice(2));
+            let decryptedMessage;
+            if (typeof window !== "undefined") {
+                const iv = Uint8Array.from(atob(ivBase64), c => c.charCodeAt(0));
+                const key = await crypto.subtle.importKey('raw', sharedX, { name: 'AES-CBC' }, false, ['decrypt']);
+                const decryptedBuffer = await crypto.subtle.decrypt({ name: 'AES-CBC', iv }, key, Uint8Array.from(atob(encryptedMessage), c => c.charCodeAt(0)));
+                decryptedMessage = new TextDecoder().decode(decryptedBuffer);
+            }
+            else {
+                // @ts-ignore
+                const crypto = require('crypto');
+                // @ts-ignore
+                const iv = Buffer.from(ivBase64, 'base64');
+                const decipher = crypto.createDecipheriv('aes-256-cbc', sharedX, iv);
+                // @ts-ignore
+                let decrypted = decipher.update(Buffer.from(encryptedMessage, 'base64'));
+                // @ts-ignore
+                decrypted = Buffer.concat([decrypted, decipher.final()]);
+                decryptedMessage = decrypted.toString('utf8');
+            }
+            return decryptedMessage;
+        }
+        extractCommunityInfo(event) {
+            const communityId = event.tags.find(tag => tag[0] === 'd')?.[1];
+            const description = event.tags.find(tag => tag[0] === 'description')?.[1];
+            const image = event.tags.find(tag => tag[0] === 'image')?.[1];
+            const creatorId = index_1.Nip19.npubEncode(event.pubkey);
+            const moderatorIds = event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'moderator').map(tag => index_1.Nip19.npubEncode(tag[1]));
+            const scpTag = event.tags.find(tag => tag[0] === 'scp');
+            let scpData;
+            if (scpTag && scpTag[1] === '1') {
+                const scpDataStr = this.base64ToUtf8(scpTag[2]);
+                if (!scpDataStr.startsWith('$scp:'))
+                    return null;
+                scpData = JSON.parse(scpDataStr.substring(5));
+            }
+            const communityUri = `34550:${event.pubkey}:${communityId}`;
+            return {
+                creatorId,
+                moderatorIds,
+                communityUri,
+                communityId,
+                description,
+                bannerImgUrl: image,
+                scpData,
+                eventData: event
+            };
+        }
+        async retrieveCommunityEvents(creatorId, communityId) {
+            const feedEvents = await this._socialEventManager.fetchCommunityFeed(creatorId, communityId);
+            const notes = feedEvents.filter(event => event.kind === 1);
+            const communityEvent = feedEvents.find(event => event.kind === 34550);
+            if (!communityEvent)
+                throw new Error('No info event found');
+            const communityInfo = this.extractCommunityInfo(communityEvent);
+            if (!communityInfo)
+                throw new Error('No info event found');
+            return {
+                notes,
+                info: communityInfo
+            };
+        }
+        extractPostScpData(noteEvent) {
+            const scpTag = noteEvent.tags.find(tag => tag[0] === 'scp');
+            let scpData;
+            if (scpTag && scpTag[1] === '2') {
+                const scpDataStr = this.base64ToUtf8(scpTag[2]);
+                if (!scpDataStr.startsWith('$scp:'))
+                    return null;
+                scpData = JSON.parse(scpDataStr.substring(5));
+            }
+            return scpData;
+        }
+        async retrievePostPrivateKey(noteEvent, communityUri, communityPrivateKey) {
+            let key = null;
+            let postScpData = this.extractPostScpData(noteEvent);
+            try {
+                const postPrivateKey = await this.decryptMessage(communityPrivateKey, noteEvent.pubkey, postScpData.encryptedKey);
+                const messageContentStr = await this.decryptMessage(postPrivateKey, noteEvent.pubkey, noteEvent.content);
+                const messageContent = JSON.parse(messageContentStr);
+                if (communityUri === messageContent.communityUri) {
+                    key = postPrivateKey;
+                }
+            }
+            catch (e) {
+                // console.error(e);
+            }
+            return key;
+        }
+        async retrieveCommunityPostKeys(options) {
+            const communityEvents = await this.retrieveCommunityEvents(options.creatorId, options.communityId);
+            const communityInfo = communityEvents.info;
+            const notes = communityEvents.notes;
+            let noteIdToPrivateKey = {};
+            if (options.privateKey) {
+                let communityPrivateKey = await this.decryptMessage(options.privateKey, communityInfo.eventData.pubkey, communityInfo.scpData.encryptedKey);
+                for (const note of notes) {
+                    const postPrivateKey = await this.retrievePostPrivateKey(note, communityInfo.communityUri, communityPrivateKey);
+                    if (postPrivateKey) {
+                        noteIdToPrivateKey[note.id] = postPrivateKey;
+                    }
+                }
+            }
+            else if (options.gatekeeperUrl) {
+                let url = `${options.gatekeeperUrl}/api/communities/v0/post-keys?creatorId=${options.creatorId}&communityId=${options.communityId}`;
+                let response = await fetch(url);
+                let result = await response.json();
+                if (result.success) {
+                    noteIdToPrivateKey = result.data;
+                }
+            }
+            return noteIdToPrivateKey;
+        }
+    }
+    exports.SocialDataManager = SocialDataManager;
 });
 define("@scom/scom-social-sdk/utils/index.ts", ["require", "exports", "@scom/scom-social-sdk/utils/managers.ts"], function (require, exports, managers_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.NostrEventManager = void 0;
+    exports.SocialDataManager = exports.NostrEventManager = void 0;
     Object.defineProperty(exports, "NostrEventManager", { enumerable: true, get: function () { return managers_1.NostrEventManager; } });
+    Object.defineProperty(exports, "SocialDataManager", { enumerable: true, get: function () { return managers_1.SocialDataManager; } });
 });
 define("@scom/scom-social-sdk", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/index.ts"], function (require, exports, index_2, index_3) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.NostrEventManager = exports.Bech32 = exports.Nip19 = exports.Keys = exports.Event = void 0;
+    exports.SocialDataManager = exports.NostrEventManager = exports.Bech32 = exports.Nip19 = exports.Keys = exports.Event = void 0;
     Object.defineProperty(exports, "Event", { enumerable: true, get: function () { return index_2.Event; } });
     Object.defineProperty(exports, "Keys", { enumerable: true, get: function () { return index_2.Keys; } });
     Object.defineProperty(exports, "Nip19", { enumerable: true, get: function () { return index_2.Nip19; } });
     Object.defineProperty(exports, "Bech32", { enumerable: true, get: function () { return index_2.Bech32; } });
     Object.defineProperty(exports, "NostrEventManager", { enumerable: true, get: function () { return index_3.NostrEventManager; } });
+    Object.defineProperty(exports, "SocialDataManager", { enumerable: true, get: function () { return index_3.SocialDataManager; } });
 });

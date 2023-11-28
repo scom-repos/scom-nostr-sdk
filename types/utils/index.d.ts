@@ -1,2 +1,2 @@
 export { INostrMetadataContent } from "./interfaces";
-export { INostrEvent, NostrEventManager, ISocialEventManager } from './managers';
+export { INostrEvent, NostrEventManager, ISocialEventManager, SocialDataManager } from './managers';

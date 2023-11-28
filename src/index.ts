@@ -8,5 +8,6 @@ export {
     INostrMetadataContent,
     INostrEvent,
     NostrEventManager,
-    ISocialEventManager
+    ISocialEventManager,
+    SocialDataManager
 } from './utils/index'

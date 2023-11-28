@@ -1,4 +1,4 @@
-import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrMetadataContent } from "./interfaces";
+import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrMetadataContent, IRetrieveCommunityPostKeysOptions } from "./interfaces";
 interface INostrEvent {
     id: string;
     pubkey: string;
@@ -35,6 +35,7 @@ declare class NostrEventManager {
     fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<any>;
     fetchUserCommunities(pubKey: string): Promise<INostrEvent[]>;
     fetchUserSubscribedCommunities(pubKey: string): Promise<INostrEvent[]>;
+    fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
     fetchNotes(options: IFetchNotesOptions): Promise<INostrEvent[]>;
@@ -57,6 +58,7 @@ interface ISocialEventManager {
     fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<INostrEvent[]>;
     fetchUserCommunities(pubKey: string): Promise<INostrEvent[]>;
     fetchUserSubscribedCommunities(pubKey: string): Promise<INostrEvent[]>;
+    fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
     fetchNotes(options: IFetchNotesOptions): Promise<INostrEvent[]>;
@@ -69,4 +71,38 @@ interface ISocialEventManager {
     submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
     submitNewAccount(content: INostrMetadataContent, privateKey: string): Promise<void>;
 }
-export { INostrEvent, NostrEventManager, ISocialEventManager };
+declare class SocialDataManager {
+    private _socialEventManager;
+    constructor(relays: string[], cachedServer: string);
+    get socialEventManager(): ISocialEventManager;
+    hexStringToUint8Array(hexString: string): Uint8Array;
+    base64ToUtf8(base64: string): string;
+    decryptMessage(ourPrivateKey: string, theirPublicKey: string, encryptedData: string): Promise<string>;
+    extractCommunityInfo(event: INostrEvent): {
+        creatorId: `npub1${string}`;
+        moderatorIds: `npub1${string}`[];
+        communityUri: string;
+        communityId: string;
+        description: string;
+        bannerImgUrl: string;
+        scpData: any;
+        eventData: INostrEvent;
+    };
+    retrieveCommunityEvents(creatorId: string, communityId: string): Promise<{
+        notes: INostrEvent[];
+        info: {
+            creatorId: `npub1${string}`;
+            moderatorIds: `npub1${string}`[];
+            communityUri: string;
+            communityId: string;
+            description: string;
+            bannerImgUrl: string;
+            scpData: any;
+            eventData: INostrEvent;
+        };
+    }>;
+    extractPostScpData(noteEvent: INostrEvent): any;
+    retrievePostPrivateKey(noteEvent: INostrEvent, communityUri: string, communityPrivateKey: string): Promise<string>;
+    retrieveCommunityPostKeys(options: IRetrieveCommunityPostKeysOptions): Promise<Record<string, string>>;
+}
+export { INostrEvent, NostrEventManager, ISocialEventManager, SocialDataManager };

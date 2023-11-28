@@ -3,5 +3,6 @@ export { INostrMetadataContent } from "./interfaces";
 export {
     INostrEvent,
     NostrEventManager,
-    ISocialEventManager
+    ISocialEventManager,
+    SocialDataManager
 } from './managers'
