@@ -585,6 +585,51 @@ class NostrEventManager {
         await this._websocketManager.submitEvent(event, privateKey);
     }
 
+    async fetchMessageCountsCacheEvents(pubKey: string) {
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        let msg: any = {
+            user_pubkey: decodedPubKey,
+            relation: 'follows'
+        };
+        const followsEvents = await this._cachedWebsocketManager.fetchCachedEvents('get_directmsg_contacts', msg);
+        msg = {
+            user_pubkey: decodedPubKey,
+            relation: 'other'
+        };
+        const otherEvents = await this._cachedWebsocketManager.fetchCachedEvents('get_directmsg_contacts', msg);
+        return [...followsEvents, ...otherEvents];
+    }
+
+    async fetchOldMessage(pubKey: string, sender: string, until: number = 0) {
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        const decodedSenderPubKey = sender.startsWith('npub1') ? Nip19.decode(sender).data : sender;
+        const start = until === 0 ? 'since' : 'until';
+        const msg: any = {
+            receiver: decodedPubKey,
+            sender: decodedSenderPubKey,
+            limit: 20,
+            [start]: until
+        }
+        const events = await this._cachedWebsocketManager.fetchCachedEvents('get_directmsgs', msg);
+        return events;
+    }
+
+    async sendMessage(receiver: string, encryptedMessage: string, privateKey: string) {
+        const decodedPubKey = receiver.startsWith('npub1') ? Nip19.decode(receiver).data : receiver;
+        let event = {
+            "kind": 4,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": encryptedMessage,
+            "tags": [
+                [
+                    'p',
+                    decodedPubKey as string
+                ]
+            ]
+        }
+        await this._websocketManager.submitEvent(event, privateKey);
+    }
+
 }
 
 interface ISocialEventManager {
@@ -608,6 +653,9 @@ interface ISocialEventManager {
     updateUserCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
     submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
     submitNewAccount(content: INostrMetadataContent, privateKey: string): Promise<void>;
+    fetchMessageCountsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    fetchOldMessage(pubKey: string, sender: string, until?: number): Promise<INostrEvent[]>;
+    sendMessage(receiver: string, encryptedMessage: string, privateKey: string): Promise<void>;
 }
 
 class SocialDataManager {

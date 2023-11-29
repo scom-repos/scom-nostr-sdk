@@ -4048,6 +4048,48 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             };
             await this._websocketManager.submitEvent(event, privateKey);
         }
+        async fetchMessageCountsCacheEvents(pubKey) {
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
+            let msg = {
+                user_pubkey: decodedPubKey,
+                relation: 'follows'
+            };
+            const followsEvents = await this._cachedWebsocketManager.fetchCachedEvents('get_directmsg_contacts', msg);
+            msg = {
+                user_pubkey: decodedPubKey,
+                relation: 'other'
+            };
+            const otherEvents = await this._cachedWebsocketManager.fetchCachedEvents('get_directmsg_contacts', msg);
+            return [...followsEvents, ...otherEvents];
+        }
+        async fetchOldMessage(pubKey, sender, until = 0) {
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
+            const decodedSenderPubKey = sender.startsWith('npub1') ? index_1.Nip19.decode(sender).data : sender;
+            const start = until === 0 ? 'since' : 'until';
+            const msg = {
+                receiver: decodedPubKey,
+                sender: decodedSenderPubKey,
+                limit: 20,
+                [start]: until
+            };
+            const events = await this._cachedWebsocketManager.fetchCachedEvents('get_directmsgs', msg);
+            return events;
+        }
+        async sendMessage(receiver, encryptedMessage, privateKey) {
+            const decodedPubKey = receiver.startsWith('npub1') ? index_1.Nip19.decode(receiver).data : receiver;
+            let event = {
+                "kind": 4,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": encryptedMessage,
+                "tags": [
+                    [
+                        'p',
+                        decodedPubKey
+                    ]
+                ]
+            };
+            await this._websocketManager.submitEvent(event, privateKey);
+        }
     }
     exports.NostrEventManager = NostrEventManager;
     class SocialDataManager {
