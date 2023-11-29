@@ -1148,6 +1148,8 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         communityId: string;
         privateKey?: string;
         gatekeeperUrl?: string;
+        message?: string;
+        signature?: string;
     }
 }
 /// <amd-module name="@scom/scom-social-sdk/utils/managers.ts" />

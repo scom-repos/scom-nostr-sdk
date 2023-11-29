@@ -1,3 +1,9 @@
 {
-    "type":"widget"
+    "type":"contract",
+    "solidity": {
+        "version": "0.8.19",
+        "optimizerRuns": 999999,
+        "sourceDir": "contracts",
+        "outputDir": "src/contracts"
+    }
 }

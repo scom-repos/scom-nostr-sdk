@@ -4208,21 +4208,34 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             const communityInfo = communityEvents.info;
             const notes = communityEvents.notes;
             let noteIdToPrivateKey = {};
-            if (options.privateKey) {
-                let communityPrivateKey = await this.decryptMessage(options.privateKey, communityInfo.eventData.pubkey, communityInfo.scpData.encryptedKey);
+            if (options.gatekeeperUrl) {
+                let bodyData = {
+                    creatorId: options.creatorId,
+                    communityId: options.communityId,
+                    message: options.message,
+                    signature: options.signature
+                };
+                let url = `${options.gatekeeperUrl}/api/communities/v0/post-keys`;
+                let response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(bodyData)
+                });
+                let result = await response.json();
+                if (result.success) {
+                    noteIdToPrivateKey = result.data;
+                }
+            }
+            else if (options.privateKey) {
+                let communityPrivateKey = await this.decryptMessage(options.privateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
                 for (const note of notes) {
                     const postPrivateKey = await this.retrievePostPrivateKey(note, communityInfo.communityUri, communityPrivateKey);
                     if (postPrivateKey) {
                         noteIdToPrivateKey[note.id] = postPrivateKey;
                     }
-                }
-            }
-            else if (options.gatekeeperUrl) {
-                let url = `${options.gatekeeperUrl}/api/communities/v0/post-keys?creatorId=${options.creatorId}&communityId=${options.communityId}`;
-                let response = await fetch(url);
-                let result = await response.json();
-                if (result.success) {
-                    noteIdToPrivateKey = result.data;
                 }
             }
             return noteIdToPrivateKey;

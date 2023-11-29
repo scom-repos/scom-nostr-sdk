@@ -1,6 +1,6 @@
 {
     "name": "@scom/scom-social-sdk",
-    "type": "widget",
+    "type": "contract",
     "version": "0.1.0",
     "dependencies": []
 }

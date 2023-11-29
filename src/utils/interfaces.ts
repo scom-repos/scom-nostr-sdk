@@ -59,4 +59,6 @@ export interface IRetrieveCommunityPostKeysOptions {
 	communityId: string; 
 	privateKey?: string;
 	gatekeeperUrl?: string;
+	message?: string;
+	signature?: string;
 }
