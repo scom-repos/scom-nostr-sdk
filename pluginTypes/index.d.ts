@@ -1202,6 +1202,9 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         updateUserCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
         submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
         submitNewAccount(content: INostrMetadataContent, privateKey: string): Promise<void>;
+        fetchMessageCountsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+        fetchOldMessage(pubKey: string, sender: string, until?: number): Promise<INostrEvent[]>;
+        sendMessage(receiver: string, encryptedMessage: string, privateKey: string): Promise<void>;
     }
     interface ISocialEventManager {
         fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
@@ -1224,6 +1227,9 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         updateUserCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
         submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
         submitNewAccount(content: INostrMetadataContent, privateKey: string): Promise<void>;
+        fetchMessageCountsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+        fetchOldMessage(pubKey: string, sender: string, until?: number): Promise<INostrEvent[]>;
+        sendMessage(receiver: string, encryptedMessage: string, privateKey: string): Promise<void>;
     }
     class SocialDataManager {
         private _socialEventManager;
