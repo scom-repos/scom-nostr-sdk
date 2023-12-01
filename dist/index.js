@@ -4062,7 +4062,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             const otherEvents = await this._cachedWebsocketManager.fetchCachedEvents('get_directmsg_contacts', msg);
             return [...followsEvents, ...otherEvents];
         }
-        async fetchOldMessage(pubKey, sender, until = 0) {
+        async fetchOldMessages(pubKey, sender, until = 0) {
             const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
             const decodedSenderPubKey = sender.startsWith('npub1') ? index_1.Nip19.decode(sender).data : sender;
             const start = until === 0 ? 'since' : 'until';
@@ -4071,6 +4071,18 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                 sender: decodedSenderPubKey,
                 limit: 20,
                 [start]: until
+            };
+            const events = await this._cachedWebsocketManager.fetchCachedEvents('get_directmsgs', msg);
+            return events;
+        }
+        async fetchNewMessages(pubKey, sender, since = 0) {
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
+            const decodedSenderPubKey = sender.startsWith('npub1') ? index_1.Nip19.decode(sender).data : sender;
+            const msg = {
+                receiver: decodedPubKey,
+                sender: decodedSenderPubKey,
+                limit: 20,
+                since: since
             };
             const events = await this._cachedWebsocketManager.fetchCachedEvents('get_directmsgs', msg);
             return events;
@@ -4089,6 +4101,30 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                 ]
             };
             await this._websocketManager.submitEvent(event, privateKey);
+        }
+        async resetMessageCount(pubKey, sender, privateKey) {
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
+            const decodedSenderPubKey = sender.startsWith('npub1') ? index_1.Nip19.decode(sender).data : sender;
+            const createAt = Math.ceil(Date.now() / 1000);
+            let event = {
+                "content": JSON.stringify({ "description": `reset messages from '${decodedSenderPubKey}'` }),
+                "kind": 30078,
+                "tags": [
+                    [
+                        "d",
+                        "Scom Social"
+                    ]
+                ],
+                "created_at": createAt,
+                "pubkey": decodedPubKey
+            };
+            event.id = index_1.Event.getEventHash(event);
+            event.sig = index_1.Event.getSignature(event, privateKey);
+            const msg = {
+                event_from_user: event,
+                sender: decodedSenderPubKey
+            };
+            await this._cachedWebsocketManager.fetchCachedEvents('reset_directmsg_count', msg);
         }
     }
     exports.NostrEventManager = NostrEventManager;
