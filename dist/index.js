@@ -4147,6 +4147,29 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                 return Buffer.from(base64, 'base64').toString('utf8');
             }
         }
+        async encryptMessage(ourPrivateKey, theirPublicKey, text) {
+            const sharedSecret = index_1.Keys.getSharedSecret(ourPrivateKey, '02' + theirPublicKey);
+            const sharedX = this.hexStringToUint8Array(sharedSecret.slice(2));
+            let encryptedMessage;
+            let ivBase64;
+            if (typeof window !== "undefined") {
+                const iv = crypto.getRandomValues(new Uint8Array(16));
+                const key = await crypto.subtle.importKey('raw', sharedX, { name: 'AES-CBC' }, false, ['encrypt']);
+                const encryptedBuffer = await crypto.subtle.encrypt({ name: 'AES-CBC', iv }, key, new TextEncoder().encode(text));
+                encryptedMessage = btoa(String.fromCharCode(...new Uint8Array(encryptedBuffer)));
+                ivBase64 = btoa(String.fromCharCode(...iv));
+            }
+            else {
+                // @ts-ignore
+                const crypto = require('crypto');
+                const iv = crypto.randomBytes(16);
+                const cipher = crypto.createCipheriv('aes-256-cbc', sharedX, iv);
+                encryptedMessage = cipher.update(text, 'utf8', 'base64');
+                encryptedMessage += cipher.final('base64');
+                ivBase64 = iv.toString('base64');
+            }
+            return `${encryptedMessage}?iv=${ivBase64}`;
+        }
         async decryptMessage(ourPrivateKey, theirPublicKey, encryptedData) {
             const [encryptedMessage, ivBase64] = encryptedData.split('?iv=');
             const sharedSecret = index_1.Keys.getSharedSecret(ourPrivateKey, '02' + theirPublicKey);
@@ -4313,6 +4336,42 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             }
             return noteIdToPrivateKey;
         }
+        async retrieveCommunityThreadPostKeys(options) {
+            const communityInfo = options.communityInfo;
+            let noteIdToPrivateKey = {};
+            if (options.gatekeeperUrl) {
+                let bodyData = {
+                    creatorId: communityInfo.creatorId,
+                    communityId: communityInfo.communityId,
+                    focusedNoteId: options.focusedNoteId,
+                    message: options.message,
+                    signature: options.signature
+                };
+                let url = `${options.gatekeeperUrl}/api/communities/v0/post-keys`;
+                let response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(bodyData)
+                });
+                let result = await response.json();
+                if (result.success) {
+                    noteIdToPrivateKey = result.data;
+                }
+            }
+            else if (options.privateKey) {
+                let communityPrivateKey = await this.decryptMessage(options.privateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
+                for (const note of options.noteEvents) {
+                    const postPrivateKey = await this.retrievePostPrivateKey(note, communityInfo.communityUri, communityPrivateKey);
+                    if (postPrivateKey) {
+                        noteIdToPrivateKey[note.id] = postPrivateKey;
+                    }
+                }
+            }
+            return noteIdToPrivateKey;
+        }
         async constructMetadataByPubKeyMap(notes) {
             let mentionAuthorSet = new Set();
             for (let i = 0; i < notes.length; i++) {
@@ -4336,7 +4395,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             }, {});
             return metadataByPubKeyMap;
         }
-        async fetchThreadNotesInfo(id, fetchFromCache = true) {
+        async fetchThreadNotesInfo(focusedNoteId, fetchFromCache = true) {
             let focusedNote;
             let ancestorNotes = [];
             let replies = [];
@@ -4345,9 +4404,9 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             let quotedNotesMap = {};
             let relevantNotes = [];
             //Ancestor posts -> Focused post -> Child replies
+            let decodedFocusedNoteId = focusedNoteId.startsWith('note1') ? index_1.Nip19.decode(focusedNoteId).data : focusedNoteId;
             if (fetchFromCache) {
-                let decodedId = index_1.Nip19.decode(id).data;
-                const threadEvents = await this._socialEventManager.fetchThreadCacheEvents(decodedId);
+                const threadEvents = await this._socialEventManager.fetchThreadCacheEvents(decodedFocusedNoteId);
                 for (let threadEvent of threadEvents) {
                     if (threadEvent.kind === 0) {
                         metadataByPubKeyMap[threadEvent.pubkey] = {
@@ -4356,10 +4415,10 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                         };
                     }
                     else if (threadEvent.kind === 1) {
-                        if (threadEvent.id === decodedId) {
+                        if (threadEvent.id === decodedFocusedNoteId) {
                             focusedNote = threadEvent;
                         }
-                        else if (threadEvent.tags.some(tag => tag[0] === 'e' && tag[1] === decodedId)) {
+                        else if (threadEvent.tags.some(tag => tag[0] === 'e' && tag[1] === decodedFocusedNoteId)) {
                             replies.push(threadEvent);
                         }
                         else {
@@ -4379,7 +4438,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             }
             else {
                 const focusedNotes = await this._socialEventManager.fetchNotes({
-                    ids: [id]
+                    ids: [focusedNoteId]
                 });
                 if (focusedNotes.length === 0)
                     return null;
@@ -4390,7 +4449,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                         decodedIds: ancestorDecodedIds
                     });
                 }
-                childReplyEventTagIds = [...ancestorDecodedIds, index_1.Nip19.decode(id).data];
+                childReplyEventTagIds = [...ancestorDecodedIds, decodedFocusedNoteId];
                 replies = await this._socialEventManager.fetchReplies({
                     decodedIds: childReplyEventTagIds
                 });
