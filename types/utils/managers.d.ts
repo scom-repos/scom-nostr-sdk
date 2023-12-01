@@ -40,8 +40,10 @@ declare class NostrEventManager {
     submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
     submitNewAccount(content: INostrMetadataContent, privateKey: string): Promise<void>;
     fetchMessageCountsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
-    fetchOldMessage(pubKey: string, sender: string, until?: number): Promise<INostrEvent[]>;
+    fetchOldMessages(pubKey: string, sender: string, until?: number): Promise<INostrEvent[]>;
+    fetchNewMessages(pubKey: string, sender: string, since?: number): Promise<INostrEvent[]>;
     sendMessage(receiver: string, encryptedMessage: string, privateKey: string): Promise<void>;
+    resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
 }
 interface ISocialEventManager {
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
@@ -65,8 +67,10 @@ interface ISocialEventManager {
     submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
     submitNewAccount(content: INostrMetadataContent, privateKey: string): Promise<void>;
     fetchMessageCountsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
-    fetchOldMessage(pubKey: string, sender: string, until?: number): Promise<INostrEvent[]>;
+    fetchOldMessages(pubKey: string, sender: string, until?: number): Promise<INostrEvent[]>;
+    fetchNewMessages(pubKey: string, sender: string, since?: number): Promise<INostrEvent[]>;
     sendMessage(receiver: string, encryptedMessage: string, privateKey: string): Promise<void>;
+    resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
 }
 declare class SocialDataManager {
     private _socialEventManager;

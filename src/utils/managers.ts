@@ -590,7 +590,7 @@ class NostrEventManager {
         return [...followsEvents, ...otherEvents];
     }
 
-    async fetchOldMessage(pubKey: string, sender: string, until: number = 0) {
+    async fetchOldMessages(pubKey: string, sender: string, until: number = 0) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
         const decodedSenderPubKey = sender.startsWith('npub1') ? Nip19.decode(sender).data : sender;
         const start = until === 0 ? 'since' : 'until';
@@ -599,6 +599,19 @@ class NostrEventManager {
             sender: decodedSenderPubKey,
             limit: 20,
             [start]: until
+        }
+        const events = await this._cachedWebsocketManager.fetchCachedEvents('get_directmsgs', msg);
+        return events;
+    }
+
+    async fetchNewMessages(pubKey: string, sender: string, since: number = 0) {
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        const decodedSenderPubKey = sender.startsWith('npub1') ? Nip19.decode(sender).data : sender;
+        const msg: any = {
+            receiver: decodedPubKey,
+            sender: decodedSenderPubKey,
+            limit: 20,
+            since: since
         }
         const events = await this._cachedWebsocketManager.fetchCachedEvents('get_directmsgs', msg);
         return events;
@@ -618,6 +631,31 @@ class NostrEventManager {
             ]
         }
         await this._websocketManager.submitEvent(event, privateKey);
+    }
+
+    async resetMessageCount(pubKey: string, sender: string, privateKey: string) {
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data as string : pubKey;
+        const decodedSenderPubKey = sender.startsWith('npub1') ? Nip19.decode(sender).data : sender;
+        const createAt = Math.ceil(Date.now() / 1000);
+        let event: any = {
+            "content": JSON.stringify({ "description": `reset messages from '${decodedSenderPubKey}'`}),
+            "kind": 30078,
+            "tags": [
+                [
+                    "d",
+                    "Scom Social"
+                ]
+            ],
+            "created_at": createAt,
+            "pubkey": decodedPubKey
+        };
+        event.id = Event.getEventHash(event);
+        event.sig = Event.getSignature(event, privateKey);
+        const msg: any = {
+            event_from_user: event,
+            sender: decodedSenderPubKey
+        };
+        await this._cachedWebsocketManager.fetchCachedEvents('reset_directmsg_count', msg);
     }
 
 }
@@ -644,8 +682,10 @@ interface ISocialEventManager {
     submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
     submitNewAccount(content: INostrMetadataContent, privateKey: string): Promise<void>;
     fetchMessageCountsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
-    fetchOldMessage(pubKey: string, sender: string, until?: number): Promise<INostrEvent[]>;
+    fetchOldMessages(pubKey: string, sender: string, until?: number): Promise<INostrEvent[]>;
+    fetchNewMessages(pubKey: string, sender: string, since?: number): Promise<INostrEvent[]>;
     sendMessage(receiver: string, encryptedMessage: string, privateKey: string): Promise<void>;
+    resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
 }
 
 class SocialDataManager {
