@@ -84,3 +84,13 @@ export interface IRetrieveCommunityPostKeysOptions {
 	message?: string;
 	signature?: string;
 }
+
+export interface IRetrieveCommunityThreadPostKeysOptions {
+	communityInfo: ICommunityInfo;
+	noteEvents: INostrEvent[];
+	focusedNoteId: string;
+	privateKey?: string;
+	gatekeeperUrl?: string;
+	message?: string;
+	signature?: string;
+}

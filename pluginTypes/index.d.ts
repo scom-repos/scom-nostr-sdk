@@ -1171,10 +1171,19 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         message?: string;
         signature?: string;
     }
+    export interface IRetrieveCommunityThreadPostKeysOptions {
+        communityInfo: ICommunityInfo;
+        noteEvents: INostrEvent[];
+        focusedNoteId: string;
+        privateKey?: string;
+        gatekeeperUrl?: string;
+        message?: string;
+        signature?: string;
+    }
 }
 /// <amd-module name="@scom/scom-social-sdk/utils/managers.ts" />
 declare module "@scom/scom-social-sdk/utils/managers.ts" {
-    import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, IRetrieveCommunityPostKeysOptions } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions } from "@scom/scom-social-sdk/utils/interfaces.ts";
     interface IFetchNotesOptions {
         authors?: string[];
         ids?: string[];
@@ -1250,6 +1259,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         get socialEventManager(): ISocialEventManager;
         hexStringToUint8Array(hexString: string): Uint8Array;
         base64ToUtf8(base64: string): string;
+        encryptMessage(ourPrivateKey: string, theirPublicKey: string, text: string): Promise<string>;
         decryptMessage(ourPrivateKey: string, theirPublicKey: string, encryptedData: string): Promise<string>;
         extractCommunityInfo(event: INostrEvent): ICommunityInfo;
         retrieveCommunityEvents(creatorId: string, communityId: string): Promise<{
@@ -1260,8 +1270,9 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         extractPostScpData(noteEvent: INostrEvent): any;
         retrievePostPrivateKey(noteEvent: INostrEvent, communityUri: string, communityPrivateKey: string): Promise<string>;
         retrieveCommunityPostKeys(options: IRetrieveCommunityPostKeysOptions): Promise<Record<string, string>>;
+        retrieveCommunityThreadPostKeys(options: IRetrieveCommunityThreadPostKeysOptions): Promise<Record<string, string>>;
         constructMetadataByPubKeyMap(notes: INostrEvent[]): Promise<Record<string, INostrMetadata>>;
-        fetchThreadNotesInfo(id: string, fetchFromCache?: boolean): Promise<{
+        fetchThreadNotesInfo(focusedNoteId: string, fetchFromCache?: boolean): Promise<{
             focusedNote: INostrEvent;
             ancestorNotes: INostrEvent[];
             replies: INostrEvent[];
