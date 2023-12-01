@@ -1,3 +1,13 @@
+export interface INostrEvent {
+    id: string;  // 32-bytes lowercase hex-encoded sha256
+    pubkey: string;  // 32-bytes lowercase hex-encoded public key
+    created_at: number;  // Unix timestamp in seconds
+    kind: number;  // Integer between 0 and 65535
+    tags: string[][];  // Array of arrays of arbitrary strings
+    content: string;  // Arbitrary string
+    sig: string;  // 64-bytes lowercase hex of signature
+}
+
 export interface INostrMetadataContent {
     name: string;
     display_name: string;
@@ -7,6 +17,16 @@ export interface INostrMetadataContent {
     banner?: string;
     lud16?: string;
     nip05?: string;
+}
+
+export interface INostrMetadata {
+    id: string;
+    pubkey: string;
+    created_at: number;
+    kind: number;
+    tags: string[][];
+    sig: string;
+    content: INostrMetadataContent;
 }
 
 export enum NftType {
@@ -30,12 +50,14 @@ export interface ICommunityBasicInfo {
 }
 
 export interface ICommunityInfo extends ICommunityBasicInfo {
+	communityUri: string;
 	description?: string;
 	rules?: string;
 	bannerImgUrl?: string;
 	gatekeeperNpub?: string;
 	scpData?: ICommunityScpData;
 	moderatorIds?: string[];
+	eventData?: INostrEvent;
 }
 
 export interface IConversationPath {

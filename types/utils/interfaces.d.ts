@@ -1,3 +1,12 @@
+export interface INostrEvent {
+    id: string;
+    pubkey: string;
+    created_at: number;
+    kind: number;
+    tags: string[][];
+    content: string;
+    sig: string;
+}
 export interface INostrMetadataContent {
     name: string;
     display_name: string;
@@ -7,6 +16,15 @@ export interface INostrMetadataContent {
     banner?: string;
     lud16?: string;
     nip05?: string;
+}
+export interface INostrMetadata {
+    id: string;
+    pubkey: string;
+    created_at: number;
+    kind: number;
+    tags: string[][];
+    sig: string;
+    content: INostrMetadataContent;
 }
 export declare enum NftType {
     ERC721 = "ERC721",
@@ -26,12 +44,14 @@ export interface ICommunityBasicInfo {
     communityId: string;
 }
 export interface ICommunityInfo extends ICommunityBasicInfo {
+    communityUri: string;
     description?: string;
     rules?: string;
     bannerImgUrl?: string;
     gatekeeperNpub?: string;
     scpData?: ICommunityScpData;
     moderatorIds?: string[];
+    eventData?: INostrEvent;
 }
 export interface IConversationPath {
     noteIds: string[];

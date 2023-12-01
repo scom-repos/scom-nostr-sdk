@@ -1,13 +1,4 @@
-import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrMetadataContent, IRetrieveCommunityPostKeysOptions } from "./interfaces";
-interface INostrEvent {
-    id: string;
-    pubkey: string;
-    created_at: number;
-    kind: number;
-    tags: string[][];
-    content: string;
-    sig: string;
-}
+import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, IRetrieveCommunityPostKeysOptions } from "./interfaces";
 interface IFetchNotesOptions {
     authors?: string[];
     ids?: string[];
@@ -84,31 +75,24 @@ declare class SocialDataManager {
     hexStringToUint8Array(hexString: string): Uint8Array;
     base64ToUtf8(base64: string): string;
     decryptMessage(ourPrivateKey: string, theirPublicKey: string, encryptedData: string): Promise<string>;
-    extractCommunityInfo(event: INostrEvent): {
-        creatorId: `npub1${string}`;
-        moderatorIds: `npub1${string}`[];
-        communityUri: string;
-        communityId: string;
-        description: string;
-        bannerImgUrl: string;
-        scpData: any;
-        eventData: INostrEvent;
-    };
+    extractCommunityInfo(event: INostrEvent): ICommunityInfo;
     retrieveCommunityEvents(creatorId: string, communityId: string): Promise<{
         notes: INostrEvent[];
-        info: {
-            creatorId: `npub1${string}`;
-            moderatorIds: `npub1${string}`[];
-            communityUri: string;
-            communityId: string;
-            description: string;
-            bannerImgUrl: string;
-            scpData: any;
-            eventData: INostrEvent;
-        };
+        info: ICommunityInfo;
     }>;
+    retrieveCommunityUri(noteEvent: INostrEvent, scpData: any): Promise<string>;
     extractPostScpData(noteEvent: INostrEvent): any;
     retrievePostPrivateKey(noteEvent: INostrEvent, communityUri: string, communityPrivateKey: string): Promise<string>;
     retrieveCommunityPostKeys(options: IRetrieveCommunityPostKeysOptions): Promise<Record<string, string>>;
+    constructMetadataByPubKeyMap(notes: INostrEvent[]): Promise<Record<string, INostrMetadata>>;
+    fetchThreadNotesInfo(id: string, fetchFromCache?: boolean): Promise<{
+        focusedNote: INostrEvent;
+        ancestorNotes: INostrEvent[];
+        replies: INostrEvent[];
+        metadataByPubKeyMap: Record<string, INostrMetadata>;
+        quotedNotesMap: Record<string, INostrEvent>;
+        childReplyEventTagIds: string[];
+        communityInfo: ICommunityInfo;
+    }>;
 }
-export { INostrEvent, NostrEventManager, ISocialEventManager, SocialDataManager };
+export { NostrEventManager, ISocialEventManager, SocialDataManager };

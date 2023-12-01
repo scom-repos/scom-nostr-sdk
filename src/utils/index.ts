@@ -1,7 +1,6 @@
-export { INostrMetadataContent } from "./interfaces";
+export { INostrMetadataContent, INostrEvent, ICommunityInfo } from "./interfaces";
 
 export {
-    INostrEvent,
     NostrEventManager,
     ISocialEventManager,
     SocialDataManager

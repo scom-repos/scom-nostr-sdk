@@ -1,15 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrMetadataContent, IRetrieveCommunityPostKeysOptions } from "./interfaces";
-
-interface INostrEvent {
-    id: string;  // 32-bytes lowercase hex-encoded sha256
-    pubkey: string;  // 32-bytes lowercase hex-encoded public key
-    created_at: number;  // Unix timestamp in seconds
-    kind: number;  // Integer between 0 and 65535
-    tags: string[][];  // Array of arrays of arbitrary strings
-    content: string;  // Arbitrary string
-    sig: string;  // 64-bytes lowercase hex of signature
-}
+import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, IRetrieveCommunityPostKeysOptions } from "./interfaces";
 
 interface IFetchNotesOptions {
     authors?: string[];
@@ -357,7 +347,7 @@ class NostrEventManager {
             decodedIds = options.decodedIds;
         }
         else {
-            decodedIds = options.ids?.map(id => Nip19.decode(id).data);
+            decodedIds = options.ids?.map(id => id.startsWith('note1') ? Nip19.decode(id).data : id);
         }
         let msg: any = {
             kinds: [1],
@@ -391,7 +381,7 @@ class NostrEventManager {
             decodedNoteIds = options.decodedIds;
         }
         else {
-            decodedNoteIds = options.noteIds.map(id => Nip19.decode(id).data);
+            decodedNoteIds = options.noteIds?.map(id => id.startsWith('note1') ? Nip19.decode(id).data : id);
         }
         const msg = {
             "#e": decodedNoteIds,
@@ -719,14 +709,18 @@ class SocialDataManager {
         const moderatorIds = event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'moderator').map(tag => Nip19.npubEncode(tag[1]));
         const scpTag = event.tags.find(tag => tag[0] === 'scp');
         let scpData;
+        let gatekeeperNpub;
         if (scpTag && scpTag[1] === '1') {
             const scpDataStr = this.base64ToUtf8(scpTag[2]);
             if (!scpDataStr.startsWith('$scp:')) return null;
             scpData = JSON.parse(scpDataStr.substring(5));
+            if (scpData.gatekeeperPublicKey) {
+                gatekeeperNpub = Nip19.npubEncode(scpData.gatekeeperPublicKey);
+            }
         }
         const communityUri = `34550:${event.pubkey}:${communityId}`;
         
-        return {
+        let communityInfo: ICommunityInfo = {
             creatorId,
             moderatorIds,
             communityUri,
@@ -734,8 +728,11 @@ class SocialDataManager {
             description,
             bannerImgUrl: image,
             scpData,
-            eventData: event
+            eventData: event,
+            gatekeeperNpub
         }
+
+        return communityInfo;
     }
 
     async retrieveCommunityEvents(creatorId: string, communityId: string) {
@@ -750,6 +747,38 @@ class SocialDataManager {
             notes,
             info: communityInfo
         }
+    }
+
+    async retrieveCommunityUri(noteEvent: INostrEvent, scpData: any) {
+        const extractCommunityUri = (noteEvent: INostrEvent) => {
+            let communityUri: string | null = null;
+            if (scpData?.communityUri) {
+                communityUri = scpData.communityUri;    
+            }
+            else {
+                const replaceableTag = noteEvent.tags.find(tag => tag[0] === 'a');
+                if (replaceableTag) {
+                    const replaceableTagArr = replaceableTag[1].split(':');
+                    if (replaceableTagArr[0] === '34550') {
+                        communityUri = replaceableTag[1];
+                    }
+                }
+            }
+            return communityUri;
+        }
+        let communityUri = extractCommunityUri(noteEvent);
+        // if (!communityUri) {
+        //     const eventTag = noteEvent.tags.find(tag => tag[0] === 'e' && tag?.[3] === 'root');
+        //     if (eventTag) {
+        //         const eventId = eventTag[1];
+        //         const rootNotes = await this._socialEventManager.fetchNotes({
+        //             ids: [eventId]
+        //         });
+        //         const rootNote = rootNotes[0];
+        //         communityUri = extractCommunityUri(rootNote);
+        //     }           
+        // }
+        return communityUri;
     }
 
     extractPostScpData(noteEvent: INostrEvent) {
@@ -781,10 +810,6 @@ class SocialDataManager {
     }
 
     async retrieveCommunityPostKeys(options: IRetrieveCommunityPostKeysOptions) {
-        const communityEvents = await this.retrieveCommunityEvents(options.creatorId, options.communityId);
-        const communityInfo = communityEvents.info;
-        const notes = communityEvents.notes;
-        
         let noteIdToPrivateKey: Record<string, string> = {};
         if (options.gatekeeperUrl) {
             let bodyData = {
@@ -808,6 +833,9 @@ class SocialDataManager {
             }
         }
         else if (options.privateKey) {
+            const communityEvents = await this.retrieveCommunityEvents(options.creatorId, options.communityId);
+            const communityInfo = communityEvents.info;
+            const notes = communityEvents.notes;    
             let communityPrivateKey = await this.decryptMessage(options.privateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
             for (const note of notes) {
                 const postPrivateKey = await this.retrievePostPrivateKey(note, communityInfo.communityUri, communityPrivateKey);
@@ -818,10 +846,123 @@ class SocialDataManager {
         }
         return noteIdToPrivateKey;
     }
+
+    async constructMetadataByPubKeyMap(notes: INostrEvent[]) {
+        let mentionAuthorSet = new Set();
+        for (let i = 0; i < notes.length; i++) {
+            const mentionTags = notes[i].tags.filter(tag => tag[0] === 'p' && tag[1] !== notes[i].pubkey)?.map(tag => tag[1]) || [];
+            if (mentionTags.length) {
+                mentionTags.forEach(tag => mentionAuthorSet.add(tag));
+            }
+        }
+        const uniqueKeys = Array.from(mentionAuthorSet) as string[];
+        const npubs = notes.map(note => note.pubkey).filter((value, index, self) => self.indexOf(value) === index);
+        const metadata = await this._socialEventManager.fetchMetadata({
+            decodedAuthors: [...npubs, ...uniqueKeys]
+        });
+    
+        const metadataByPubKeyMap: Record<string, INostrMetadata> = metadata.reduce((acc, cur) => {
+            const content = JSON.parse(cur.content);
+            acc[cur.pubkey] = {
+                ...cur,
+                content
+            };
+            return acc;
+        }, {});
+        return metadataByPubKeyMap;
+    }
+
+    async fetchThreadNotesInfo(id: string, fetchFromCache: boolean = true) {
+        let focusedNote: INostrEvent;
+        let ancestorNotes: INostrEvent[] = [];
+        let replies: INostrEvent[] = [];
+        let metadataByPubKeyMap: Record<string, INostrMetadata> = {};
+        let childReplyEventTagIds: string[] = [];
+        let quotedNotesMap: Record<string, INostrEvent> = {};
+        let relevantNotes: INostrEvent[] = [];
+        //Ancestor posts -> Focused post -> Child replies
+        if (fetchFromCache) {
+            let decodedId = Nip19.decode(id).data as string;
+            const threadEvents = await this._socialEventManager.fetchThreadCacheEvents(decodedId);
+    
+            for (let threadEvent of threadEvents) {
+                if (threadEvent.kind === 0) {
+                    metadataByPubKeyMap[threadEvent.pubkey] = {
+                        ...threadEvent,
+                        content: JSON.parse(threadEvent.content)
+                    };
+                }
+                else if (threadEvent.kind === 1) {
+                    if (threadEvent.id === decodedId) {
+                        focusedNote = threadEvent;
+                    }
+                    else if (threadEvent.tags.some(tag => tag[0] === 'e' && tag[1] === decodedId)) {
+                        replies.push(threadEvent);
+                    }
+                    else {
+                        ancestorNotes.push(threadEvent);
+                    }
+                }
+                else if (threadEvent.kind === 10000107) {
+                    const note = JSON.parse(threadEvent.content) as INostrEvent;
+                    quotedNotesMap[note.id] = note;
+                } 
+            }
+            relevantNotes = [
+                ...ancestorNotes,
+                focusedNote,
+                ...replies
+            ];
+        }
+        else {
+            const focusedNotes = await this._socialEventManager.fetchNotes({
+                ids: [id]
+            });
+            if (focusedNotes.length === 0) return null;
+            focusedNote = focusedNotes[0];
+            const ancestorDecodedIds = focusedNote.tags.filter(tag => tag[0] === 'e')?.map(tag => tag[1]) || [];
+            if (ancestorDecodedIds.length > 0) {
+                ancestorNotes = await this._socialEventManager.fetchNotes({
+                    decodedIds: ancestorDecodedIds
+                });
+            }
+            childReplyEventTagIds = [...ancestorDecodedIds, Nip19.decode(id).data as string];
+            replies = await this._socialEventManager.fetchReplies({
+                decodedIds: childReplyEventTagIds
+            });
+            relevantNotes = [
+                ...ancestorNotes,
+                focusedNote,
+                ...replies
+            ]
+            metadataByPubKeyMap = await this.constructMetadataByPubKeyMap(relevantNotes);
+        }
+        let communityInfo: ICommunityInfo | null = null;
+        let scpData = this.extractPostScpData(focusedNote);
+        if (scpData) {
+            const communityUri = await this.retrieveCommunityUri(focusedNote, scpData);
+            if (communityUri) {
+                const creatorId = communityUri.split(':')[1];
+                const communityId = communityUri.split(':')[2];
+                const communityEvents = await this._socialEventManager.fetchCommunity(creatorId, communityId);
+                const communityEvent = communityEvents.find(event => event.kind === 34550);
+                if(!communityEvent) throw new Error('No info event found');
+                communityInfo = this.extractCommunityInfo(communityEvent);
+            }
+        }
+        return {
+            focusedNote,
+            ancestorNotes,
+            replies,
+            metadataByPubKeyMap,
+            quotedNotesMap,
+            childReplyEventTagIds,
+            communityInfo
+        };
+    }
 }
 
 export {
-    INostrEvent,
     NostrEventManager,
     ISocialEventManager,
     SocialDataManager
