@@ -4039,7 +4039,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             console.log('submitCommunityPost', event);
             await this._websocketManager.submitEvent(event, privateKey);
         }
-        async submitNewAccount(content, privateKey) {
+        async updateUserProfile(content, privateKey) {
             let event = {
                 "kind": 0,
                 "created_at": Math.round(Date.now() / 1000),

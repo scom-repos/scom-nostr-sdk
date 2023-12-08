@@ -565,7 +565,7 @@ class NostrEventManager {
         await this._websocketManager.submitEvent(event, privateKey);
     }
 
-    async submitNewAccount(content: INostrMetadataContent, privateKey: string) {
+    async updateUserProfile(content: INostrMetadataContent, privateKey: string) {
         let event = {
             "kind": 0,
             "created_at": Math.round(Date.now() / 1000),
@@ -680,7 +680,7 @@ interface ISocialEventManager {
     updateCommunity(info: ICommunityInfo, privateKey: string): Promise<void>;
     updateUserCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
     submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
-    submitNewAccount(content: INostrMetadataContent, privateKey: string): Promise<void>;
+    updateUserProfile(content: INostrMetadataContent, privateKey: string): Promise<void>;
     fetchMessageCountsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchOldMessages(pubKey: string, sender: string, until?: number): Promise<INostrEvent[]>;
     fetchNewMessages(pubKey: string, sender: string, since?: number): Promise<INostrEvent[]>;

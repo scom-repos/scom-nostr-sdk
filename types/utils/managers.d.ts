@@ -38,7 +38,7 @@ declare class NostrEventManager {
     updateCommunity(info: ICommunityInfo, privateKey: string): Promise<void>;
     updateUserCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
     submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
-    submitNewAccount(content: INostrMetadataContent, privateKey: string): Promise<void>;
+    updateUserProfile(content: INostrMetadataContent, privateKey: string): Promise<void>;
     fetchMessageCountsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchOldMessages(pubKey: string, sender: string, until?: number): Promise<INostrEvent[]>;
     fetchNewMessages(pubKey: string, sender: string, since?: number): Promise<INostrEvent[]>;
@@ -65,7 +65,7 @@ interface ISocialEventManager {
     updateCommunity(info: ICommunityInfo, privateKey: string): Promise<void>;
     updateUserCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
     submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
-    submitNewAccount(content: INostrMetadataContent, privateKey: string): Promise<void>;
+    updateUserProfile(content: INostrMetadataContent, privateKey: string): Promise<void>;
     fetchMessageCountsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchOldMessages(pubKey: string, sender: string, until?: number): Promise<INostrEvent[]>;
     fetchNewMessages(pubKey: string, sender: string, since?: number): Promise<INostrEvent[]>;
