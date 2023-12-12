@@ -221,17 +221,17 @@ class NostrEventManager {
     async fetchHomeFeedCacheEvents(pubKey?: string) {
         let msg: any = {
             limit: 20,
-            since: 0,
         };
-        // if (pubKey) {
-        //     const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
-        //     msg.pubkey = decodedPubKey;
-        //     msg.user_pubkey = decodedPubKey;
-        // }
-        // else {
-        //     msg.pubkey = Nip19.decode('npub1nfgqmnxqsjsnsvc2r5djhcx4ap3egcjryhf9ppxnajskfel2dx9qq6mnsp').data //FIXME: Account to show Nostr highlights 
-        // }
-        msg.pubkey = Nip19.decode('npub1nfgqmnxqsjsnsvc2r5djhcx4ap3egcjryhf9ppxnajskfel2dx9qq6mnsp').data //FIXME: Account to show Nostr highlights 
+        if (pubKey) {
+            const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+            msg.pubkey = decodedPubKey;
+            msg.user_pubkey = decodedPubKey;
+            msg.since = 0;
+        }
+        else {
+            msg.since = 0;
+            msg.pubkey = Nip19.decode('npub1nfgqmnxqsjsnsvc2r5djhcx4ap3egcjryhf9ppxnajskfel2dx9qq6mnsp').data //FIXME: Account to show Nostr highlights 
+        }
         const events = await this._cachedWebsocketManager.fetchCachedEvents('feed', msg);
         return events;
     }
