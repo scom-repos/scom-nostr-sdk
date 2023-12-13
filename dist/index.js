@@ -4363,6 +4363,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             let noteIdToPrivateKey = {};
             let communityPrivateKeyMap = {};
             const noteCommunityMappings = await this.createNoteCommunityMappings(options.notes);
+            if (noteCommunityMappings.noteCommunityInfoList.length === 0)
+                return noteIdToPrivateKey;
             const communityInfoMap = {};
             for (let communityInfo of noteCommunityMappings.communityInfoList) {
                 if (options.pubKey === communityInfo.creatorId) {
@@ -4556,10 +4558,12 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                     }
                 }
             }
-            const communityEvents = await this._socialEventManager.fetchCommunities(pubkeyToCommunityIdsMap);
-            for (let event of communityEvents) {
-                let communityInfo = this.extractCommunityInfo(event);
-                communityInfoList.push(communityInfo);
+            if (noteCommunityInfoList.length > 0) {
+                const communityEvents = await this._socialEventManager.fetchCommunities(pubkeyToCommunityIdsMap);
+                for (let event of communityEvents) {
+                    let communityInfo = this.extractCommunityInfo(event);
+                    communityInfoList.push(communityInfo);
+                }
             }
             return {
                 noteCommunityInfoList,

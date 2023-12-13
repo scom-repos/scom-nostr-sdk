@@ -936,6 +936,7 @@ class SocialDataManager {
         let noteIdToPrivateKey: Record<string, string> = {};
         let communityPrivateKeyMap: Record<string, string> = {};
         const noteCommunityMappings = await this.createNoteCommunityMappings(options.notes);
+        if (noteCommunityMappings.noteCommunityInfoList.length === 0) return noteIdToPrivateKey;
         const communityInfoMap: Record<string, ICommunityInfo> = {};
         for (let communityInfo of noteCommunityMappings.communityInfoList) {
             if (options.pubKey === communityInfo.creatorId) {
@@ -1133,10 +1134,12 @@ class SocialDataManager {
             }
         }
 
-        const communityEvents = await this._socialEventManager.fetchCommunities(pubkeyToCommunityIdsMap);
-        for (let event of communityEvents) {
-            let communityInfo = this.extractCommunityInfo(event);
-            communityInfoList.push(communityInfo);
+        if (noteCommunityInfoList.length > 0) {
+            const communityEvents = await this._socialEventManager.fetchCommunities(pubkeyToCommunityIdsMap);
+            for (let event of communityEvents) {
+                let communityInfo = this.extractCommunityInfo(event);
+                communityInfoList.push(communityInfo);
+            }
         }
 
         return {
