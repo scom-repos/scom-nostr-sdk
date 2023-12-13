@@ -7,6 +7,11 @@ export {
 export {
     INostrMetadataContent,
     INostrEvent,
+    ICommunityBasicInfo,
+    ICommunityInfo,
+    ICommunityScpData,
+    INoteCommunityInfo,
+    ICommunityGatekeeperInfo,
     NostrEventManager,
     ISocialEventManager,
     SocialDataManager

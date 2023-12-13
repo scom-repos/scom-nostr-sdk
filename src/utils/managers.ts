@@ -1,10 +1,9 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions } from "./interfaces";
+import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteCommunityInfo, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions } from "./interfaces";
 
 interface IFetchNotesOptions {
     authors?: string[];
     ids?: string[];
-    decodedIds?: string[];
 }
 
 interface IFetchMetadataOptions {
@@ -342,13 +341,7 @@ class NostrEventManager {
 
     async fetchNotes(options: IFetchNotesOptions) {
         const decodedNpubs = options.authors?.map(npub => Nip19.decode(npub).data);
-        let decodedIds;
-        if (options.decodedIds) {
-            decodedIds = options.decodedIds;
-        }
-        else {
-            decodedIds = options.ids?.map(id => id.startsWith('note1') ? Nip19.decode(id).data : id);
-        }
+        let decodedIds = options.ids?.map(id => id.startsWith('note1') ? Nip19.decode(id).data : id);
         let msg: any = {
             kinds: [1],
             limit: 20
@@ -739,30 +732,33 @@ class SocialDataManager {
     }
 
     async decryptMessage(ourPrivateKey: string, theirPublicKey: string, encryptedData: string): Promise<string> {
-        const [encryptedMessage, ivBase64] = encryptedData.split('?iv=');
-        
-        const sharedSecret = Keys.getSharedSecret(ourPrivateKey, '02' + theirPublicKey);
-        const sharedX = this.hexStringToUint8Array(sharedSecret.slice(2)); 
-        let decryptedMessage;
-        if (typeof window !== "undefined"){
-            const iv = Uint8Array.from(atob(ivBase64), c => c.charCodeAt(0));
-            const key = await crypto.subtle.importKey('raw', sharedX, { name: 'AES-CBC' }, false, ['decrypt']);
-            const decryptedBuffer = await crypto.subtle.decrypt({ name: 'AES-CBC', iv }, key, Uint8Array.from(atob(encryptedMessage), c => c.charCodeAt(0)));
-            decryptedMessage = new TextDecoder().decode(decryptedBuffer);
+        let decryptedMessage = null;
+        try {
+            const [encryptedMessage, ivBase64] = encryptedData.split('?iv=');
+            
+            const sharedSecret = Keys.getSharedSecret(ourPrivateKey, '02' + theirPublicKey);
+            const sharedX = this.hexStringToUint8Array(sharedSecret.slice(2)); 
+            if (typeof window !== "undefined"){
+                const iv = Uint8Array.from(atob(ivBase64), c => c.charCodeAt(0));
+                const key = await crypto.subtle.importKey('raw', sharedX, { name: 'AES-CBC' }, false, ['decrypt']);
+                const decryptedBuffer = await crypto.subtle.decrypt({ name: 'AES-CBC', iv }, key, Uint8Array.from(atob(encryptedMessage), c => c.charCodeAt(0)));
+                decryptedMessage = new TextDecoder().decode(decryptedBuffer);
+            }
+            else {
+                // @ts-ignore
+                const crypto = require('crypto');
+                // @ts-ignore
+                const iv = Buffer.from(ivBase64, 'base64');
+                const decipher = crypto.createDecipheriv('aes-256-cbc', sharedX, iv);
+                // @ts-ignore
+                let decrypted = decipher.update(Buffer.from(encryptedMessage, 'base64'));
+                // @ts-ignore
+                decrypted = Buffer.concat([decrypted, decipher.final()]);
+                decryptedMessage = decrypted.toString('utf8');
+            }
         }
-        else {
-            // @ts-ignore
-            const crypto = require('crypto');
-            // @ts-ignore
-            const iv = Buffer.from(ivBase64, 'base64');
-            const decipher = crypto.createDecipheriv('aes-256-cbc', sharedX, iv);
-            // @ts-ignore
-            let decrypted = decipher.update(Buffer.from(encryptedMessage, 'base64'));
-            // @ts-ignore
-            decrypted = Buffer.concat([decrypted, decipher.final()]);
-            decryptedMessage = decrypted.toString('utf8');
+        catch (e) {
         }
-
         return decryptedMessage;
     }
 
@@ -814,35 +810,20 @@ class SocialDataManager {
         }
     }
 
-    async retrieveCommunityUri(noteEvent: INostrEvent, scpData: any) {
-        const extractCommunityUri = (noteEvent: INostrEvent) => {
-            let communityUri: string | null = null;
-            if (scpData?.communityUri) {
-                communityUri = scpData.communityUri;    
-            }
-            else {
-                const replaceableTag = noteEvent.tags.find(tag => tag[0] === 'a');
-                if (replaceableTag) {
-                    const replaceableTagArr = replaceableTag[1].split(':');
-                    if (replaceableTagArr[0] === '34550') {
-                        communityUri = replaceableTag[1];
-                    }
+    retrieveCommunityUri(noteEvent: INostrEvent, scpData: any) {
+        let communityUri: string | null = null;
+        if (scpData?.communityUri) {
+            communityUri = scpData.communityUri;    
+        }
+        else {
+            const replaceableTag = noteEvent.tags.find(tag => tag[0] === 'a');
+            if (replaceableTag) {
+                const replaceableTagArr = replaceableTag[1].split(':');
+                if (replaceableTagArr[0] === '34550') {
+                    communityUri = replaceableTag[1];
                 }
             }
-            return communityUri;
         }
-        let communityUri = extractCommunityUri(noteEvent);
-        // if (!communityUri) {
-        //     const eventTag = noteEvent.tags.find(tag => tag[0] === 'e' && tag?.[3] === 'root');
-        //     if (eventTag) {
-        //         const eventId = eventTag[1];
-        //         const rootNotes = await this._socialEventManager.fetchNotes({
-        //             ids: [eventId]
-        //         });
-        //         const rootNote = rootNotes[0];
-        //         communityUri = extractCommunityUri(rootNote);
-        //     }           
-        // }
         return communityUri;
     }
 
@@ -902,6 +883,7 @@ class SocialDataManager {
             const communityInfo = communityEvents.info;
             const notes = communityEvents.notes;    
             let communityPrivateKey = await this.decryptMessage(options.privateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
+            if (!communityPrivateKey) return noteIdToPrivateKey;
             for (const note of notes) {
                 const postPrivateKey = await this.retrievePostPrivateKey(note, communityInfo.communityUri, communityPrivateKey);
                 if (postPrivateKey) {
@@ -939,10 +921,73 @@ class SocialDataManager {
         }
         else if (options.privateKey) {
             let communityPrivateKey = await this.decryptMessage(options.privateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
+            if (!communityPrivateKey) return noteIdToPrivateKey;
             for (const note of options.noteEvents) {
                 const postPrivateKey = await this.retrievePostPrivateKey(note, communityInfo.communityUri, communityPrivateKey);
                 if (postPrivateKey) {
                     noteIdToPrivateKey[note.id] = postPrivateKey;
+                }
+            }
+        }
+        return noteIdToPrivateKey;
+    }
+
+    async retrieveCommunityPostKeysByNoteEvents(options: IRetrieveCommunityPostKeysByNoteEventsOptions) {
+        let noteIdToPrivateKey: Record<string, string> = {};
+        let communityPrivateKeyMap: Record<string, string> = {};
+        const noteCommunityMappings = await this.createNoteCommunityMappings(options.notes);
+        const communityInfoMap: Record<string, ICommunityInfo> = {};
+        for (let communityInfo of noteCommunityMappings.communityInfoList) {
+            if (options.pubKey === communityInfo.creatorId) {
+                let communityPrivateKey = await this.decryptMessage(options.privateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
+                if (communityPrivateKey) {
+                    communityPrivateKeyMap[communityInfo.communityUri] = communityPrivateKey;
+                }
+            }
+            communityInfoMap[communityInfo.communityUri] = communityInfo;
+        }  
+        let gatekeeperNpubToNotesMap: Record<string, INoteCommunityInfo[]> = {};
+        for (let noteCommunityInfo of noteCommunityMappings.noteCommunityInfoList) {
+            const communityPrivateKey = communityPrivateKeyMap[noteCommunityInfo.communityUri];
+            if (communityPrivateKey)  {
+                const postPrivateKey = await this.retrievePostPrivateKey(noteCommunityInfo.eventData, noteCommunityInfo.communityUri, communityPrivateKey);
+                if (postPrivateKey) {
+                    noteIdToPrivateKey[noteCommunityInfo.eventData.id] = postPrivateKey;
+                }
+            }
+            else {
+                const communityInfo = communityInfoMap[noteCommunityInfo.communityUri];
+                gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub] = gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub] || [];
+                gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub].push(noteCommunityInfo);
+            }
+        }
+        if (Object.keys(gatekeeperNpubToNotesMap).length > 0) {
+            for (let gatekeeperNpub in gatekeeperNpubToNotesMap) {
+                const gatekeeperUrl = options.gatekeepers.find(v => v.npub === gatekeeperNpub)?.url;
+                if (gatekeeperUrl) {
+                    const noteIds = gatekeeperNpubToNotesMap[gatekeeperNpub].map(v => v.eventData.id);
+                    const signature = await options.getSignature(options.pubKey);
+                    let bodyData = {
+                        noteIds: noteIds.join(','),
+                        message: options.pubKey,
+                        signature: signature
+                    };
+                    let url = `${gatekeeperUrl}/api/communities/v0/post-keys`;
+                    let response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            Accept: 'application/json',
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(bodyData)
+                    });
+                    let result = await response.json();
+                    if (result.success) {
+                        noteIdToPrivateKey = {
+                            ...noteIdToPrivateKey,
+                            ...result.data
+                        };
+                    }
                 }
             }
         }
@@ -1025,7 +1070,7 @@ class SocialDataManager {
             const ancestorDecodedIds = focusedNote.tags.filter(tag => tag[0] === 'e')?.map(tag => tag[1]) || [];
             if (ancestorDecodedIds.length > 0) {
                 ancestorNotes = await this._socialEventManager.fetchNotes({
-                    decodedIds: ancestorDecodedIds
+                    ids: ancestorDecodedIds
                 });
             }
             childReplyEventTagIds = [...ancestorDecodedIds, decodedFocusedNoteId];
@@ -1042,7 +1087,7 @@ class SocialDataManager {
         let communityInfo: ICommunityInfo | null = null;
         let scpData = this.extractPostScpData(focusedNote);
         if (scpData) {
-            const communityUri = await this.retrieveCommunityUri(focusedNote, scpData);
+            const communityUri = this.retrieveCommunityUri(focusedNote, scpData);
             if (communityUri) {
                 const creatorId = communityUri.split(':')[1];
                 const communityId = communityUri.split(':')[2];
@@ -1061,6 +1106,43 @@ class SocialDataManager {
             childReplyEventTagIds,
             communityInfo
         };
+    }
+
+    async createNoteCommunityMappings(notes: INostrEvent[]) {
+        let noteCommunityInfoList: INoteCommunityInfo[] = [];
+        let pubkeyToCommunityIdsMap: Record<string, string[]> = {};
+        let communityInfoList: ICommunityInfo[] = [];
+        for (let note of notes) {
+            let scpData = this.extractPostScpData(note);
+            if (scpData) {
+                const communityUri = this.retrieveCommunityUri(note, scpData);
+                if (communityUri) {
+                    const creatorId = communityUri.split(':')[1];
+                    const communityId = communityUri.split(':')[2];
+                    pubkeyToCommunityIdsMap[creatorId] = pubkeyToCommunityIdsMap[creatorId] || [];
+                    if (!pubkeyToCommunityIdsMap[creatorId].includes(communityId)) {
+                        pubkeyToCommunityIdsMap[creatorId].push(communityId);
+                    }
+                    noteCommunityInfoList.push({
+                        eventData: note,
+                        communityUri,
+                        communityId,
+                        creatorId
+                    });
+                }
+            }
+        }
+
+        const communityEvents = await this._socialEventManager.fetchCommunities(pubkeyToCommunityIdsMap);
+        for (let event of communityEvents) {
+            let communityInfo = this.extractCommunityInfo(event);
+            communityInfoList.push(communityInfo);
+        }
+
+        return {
+            noteCommunityInfoList,
+            communityInfoList
+        }
     }
 }
 

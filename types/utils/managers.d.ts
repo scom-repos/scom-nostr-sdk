@@ -1,8 +1,7 @@
-import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions } from "./interfaces";
+import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteCommunityInfo, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions } from "./interfaces";
 interface IFetchNotesOptions {
     authors?: string[];
     ids?: string[];
-    decodedIds?: string[];
 }
 interface IFetchMetadataOptions {
     authors?: string[];
@@ -85,11 +84,12 @@ declare class SocialDataManager {
         notes: INostrEvent[];
         info: ICommunityInfo;
     }>;
-    retrieveCommunityUri(noteEvent: INostrEvent, scpData: any): Promise<string>;
+    retrieveCommunityUri(noteEvent: INostrEvent, scpData: any): string;
     extractPostScpData(noteEvent: INostrEvent): any;
     retrievePostPrivateKey(noteEvent: INostrEvent, communityUri: string, communityPrivateKey: string): Promise<string>;
     retrieveCommunityPostKeys(options: IRetrieveCommunityPostKeysOptions): Promise<Record<string, string>>;
     retrieveCommunityThreadPostKeys(options: IRetrieveCommunityThreadPostKeysOptions): Promise<Record<string, string>>;
+    retrieveCommunityPostKeysByNoteEvents(options: IRetrieveCommunityPostKeysByNoteEventsOptions): Promise<Record<string, string>>;
     constructMetadataByPubKeyMap(notes: INostrEvent[]): Promise<Record<string, INostrMetadata>>;
     fetchThreadNotesInfo(focusedNoteId: string, fetchFromCache?: boolean): Promise<{
         focusedNote: INostrEvent;
@@ -99,6 +99,10 @@ declare class SocialDataManager {
         quotedNotesMap: Record<string, INostrEvent>;
         childReplyEventTagIds: string[];
         communityInfo: ICommunityInfo;
+    }>;
+    createNoteCommunityMappings(notes: INostrEvent[]): Promise<{
+        noteCommunityInfoList: INoteCommunityInfo[];
+        communityInfoList: ICommunityInfo[];
     }>;
 }
 export { NostrEventManager, ISocialEventManager, SocialDataManager };

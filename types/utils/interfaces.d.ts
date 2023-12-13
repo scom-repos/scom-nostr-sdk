@@ -26,6 +26,12 @@ export interface INostrMetadata {
     sig: string;
     content: INostrMetadataContent;
 }
+export interface INoteCommunityInfo {
+    eventData: INostrEvent;
+    communityUri?: string;
+    creatorId?: string;
+    communityId?: string;
+}
 export declare enum NftType {
     ERC721 = "ERC721",
     ERC1155 = "ERC1155"
@@ -73,6 +79,18 @@ export interface IRetrieveCommunityPostKeysOptions {
     gatekeeperUrl?: string;
     message?: string;
     signature?: string;
+}
+export interface ICommunityGatekeeperInfo {
+    name: string;
+    npub: string;
+    url: string;
+}
+export interface IRetrieveCommunityPostKeysByNoteEventsOptions {
+    notes: INostrEvent[];
+    pubKey: string;
+    privateKey: string;
+    getSignature: (message: string) => Promise<string>;
+    gatekeepers: ICommunityGatekeeperInfo[];
 }
 export interface IRetrieveCommunityThreadPostKeysOptions {
     communityInfo: ICommunityInfo;

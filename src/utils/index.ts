@@ -1,4 +1,12 @@
-export { INostrMetadataContent, INostrEvent, ICommunityInfo } from "./interfaces";
+export { 
+    INostrMetadataContent, 
+    INostrEvent, 
+    ICommunityBasicInfo, 
+    ICommunityInfo,
+    ICommunityScpData,
+    INoteCommunityInfo,
+    ICommunityGatekeeperInfo
+} from "./interfaces";
 
 export {
     NostrEventManager,
