@@ -273,6 +273,16 @@ class NostrEventManager {
         return events;
     }  
 
+    async fetchRelaysCacheEvents(pubKey: string) {
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        let msg: any = {
+            extended_response: false,
+            pubkey: decodedPubKey
+        };
+        const events = await this._cachedWebsocketManager.fetchCachedEvents('contact_list', msg);
+        return events;
+    }   
+
     async fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>) {
         let events;
         if (pubkeyToCommunityIdsMap && Object.keys(pubkeyToCommunityIdsMap).length > 0) {
@@ -691,6 +701,7 @@ interface ISocialEventManager {
     fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchContactListCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    fetchRelaysCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<INostrEvent[]>;
     fetchUserCommunities(pubKey: string): Promise<INostrEvent[]>;
     fetchUserSubscribedCommunities(pubKey: string): Promise<INostrEvent[]>;
@@ -1211,8 +1222,8 @@ class SocialDataManager {
         }
     }
 
-    private constructUserProfile(metadata: INostrMetadata, contactCountMap?: Record<string, number>) {
-        const contactCount = contactCountMap?.[metadata.pubkey] || 0;
+    private constructUserProfile(metadata: INostrMetadata, followersCountMap?: Record<string, number>) {
+        const followersCount = followersCountMap?.[metadata.pubkey] || 0;
         const encodedPubkey = Nip19.npubEncode(metadata.pubkey);
         const metadataContent = metadata.content;
         const internetIdentifier = metadataContent.nip05?.replace('_@', '') || '';
@@ -1226,7 +1237,7 @@ class SocialDataManager {
             internetIdentifier,
             website: metadataContent.website,
             banner: metadataContent.banner,
-            followers: contactCount,
+            followers: followersCount,
             metadata
         }
         return userProfile;
@@ -1234,7 +1245,7 @@ class SocialDataManager {
 
     async fetchUserContactList(pubKey: string) {
         let metadataArr: INostrMetadata[] = [];
-        let contactCountMap: Record<string, number> = {};
+        let followersCountMap: Record<string, number> = {};
         const userContactEvents = await this._socialEventManager.fetchContactListCacheEvents(pubKey);
         for (let event of userContactEvents) {
             if (event.kind === 0) {
@@ -1244,12 +1255,12 @@ class SocialDataManager {
                 });
             }
             else if (event.kind === 10000108) {
-                contactCountMap = JSON.parse(event.content);
+                followersCountMap = JSON.parse(event.content);
             }
         }
         const userProfiles: IUserProfile[] = [];
         for (let metadata of metadataArr) {
-            let userProfile = this.constructUserProfile(metadata, contactCountMap);
+            let userProfile = this.constructUserProfile(metadata, followersCountMap);
             userProfiles.push(userProfile);
         }
         return userProfiles;
@@ -1257,9 +1268,9 @@ class SocialDataManager {
 
     async fetchUserFollowersList(pubKey: string) {
         let metadataArr: INostrMetadata[] = [];
-        let contactCountMap: Record<string, number> = {};
-        const userContactEvents = await this._socialEventManager.fetchFollowersCacheEvents(pubKey);
-        for (let event of userContactEvents) {
+        let followersCountMap: Record<string, number> = {};
+        const userFollowersEvents = await this._socialEventManager.fetchFollowersCacheEvents(pubKey);
+        for (let event of userFollowersEvents) {
             if (event.kind === 0) {
                 metadataArr.push({
                     ...event,
@@ -1267,15 +1278,24 @@ class SocialDataManager {
                 });
             }
             else if (event.kind === 10000108) {
-                contactCountMap = JSON.parse(event.content);
+                followersCountMap = JSON.parse(event.content);
             }
         }
         const userProfiles: IUserProfile[] = [];
         for (let metadata of metadataArr) {
-            let userProfile = this.constructUserProfile(metadata, contactCountMap);
+            let userProfile = this.constructUserProfile(metadata, followersCountMap);
             userProfiles.push(userProfile);
         }
         return userProfiles;
+    }
+
+    async fetchUserRelayList(pubKey: string) {
+        let relayList: string[] = [];
+        const relaysEvents = await this._socialEventManager.fetchRelaysCacheEvents(pubKey);
+        const relaysEvent = relaysEvents.find(event => event.kind === 3);
+        let content = JSON.parse(relaysEvent.content);
+        relayList = Object.keys(content);
+        return relayList;
     }
 }
 

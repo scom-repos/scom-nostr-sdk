@@ -3761,6 +3761,15 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             const events = await this._cachedWebsocketManager.fetchCachedEvents('user_followers', msg);
             return events;
         }
+        async fetchRelaysCacheEvents(pubKey) {
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
+            let msg = {
+                extended_response: false,
+                pubkey: decodedPubKey
+            };
+            const events = await this._cachedWebsocketManager.fetchCachedEvents('contact_list', msg);
+            return events;
+        }
         async fetchCommunities(pubkeyToCommunityIdsMap) {
             let events;
             if (pubkeyToCommunityIdsMap && Object.keys(pubkeyToCommunityIdsMap).length > 0) {
@@ -4627,8 +4636,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                 stats
             };
         }
-        constructUserProfile(metadata, contactCountMap) {
-            const contactCount = contactCountMap?.[metadata.pubkey] || 0;
+        constructUserProfile(metadata, followersCountMap) {
+            const followersCount = followersCountMap?.[metadata.pubkey] || 0;
             const encodedPubkey = index_1.Nip19.npubEncode(metadata.pubkey);
             const metadataContent = metadata.content;
             const internetIdentifier = metadataContent.nip05?.replace('_@', '') || '';
@@ -4642,14 +4651,14 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                 internetIdentifier,
                 website: metadataContent.website,
                 banner: metadataContent.banner,
-                followers: contactCount,
+                followers: followersCount,
                 metadata
             };
             return userProfile;
         }
         async fetchUserContactList(pubKey) {
             let metadataArr = [];
-            let contactCountMap = {};
+            let followersCountMap = {};
             const userContactEvents = await this._socialEventManager.fetchContactListCacheEvents(pubKey);
             for (let event of userContactEvents) {
                 if (event.kind === 0) {
@@ -4659,21 +4668,21 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                     });
                 }
                 else if (event.kind === 10000108) {
-                    contactCountMap = JSON.parse(event.content);
+                    followersCountMap = JSON.parse(event.content);
                 }
             }
             const userProfiles = [];
             for (let metadata of metadataArr) {
-                let userProfile = this.constructUserProfile(metadata, contactCountMap);
+                let userProfile = this.constructUserProfile(metadata, followersCountMap);
                 userProfiles.push(userProfile);
             }
             return userProfiles;
         }
         async fetchUserFollowersList(pubKey) {
             let metadataArr = [];
-            let contactCountMap = {};
-            const userContactEvents = await this._socialEventManager.fetchFollowersCacheEvents(pubKey);
-            for (let event of userContactEvents) {
+            let followersCountMap = {};
+            const userFollowersEvents = await this._socialEventManager.fetchFollowersCacheEvents(pubKey);
+            for (let event of userFollowersEvents) {
                 if (event.kind === 0) {
                     metadataArr.push({
                         ...event,
@@ -4681,15 +4690,23 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                     });
                 }
                 else if (event.kind === 10000108) {
-                    contactCountMap = JSON.parse(event.content);
+                    followersCountMap = JSON.parse(event.content);
                 }
             }
             const userProfiles = [];
             for (let metadata of metadataArr) {
-                let userProfile = this.constructUserProfile(metadata, contactCountMap);
+                let userProfile = this.constructUserProfile(metadata, followersCountMap);
                 userProfiles.push(userProfile);
             }
             return userProfiles;
+        }
+        async fetchUserRelayList(pubKey) {
+            let relayList = [];
+            const relaysEvents = await this._socialEventManager.fetchRelaysCacheEvents(pubKey);
+            const relaysEvent = relaysEvents.find(event => event.kind === 3);
+            let content = JSON.parse(relaysEvent.content);
+            relayList = Object.keys(content);
+            return relayList;
         }
     }
     exports.SocialDataManager = SocialDataManager;

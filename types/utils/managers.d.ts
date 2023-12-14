@@ -25,6 +25,7 @@ declare class NostrEventManager {
     fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchContactListCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    fetchRelaysCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<any>;
     fetchUserCommunities(pubKey: string): Promise<INostrEvent[]>;
     fetchUserSubscribedCommunities(pubKey: string): Promise<INostrEvent[]>;
@@ -56,6 +57,7 @@ interface ISocialEventManager {
     fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchContactListCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    fetchRelaysCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<INostrEvent[]>;
     fetchUserCommunities(pubKey: string): Promise<INostrEvent[]>;
     fetchUserSubscribedCommunities(pubKey: string): Promise<INostrEvent[]>;
@@ -114,5 +116,6 @@ declare class SocialDataManager {
     private constructUserProfile;
     fetchUserContactList(pubKey: string): Promise<IUserProfile[]>;
     fetchUserFollowersList(pubKey: string): Promise<IUserProfile[]>;
+    fetchUserRelayList(pubKey: string): Promise<string[]>;
 }
 export { NostrEventManager, ISocialEventManager, SocialDataManager };
