@@ -1,4 +1,4 @@
-import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteCommunityInfo, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions } from "./interfaces";
+import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "./interfaces";
 interface IFetchNotesOptions {
     authors?: string[];
     ids?: string[];
@@ -22,6 +22,9 @@ declare class NostrEventManager {
     fetchProfileFeedCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchHomeFeedCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
     fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
+    fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    fetchContactListCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<any>;
     fetchUserCommunities(pubKey: string): Promise<INostrEvent[]>;
     fetchUserSubscribedCommunities(pubKey: string): Promise<INostrEvent[]>;
@@ -50,6 +53,9 @@ interface ISocialEventManager {
     fetchProfileFeedCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchHomeFeedCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
     fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
+    fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    fetchContactListCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<INostrEvent[]>;
     fetchUserCommunities(pubKey: string): Promise<INostrEvent[]>;
     fetchUserSubscribedCommunities(pubKey: string): Promise<INostrEvent[]>;
@@ -100,9 +106,13 @@ declare class SocialDataManager {
         childReplyEventTagIds: string[];
         communityInfo: ICommunityInfo;
     }>;
-    createNoteCommunityMappings(notes: INostrEvent[]): Promise<{
-        noteCommunityInfoList: INoteCommunityInfo[];
-        communityInfoList: ICommunityInfo[];
+    private createNoteCommunityMappings;
+    retrieveUserProfileDetail(pubKey: string): Promise<{
+        userProfile: IUserProfile;
+        stats: IUserActivityStats;
     }>;
+    private constructUserProfile;
+    fetchUserContactList(pubKey: string): Promise<IUserProfile[]>;
+    fetchUserFollowersList(pubKey: string): Promise<IUserProfile[]>;
 }
 export { NostrEventManager, ISocialEventManager, SocialDataManager };

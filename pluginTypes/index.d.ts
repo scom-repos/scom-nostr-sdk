@@ -1107,6 +1107,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     export interface INostrMetadataContent {
         name: string;
         display_name: string;
+        username?: string;
         website?: string;
         picture?: string;
         about?: string;
@@ -1122,6 +1123,27 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         tags: string[][];
         sig: string;
         content: INostrMetadataContent;
+    }
+    export interface IUserProfile {
+        id: string;
+        username: string;
+        description: string;
+        avatar: string;
+        pubKey: string;
+        displayName?: string;
+        website?: string;
+        banner?: string;
+        internetIdentifier: string;
+        followers?: number;
+        metadata?: INostrMetadata;
+    }
+    export interface IUserActivityStats {
+        notes: number;
+        replies: number;
+        followers: number;
+        following: number;
+        relays: number;
+        timeJoined: number;
     }
     export interface INoteCommunityInfo {
         eventData: INostrEvent;
@@ -1201,7 +1223,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk/utils/managers.ts" />
 declare module "@scom/scom-social-sdk/utils/managers.ts" {
-    import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteCommunityInfo, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
     interface IFetchNotesOptions {
         authors?: string[];
         ids?: string[];
@@ -1225,6 +1247,9 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchProfileFeedCacheEvents(pubKey: string): Promise<INostrEvent[]>;
         fetchHomeFeedCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
         fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
+        fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+        fetchContactListCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+        fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
         fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<any>;
         fetchUserCommunities(pubKey: string): Promise<INostrEvent[]>;
         fetchUserSubscribedCommunities(pubKey: string): Promise<INostrEvent[]>;
@@ -1253,6 +1278,9 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchProfileFeedCacheEvents(pubKey: string): Promise<INostrEvent[]>;
         fetchHomeFeedCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
         fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
+        fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+        fetchContactListCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+        fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
         fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<INostrEvent[]>;
         fetchUserCommunities(pubKey: string): Promise<INostrEvent[]>;
         fetchUserSubscribedCommunities(pubKey: string): Promise<INostrEvent[]>;
@@ -1303,20 +1331,24 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
             childReplyEventTagIds: string[];
             communityInfo: ICommunityInfo;
         }>;
-        createNoteCommunityMappings(notes: INostrEvent[]): Promise<{
-            noteCommunityInfoList: INoteCommunityInfo[];
-            communityInfoList: ICommunityInfo[];
+        private createNoteCommunityMappings;
+        retrieveUserProfileDetail(pubKey: string): Promise<{
+            userProfile: IUserProfile;
+            stats: IUserActivityStats;
         }>;
+        private constructUserProfile;
+        fetchUserContactList(pubKey: string): Promise<IUserProfile[]>;
+        fetchUserFollowersList(pubKey: string): Promise<IUserProfile[]>;
     }
     export { NostrEventManager, ISocialEventManager, SocialDataManager };
 }
 /// <amd-module name="@scom/scom-social-sdk/utils/index.ts" />
 declare module "@scom/scom-social-sdk/utils/index.ts" {
-    export { INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityScpData, INoteCommunityInfo, ICommunityGatekeeperInfo } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    export { INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityScpData, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats } from "@scom/scom-social-sdk/utils/interfaces.ts";
     export { NostrEventManager, ISocialEventManager, SocialDataManager } from "@scom/scom-social-sdk/utils/managers.ts";
 }
 /// <amd-module name="@scom/scom-social-sdk" />
 declare module "@scom/scom-social-sdk" {
     export { Event, Keys, Nip19, Bech32, } from "@scom/scom-social-sdk/core/index.ts";
-    export { INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityScpData, INoteCommunityInfo, ICommunityGatekeeperInfo, NostrEventManager, ISocialEventManager, SocialDataManager } from "@scom/scom-social-sdk/utils/index.ts";
+    export { INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityScpData, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, NostrEventManager, ISocialEventManager, SocialDataManager } from "@scom/scom-social-sdk/utils/index.ts";
 }

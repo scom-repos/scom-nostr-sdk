@@ -10,6 +10,7 @@ export interface INostrEvent {
 export interface INostrMetadataContent {
     name: string;
     display_name: string;
+    username?: string;
     website?: string;
     picture?: string;
     about?: string;
@@ -25,6 +26,27 @@ export interface INostrMetadata {
     tags: string[][];
     sig: string;
     content: INostrMetadataContent;
+}
+export interface IUserProfile {
+    id: string;
+    username: string;
+    description: string;
+    avatar: string;
+    pubKey: string;
+    displayName?: string;
+    website?: string;
+    banner?: string;
+    internetIdentifier: string;
+    followers?: number;
+    metadata?: INostrMetadata;
+}
+export interface IUserActivityStats {
+    notes: number;
+    replies: number;
+    followers: number;
+    following: number;
+    relays: number;
+    timeJoined: number;
 }
 export interface INoteCommunityInfo {
     eventData: INostrEvent;

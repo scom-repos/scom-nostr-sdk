@@ -5,7 +5,9 @@ export {
     ICommunityInfo,
     ICommunityScpData,
     INoteCommunityInfo,
-    ICommunityGatekeeperInfo
+    ICommunityGatekeeperInfo,
+    IUserProfile,
+    IUserActivityStats
 } from "./interfaces";
 
 export {

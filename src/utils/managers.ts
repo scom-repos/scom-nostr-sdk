@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteCommunityInfo, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions } from "./interfaces";
+import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteCommunityInfo, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "./interfaces";
 
 interface IFetchNotesOptions {
     authors?: string[];
@@ -243,6 +243,35 @@ class NostrEventManager {
         const events = await this._cachedWebsocketManager.fetchCachedEvents('user_infos', msg);
         return events;
     }
+
+    async fetchUserProfileDetailCacheEvents(pubKey: string) {
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        let msg: any = {
+            pubkey: decodedPubKey,
+            user_pubkey: decodedPubKey
+        };
+        const events = await this._cachedWebsocketManager.fetchCachedEvents('user_profile', msg);
+        return events;
+    }
+
+    async fetchContactListCacheEvents(pubKey: string) {
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        let msg: any = {
+            extended_response: true,
+            pubkey: decodedPubKey
+        };
+        const events = await this._cachedWebsocketManager.fetchCachedEvents('contact_list', msg);
+        return events;
+    }    
+
+    async fetchFollowersCacheEvents(pubKey: string) {
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        let msg: any = {
+            pubkey: decodedPubKey
+        };
+        const events = await this._cachedWebsocketManager.fetchCachedEvents('user_followers', msg);
+        return events;
+    }  
 
     async fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>) {
         let events;
@@ -659,6 +688,9 @@ interface ISocialEventManager {
     fetchProfileFeedCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchHomeFeedCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
     fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
+    fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    fetchContactListCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<INostrEvent[]>;
     fetchUserCommunities(pubKey: string): Promise<INostrEvent[]>;
     fetchUserSubscribedCommunities(pubKey: string): Promise<INostrEvent[]>;
@@ -1109,7 +1141,7 @@ class SocialDataManager {
         };
     }
 
-    async createNoteCommunityMappings(notes: INostrEvent[]) {
+    private async createNoteCommunityMappings(notes: INostrEvent[]) {
         let noteCommunityInfoList: INoteCommunityInfo[] = [];
         let pubkeyToCommunityIdsMap: Record<string, string[]> = {};
         let communityInfoList: ICommunityInfo[] = [];
@@ -1146,6 +1178,104 @@ class SocialDataManager {
             noteCommunityInfoList,
             communityInfoList
         }
+    }
+
+    async retrieveUserProfileDetail(pubKey: string) {
+        let metadata: INostrMetadata;
+        let stats: IUserActivityStats;
+        const userContactEvents = await this._socialEventManager.fetchUserProfileDetailCacheEvents(pubKey);
+        for (let event of userContactEvents) {
+            if (event.kind === 0) {
+                metadata = {
+                    ...event,
+                    content: JSON.parse(event.content)
+                };
+            }
+            else if (event.kind === 10000105) {
+                let content = JSON.parse(event.content);
+                stats = {
+                    notes: content.note_count,
+                    replies: content.reply_count,
+                    followers: content.followers_count,
+                    following: content.follows_count,
+                    relays: content.relay_count,
+                    timeJoined: content.time_joined
+                }
+            }
+        }
+        if (!metadata) return null;
+        let userProfile = this.constructUserProfile(metadata);
+        return {
+            userProfile,
+            stats
+        }
+    }
+
+    private constructUserProfile(metadata: INostrMetadata, contactCountMap?: Record<string, number>) {
+        const contactCount = contactCountMap?.[metadata.pubkey] || 0;
+        const encodedPubkey = Nip19.npubEncode(metadata.pubkey);
+        const metadataContent = metadata.content;
+        const internetIdentifier = metadataContent.nip05?.replace('_@', '') || '';
+        let userProfile: IUserProfile = {
+            id: encodedPubkey,
+            username: metadataContent.username,
+            description: metadataContent.about,
+            avatar: metadataContent.picture,
+            pubKey: encodedPubkey,
+            displayName: metadataContent.display_name || metadataContent.name,
+            internetIdentifier,
+            website: metadataContent.website,
+            banner: metadataContent.banner,
+            followers: contactCount,
+            metadata
+        }
+        return userProfile;
+    }
+
+    async fetchUserContactList(pubKey: string) {
+        let metadataArr: INostrMetadata[] = [];
+        let contactCountMap: Record<string, number> = {};
+        const userContactEvents = await this._socialEventManager.fetchContactListCacheEvents(pubKey);
+        for (let event of userContactEvents) {
+            if (event.kind === 0) {
+                metadataArr.push({
+                    ...event,
+                    content: JSON.parse(event.content)
+                });
+            }
+            else if (event.kind === 10000108) {
+                contactCountMap = JSON.parse(event.content);
+            }
+        }
+        const userProfiles: IUserProfile[] = [];
+        for (let metadata of metadataArr) {
+            let userProfile = this.constructUserProfile(metadata, contactCountMap);
+            userProfiles.push(userProfile);
+        }
+        return userProfiles;
+    }
+
+    async fetchUserFollowersList(pubKey: string) {
+        let metadataArr: INostrMetadata[] = [];
+        let contactCountMap: Record<string, number> = {};
+        const userContactEvents = await this._socialEventManager.fetchFollowersCacheEvents(pubKey);
+        for (let event of userContactEvents) {
+            if (event.kind === 0) {
+                metadataArr.push({
+                    ...event,
+                    content: JSON.parse(event.content)
+                });
+            }
+            else if (event.kind === 10000108) {
+                contactCountMap = JSON.parse(event.content);
+            }
+        }
+        const userProfiles: IUserProfile[] = [];
+        for (let metadata of metadataArr) {
+            let userProfile = this.constructUserProfile(metadata, contactCountMap);
+            userProfiles.push(userProfile);
+        }
+        return userProfiles;
     }
 }
 
