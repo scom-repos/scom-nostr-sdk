@@ -4694,6 +4694,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             let relayList = [];
             const relaysEvents = await this._socialEventManager.fetchRelaysCacheEvents(pubKey);
             const relaysEvent = relaysEvents.find(event => event.kind === 3);
+            if (!relaysEvent)
+                return relayList;
             let content = JSON.parse(relaysEvent.content);
             relayList = Object.keys(content);
             return relayList;
