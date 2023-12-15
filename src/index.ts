@@ -10,6 +10,7 @@ export {
     ICommunityBasicInfo,
     ICommunityInfo,
     ICommunityScpData,
+    INoteInfo,
     INoteCommunityInfo,
     ICommunityGatekeeperInfo,
     IUserProfile,

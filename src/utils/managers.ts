@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteCommunityInfo, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "./interfaces";
+import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteCommunityInfo, INoteInfo, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "./interfaces";
 
 interface IFetchNotesOptions {
     authors?: string[];
@@ -209,6 +209,19 @@ class NostrEventManager {
         let msg: any = {
             limit: 20,
             notes: "authored",
+            pubkey: decodedPubKey,
+            since: 0,
+            user_pubkey: decodedPubKey
+        };
+        const events = await this._cachedWebsocketManager.fetchCachedEvents('feed', msg);
+        return events;
+    }
+
+    async fetchProfileRepliesCacheEvents(pubKey: string) {
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        let msg: any = {
+            limit: 20,
+            notes: "replies",
             pubkey: decodedPubKey,
             since: 0,
             user_pubkey: decodedPubKey
@@ -696,6 +709,7 @@ interface ISocialEventManager {
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
     fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
     fetchProfileFeedCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    fetchProfileRepliesCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchHomeFeedCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
     fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
     fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
@@ -1064,74 +1078,52 @@ class SocialDataManager {
     }
 
     async fetchThreadNotesInfo(focusedNoteId: string, fetchFromCache: boolean = true) {
-        let focusedNote: INostrEvent;
-        let ancestorNotes: INostrEvent[] = [];
-        let replies: INostrEvent[] = [];
+        let focusedNote: INoteInfo;
+        let ancestorNotes: INoteInfo[] = [];
+        let replies: INoteInfo[] = [];
         let metadataByPubKeyMap: Record<string, INostrMetadata> = {};
         let childReplyEventTagIds: string[] = [];
-        let quotedNotesMap: Record<string, INostrEvent> = {};
-        let relevantNotes: INostrEvent[] = [];
+        let relevantNotes: INoteInfo[] = [];
         //Ancestor posts -> Focused post -> Child replies
         let decodedFocusedNoteId = focusedNoteId.startsWith('note1') ? Nip19.decode(focusedNoteId).data as string : focusedNoteId;
-        if (fetchFromCache) {
-            const threadEvents = await this._socialEventManager.fetchThreadCacheEvents(decodedFocusedNoteId);
-    
-            for (let threadEvent of threadEvents) {
-                if (threadEvent.kind === 0) {
-                    metadataByPubKeyMap[threadEvent.pubkey] = {
-                        ...threadEvent,
-                        content: JSON.parse(threadEvent.content)
-                    };
-                }
-                else if (threadEvent.kind === 1) {
-                    if (threadEvent.id === decodedFocusedNoteId) {
-                        focusedNote = threadEvent;
-                    }
-                    else if (threadEvent.tags.some(tag => tag[0] === 'e' && tag[1] === decodedFocusedNoteId)) {
-                        replies.push(threadEvent);
-                    }
-                    else {
-                        ancestorNotes.push(threadEvent);
-                    }
-                }
-                else if (threadEvent.kind === 10000107) {
-                    const note = JSON.parse(threadEvent.content) as INostrEvent;
-                    quotedNotesMap[note.id] = note;
-                } 
-            }
-            relevantNotes = [
-                ...ancestorNotes,
-                focusedNote,
-                ...replies
-            ];
-        }
-        else {
-            const focusedNotes = await this._socialEventManager.fetchNotes({
-                ids: [focusedNoteId]
+        const focusedNotes = await this._socialEventManager.fetchNotes({
+            ids: [focusedNoteId]
+        });
+        if (focusedNotes.length === 0) return null;
+        focusedNote = {
+            eventData: focusedNotes[0]
+        };
+        const ancestorDecodedIds = focusedNote.eventData.tags.filter(tag => tag[0] === 'e')?.map(tag => tag[1]) || [];
+        if (ancestorDecodedIds.length > 0) {
+            const ancestorNotesEvents = await this._socialEventManager.fetchNotes({
+                ids: ancestorDecodedIds
             });
-            if (focusedNotes.length === 0) return null;
-            focusedNote = focusedNotes[0];
-            const ancestorDecodedIds = focusedNote.tags.filter(tag => tag[0] === 'e')?.map(tag => tag[1]) || [];
-            if (ancestorDecodedIds.length > 0) {
-                ancestorNotes = await this._socialEventManager.fetchNotes({
-                    ids: ancestorDecodedIds
-                });
-            }
-            childReplyEventTagIds = [...ancestorDecodedIds, decodedFocusedNoteId];
-            replies = await this._socialEventManager.fetchReplies({
-                decodedIds: childReplyEventTagIds
+            ancestorNotes = ancestorNotesEvents.map(event => {
+                return {
+                    eventData: event
+                }
             });
-            relevantNotes = [
-                ...ancestorNotes,
-                focusedNote,
-                ...replies
-            ]
-            metadataByPubKeyMap = await this.constructMetadataByPubKeyMap(relevantNotes);
         }
+        childReplyEventTagIds = [...ancestorDecodedIds, decodedFocusedNoteId];
+        const repliesEvents = await this._socialEventManager.fetchReplies({
+            decodedIds: childReplyEventTagIds
+        });
+        replies = repliesEvents.map(event => {
+            return {
+                eventData: event
+            }
+        });
+        relevantNotes = [
+            ...ancestorNotes,
+            focusedNote,
+            ...replies
+        ]
+        const relevantNoteEvents = relevantNotes.map(note => note.eventData);
+        metadataByPubKeyMap = await this.constructMetadataByPubKeyMap(relevantNoteEvents);
         let communityInfo: ICommunityInfo | null = null;
-        let scpData = this.extractPostScpData(focusedNote);
+        let scpData = this.extractPostScpData(focusedNote.eventData);
         if (scpData) {
-            const communityUri = this.retrieveCommunityUri(focusedNote, scpData);
+            const communityUri = this.retrieveCommunityUri(focusedNote.eventData, scpData);
             if (communityUri) {
                 const creatorId = communityUri.split(':')[1];
                 const communityId = communityUri.split(':')[2];
@@ -1146,7 +1138,6 @@ class SocialDataManager {
             ancestorNotes,
             replies,
             metadataByPubKeyMap,
-            quotedNotesMap,
             childReplyEventTagIds,
             communityInfo
         };

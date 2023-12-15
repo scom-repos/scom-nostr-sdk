@@ -1,4 +1,4 @@
-import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "./interfaces";
+import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteInfo, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "./interfaces";
 interface IFetchNotesOptions {
     authors?: string[];
     ids?: string[];
@@ -20,6 +20,7 @@ declare class NostrEventManager {
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
     fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
     fetchProfileFeedCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    fetchProfileRepliesCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchHomeFeedCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
     fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
     fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
@@ -52,6 +53,7 @@ interface ISocialEventManager {
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
     fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
     fetchProfileFeedCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    fetchProfileRepliesCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchHomeFeedCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
     fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
     fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
@@ -100,11 +102,10 @@ declare class SocialDataManager {
     retrieveCommunityPostKeysByNoteEvents(options: IRetrieveCommunityPostKeysByNoteEventsOptions): Promise<Record<string, string>>;
     constructMetadataByPubKeyMap(notes: INostrEvent[]): Promise<Record<string, INostrMetadata>>;
     fetchThreadNotesInfo(focusedNoteId: string, fetchFromCache?: boolean): Promise<{
-        focusedNote: INostrEvent;
-        ancestorNotes: INostrEvent[];
-        replies: INostrEvent[];
+        focusedNote: INoteInfo;
+        ancestorNotes: INoteInfo[];
+        replies: INoteInfo[];
         metadataByPubKeyMap: Record<string, INostrMetadata>;
-        quotedNotesMap: Record<string, INostrEvent>;
         childReplyEventTagIds: string[];
         communityInfo: ICommunityInfo;
     }>;

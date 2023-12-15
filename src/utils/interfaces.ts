@@ -53,6 +53,10 @@ export interface IUserActivityStats {
 	timeJoined: number;
 }
 
+export interface INoteInfo {
+	eventData: INostrEvent;
+}
+
 export interface INoteCommunityInfo {
 	eventData: INostrEvent;
 	communityUri?: string;
