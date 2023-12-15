@@ -101,10 +101,11 @@ declare class SocialDataManager {
     retrieveCommunityThreadPostKeys(options: IRetrieveCommunityThreadPostKeysOptions): Promise<Record<string, string>>;
     retrieveCommunityPostKeysByNoteEvents(options: IRetrieveCommunityPostKeysByNoteEventsOptions): Promise<Record<string, string>>;
     constructMetadataByPubKeyMap(notes: INostrEvent[]): Promise<Record<string, INostrMetadata>>;
-    fetchThreadNotesInfo(focusedNoteId: string, fetchFromCache?: boolean): Promise<{
+    fetchThreadNotesInfo(focusedNoteId: string): Promise<{
         focusedNote: INoteInfo;
         ancestorNotes: INoteInfo[];
         replies: INoteInfo[];
+        quotedNotesMap: Record<string, INoteInfo>;
         metadataByPubKeyMap: Record<string, INostrMetadata>;
         childReplyEventTagIds: string[];
         communityInfo: ICommunityInfo;
