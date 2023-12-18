@@ -3574,7 +3574,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                         const messageStr = event.data.toString();
                         const message = JSON.parse(messageStr);
                         let requestId = message[1];
-                        if (message[0] === 'EOSE') {
+                        if (message[0] === 'EOSE' || message[0] === 'OK') {
                             if (this.requestCallbackMap[requestId]) {
                                 this.requestCallbackMap[requestId](message);
                                 delete this.requestCallbackMap[requestId];
@@ -3626,17 +3626,20 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             });
         }
         async submitEvent(event, privateKey) {
-            let requestId;
-            do {
-                requestId = this.generateRandomNumber();
-            } while (this.requestCallbackMap[requestId]);
-            const ws = await this.establishConnection(requestId, (message) => {
-                console.log('from server:', message);
+            return new Promise(async (resolve, reject) => {
+                const verifiedEvent = index_1.Event.finishEvent(event, privateKey);
+                let msg = JSON.stringify(["EVENT", verifiedEvent]);
+                console.log(msg);
+                const ws = await this.establishConnection(verifiedEvent.id, (message) => {
+                    console.log('from server:', message);
+                    resolve({
+                        eventId: message[1],
+                        success: message[2],
+                        message: message[3]
+                    });
+                });
+                ws.send(msg);
             });
-            event = index_1.Event.finishEvent(event, privateKey);
-            let msg = JSON.stringify(["EVENT", event]);
-            console.log(msg);
-            ws.send(msg);
         }
     }
     class NostrCachedWebSocketManager extends NostrWebSocketManager {
@@ -3809,21 +3812,27 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
         }
         async fetchUserCommunities(pubKey) {
             const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
-            let requestForCreatedOrFollowedCommunities = {
-                kinds: [0, 3, 34550, 30001],
+            let requestForCreatedCommunities = {
+                kinds: [0, 3, 34550],
+                authors: [decodedPubKey]
+            };
+            let requestForFollowedCommunities = {
+                kinds: [30001],
+                "#d": ["communities"],
                 authors: [decodedPubKey]
             };
             let requestForModeratedCommunities = {
                 kinds: [34550],
                 "#p": [decodedPubKey]
             };
-            const events = await this._websocketManager.fetchWebSocketEvents(requestForCreatedOrFollowedCommunities, requestForModeratedCommunities);
+            const events = await this._websocketManager.fetchWebSocketEvents(requestForCreatedCommunities, requestForFollowedCommunities, requestForModeratedCommunities);
             return events;
         }
         async fetchUserSubscribedCommunities(pubKey) {
             const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
             let request = {
                 kinds: [30001],
+                "#d": ["communities"],
                 authors: [decodedPubKey]
             };
             const events = await this._websocketManager.fetchWebSocketEvents(request);
@@ -3975,6 +3984,53 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             }
             return tags;
         }
+        async updateChannel(info, privateKey) {
+            let kind = info.id ? 41 : 40;
+            let event = {
+                "kind": kind,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": JSON.stringify({
+                    name: info.name,
+                    about: info.about,
+                    picture: info.picture
+                }),
+                "tags": []
+            };
+            if (info.id) {
+                event.tags.push([
+                    "e",
+                    info.id
+                ]);
+            }
+            if (info.scpData) {
+                let encodedScpData = window.btoa('$scp:' + JSON.stringify(info.scpData));
+                event.tags.push([
+                    "scp",
+                    "3",
+                    encodedScpData
+                ]);
+            }
+            const response = await this._websocketManager.submitEvent(event, privateKey);
+            return response;
+        }
+        async fetchUserChannels(pubKey) {
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
+            let requestForCreatedChannels = {
+                kinds: [40, 41],
+                authors: [decodedPubKey]
+            };
+            let requestForJoinedChannels = {
+                kinds: [30001],
+                "#d": ["channels"],
+                authors: [decodedPubKey]
+            };
+            let requestForModeratedChannels = {
+                kinds: [34550],
+                "#p": [decodedPubKey]
+            };
+            const events = await this._websocketManager.fetchWebSocketEvents(requestForCreatedChannels, requestForJoinedChannels, requestForModeratedChannels);
+            return events;
+        }
         async updateCommunity(info, privateKey) {
             let event = {
                 "kind": 34550,
@@ -4020,7 +4076,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                     "moderator"
                 ]);
             }
-            await this._websocketManager.submitEvent(event, privateKey);
+            const response = await this._websocketManager.submitEvent(event, privateKey);
+            return response;
         }
         async updateUserCommunities(communities, privateKey) {
             let communityUriArr = [];
@@ -4551,45 +4608,11 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             let focusedNote;
             let ancestorNotes = [];
             let replies = [];
-            // let metadataByPubKeyMap: Record<string, INostrMetadata> = {};
             let childReplyEventTagIds = [];
-            // let quotedNotesMap: Record<string, INoteInfo> = {};
-            // let relevantNotes: INoteInfo[] = [];
             //Ancestor posts -> Focused post -> Child replies
             let decodedFocusedNoteId = focusedNoteId.startsWith('note1') ? index_1.Nip19.decode(focusedNoteId).data : focusedNoteId;
             const threadEvents = await this._socialEventManager.fetchThreadCacheEvents(decodedFocusedNoteId);
-            const { notes, metadataByPubKeyMap, quotedNotesMap, noteStatsMap } = this.createNoteEventMappings(threadEvents);
-            // for (let threadEvent of threadEvents) {
-            //     if (threadEvent.kind === 0) {
-            //         metadataByPubKeyMap[threadEvent.pubkey] = {
-            //             ...threadEvent,
-            //             content: JSON.parse(threadEvent.content)
-            //         };
-            //     }
-            //     else if (threadEvent.kind === 1) {
-            //         if (threadEvent.id === decodedFocusedNoteId) {
-            //             focusedNote = {
-            //                 eventData: threadEvent
-            //             }
-            //         }
-            //         else if (threadEvent.tags.some(tag => tag[0] === 'e' && tag[1] === decodedFocusedNoteId)) {
-            //             replies.push({
-            //                 eventData: threadEvent
-            //             });
-            //         }
-            //         else {
-            //             ancestorNotes.push({
-            //                 eventData: threadEvent
-            //             });
-            //         }
-            //     }
-            //     else if (threadEvent.kind === 10000107) {
-            //         const noteEvent = JSON.parse(threadEvent.content) as INostrEvent;
-            //         quotedNotesMap[noteEvent.id] = {
-            //             eventData: noteEvent
-            //         };
-            //     } 
-            // }
+            const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(threadEvents);
             for (let note of notes) {
                 if (note.eventData.id === decodedFocusedNoteId) {
                     focusedNote = note;
@@ -4601,13 +4624,6 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                     ancestorNotes.push(note);
                 }
             }
-            // relevantNotes = [
-            //     ...ancestorNotes,
-            //     focusedNote,
-            //     ...replies
-            // ];
-            // const relevantNoteEvents = relevantNotes.map(note => note.eventData);
-            // metadataByPubKeyMap = await this.constructMetadataByPubKeyMap(relevantNoteEvents);
             let communityInfo = null;
             let scpData = this.extractPostScpData(focusedNote.eventData);
             if (scpData) {
@@ -4772,6 +4788,88 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             let content = JSON.parse(relaysEvent.content);
             relayList = Object.keys(content);
             return relayList;
+        }
+        getCommunityUri(creatorId, communityId) {
+            const decodedPubkey = index_1.Nip19.decode(creatorId).data;
+            return `34550:${decodedPubkey}:${communityId}`;
+        }
+        async generateGroupKeys(privateKey, gatekeeperPublicKey) {
+            const groupPrivateKey = index_1.Keys.generatePrivateKey();
+            const groupPublicKey = index_1.Keys.getPublicKey(groupPrivateKey);
+            const encryptedGroupKey = await this.encryptMessage(privateKey, gatekeeperPublicKey, groupPrivateKey);
+            return {
+                groupPrivateKey,
+                groupPublicKey,
+                encryptedGroupKey
+            };
+        }
+        async createCommunity(info, creatorId, privateKey) {
+            if (info.scpData) {
+                const gatekeeperPublicKey = index_1.Nip19.decode(info.gatekeeperNpub).data;
+                const communityKeys = await this.generateGroupKeys(privateKey, gatekeeperPublicKey);
+                info.scpData.publicKey = communityKeys.groupPublicKey;
+                info.scpData.encryptedKey = communityKeys.encryptedGroupKey;
+                info.scpData.gatekeeperPublicKey = gatekeeperPublicKey;
+                const channelKeys = await this.generateGroupKeys(privateKey, gatekeeperPublicKey);
+                let channelScpData = {
+                    communityId: info.name,
+                    publicKey: channelKeys.groupPublicKey,
+                    encryptedKey: channelKeys.encryptedGroupKey,
+                    gatekeeperPublicKey
+                };
+                let channelInfo = {
+                    name: info.name,
+                    about: info.description,
+                    scpData: channelScpData
+                };
+                const updateChannelResponse = await this._socialEventManager.updateChannel(channelInfo, privateKey);
+                if (updateChannelResponse.eventId) {
+                    info.scpData.channelEventId = updateChannelResponse.eventId;
+                }
+            }
+            const communityUri = this.getCommunityUri(creatorId, info.name);
+            let communityInfo = {
+                communityUri,
+                communityId: info.name,
+                creatorId,
+                description: info.description,
+                rules: info.rules,
+                bannerImgUrl: info.bannerImgUrl,
+                scpData: info.scpData,
+                moderatorIds: info.moderatorIds
+            };
+            await this._socialEventManager.updateCommunity(communityInfo, privateKey);
+            return communityInfo;
+        }
+        async fetchMyCommunities(pubKey) {
+            let communities = [];
+            const pubkeyToCommunityIdsMap = {};
+            const events = await this._socialEventManager.fetchUserCommunities(pubKey);
+            for (let event of events) {
+                if (event.kind === 34550) {
+                    const communityInfo = this.extractCommunityInfo(event);
+                    communities.push(communityInfo);
+                }
+                else if (event.kind === 30001) {
+                    const communityUriArr = event.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
+                    for (let communityUri of communityUriArr) {
+                        const pubkey = communityUri.split(':')[1];
+                        const communityId = communityUri.split(':')[2];
+                        if (!pubkeyToCommunityIdsMap[pubkey]) {
+                            pubkeyToCommunityIdsMap[pubkey] = [];
+                        }
+                        pubkeyToCommunityIdsMap[pubkey].push(communityId);
+                    }
+                }
+            }
+            if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+                const userSubscribedCommunitiesEvents = await this._socialEventManager.fetchCommunities(pubkeyToCommunityIdsMap);
+                for (let event of userSubscribedCommunitiesEvents) {
+                    const communityInfo = this.extractCommunityInfo(event);
+                    communities.push(communityInfo);
+                }
+            }
+            return communities;
         }
     }
     exports.SocialDataManager = SocialDataManager;

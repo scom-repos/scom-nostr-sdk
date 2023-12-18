@@ -1104,6 +1104,11 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         content: string;
         sig: string;
     }
+    export interface INostrSubmitResponse {
+        eventId: string;
+        success: boolean;
+        message?: string;
+    }
     export interface INostrMetadataContent {
         name: string;
         display_name: string;
@@ -1167,6 +1172,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         publicKey?: string;
         encryptedKey?: string;
         gatekeeperPublicKey?: string;
+        channelEventId?: string;
     }
     export interface ICommunityBasicInfo {
         creatorId: string;
@@ -1181,6 +1187,28 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         scpData?: ICommunityScpData;
         moderatorIds?: string[];
         eventData?: INostrEvent;
+    }
+    export interface INewCommunityInfo {
+        name: string;
+        description?: string;
+        bannerImgUrl?: string;
+        moderatorIds?: string[];
+        rules?: string;
+        gatekeeperNpub?: string;
+        scpData?: ICommunityScpData;
+    }
+    export interface IChannelScpData {
+        communityId: string;
+        publicKey?: string;
+        encryptedKey?: string;
+        gatekeeperPublicKey?: string;
+    }
+    export interface IChannelInfo {
+        id?: string;
+        name: string;
+        about?: string;
+        picture?: string;
+        scpData?: IChannelScpData;
     }
     export interface IConversationPath {
         noteIds: string[];
@@ -1234,7 +1262,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk/utils/managers.ts" />
 declare module "@scom/scom-social-sdk/utils/managers.ts" {
-    import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteInfo, IPostStats, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteInfo, IPostStats, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
     interface IFetchNotesOptions {
         authors?: string[];
         ids?: string[];
@@ -1275,7 +1303,9 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchFollowing(npubs: string[]): Promise<INostrEvent[]>;
         postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
         calculateConversationPathTags(conversationPath: IConversationPath): string[][];
-        updateCommunity(info: ICommunityInfo, privateKey: string): Promise<void>;
+        updateChannel(info: IChannelInfo, privateKey: string): Promise<INostrSubmitResponse>;
+        fetchUserChannels(pubKey: string): Promise<INostrEvent[]>;
+        updateCommunity(info: ICommunityInfo, privateKey: string): Promise<INostrSubmitResponse>;
         updateUserCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
         submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
         updateUserProfile(content: INostrMetadataContent, privateKey: string): Promise<void>;
@@ -1307,7 +1337,9 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchReplies(options: IFetchRepliesOptions): Promise<INostrEvent[]>;
         fetchFollowing(npubs: string[]): Promise<INostrEvent[]>;
         postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
-        updateCommunity(info: ICommunityInfo, privateKey: string): Promise<void>;
+        updateCommunity(info: ICommunityInfo, privateKey: string): Promise<INostrSubmitResponse>;
+        updateChannel(info: IChannelInfo, privateKey: string): Promise<INostrSubmitResponse>;
+        fetchUserChannels(pubKey: string): Promise<INostrEvent[]>;
         updateUserCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
         submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
         updateUserProfile(content: INostrMetadataContent, privateKey: string): Promise<void>;
@@ -1362,6 +1394,14 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchUserContactList(pubKey: string): Promise<IUserProfile[]>;
         fetchUserFollowersList(pubKey: string): Promise<IUserProfile[]>;
         fetchUserRelayList(pubKey: string): Promise<string[]>;
+        getCommunityUri(creatorId: string, communityId: string): string;
+        generateGroupKeys(privateKey: string, gatekeeperPublicKey: string): Promise<{
+            groupPrivateKey: string;
+            groupPublicKey: string;
+            encryptedGroupKey: string;
+        }>;
+        createCommunity(info: INewCommunityInfo, creatorId: string, privateKey: string): Promise<ICommunityInfo>;
+        fetchMyCommunities(pubKey: string): Promise<ICommunityInfo[]>;
     }
     export { NostrEventManager, ISocialEventManager, SocialDataManager };
 }

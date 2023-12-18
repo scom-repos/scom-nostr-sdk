@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "./interfaces";
+import { IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "./interfaces";
 
 interface IFetchNotesOptions {
     authors?: string[];
@@ -54,7 +54,7 @@ class NostrWebSocketManager {
 
     establishConnection(requestId: string, cb: (message: any) => void) {
         const WebSocket = determineWebSocketType();
-        this.requestCallbackMap[requestId] = cb;
+        this.requestCallbackMap[requestId] = cb; 
         return new Promise<WebSocket>((resolve) => {
             const openListener = () => {
                 console.log('Connected to server');
@@ -68,7 +68,7 @@ class NostrWebSocketManager {
                     const messageStr = event.data.toString();
                     const message = JSON.parse(messageStr);
                     let requestId = message[1];
-                    if (message[0] === 'EOSE') {
+                    if (message[0] === 'EOSE' || message[0] === 'OK') {
                         if (this.requestCallbackMap[requestId]) {
                             this.requestCallbackMap[requestId](message);
                             delete this.requestCallbackMap[requestId];
@@ -112,7 +112,8 @@ class NostrWebSocketManager {
                     // Implement the verifySignature function according to your needs
                     // console.log(verifySignature(eventData)); // true
                     events.push(eventData);
-                } else if (message[0] === "EOSE") {
+                } 
+                else if (message[0] === "EOSE") {
                     resolve(events);
                     console.log("end of stored events");
                 }
@@ -121,17 +122,20 @@ class NostrWebSocketManager {
         });
     }
     async submitEvent(event: Event.EventTemplate<number>, privateKey: string) {
-        let requestId;
-        do {
-            requestId = this.generateRandomNumber();
-        } while (this.requestCallbackMap[requestId]);
-        const ws = await this.establishConnection(requestId, (message) => {
-            console.log('from server:', message);
+        return new Promise<INostrSubmitResponse>(async (resolve, reject) => {
+            const verifiedEvent = Event.finishEvent(event, privateKey)
+            let msg = JSON.stringify(["EVENT", verifiedEvent]);
+            console.log(msg);
+            const ws = await this.establishConnection(verifiedEvent.id, (message) => {
+                console.log('from server:', message);
+                resolve({
+                    eventId: message[1],
+                    success: message[2],
+                    message: message[3]
+                });
+            });
+            ws.send(msg);
         });
-        event = Event.finishEvent(event, privateKey)
-        let msg = JSON.stringify(["EVENT", event]);
-        console.log(msg);
-        ws.send(msg);
     }
 }
 
@@ -324,16 +328,22 @@ class NostrEventManager {
 
     async fetchUserCommunities(pubKey: string) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
-        let requestForCreatedOrFollowedCommunities: any = {
-            kinds: [0, 3, 34550, 30001],
+        let requestForCreatedCommunities: any = {
+            kinds: [0, 3, 34550],
             authors: [decodedPubKey]
         };
+        let requestForFollowedCommunities: any = {
+            kinds: [30001],
+            "#d": ["communities"],
+            authors: [decodedPubKey]
+        }
         let requestForModeratedCommunities: any = {
             kinds: [34550],
             "#p": [decodedPubKey]
         };
         const events = await this._websocketManager.fetchWebSocketEvents(
-            requestForCreatedOrFollowedCommunities, 
+            requestForCreatedCommunities, 
+            requestForFollowedCommunities,
             requestForModeratedCommunities
         );
         return events;
@@ -343,6 +353,7 @@ class NostrEventManager {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
         let request: any = {
             kinds: [30001],
+            "#d": ["communities"],
             authors: [decodedPubKey]
         };
         const events = await this._websocketManager.fetchWebSocketEvents(request);
@@ -502,6 +513,59 @@ class NostrEventManager {
         return tags;
     }
 
+    async updateChannel(info: IChannelInfo, privateKey: string) {
+        let kind = info.id ? 41 : 40;
+        let event = {
+            "kind": kind,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": JSON.stringify({
+                name: info.name,
+                about: info.about,
+                picture: info.picture
+            }),
+            "tags": []
+        };
+        if (info.id) {
+            event.tags.push([
+                "e",
+                info.id
+            ]);
+        }
+        if (info.scpData) {
+            let encodedScpData = window.btoa('$scp:' + JSON.stringify(info.scpData));
+            event.tags.push([
+                "scp",
+                "3",
+                encodedScpData
+            ]);
+        }
+        const response = await this._websocketManager.submitEvent(event, privateKey);
+        return response;
+    }
+
+    async fetchUserChannels(pubKey: string) {
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        let requestForCreatedChannels: any = {
+            kinds: [40, 41],
+            authors: [decodedPubKey]
+        };
+        let requestForJoinedChannels: any = {
+            kinds: [30001],
+            "#d": ["channels"],
+            authors: [decodedPubKey]
+        }
+        let requestForModeratedChannels: any = {
+            kinds: [34550],
+            "#p": [decodedPubKey]
+        };
+        const events = await this._websocketManager.fetchWebSocketEvents(
+            requestForCreatedChannels, 
+            requestForJoinedChannels,
+            requestForModeratedChannels
+        );
+        return events;
+    }
+
     async updateCommunity(info: ICommunityInfo, privateKey: string) {
         let event = {
             "kind": 34550,
@@ -547,7 +611,8 @@ class NostrEventManager {
                 "moderator"
             ]);
         }
-        await this._websocketManager.submitEvent(event, privateKey);
+        const response = await this._websocketManager.submitEvent(event, privateKey);
+        return response;
     }
 
     async updateUserCommunities(communities: ICommunityBasicInfo[], privateKey: string) {
@@ -702,7 +767,6 @@ class NostrEventManager {
         };
         await this._cachedWebsocketManager.fetchCachedEvents('reset_directmsg_count', msg);
     }
-
 }
 
 interface ISocialEventManager {
@@ -727,7 +791,9 @@ interface ISocialEventManager {
     fetchReplies(options: IFetchRepliesOptions): Promise<INostrEvent[]>;
     fetchFollowing(npubs: string[]): Promise<INostrEvent[]>;
     postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
-    updateCommunity(info: ICommunityInfo, privateKey: string): Promise<void>;
+    updateCommunity(info: ICommunityInfo, privateKey: string): Promise<INostrSubmitResponse>;
+    updateChannel(info: IChannelInfo, privateKey: string): Promise<INostrSubmitResponse>;
+    fetchUserChannels(pubKey: string): Promise<INostrEvent[]>;
     updateUserCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
     submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
     updateUserProfile(content: INostrMetadataContent, privateKey: string): Promise<void>;
@@ -1326,6 +1392,94 @@ class SocialDataManager {
         let content = JSON.parse(relaysEvent.content);
         relayList = Object.keys(content);
         return relayList;
+    }
+
+    getCommunityUri(creatorId: string, communityId: string) {
+        const decodedPubkey = Nip19.decode(creatorId).data as string;
+        return `34550:${decodedPubkey}:${communityId}`;
+    }
+
+    async generateGroupKeys(privateKey: string, gatekeeperPublicKey: string) {
+        const groupPrivateKey = Keys.generatePrivateKey();
+        const groupPublicKey = Keys.getPublicKey(groupPrivateKey);
+        const encryptedGroupKey = await this.encryptMessage(privateKey, gatekeeperPublicKey, groupPrivateKey);
+        return {
+            groupPrivateKey,
+            groupPublicKey,
+            encryptedGroupKey
+        }
+    }
+
+    async createCommunity(info: INewCommunityInfo, creatorId: string, privateKey: string) {
+        if (info.scpData) {
+            const gatekeeperPublicKey = Nip19.decode(info.gatekeeperNpub).data as string;
+            const communityKeys = await this.generateGroupKeys(privateKey, gatekeeperPublicKey);
+            info.scpData.publicKey = communityKeys.groupPublicKey;
+            info.scpData.encryptedKey = communityKeys.encryptedGroupKey;
+            info.scpData.gatekeeperPublicKey = gatekeeperPublicKey;
+            const channelKeys = await this.generateGroupKeys(privateKey, gatekeeperPublicKey);
+            let channelScpData: IChannelScpData = {
+                communityId: info.name,
+                publicKey: channelKeys.groupPublicKey,
+                encryptedKey: channelKeys.encryptedGroupKey,
+                gatekeeperPublicKey
+            }
+            let channelInfo: IChannelInfo = {
+                name: info.name,
+                about: info.description,
+                scpData: channelScpData
+            }
+            const updateChannelResponse = await this._socialEventManager.updateChannel(channelInfo, privateKey);
+            if (updateChannelResponse.eventId) {
+                info.scpData.channelEventId = updateChannelResponse.eventId;
+            }
+        }
+    
+        const communityUri = this.getCommunityUri(creatorId, info.name);
+        let communityInfo: ICommunityInfo = {
+            communityUri,
+            communityId: info.name,
+            creatorId,
+            description: info.description,
+            rules: info.rules,
+            bannerImgUrl: info.bannerImgUrl,
+            scpData: info.scpData,
+            moderatorIds: info.moderatorIds
+        }
+        await this._socialEventManager.updateCommunity(communityInfo, privateKey);
+    
+        return communityInfo;
+    }
+
+    async fetchMyCommunities(pubKey: string) {
+        let communities: ICommunityInfo[] = [];
+        const pubkeyToCommunityIdsMap: Record<string, string[]> = {};
+        const events = await this._socialEventManager.fetchUserCommunities(pubKey);
+        for (let event of events) {
+            if (event.kind === 34550) {
+                const communityInfo = this.extractCommunityInfo(event);
+                communities.push(communityInfo);
+            }
+            else if (event.kind === 30001) {
+                const communityUriArr = event.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
+                for (let communityUri of communityUriArr) {
+                    const pubkey = communityUri.split(':')[1];
+                    const communityId = communityUri.split(':')[2];
+                    if (!pubkeyToCommunityIdsMap[pubkey]) {
+                        pubkeyToCommunityIdsMap[pubkey] = [];
+                    }
+                    pubkeyToCommunityIdsMap[pubkey].push(communityId);
+                }
+            }
+        }
+        if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+            const userSubscribedCommunitiesEvents = await this._socialEventManager.fetchCommunities(pubkeyToCommunityIdsMap);
+            for (let event of userSubscribedCommunitiesEvents) {
+                const communityInfo = this.extractCommunityInfo(event);
+                communities.push(communityInfo);
+            }
+        }
+        return communities;
     }
 }
 

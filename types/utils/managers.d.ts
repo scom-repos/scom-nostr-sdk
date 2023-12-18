@@ -1,4 +1,4 @@
-import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteInfo, IPostStats, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "./interfaces";
+import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteInfo, IPostStats, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "./interfaces";
 interface IFetchNotesOptions {
     authors?: string[];
     ids?: string[];
@@ -39,7 +39,9 @@ declare class NostrEventManager {
     fetchFollowing(npubs: string[]): Promise<INostrEvent[]>;
     postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
     calculateConversationPathTags(conversationPath: IConversationPath): string[][];
-    updateCommunity(info: ICommunityInfo, privateKey: string): Promise<void>;
+    updateChannel(info: IChannelInfo, privateKey: string): Promise<INostrSubmitResponse>;
+    fetchUserChannels(pubKey: string): Promise<INostrEvent[]>;
+    updateCommunity(info: ICommunityInfo, privateKey: string): Promise<INostrSubmitResponse>;
     updateUserCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
     submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
     updateUserProfile(content: INostrMetadataContent, privateKey: string): Promise<void>;
@@ -71,7 +73,9 @@ interface ISocialEventManager {
     fetchReplies(options: IFetchRepliesOptions): Promise<INostrEvent[]>;
     fetchFollowing(npubs: string[]): Promise<INostrEvent[]>;
     postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
-    updateCommunity(info: ICommunityInfo, privateKey: string): Promise<void>;
+    updateCommunity(info: ICommunityInfo, privateKey: string): Promise<INostrSubmitResponse>;
+    updateChannel(info: IChannelInfo, privateKey: string): Promise<INostrSubmitResponse>;
+    fetchUserChannels(pubKey: string): Promise<INostrEvent[]>;
     updateUserCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
     submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
     updateUserProfile(content: INostrMetadataContent, privateKey: string): Promise<void>;
@@ -126,5 +130,13 @@ declare class SocialDataManager {
     fetchUserContactList(pubKey: string): Promise<IUserProfile[]>;
     fetchUserFollowersList(pubKey: string): Promise<IUserProfile[]>;
     fetchUserRelayList(pubKey: string): Promise<string[]>;
+    getCommunityUri(creatorId: string, communityId: string): string;
+    generateGroupKeys(privateKey: string, gatekeeperPublicKey: string): Promise<{
+        groupPrivateKey: string;
+        groupPublicKey: string;
+        encryptedGroupKey: string;
+    }>;
+    createCommunity(info: INewCommunityInfo, creatorId: string, privateKey: string): Promise<ICommunityInfo>;
+    fetchMyCommunities(pubKey: string): Promise<ICommunityInfo[]>;
 }
 export { NostrEventManager, ISocialEventManager, SocialDataManager };

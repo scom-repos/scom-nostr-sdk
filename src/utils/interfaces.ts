@@ -8,6 +8,12 @@ export interface INostrEvent {
     sig: string;  // 64-bytes lowercase hex of signature
 }
 
+export interface INostrSubmitResponse {
+	eventId: string;
+	success: boolean;
+	message?: string;
+}
+
 export interface INostrMetadataContent {
     name: string;
     display_name: string;
@@ -70,6 +76,7 @@ export enum NftType {
     ERC1155	= 'ERC1155'
 }
 
+//SCP-1
 export interface ICommunityScpData {
 	chainId: number;
 	nftAddress: string;
@@ -78,6 +85,7 @@ export interface ICommunityScpData {
 	publicKey?: string;
 	encryptedKey?: string;
 	gatekeeperPublicKey?: string;
+	channelEventId?: string;
 }
 
 export interface ICommunityBasicInfo {
@@ -96,11 +104,38 @@ export interface ICommunityInfo extends ICommunityBasicInfo {
 	eventData?: INostrEvent;
 }
 
+export interface INewCommunityInfo {
+	name: string;
+	description?: string;
+	bannerImgUrl?: string;
+	moderatorIds?: string[];
+	rules?: string;
+	gatekeeperNpub?: string;
+	scpData?: ICommunityScpData;
+}
+
+//SCP-3
+export interface IChannelScpData {
+	communityId: string;
+	publicKey?: string;
+	encryptedKey?: string;
+	gatekeeperPublicKey?: string;
+}
+
+export interface IChannelInfo {
+	id?: string;
+	name: string;
+	about?: string;
+	picture?: string;
+	scpData?: IChannelScpData;
+}
+
 export interface IConversationPath {
 	noteIds: string[];
 	authorIds: string[];
 }
 
+//SCP-2
 export interface ICommunityPostScpData {
 	encryptedKey?: string;
 }

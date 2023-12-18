@@ -7,6 +7,11 @@ export interface INostrEvent {
     content: string;
     sig: string;
 }
+export interface INostrSubmitResponse {
+    eventId: string;
+    success: boolean;
+    message?: string;
+}
 export interface INostrMetadataContent {
     name: string;
     display_name: string;
@@ -70,6 +75,7 @@ export interface ICommunityScpData {
     publicKey?: string;
     encryptedKey?: string;
     gatekeeperPublicKey?: string;
+    channelEventId?: string;
 }
 export interface ICommunityBasicInfo {
     creatorId: string;
@@ -84,6 +90,28 @@ export interface ICommunityInfo extends ICommunityBasicInfo {
     scpData?: ICommunityScpData;
     moderatorIds?: string[];
     eventData?: INostrEvent;
+}
+export interface INewCommunityInfo {
+    name: string;
+    description?: string;
+    bannerImgUrl?: string;
+    moderatorIds?: string[];
+    rules?: string;
+    gatekeeperNpub?: string;
+    scpData?: ICommunityScpData;
+}
+export interface IChannelScpData {
+    communityId: string;
+    publicKey?: string;
+    encryptedKey?: string;
+    gatekeeperPublicKey?: string;
+}
+export interface IChannelInfo {
+    id?: string;
+    name: string;
+    about?: string;
+    picture?: string;
+    scpData?: IChannelScpData;
 }
 export interface IConversationPath {
     noteIds: string[];
