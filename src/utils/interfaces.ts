@@ -55,6 +55,7 @@ export interface IUserActivityStats {
 
 export interface INoteInfo {
 	eventData: INostrEvent;
+	stats?: IPostStats;
 }
 
 export interface INoteCommunityInfo {
@@ -142,4 +143,12 @@ export interface IRetrieveCommunityThreadPostKeysOptions {
 	gatekeeperUrl?: string;
 	message?: string;
 	signature?: string;
+}
+
+export interface IPostStats {
+	replies?: number;
+	reposts?: number;
+	upvotes?: number;
+	downvotes?: number;
+	views?: number;
 }

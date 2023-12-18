@@ -1147,6 +1147,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     }
     export interface INoteInfo {
         eventData: INostrEvent;
+        stats?: IPostStats;
     }
     export interface INoteCommunityInfo {
         eventData: INostrEvent;
@@ -1223,10 +1224,17 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         message?: string;
         signature?: string;
     }
+    export interface IPostStats {
+        replies?: number;
+        reposts?: number;
+        upvotes?: number;
+        downvotes?: number;
+        views?: number;
+    }
 }
 /// <amd-module name="@scom/scom-social-sdk/utils/managers.ts" />
 declare module "@scom/scom-social-sdk/utils/managers.ts" {
-    import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteInfo, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteInfo, IPostStats, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
     interface IFetchNotesOptions {
         authors?: string[];
         ids?: string[];
@@ -1329,6 +1337,13 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         retrieveCommunityThreadPostKeys(options: IRetrieveCommunityThreadPostKeysOptions): Promise<Record<string, string>>;
         retrieveCommunityPostKeysByNoteEvents(options: IRetrieveCommunityPostKeysByNoteEventsOptions): Promise<Record<string, string>>;
         constructMetadataByPubKeyMap(notes: INostrEvent[]): Promise<Record<string, INostrMetadata>>;
+        createNoteEventMappings(events: INostrEvent[], parentAuthorsInfo?: boolean): {
+            notes: INoteInfo[];
+            metadataByPubKeyMap: Record<string, INostrMetadata>;
+            quotedNotesMap: Record<string, INoteInfo>;
+            noteToParentAuthorIdMap: Record<string, string>;
+            noteStatsMap: Record<string, IPostStats>;
+        };
         fetchThreadNotesInfo(focusedNoteId: string): Promise<{
             focusedNote: INoteInfo;
             ancestorNotes: INoteInfo[];
@@ -1352,11 +1367,11 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk/utils/index.ts" />
 declare module "@scom/scom-social-sdk/utils/index.ts" {
-    export { INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityScpData, INoteInfo, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    export { INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityScpData, INoteInfo, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats } from "@scom/scom-social-sdk/utils/interfaces.ts";
     export { NostrEventManager, ISocialEventManager, SocialDataManager } from "@scom/scom-social-sdk/utils/managers.ts";
 }
 /// <amd-module name="@scom/scom-social-sdk" />
 declare module "@scom/scom-social-sdk" {
     export { Event, Keys, Nip19, Bech32, } from "@scom/scom-social-sdk/core/index.ts";
-    export { INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityScpData, INoteInfo, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, NostrEventManager, ISocialEventManager, SocialDataManager } from "@scom/scom-social-sdk/utils/index.ts";
+    export { INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityScpData, INoteInfo, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, NostrEventManager, ISocialEventManager, SocialDataManager } from "@scom/scom-social-sdk/utils/index.ts";
 }

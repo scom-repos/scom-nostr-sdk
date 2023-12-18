@@ -8,7 +8,8 @@ export {
     INoteCommunityInfo,
     ICommunityGatekeeperInfo,
     IUserProfile,
-    IUserActivityStats
+    IUserActivityStats,
+    IPostStats
 } from "./interfaces";
 
 export {

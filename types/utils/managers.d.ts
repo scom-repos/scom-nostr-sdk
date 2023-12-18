@@ -1,4 +1,4 @@
-import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteInfo, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "./interfaces";
+import { ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteInfo, IPostStats, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "./interfaces";
 interface IFetchNotesOptions {
     authors?: string[];
     ids?: string[];
@@ -101,6 +101,13 @@ declare class SocialDataManager {
     retrieveCommunityThreadPostKeys(options: IRetrieveCommunityThreadPostKeysOptions): Promise<Record<string, string>>;
     retrieveCommunityPostKeysByNoteEvents(options: IRetrieveCommunityPostKeysByNoteEventsOptions): Promise<Record<string, string>>;
     constructMetadataByPubKeyMap(notes: INostrEvent[]): Promise<Record<string, INostrMetadata>>;
+    createNoteEventMappings(events: INostrEvent[], parentAuthorsInfo?: boolean): {
+        notes: INoteInfo[];
+        metadataByPubKeyMap: Record<string, INostrMetadata>;
+        quotedNotesMap: Record<string, INoteInfo>;
+        noteToParentAuthorIdMap: Record<string, string>;
+        noteStatsMap: Record<string, IPostStats>;
+    };
     fetchThreadNotesInfo(focusedNoteId: string): Promise<{
         focusedNote: INoteInfo;
         ancestorNotes: INoteInfo[];

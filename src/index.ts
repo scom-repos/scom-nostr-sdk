@@ -15,6 +15,7 @@ export {
     ICommunityGatekeeperInfo,
     IUserProfile,
     IUserActivityStats,
+    IPostStats,
     NostrEventManager,
     ISocialEventManager,
     SocialDataManager
