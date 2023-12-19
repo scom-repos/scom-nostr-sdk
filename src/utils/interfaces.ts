@@ -76,6 +76,13 @@ export enum NftType {
     ERC1155	= 'ERC1155'
 }
 
+export enum ScpStandardId {
+	Community = '1',
+	CommunityPost = '2',
+	Channel = '3',
+	ChannelMessage = '4'
+}
+
 //SCP-1
 export interface ICommunityScpData {
 	chainId: number;
@@ -133,6 +140,7 @@ export interface IChannelInfo {
 
 //SCP-4
 export interface IChannelMessageScpData {
+	channelId: string;
 	encryptedKey?: string;
 }
 
@@ -143,6 +151,15 @@ export interface INewChannelMessageInfo {
 	scpData?: IChannelMessageScpData;
 }
 
+export interface IRetrieveChannelMessageKeysOptions {
+	creatorId: string;
+	channelId: string; 
+	privateKey?: string;
+	gatekeeperUrl?: string;
+	message?: string;
+	signature?: string;
+}
+
 export interface IConversationPath {
 	noteIds: string[];
 	authorIds: string[];
@@ -150,6 +167,7 @@ export interface IConversationPath {
 
 //SCP-2
 export interface ICommunityPostScpData {
+	communityUri: string;
 	encryptedKey?: string;
 }
 

@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "./interfaces";
+import { IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile, ScpStandardId } from "./interfaces";
 
 interface IFetchNotesOptions {
     authors?: string[];
@@ -1051,10 +1051,10 @@ class SocialDataManager {
         return communityUri;
     }
 
-    extractPostScpData(noteEvent: INostrEvent) {
-        const scpTag = noteEvent.tags.find(tag => tag[0] === 'scp');
+    private extractScpData(event: INostrEvent, standardId: string) {
+        const scpTag = event.tags.find(tag => tag[0] === 'scp');
         let scpData;
-        if (scpTag && scpTag[1] === '2') {
+        if (scpTag && scpTag[1] === standardId) {
             const scpDataStr = this.base64ToUtf8(scpTag[2]);
             if (!scpDataStr.startsWith('$scp:')) return null;
             scpData = JSON.parse(scpDataStr.substring(5));
@@ -1064,7 +1064,7 @@ class SocialDataManager {
 
     async retrievePostPrivateKey(noteEvent: INostrEvent, communityUri: string, communityPrivateKey: string) {
         let key: string | null = null;
-        let postScpData = this.extractPostScpData(noteEvent);
+        let postScpData = this.extractScpData(noteEvent, ScpStandardId.CommunityPost);
         try {
             const postPrivateKey = await this.decryptMessage(communityPrivateKey, noteEvent.pubkey, postScpData.encryptedKey);
             const messageContentStr = await this.decryptMessage(postPrivateKey, noteEvent.pubkey, noteEvent.content);
@@ -1299,6 +1299,14 @@ class SocialDataManager {
             noteStatsMap
         }
     }
+    
+    async fetchCommunityInfo(creatorId: string, communityId: string) {
+        const communityEvents = await this._socialEventManager.fetchCommunity(creatorId, communityId);
+        const communityEvent = communityEvents.find(event => event.kind === 34550);
+        if(!communityEvent) return null;
+        let communityInfo = this.extractCommunityInfo(communityEvent);
+        return communityInfo;
+    }
 
     async fetchThreadNotesInfo(focusedNoteId: string) {
         let focusedNote: INoteInfo;
@@ -1325,16 +1333,13 @@ class SocialDataManager {
             }
         }
         let communityInfo: ICommunityInfo | null = null;
-        let scpData = this.extractPostScpData(focusedNote.eventData);
+        let scpData = this.extractScpData(focusedNote.eventData, ScpStandardId.CommunityPost);
         if (scpData) {
             const communityUri = this.retrieveCommunityUri(focusedNote.eventData, scpData);
             if (communityUri) {
                 const creatorId = communityUri.split(':')[1];
                 const communityId = communityUri.split(':')[2];
-                const communityEvents = await this._socialEventManager.fetchCommunity(creatorId, communityId);
-                const communityEvent = communityEvents.find(event => event.kind === 34550);
-                if(!communityEvent) throw new Error('No info event found');
-                communityInfo = this.extractCommunityInfo(communityEvent);
+                communityInfo = await this.fetchCommunityInfo(creatorId, communityId);
             }
         }
         return {
@@ -1348,12 +1353,12 @@ class SocialDataManager {
         };
     }
 
-    private async createNoteCommunityMappings(notes: INostrEvent[]) {
+    async createNoteCommunityMappings(notes: INostrEvent[]) {
         let noteCommunityInfoList: INoteCommunityInfo[] = [];
         let pubkeyToCommunityIdsMap: Record<string, string[]> = {};
         let communityInfoList: ICommunityInfo[] = [];
         for (let note of notes) {
-            let scpData = this.extractPostScpData(note);
+            let scpData = this.extractScpData(note, ScpStandardId.CommunityPost);
             if (scpData) {
                 const communityUri = this.retrieveCommunityUri(note, scpData);
                 if (communityUri) {
@@ -1638,6 +1643,38 @@ class SocialDataManager {
         }
     }
 
+    private async encryptGroupMessage(privateKey: string, groupPublicKey: string, message: string) {
+        const messagePrivateKey = Keys.generatePrivateKey();
+        const messagePublicKey = Keys.getPublicKey(messagePrivateKey);
+        const encryptedGroupKey = await this.encryptMessage(privateKey, groupPublicKey, messagePrivateKey);
+        const encryptedMessage = await this.encryptMessage(privateKey, messagePublicKey, message);
+        return {
+            encryptedMessage,
+            encryptedGroupKey
+        }
+    }
+
+    async submitCommunityPost(message: string, info: ICommunityInfo, privateKey: string, conversationPath?: IConversationPath) {
+        const messageContent = {
+            communityUri: info.communityUri,
+            message,
+        }
+        const {
+            encryptedMessage,
+            encryptedGroupKey
+        } = await this.encryptGroupMessage(privateKey, info.scpData.publicKey, JSON.stringify(messageContent));
+        const newCommunityPostInfo: INewCommunityPostInfo = {
+            community: info,
+            message: encryptedMessage,
+            conversationPath,
+            scpData: {
+                encryptedKey: encryptedGroupKey,
+                communityUri: info.communityUri
+            }
+        }
+        await this._socialEventManager.submitCommunityPost(newCommunityPostInfo, privateKey);
+    }
+
     extractChannelInfo(event: INostrEvent) {
         const content = JSON.parse(event.content);
         let eventId;
@@ -1648,14 +1685,7 @@ class SocialDataManager {
             eventId = event.tags.find(tag => tag[0] === 'e')?.[1];
         }
         if (!eventId) return null;
-        const scpTag = event.tags.find(tag => tag[0] === 'scp');
-        let scpData;
-        if (scpTag && scpTag[1] === '3') {
-            const scpDataStr = this.base64ToUtf8(scpTag[2]);
-            if (!scpDataStr.startsWith('$scp:')) return null;
-            scpData = JSON.parse(scpDataStr.substring(5));
-        }
-        
+        let scpData = this.extractScpData(event, ScpStandardId.Channel);
         let channelInfo: IChannelInfo = {
             id: eventId,
             name: content.name,
@@ -1735,6 +1765,83 @@ class SocialDataManager {
             messageEvents,
             info: channelInfo
         }
+    }
+
+    async retrieveChannelMessagePrivateKey(event: INostrEvent, channelId: string, channelPrivateKey: string) {
+        let key: string | null = null;
+        let messageScpData = this.extractScpData(event, ScpStandardId.ChannelMessage);
+        try {
+            const messagePrivateKey = await this.decryptMessage(channelPrivateKey, event.pubkey, messageScpData.encryptedKey);
+            const messageContentStr = await this.decryptMessage(messagePrivateKey, event.pubkey, event.content);
+            const messageContent = JSON.parse(messageContentStr);
+            if (channelId === messageContent.channelId) {
+                key = messagePrivateKey;
+            }
+        } 
+        catch (e) {
+            // console.error(e);
+        }
+        return key;
+    }
+
+    async retrieveChannelMessageKeys(options: IRetrieveChannelMessageKeysOptions) {
+        let messageIdToPrivateKey: Record<string, string> = {};
+        if (options.gatekeeperUrl) {
+            let bodyData = {
+                creatorId: options.creatorId,
+                channelId: options.channelId,
+                message: options.message,
+                signature: options.signature
+            };
+            let url = `${options.gatekeeperUrl}/api/channels/v0/message-keys`;
+            let response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(bodyData)
+            });
+            let result = await response.json();
+            if (result.success) {
+                messageIdToPrivateKey = result.data;
+            }
+        }
+        else if (options.privateKey) {
+            const channelEvents = await this.retrieveChannelEvents(options.creatorId, options.channelId);
+            const channelInfo = channelEvents.info;
+            const messageEvents = channelEvents.messageEvents;
+            let channelPrivateKey = await this.decryptMessage(options.privateKey, channelInfo.scpData.gatekeeperPublicKey, channelInfo.scpData.encryptedKey);
+            if (!channelPrivateKey) return messageIdToPrivateKey;
+            for (const messageEvent of messageEvents) {
+                const messagePrivateKey = await this.retrieveChannelMessagePrivateKey(messageEvent, channelInfo.id, channelPrivateKey);
+                if (messagePrivateKey) {
+                    messageIdToPrivateKey[messageEvent.id] = messagePrivateKey;
+                }
+            }
+        }
+        return messageIdToPrivateKey;
+    }
+
+    async submitChannelMessage(message: string, info: IChannelInfo, privateKey: string, conversationPath?: IConversationPath) {
+        const messageContent = {
+            channelId: info.id,
+            message,
+        }
+        const {
+            encryptedMessage,
+            encryptedGroupKey
+        } = await this.encryptGroupMessage(privateKey, info.scpData.publicKey, JSON.stringify(messageContent));
+        const newChannelMessageInfo: INewChannelMessageInfo = {
+            channel: info,
+            message: encryptedMessage,
+            conversationPath,
+            scpData: {
+                encryptedKey: encryptedGroupKey,
+                channelId: info.id
+            }
+        }
+        await this._socialEventManager.submitChannelMessage(newChannelMessageInfo, privateKey);
     }
 }
 

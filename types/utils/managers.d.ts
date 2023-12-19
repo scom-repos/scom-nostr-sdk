@@ -1,4 +1,4 @@
-import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteInfo, IPostStats, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "./interfaces";
+import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "./interfaces";
 interface IFetchNotesOptions {
     authors?: string[];
     ids?: string[];
@@ -109,7 +109,7 @@ declare class SocialDataManager {
         info: ICommunityInfo;
     }>;
     retrieveCommunityUri(noteEvent: INostrEvent, scpData: any): string;
-    extractPostScpData(noteEvent: INostrEvent): any;
+    private extractScpData;
     retrievePostPrivateKey(noteEvent: INostrEvent, communityUri: string, communityPrivateKey: string): Promise<string>;
     retrieveCommunityPostKeys(options: IRetrieveCommunityPostKeysOptions): Promise<Record<string, string>>;
     retrieveCommunityThreadPostKeys(options: IRetrieveCommunityThreadPostKeysOptions): Promise<Record<string, string>>;
@@ -122,6 +122,7 @@ declare class SocialDataManager {
         noteToParentAuthorIdMap: Record<string, string>;
         noteStatsMap: Record<string, IPostStats>;
     };
+    fetchCommunityInfo(creatorId: string, communityId: string): Promise<ICommunityInfo>;
     fetchThreadNotesInfo(focusedNoteId: string): Promise<{
         focusedNote: INoteInfo;
         ancestorNotes: INoteInfo[];
@@ -131,7 +132,10 @@ declare class SocialDataManager {
         childReplyEventTagIds: string[];
         communityInfo: ICommunityInfo;
     }>;
-    private createNoteCommunityMappings;
+    createNoteCommunityMappings(notes: INostrEvent[]): Promise<{
+        noteCommunityInfoList: INoteCommunityInfo[];
+        communityInfoList: ICommunityInfo[];
+    }>;
     retrieveUserProfileDetail(pubKey: string): Promise<{
         userProfile: IUserProfile;
         stats: IUserActivityStats;
@@ -152,11 +156,16 @@ declare class SocialDataManager {
     extractBookmarkedChannels(event: INostrEvent): string[];
     joinCommunity(community: ICommunityInfo, pubKey: string, privateKey: string): Promise<void>;
     leaveCommunity(community: ICommunityInfo, pubKey: string, privateKey: string): Promise<void>;
+    private encryptGroupMessage;
+    submitCommunityPost(message: string, info: ICommunityInfo, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
     extractChannelInfo(event: INostrEvent): IChannelInfo;
     fetchAllUserRelatedChannels(pubKey: string): Promise<IChannelInfo[]>;
     retrieveChannelEvents(creatorId: string, channelId: string): Promise<{
         messageEvents: INostrEvent[];
         info: IChannelInfo;
     }>;
+    retrieveChannelMessagePrivateKey(event: INostrEvent, channelId: string, channelPrivateKey: string): Promise<string>;
+    retrieveChannelMessageKeys(options: IRetrieveChannelMessageKeysOptions): Promise<Record<string, string>>;
+    submitChannelMessage(message: string, info: IChannelInfo, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
 }
 export { NostrEventManager, ISocialEventManager, SocialDataManager };

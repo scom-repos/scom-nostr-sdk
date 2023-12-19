@@ -1,2 +1,2 @@
 export { Event, Keys, Nip19, Bech32, } from './core/index';
-export { INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityScpData, INoteInfo, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, NostrEventManager, ISocialEventManager, SocialDataManager } from './utils/index';
+export { INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityScpData, INoteInfo, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, NostrEventManager, ISocialEventManager, SocialDataManager } from './utils/index';

@@ -9,7 +9,8 @@ export {
     ICommunityGatekeeperInfo,
     IUserProfile,
     IUserActivityStats,
-    IPostStats
+    IPostStats,
+    IChannelInfo
 } from "./interfaces";
 
 export {
