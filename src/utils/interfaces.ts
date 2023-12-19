@@ -128,6 +128,19 @@ export interface IChannelInfo {
 	about?: string;
 	picture?: string;
 	scpData?: IChannelScpData;
+	eventData?: INostrEvent;
+}
+
+//SCP-4
+export interface IChannelMessageScpData {
+	encryptedKey?: string;
+}
+
+export interface INewChannelMessageInfo {
+	channel: IChannelInfo;
+	message: string;
+	conversationPath?: IConversationPath;
+	scpData?: IChannelMessageScpData;
 }
 
 export interface IConversationPath {

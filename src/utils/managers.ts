@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "./interfaces";
+import { IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "./interfaces";
 
 interface IFetchNotesOptions {
     authors?: string[];
@@ -326,7 +326,7 @@ class NostrEventManager {
         return events;
     }
 
-    async fetchUserCommunities(pubKey: string) {
+    async fetchAllUserRelatedCommunities(pubKey: string) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
         let requestForCreatedCommunities: any = {
             kinds: [0, 3, 34550],
@@ -349,7 +349,7 @@ class NostrEventManager {
         return events;
     }
 
-    async fetchUserSubscribedCommunities(pubKey: string) {
+    async fetchUserBookmarkedCommunities(pubKey: string) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
         let request: any = {
             kinds: [30001],
@@ -543,7 +543,28 @@ class NostrEventManager {
         return response;
     }
 
-    async fetchUserChannels(pubKey: string) {
+    async updateUserBookmarkedChannels(channelEventIds: string[], privateKey: string) {
+        let event = {
+            "kind": 30001,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": '',
+            "tags": [
+                [
+                    "d",
+                    "channels"
+                ]
+            ]
+        };
+        for (let channelEventId of channelEventIds) {
+            event.tags.push([
+                "a",
+                channelEventId
+            ]);
+        }
+        await this._websocketManager.submitEvent(event, privateKey);
+    }
+
+    async fetchAllUserRelatedChannels(pubKey: string) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
         let requestForCreatedChannels: any = {
             kinds: [40, 41],
@@ -564,6 +585,50 @@ class NostrEventManager {
             requestForModeratedChannels
         );
         return events;
+    }
+
+    async fetchUserBookmarkedChannels(pubKey: string) {
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        let requestForJoinedChannels: any = {
+            kinds: [30001],
+            "#d": ["channels"],
+            authors: [decodedPubKey]
+        }
+        const events = await this._websocketManager.fetchWebSocketEvents(requestForJoinedChannels);
+        return events;
+    }
+
+    async fetchChannels(channelEventIds: string[]) {
+        let request: any = {
+            kinds: [40, 41],
+            ids: channelEventIds
+        };
+        let events = await this._websocketManager.fetchWebSocketEvents(request);
+        return events;
+    }
+
+    async fetchChannelInfoMessages(creatorId: string, channelId: string) {
+        const decodedCreatorId = creatorId.startsWith('npub1') ? Nip19.decode(creatorId).data : creatorId;
+        let channelCreationEventReq: any = {
+            kinds: [40],
+            authors: [decodedCreatorId]
+        };
+        let channelMetadataEventReq: any = {
+            kinds: [41],
+            "#e": [channelId],
+            authors: [decodedCreatorId]
+        };
+        let messagesReq: any = {
+            kinds: [42],
+            "#e": [channelId],
+            limit: 50
+        };
+        const events = await this._websocketManager.fetchWebSocketEvents(
+            channelCreationEventReq, 
+            channelMetadataEventReq,
+            messagesReq
+        );
+        return events;        
     }
 
     async updateCommunity(info: ICommunityInfo, privateKey: string) {
@@ -615,7 +680,7 @@ class NostrEventManager {
         return response;
     }
 
-    async updateUserCommunities(communities: ICommunityBasicInfo[], privateKey: string) {
+    async updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[], privateKey: string) {
         let communityUriArr: string[] = [];
         for (let community of communities) {
             const decodedCreatorId = community.creatorId.startsWith('npub1') ? Nip19.decode(community.creatorId).data as string : community.creatorId;
@@ -672,6 +737,37 @@ class NostrEventManager {
             ]);
         }
         console.log('submitCommunityPost', event);
+        await this._websocketManager.submitEvent(event, privateKey);
+    }
+
+    async submitChannelMessage(info: INewChannelMessageInfo, privateKey: string) {
+        const channel = info.channel;
+        let event = {
+            "kind": 42,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": info.message,
+            "tags": []
+        };
+        if (info.scpData) {
+            let encodedScpData = window.btoa('$scp:' + JSON.stringify(info.scpData));
+            event.tags.push([
+                "scp",
+                "4",
+                encodedScpData
+            ]);
+        }
+        if (info.conversationPath) {
+            const conversationPathTags = this.calculateConversationPathTags(info.conversationPath);
+            event.tags.push(...conversationPathTags);
+        }
+        else {
+            event.tags.push([
+                "e",
+                channel.id,
+                "",
+                "root"
+            ]);
+        }
         await this._websocketManager.submitEvent(event, privateKey);
     }
 
@@ -781,8 +877,8 @@ interface ISocialEventManager {
     fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchRelaysCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<INostrEvent[]>;
-    fetchUserCommunities(pubKey: string): Promise<INostrEvent[]>;
-    fetchUserSubscribedCommunities(pubKey: string): Promise<INostrEvent[]>;
+    fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;
+    fetchUserBookmarkedCommunities(pubKey: string): Promise<INostrEvent[]>;
     fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
@@ -793,8 +889,13 @@ interface ISocialEventManager {
     postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
     updateCommunity(info: ICommunityInfo, privateKey: string): Promise<INostrSubmitResponse>;
     updateChannel(info: IChannelInfo, privateKey: string): Promise<INostrSubmitResponse>;
-    fetchUserChannels(pubKey: string): Promise<INostrEvent[]>;
-    updateUserCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
+    fetchChannels(channelEventIds: string[]): Promise<INostrEvent[]>;
+    updateUserBookmarkedChannels(channelEventIds: string[], privateKey: string): Promise<void>;
+    fetchAllUserRelatedChannels(pubKey: string): Promise<INostrEvent[]>;
+    fetchUserBookmarkedChannels(pubKey: string): Promise<INostrEvent[]>;
+    submitChannelMessage(info: INewChannelMessageInfo, privateKey: string): Promise<void>;
+    fetchChannelInfoMessages(creatorId: string, channelId: string): Promise<INostrEvent[]>;
+    updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
     submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
     updateUserProfile(content: INostrMetadataContent, privateKey: string): Promise<void>;
     fetchMessageCountsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
@@ -1454,17 +1555,17 @@ class SocialDataManager {
     async fetchMyCommunities(pubKey: string) {
         let communities: ICommunityInfo[] = [];
         const pubkeyToCommunityIdsMap: Record<string, string[]> = {};
-        const events = await this._socialEventManager.fetchUserCommunities(pubKey);
+        const events = await this._socialEventManager.fetchAllUserRelatedCommunities(pubKey);
         for (let event of events) {
             if (event.kind === 34550) {
                 const communityInfo = this.extractCommunityInfo(event);
                 communities.push(communityInfo);
             }
             else if (event.kind === 30001) {
-                const communityUriArr = event.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
-                for (let communityUri of communityUriArr) {
-                    const pubkey = communityUri.split(':')[1];
-                    const communityId = communityUri.split(':')[2];
+                const bookmarkedCommunities = this.extractBookmarkedCommunities(event);
+                for (let community of bookmarkedCommunities) {
+                    const pubkey = community.creatorId;
+                    const communityId = community.communityId;
                     if (!pubkeyToCommunityIdsMap[pubkey]) {
                         pubkeyToCommunityIdsMap[pubkey] = [];
                     }
@@ -1473,13 +1574,167 @@ class SocialDataManager {
             }
         }
         if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
-            const userSubscribedCommunitiesEvents = await this._socialEventManager.fetchCommunities(pubkeyToCommunityIdsMap);
-            for (let event of userSubscribedCommunitiesEvents) {
+            const bookmarkedCommunitiesEvents = await this._socialEventManager.fetchCommunities(pubkeyToCommunityIdsMap);
+            for (let event of bookmarkedCommunitiesEvents) {
                 const communityInfo = this.extractCommunityInfo(event);
                 communities.push(communityInfo);
             }
         }
         return communities;
+    }
+
+    extractBookmarkedCommunities(event: INostrEvent, excludedCommunity?: ICommunityInfo) {
+        const communities: ICommunityBasicInfo[] = [];
+        const communityUriArr = event?.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
+        for (let communityUri of communityUriArr) {
+            const pubkey = communityUri.split(':')[1];
+            const communityId = communityUri.split(':')[2];
+            if (excludedCommunity) {
+                const decodedPubkey = Nip19.decode(excludedCommunity.creatorId).data as string;
+                if (communityId === excludedCommunity.communityId && pubkey === decodedPubkey) continue;
+            }
+            communities.push({
+                communityId,
+                creatorId: pubkey
+            });
+        }
+        return communities;
+    }
+
+    extractBookmarkedChannels(event: INostrEvent) {
+        const channelEventIds = event?.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
+        return channelEventIds;
+    }
+
+    async joinCommunity(community: ICommunityInfo, pubKey: string, privateKey: string) {
+        const bookmarkedCommunitiesEvents = await this._socialEventManager.fetchUserBookmarkedCommunities(pubKey);
+        const bookmarkedCommunitiesEvent = bookmarkedCommunitiesEvents.find(event => event.kind === 30001);
+        const communities: ICommunityBasicInfo[] = this.extractBookmarkedCommunities(bookmarkedCommunitiesEvent);
+        communities.push(community);
+        await this._socialEventManager.updateUserBookmarkedCommunities(communities, privateKey);
+        if (community.scpData?.channelEventId) {
+            const bookmarkedChannelsEvents = await this._socialEventManager.fetchUserBookmarkedChannels(pubKey);
+            const bookmarkedChannelsEvent = bookmarkedChannelsEvents.find(event => event.kind === 30001);
+            const channelEventIds = this.extractBookmarkedChannels(bookmarkedChannelsEvent);
+            channelEventIds.push(community.scpData.channelEventId);
+            await this._socialEventManager.updateUserBookmarkedChannels(channelEventIds, privateKey);
+        }
+    }
+    
+    async leaveCommunity(community: ICommunityInfo, pubKey: string, privateKey: string) {
+        const events = await this._socialEventManager.fetchUserBookmarkedCommunities(pubKey);
+        const bookmarkedEvent = events.find(event => event.kind === 30001);
+        const communities: ICommunityBasicInfo[] = this.extractBookmarkedCommunities(bookmarkedEvent, community);
+        await this._socialEventManager.updateUserBookmarkedCommunities(communities, privateKey);
+        if (community.scpData?.channelEventId) {
+            const bookmarkedChannelsEvents = await this._socialEventManager.fetchUserBookmarkedChannels(pubKey);
+            const bookmarkedChannelsEvent = bookmarkedChannelsEvents.find(event => event.kind === 30001);
+            const channelEventIds = this.extractBookmarkedChannels(bookmarkedChannelsEvent);
+            const index = channelEventIds.indexOf(community.scpData.channelEventId);
+            if (index > -1) {
+                channelEventIds.splice(index, 1);
+            }
+            await this._socialEventManager.updateUserBookmarkedChannels(channelEventIds, privateKey);
+        }
+    }
+
+    extractChannelInfo(event: INostrEvent) {
+        const content = JSON.parse(event.content);
+        let eventId;
+        if (event.kind === 40) {
+            eventId = event.id;
+        }
+        else if (event.kind === 41) {
+            eventId = event.tags.find(tag => tag[0] === 'e')?.[1];
+        }
+        if (!eventId) return null;
+        const scpTag = event.tags.find(tag => tag[0] === 'scp');
+        let scpData;
+        if (scpTag && scpTag[1] === '3') {
+            const scpDataStr = this.base64ToUtf8(scpTag[2]);
+            if (!scpDataStr.startsWith('$scp:')) return null;
+            scpData = JSON.parse(scpDataStr.substring(5));
+        }
+        
+        let channelInfo: IChannelInfo = {
+            id: eventId,
+            name: content.name,
+            about: content.about,
+            picture: content.picture,
+            scpData,
+            eventData: event,
+        }
+
+        return channelInfo;
+    }
+
+    async fetchAllUserRelatedChannels(pubKey: string) {
+        let channels: IChannelInfo[] = [];
+        let bookmarkedChannelEventIds: string[] = [];
+        const channelMetadataMap: Record<string, IChannelInfo> = {};
+        const events = await this._socialEventManager.fetchAllUserRelatedChannels(pubKey);
+        for (let event of events) {
+            if (event.kind === 40) {
+                const channelInfo = this.extractChannelInfo(event);
+                if (!channelInfo) continue;
+                channels.push(channelInfo);
+            }
+            else if (event.kind === 41) {
+                const channelInfo = this.extractChannelInfo(event);
+                if (!channelInfo) continue;
+                channelMetadataMap[channelInfo.id] = channelInfo;
+            }
+            else if (event.kind === 30001) {
+                bookmarkedChannelEventIds = this.extractBookmarkedChannels(event);
+            }
+        }
+
+        const bookmarkedChannelEvents = await this._socialEventManager.fetchChannels(bookmarkedChannelEventIds);
+        for (let event of bookmarkedChannelEvents) {
+            if (event.kind === 40) {
+                const channelInfo = this.extractChannelInfo(event);
+                if (!channelInfo) continue;
+                channels.push(channelInfo);
+            }
+            else if (event.kind === 41) {
+                const channelInfo = this.extractChannelInfo(event);
+                if (!channelInfo) continue;
+                channelMetadataMap[channelInfo.id] = channelInfo;
+            }
+        }
+
+        for (let channel of channels) {
+            const channelMetadata = channelMetadataMap[channel.id];
+            if (channelMetadata) {
+                channel = {
+                    ...channel,
+                    ...channelMetadata
+                };
+            }
+        }
+
+        return channels;
+    }
+
+    async retrieveChannelEvents(creatorId: string, channelId: string) {
+        const channelEvents = await this._socialEventManager.fetchChannelInfoMessages(creatorId, channelId);
+        const messageEvents = channelEvents.filter(event => event.kind === 42);
+        const channelCreationEvent = channelEvents.find(event => event.kind === 40);
+        if (!channelCreationEvent) throw new Error('No info event found');
+        const channelMetadataEvent = channelEvents.find(event => event.kind === 41);
+        let channelInfo: IChannelInfo;
+        if (channelMetadataEvent) {
+            channelInfo = this.extractChannelInfo(channelMetadataEvent);
+        }
+        else {
+            channelInfo = this.extractChannelInfo(channelCreationEvent);
+        }
+        if (!channelInfo) throw new Error('No info event found');
+
+        return {
+            messageEvents,
+            info: channelInfo
+        }
     }
 }
 

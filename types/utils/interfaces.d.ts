@@ -112,6 +112,16 @@ export interface IChannelInfo {
     about?: string;
     picture?: string;
     scpData?: IChannelScpData;
+    eventData?: INostrEvent;
+}
+export interface IChannelMessageScpData {
+    encryptedKey?: string;
+}
+export interface INewChannelMessageInfo {
+    channel: IChannelInfo;
+    message: string;
+    conversationPath?: IConversationPath;
+    scpData?: IChannelMessageScpData;
 }
 export interface IConversationPath {
     noteIds: string[];

@@ -1,4 +1,4 @@
-import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteInfo, IPostStats, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "./interfaces";
+import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteInfo, IPostStats, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "./interfaces";
 interface IFetchNotesOptions {
     authors?: string[];
     ids?: string[];
@@ -28,8 +28,8 @@ declare class NostrEventManager {
     fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchRelaysCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<any>;
-    fetchUserCommunities(pubKey: string): Promise<INostrEvent[]>;
-    fetchUserSubscribedCommunities(pubKey: string): Promise<INostrEvent[]>;
+    fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;
+    fetchUserBookmarkedCommunities(pubKey: string): Promise<INostrEvent[]>;
     fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
@@ -40,10 +40,15 @@ declare class NostrEventManager {
     postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
     calculateConversationPathTags(conversationPath: IConversationPath): string[][];
     updateChannel(info: IChannelInfo, privateKey: string): Promise<INostrSubmitResponse>;
-    fetchUserChannels(pubKey: string): Promise<INostrEvent[]>;
+    updateUserBookmarkedChannels(channelEventIds: string[], privateKey: string): Promise<void>;
+    fetchAllUserRelatedChannels(pubKey: string): Promise<INostrEvent[]>;
+    fetchUserBookmarkedChannels(pubKey: string): Promise<INostrEvent[]>;
+    fetchChannels(channelEventIds: string[]): Promise<INostrEvent[]>;
+    fetchChannelInfoMessages(creatorId: string, channelId: string): Promise<INostrEvent[]>;
     updateCommunity(info: ICommunityInfo, privateKey: string): Promise<INostrSubmitResponse>;
-    updateUserCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
+    updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
     submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
+    submitChannelMessage(info: INewChannelMessageInfo, privateKey: string): Promise<void>;
     updateUserProfile(content: INostrMetadataContent, privateKey: string): Promise<void>;
     fetchMessageCountsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchOldMessages(pubKey: string, sender: string, until?: number): Promise<INostrEvent[]>;
@@ -63,8 +68,8 @@ interface ISocialEventManager {
     fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchRelaysCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<INostrEvent[]>;
-    fetchUserCommunities(pubKey: string): Promise<INostrEvent[]>;
-    fetchUserSubscribedCommunities(pubKey: string): Promise<INostrEvent[]>;
+    fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;
+    fetchUserBookmarkedCommunities(pubKey: string): Promise<INostrEvent[]>;
     fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
@@ -75,8 +80,13 @@ interface ISocialEventManager {
     postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
     updateCommunity(info: ICommunityInfo, privateKey: string): Promise<INostrSubmitResponse>;
     updateChannel(info: IChannelInfo, privateKey: string): Promise<INostrSubmitResponse>;
-    fetchUserChannels(pubKey: string): Promise<INostrEvent[]>;
-    updateUserCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
+    fetchChannels(channelEventIds: string[]): Promise<INostrEvent[]>;
+    updateUserBookmarkedChannels(channelEventIds: string[], privateKey: string): Promise<void>;
+    fetchAllUserRelatedChannels(pubKey: string): Promise<INostrEvent[]>;
+    fetchUserBookmarkedChannels(pubKey: string): Promise<INostrEvent[]>;
+    submitChannelMessage(info: INewChannelMessageInfo, privateKey: string): Promise<void>;
+    fetchChannelInfoMessages(creatorId: string, channelId: string): Promise<INostrEvent[]>;
+    updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
     submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
     updateUserProfile(content: INostrMetadataContent, privateKey: string): Promise<void>;
     fetchMessageCountsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
@@ -138,5 +148,15 @@ declare class SocialDataManager {
     }>;
     createCommunity(info: INewCommunityInfo, creatorId: string, privateKey: string): Promise<ICommunityInfo>;
     fetchMyCommunities(pubKey: string): Promise<ICommunityInfo[]>;
+    extractBookmarkedCommunities(event: INostrEvent, excludedCommunity?: ICommunityInfo): ICommunityBasicInfo[];
+    extractBookmarkedChannels(event: INostrEvent): string[];
+    joinCommunity(community: ICommunityInfo, pubKey: string, privateKey: string): Promise<void>;
+    leaveCommunity(community: ICommunityInfo, pubKey: string, privateKey: string): Promise<void>;
+    extractChannelInfo(event: INostrEvent): IChannelInfo;
+    fetchAllUserRelatedChannels(pubKey: string): Promise<IChannelInfo[]>;
+    retrieveChannelEvents(creatorId: string, channelId: string): Promise<{
+        messageEvents: INostrEvent[];
+        info: IChannelInfo;
+    }>;
 }
 export { NostrEventManager, ISocialEventManager, SocialDataManager };
