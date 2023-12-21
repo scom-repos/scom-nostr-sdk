@@ -10,7 +10,8 @@ export {
     IUserProfile,
     IUserActivityStats,
     IPostStats,
-    IChannelInfo
+    IChannelInfo,
+    IMessageContactInfo
 } from "./interfaces";
 
 export {

@@ -116,6 +116,7 @@ export interface IChannelInfo {
     picture?: string;
     scpData?: IChannelScpData;
     eventData?: INostrEvent;
+    communityInfo?: ICommunityInfo;
 }
 export interface IChannelMessageScpData {
     channelId: string;
@@ -184,4 +185,16 @@ export interface IPostStats {
     upvotes?: number;
     downvotes?: number;
     views?: number;
+}
+export interface IMessageContactInfo {
+    id: string;
+    pubKey: string;
+    username: string;
+    displayName: string;
+    avatar?: string;
+    banner?: string;
+    latestAt?: number;
+    cnt?: number;
+    isGroup?: boolean;
+    communityInfo?: ICommunityInfo;
 }

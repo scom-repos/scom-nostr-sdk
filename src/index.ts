@@ -17,6 +17,7 @@ export {
     IUserActivityStats,
     IPostStats,
     IChannelInfo,
+    IMessageContactInfo,
     NostrEventManager,
     ISocialEventManager,
     SocialDataManager

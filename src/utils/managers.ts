@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile, ScpStandardId } from "./interfaces";
+import { IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile, ScpStandardId } from "./interfaces";
 
 interface IFetchNotesOptions {
     authors?: string[];
@@ -593,14 +593,14 @@ class NostrEventManager {
             "#d": ["channels"],
             authors: [decodedPubKey]
         }
-        let requestForModeratedChannels: any = {
+        let requestForModeratedCommunities: any = {
             kinds: [34550],
             "#p": [decodedPubKey]
         };
         const events = await this._websocketManager.fetchWebSocketEvents(
             requestForCreatedChannels, 
             requestForJoinedChannels,
-            requestForModeratedChannels
+            requestForModeratedCommunities
         );
         return events;
     }
@@ -626,9 +626,10 @@ class NostrEventManager {
     }
 
     async fetchChannelMessages(channelId: string, since: number = 0, until: number = 0) {
+        const decodedChannelId = channelId.startsWith('npub1') ? Nip19.decode(channelId).data : channelId;
         let messagesReq: any = {
             kinds: [42],
-            "#e": [channelId],
+            "#e": [decodedChannelId],
             limit: 20
         };
         if (until === 0) {
@@ -1786,6 +1787,7 @@ class SocialDataManager {
         let channels: IChannelInfo[] = [];
         let bookmarkedChannelEventIds: string[] = [];
         const channelMetadataMap: Record<string, IChannelInfo> = {};
+        let channelIdToCommunityMap: Record<string, ICommunityInfo> = {};
         const events = await this._socialEventManager.fetchAllUserRelatedChannels(pubKey);
         for (let event of events) {
             if (event.kind === 40) {
@@ -1800,6 +1802,12 @@ class SocialDataManager {
             }
             else if (event.kind === 30001) {
                 bookmarkedChannelEventIds = this.extractBookmarkedChannels(event);
+            }
+            else if (event.kind === 34550) {
+                const communityInfo = this.extractCommunityInfo(event);
+                const channelId = communityInfo.scpData?.channelEventId;
+                if (!channelId) continue;
+                channelIdToCommunityMap[channelId] = communityInfo;
             }
         }
 
@@ -1817,17 +1825,42 @@ class SocialDataManager {
             }
         }
 
+        const pubkeyToCommunityIdsMap: Record<string, string[]> = {};
+        for (let channel of channels) {
+            const scpData = channel.scpData;
+            pubkeyToCommunityIdsMap[channel.eventData.pubkey] = pubkeyToCommunityIdsMap[channel.eventData.pubkey] || [];
+            if (!pubkeyToCommunityIdsMap[channel.eventData.pubkey].includes(scpData.communityId)) {
+                pubkeyToCommunityIdsMap[channel.eventData.pubkey].push(scpData.communityId);
+            }
+        }
+        const communityEvents = await this._socialEventManager.fetchCommunities(pubkeyToCommunityIdsMap);
+        for (let event of communityEvents) {
+            const communityInfo = this.extractCommunityInfo(event);
+            const channelId = communityInfo.scpData.channelEventId;
+            if (!channelId) continue;
+            channelIdToCommunityMap[channelId] = communityInfo;
+        }
+
+        let outputChannels: IChannelInfo[] = []; 
         for (let channel of channels) {
             const channelMetadata = channelMetadataMap[channel.id];
+            const communityInfo = channelIdToCommunityMap[channel.id];
             if (channelMetadata) {
-                channel = {
+                outputChannels.push({
                     ...channel,
-                    ...channelMetadata
-                };
+                    ...channelMetadata,
+                    communityInfo: communityInfo
+                });
+            }
+            else {
+                outputChannels.push({
+                    ...channel,
+                    communityInfo: communityInfo
+                });
             }
         }
 
-        return channels;
+        return outputChannels;
     }
 
     async retrieveChannelMessages(channelId: string, since?: number, until?: number) {
@@ -1922,6 +1955,56 @@ class SocialDataManager {
             }
         }
         await this._socialEventManager.submitChannelMessage(newChannelMessageInfo, privateKey);
+    }
+
+    async fetchMessageContacts(pubKey: string) {
+        const events = await this._socialEventManager.fetchMessageCountsCacheEvents(pubKey);
+        const pubkeyToMessageInfoMap: Record<string, { cnt: number, latest_at: number, latest_event_id: string }> = {};
+        let metadataByPubKeyMap: Record<string, INostrMetadata> = {};
+        for (let event of events) {
+            if (event.kind === 10000118) {
+                const content = JSON.parse(event.content);
+                Object.keys(content).forEach(pubkey => {
+                    pubkeyToMessageInfoMap[pubkey] = content[pubkey];
+                })
+            }
+            if (event.kind === 0) {
+                metadataByPubKeyMap[event.pubkey] = {
+                    ...event,
+                    content: JSON.parse(event.content)
+                };
+            }
+        }
+        let profiles: IMessageContactInfo[] = Object.entries(metadataByPubKeyMap).map(([k, v]) => {
+            const encodedPubkey = Nip19.npubEncode(k);
+            return {
+                id: encodedPubkey,
+                pubKey: k,
+                username: v.content.name,
+                displayName: v.content.display_name,
+                avatar: v.content.picture,
+                banner: v.content.banner,
+                latestAt: pubkeyToMessageInfoMap[k].latest_at,
+                cnt: pubkeyToMessageInfoMap[k].cnt
+            }
+        });
+
+        const channels = await this.fetchAllUserRelatedChannels(pubKey);
+        for (let channel of channels) {
+            profiles.push({
+                id: channel.id,
+                pubKey: channel.eventData.pubkey,
+                username: channel.name,
+                displayName: channel.name,
+                avatar: channel.picture,
+                banner: '',
+                latestAt: 0,
+                cnt: 0,
+                isGroup: true,
+                communityInfo: channel.communityInfo
+            });
+        }
+        return profiles;
     }
 }
 
