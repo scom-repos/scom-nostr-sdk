@@ -3991,6 +3991,23 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             }
             return tags;
         }
+        async deleteEvents(eventIds, privateKey) {
+            let event = {
+                "kind": 5,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": "",
+                "tags": []
+            };
+            for (let eventId of eventIds) {
+                const decodedEventId = eventId.startsWith('note1') ? index_1.Nip19.decode(eventId).data : eventId;
+                event.tags.push([
+                    "e",
+                    decodedEventId
+                ]);
+            }
+            const response = await this._websocketManager.submitEvent(event, privateKey);
+            return response;
+        }
         async updateChannel(info, privateKey) {
             let kind = info.id ? 41 : 40;
             let event = {
@@ -4076,6 +4093,21 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             let events = await this._websocketManager.fetchWebSocketEvents(request);
             return events;
         }
+        async fetchChannelMessages(channelId, since = 0, until = 0) {
+            let messagesReq = {
+                kinds: [42],
+                "#e": [channelId],
+                limit: 20
+            };
+            if (until === 0) {
+                messagesReq.since = since;
+            }
+            else {
+                messagesReq.until = until;
+            }
+            const events = await this._websocketManager.fetchWebSocketEvents(messagesReq);
+            return events;
+        }
         async fetchChannelInfoMessages(creatorId, channelId) {
             const decodedCreatorId = creatorId.startsWith('npub1') ? index_1.Nip19.decode(creatorId).data : creatorId;
             let channelCreationEventReq = {
@@ -4090,7 +4122,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             let messagesReq = {
                 kinds: [42],
                 "#e": [channelId],
-                limit: 50
+                limit: 20
             };
             const events = await this._websocketManager.fetchWebSocketEvents(channelCreationEventReq, channelMetadataEventReq, messagesReq);
             return events;
@@ -4202,7 +4234,6 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             await this._websocketManager.submitEvent(event, privateKey);
         }
         async submitChannelMessage(info, privateKey) {
-            const channel = info.channel;
             let event = {
                 "kind": 42,
                 "created_at": Math.round(Date.now() / 1000),
@@ -4224,7 +4255,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             else {
                 event.tags.push([
                     "e",
-                    channel.id,
+                    info.channelId,
                     "",
                     "root"
                 ]);
@@ -4254,29 +4285,21 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             const otherEvents = await this._cachedWebsocketManager.fetchCachedEvents('get_directmsg_contacts', msg);
             return [...followsEvents, ...otherEvents];
         }
-        async fetchOldMessages(pubKey, sender, until = 0) {
+        async fetchDirectMessages(pubKey, sender, since = 0, until = 0) {
             const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
             const decodedSenderPubKey = sender.startsWith('npub1') ? index_1.Nip19.decode(sender).data : sender;
-            const start = until === 0 ? 'since' : 'until';
-            const msg = {
+            const req = {
                 receiver: decodedPubKey,
                 sender: decodedSenderPubKey,
-                limit: 20,
-                [start]: until
+                limit: 20
             };
-            const events = await this._cachedWebsocketManager.fetchCachedEvents('get_directmsgs', msg);
-            return events;
-        }
-        async fetchNewMessages(pubKey, sender, since = 0) {
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
-            const decodedSenderPubKey = sender.startsWith('npub1') ? index_1.Nip19.decode(sender).data : sender;
-            const msg = {
-                receiver: decodedPubKey,
-                sender: decodedSenderPubKey,
-                limit: 20,
-                since: since
-            };
-            const events = await this._cachedWebsocketManager.fetchCachedEvents('get_directmsgs', msg);
+            if (until === 0) {
+                req.since = since;
+            }
+            else {
+                req.until = until;
+            }
+            const events = await this._cachedWebsocketManager.fetchCachedEvents('get_directmsgs', req);
             return events;
         }
         async sendMessage(receiver, encryptedMessage, privateKey) {
@@ -4317,6 +4340,29 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                 sender: decodedSenderPubKey
             };
             await this._cachedWebsocketManager.fetchCachedEvents('reset_directmsg_count', msg);
+        }
+        async fetchApplicationSpecificData(identifier) {
+            let req = {
+                kinds: [30078],
+                "#d": [identifier]
+            };
+            const events = await this._websocketManager.fetchWebSocketEvents(req);
+            return events;
+        }
+        async updateApplicationSpecificData(identifier, content, privateKey) {
+            let event = {
+                "kind": 30078,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": content,
+                "tags": [
+                    [
+                        "d",
+                        identifier
+                    ]
+                ]
+            };
+            const response = await this._websocketManager.submitEvent(event, privateKey);
+            return response;
         }
     }
     exports.NostrEventManager = NostrEventManager;
@@ -4464,15 +4510,31 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             }
             return scpData;
         }
-        async retrievePostPrivateKey(noteEvent, communityUri, communityPrivateKey) {
+        async retrievePostPrivateKey(event, communityUri, communityPrivateKey) {
             let key = null;
-            let postScpData = this.extractScpData(noteEvent, interfaces_1.ScpStandardId.CommunityPost);
+            let postScpData = this.extractScpData(event, interfaces_1.ScpStandardId.CommunityPost);
             try {
-                const postPrivateKey = await this.decryptMessage(communityPrivateKey, noteEvent.pubkey, postScpData.encryptedKey);
-                const messageContentStr = await this.decryptMessage(postPrivateKey, noteEvent.pubkey, noteEvent.content);
+                const postPrivateKey = await this.decryptMessage(communityPrivateKey, event.pubkey, postScpData.encryptedKey);
+                const messageContentStr = await this.decryptMessage(postPrivateKey, event.pubkey, event.content);
                 const messageContent = JSON.parse(messageContentStr);
                 if (communityUri === messageContent.communityUri) {
                     key = postPrivateKey;
+                }
+            }
+            catch (e) {
+                // console.error(e);
+            }
+            return key;
+        }
+        async retrieveChannelMessagePrivateKey(event, channelId, communityPrivateKey) {
+            let key = null;
+            let messageScpData = this.extractScpData(event, interfaces_1.ScpStandardId.ChannelMessage);
+            try {
+                const messagePrivateKey = await this.decryptMessage(communityPrivateKey, event.pubkey, messageScpData.encryptedKey);
+                const messageContentStr = await this.decryptMessage(messagePrivateKey, event.pubkey, event.content);
+                const messageContent = JSON.parse(messageContentStr);
+                if (channelId === messageContent.channelId) {
+                    key = messagePrivateKey;
                 }
             }
             catch (e) {
@@ -4901,43 +4963,55 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                 encryptedGroupKey
             };
         }
-        async createCommunity(info, creatorId, privateKey) {
-            if (info.scpData) {
-                const gatekeeperPublicKey = index_1.Nip19.decode(info.gatekeeperNpub).data;
-                const communityKeys = await this.generateGroupKeys(privateKey, gatekeeperPublicKey);
-                info.scpData.publicKey = communityKeys.groupPublicKey;
-                info.scpData.encryptedKey = communityKeys.encryptedGroupKey;
-                info.scpData.gatekeeperPublicKey = gatekeeperPublicKey;
-                const channelKeys = await this.generateGroupKeys(privateKey, gatekeeperPublicKey);
-                let channelScpData = {
-                    communityId: info.name,
-                    publicKey: channelKeys.groupPublicKey,
-                    encryptedKey: channelKeys.encryptedGroupKey,
-                    gatekeeperPublicKey
-                };
-                let channelInfo = {
-                    name: info.name,
-                    about: info.description,
-                    scpData: channelScpData
-                };
-                const updateChannelResponse = await this._socialEventManager.updateChannel(channelInfo, privateKey);
-                if (updateChannelResponse.eventId) {
-                    info.scpData.channelEventId = updateChannelResponse.eventId;
-                }
-            }
-            const communityUri = this.getCommunityUri(creatorId, info.name);
+        async createCommunity(newInfo, creatorId, privateKey) {
+            const communityUri = this.getCommunityUri(creatorId, newInfo.name);
             let communityInfo = {
                 communityUri,
-                communityId: info.name,
+                communityId: newInfo.name,
                 creatorId,
-                description: info.description,
-                rules: info.rules,
-                bannerImgUrl: info.bannerImgUrl,
-                scpData: info.scpData,
-                moderatorIds: info.moderatorIds
+                description: newInfo.description,
+                rules: newInfo.rules,
+                bannerImgUrl: newInfo.bannerImgUrl,
+                moderatorIds: newInfo.moderatorIds,
+                gatekeeperNpub: newInfo.gatekeeperNpub,
+                scpData: newInfo.scpData
             };
+            if (communityInfo.scpData) {
+                const gatekeeperPublicKey = index_1.Nip19.decode(communityInfo.gatekeeperNpub).data;
+                const communityKeys = await this.generateGroupKeys(privateKey, gatekeeperPublicKey);
+                communityInfo.scpData = {
+                    ...communityInfo.scpData,
+                    publicKey: communityKeys.groupPublicKey,
+                    encryptedKey: communityKeys.encryptedGroupKey,
+                    gatekeeperPublicKey
+                };
+                const updateChannelResponse = await this.updateCommunityChannel(communityInfo, privateKey);
+                if (updateChannelResponse.eventId) {
+                    communityInfo.scpData.channelEventId = updateChannelResponse.eventId;
+                }
+            }
             await this._socialEventManager.updateCommunity(communityInfo, privateKey);
             return communityInfo;
+        }
+        async updateCommunity(info, privateKey) {
+            if (info.scpData) {
+                const gatekeeperPublicKey = index_1.Nip19.decode(info.gatekeeperNpub).data;
+                info.scpData.gatekeeperPublicKey = gatekeeperPublicKey;
+            }
+            await this._socialEventManager.updateCommunity(info, privateKey);
+            return info;
+        }
+        async updateCommunityChannel(communityInfo, privateKey) {
+            let channelScpData = {
+                communityId: communityInfo.communityId
+            };
+            let channelInfo = {
+                name: communityInfo.communityId,
+                about: communityInfo.description,
+                scpData: channelScpData
+            };
+            const updateChannelResponse = await this._socialEventManager.updateChannel(channelInfo, privateKey);
+            return updateChannelResponse;
         }
         async fetchMyCommunities(pubKey) {
             let communities = [];
@@ -5118,6 +5192,11 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             }
             return channels;
         }
+        async retrieveChannelMessages(channelId, since, until) {
+            const events = await this._socialEventManager.fetchChannelMessages(channelId, since, until);
+            const messageEvents = events.filter(event => event.kind === 42);
+            return messageEvents;
+        }
         async retrieveChannelEvents(creatorId, channelId) {
             const channelEvents = await this._socialEventManager.fetchChannelInfoMessages(creatorId, channelId);
             const messageEvents = channelEvents.filter(event => event.kind === 42);
@@ -5139,54 +5218,39 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                 info: channelInfo
             };
         }
-        async retrieveChannelMessagePrivateKey(event, channelId, channelPrivateKey) {
-            let key = null;
-            let messageScpData = this.extractScpData(event, interfaces_1.ScpStandardId.ChannelMessage);
-            try {
-                const messagePrivateKey = await this.decryptMessage(channelPrivateKey, event.pubkey, messageScpData.encryptedKey);
-                const messageContentStr = await this.decryptMessage(messagePrivateKey, event.pubkey, event.content);
-                const messageContent = JSON.parse(messageContentStr);
-                if (channelId === messageContent.channelId) {
-                    key = messagePrivateKey;
-                }
-            }
-            catch (e) {
-                // console.error(e);
-            }
-            return key;
-        }
         async retrieveChannelMessageKeys(options) {
             let messageIdToPrivateKey = {};
             if (options.gatekeeperUrl) {
-                // let bodyData = {
-                //     creatorId: options.creatorId,
-                //     communityId: options.communityId,
-                //     message: options.message,
-                //     signature: options.signature
-                // };
-                // let url = `${options.gatekeeperUrl}/api/communities/v0/post-keys`;
-                // let response = await fetch(url, {
-                //     method: 'POST',
-                //     headers: {
-                //         Accept: 'application/json',
-                //         'Content-Type': 'application/json',
-                //     },
-                //     body: JSON.stringify(bodyData)
-                // });
-                // let result = await response.json();
-                // if (result.success) {
-                //     noteIdToPrivateKey = result.data;
-                // }
+                let bodyData = {
+                    creatorId: options.creatorId,
+                    channelId: options.channelId,
+                    message: options.message,
+                    signature: options.signature
+                };
+                let url = `${options.gatekeeperUrl}/api/channels/v0/message-keys`;
+                let response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(bodyData)
+                });
+                let result = await response.json();
+                if (result.success) {
+                    messageIdToPrivateKey = result.data;
+                }
             }
             else if (options.privateKey) {
                 const channelEvents = await this.retrieveChannelEvents(options.creatorId, options.channelId);
                 const channelInfo = channelEvents.info;
                 const messageEvents = channelEvents.messageEvents;
-                let channelPrivateKey = await this.decryptMessage(options.privateKey, channelInfo.scpData.gatekeeperPublicKey, channelInfo.scpData.encryptedKey);
-                if (!channelPrivateKey)
+                const communityInfo = await this.fetchCommunityInfo(channelInfo.eventData.pubkey, channelInfo.scpData.communityId);
+                let communityPrivateKey = await this.decryptMessage(options.privateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
+                if (!communityPrivateKey)
                     return messageIdToPrivateKey;
                 for (const messageEvent of messageEvents) {
-                    const messagePrivateKey = await this.retrieveChannelMessagePrivateKey(messageEvent, channelInfo.id, channelPrivateKey);
+                    const messagePrivateKey = await this.retrieveChannelMessagePrivateKey(messageEvent, channelInfo.id, communityPrivateKey);
                     if (messagePrivateKey) {
                         messageIdToPrivateKey[messageEvent.id] = messagePrivateKey;
                     }
@@ -5194,19 +5258,19 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             }
             return messageIdToPrivateKey;
         }
-        async submitChannelMessage(message, info, privateKey, conversationPath) {
+        async submitChannelMessage(message, channelId, privateKey, communityPublicKey, conversationPath) {
             const messageContent = {
-                channelId: info.id,
+                channelId,
                 message,
             };
-            const { encryptedMessage, encryptedGroupKey } = await this.encryptGroupMessage(privateKey, info.scpData.publicKey, JSON.stringify(messageContent));
+            const { encryptedMessage, encryptedGroupKey } = await this.encryptGroupMessage(privateKey, communityPublicKey, JSON.stringify(messageContent));
             const newChannelMessageInfo = {
-                channel: info,
+                channelId: channelId,
                 message: encryptedMessage,
                 conversationPath,
                 scpData: {
                     encryptedKey: encryptedGroupKey,
-                    channelId: info.id
+                    channelId: channelId
                 }
             };
             await this._socialEventManager.submitChannelMessage(newChannelMessageInfo, privateKey);

@@ -108,9 +108,6 @@ export interface INewCommunityInfo {
 }
 export interface IChannelScpData {
     communityId: string;
-    publicKey?: string;
-    encryptedKey?: string;
-    gatekeeperPublicKey?: string;
 }
 export interface IChannelInfo {
     id?: string;
@@ -125,7 +122,7 @@ export interface IChannelMessageScpData {
     encryptedKey?: string;
 }
 export interface INewChannelMessageInfo {
-    channel: IChannelInfo;
+    channelId: string;
     message: string;
     conversationPath?: IConversationPath;
     scpData?: IChannelMessageScpData;

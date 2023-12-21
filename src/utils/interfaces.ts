@@ -124,9 +124,6 @@ export interface INewCommunityInfo {
 //SCP-3
 export interface IChannelScpData {
 	communityId: string;
-	publicKey?: string;
-	encryptedKey?: string;
-	gatekeeperPublicKey?: string;
 }
 
 export interface IChannelInfo {
@@ -145,7 +142,7 @@ export interface IChannelMessageScpData {
 }
 
 export interface INewChannelMessageInfo {
-	channel: IChannelInfo;
+	channelId: string;
 	message: string;
 	conversationPath?: IConversationPath;
 	scpData?: IChannelMessageScpData;
