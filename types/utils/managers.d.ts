@@ -56,7 +56,7 @@ declare class NostrEventManager {
     fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
     sendMessage(receiver: string, encryptedMessage: string, privateKey: string): Promise<void>;
     resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
-    fetchApplicationSpecificData(identifier: string): Promise<INostrEvent[]>;
+    fetchApplicationSpecificData(identifier: string): Promise<INostrEvent>;
     updateApplicationSpecificData(identifier: string, content: string, privateKey: string): Promise<INostrSubmitResponse>;
 }
 interface ISocialEventManager {
@@ -98,7 +98,7 @@ interface ISocialEventManager {
     fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
     sendMessage(receiver: string, encryptedMessage: string, privateKey: string): Promise<void>;
     resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
-    fetchApplicationSpecificData(identifier: string): Promise<INostrEvent[]>;
+    fetchApplicationSpecificData(identifier: string): Promise<INostrEvent>;
     updateApplicationSpecificData(identifier: string, content: string, privateKey: string): Promise<INostrSubmitResponse>;
 }
 declare class SocialDataManager {
@@ -152,10 +152,10 @@ declare class SocialDataManager {
     fetchUserFollowersList(pubKey: string): Promise<IUserProfile[]>;
     fetchUserRelayList(pubKey: string): Promise<string[]>;
     getCommunityUri(creatorId: string, communityId: string): string;
-    generateGroupKeys(privateKey: string, gatekeeperPublicKey: string): Promise<{
+    generateGroupKeys(privateKey: string, encryptionPublicKeys: string[]): Promise<{
         groupPrivateKey: string;
         groupPublicKey: string;
-        encryptedGroupKey: string;
+        encryptedGroupKeys: Record<string, string>;
     }>;
     createCommunity(newInfo: INewCommunityInfo, creatorId: string, privateKey: string): Promise<ICommunityInfo>;
     updateCommunity(info: ICommunityInfo, privateKey: string): Promise<ICommunityInfo>;

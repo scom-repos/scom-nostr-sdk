@@ -11,7 +11,9 @@ export {
     IUserActivityStats,
     IPostStats,
     IChannelInfo,
-    IMessageContactInfo
+    IMessageContactInfo,
+    INewCommunityInfo,
+    MembershipType
 } from "./interfaces";
 
 export {

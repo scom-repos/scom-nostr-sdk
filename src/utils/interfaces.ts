@@ -83,6 +83,12 @@ export enum ScpStandardId {
 	ChannelMessage = '4'
 }
 
+export enum MembershipType {
+	Open= 'Open',
+	NFTExclusive = 'NFTExclusive',
+	InviteOnly = 'InviteOnly'
+}
+
 //SCP-1
 export interface ICommunityScpData {
 	chainId: number;
@@ -109,6 +115,8 @@ export interface ICommunityInfo extends ICommunityBasicInfo {
 	scpData?: ICommunityScpData;
 	moderatorIds?: string[];
 	eventData?: INostrEvent;
+	membershipType: MembershipType;
+	memberIds?: string[];
 }
 
 export interface INewCommunityInfo {
@@ -119,6 +127,8 @@ export interface INewCommunityInfo {
 	rules?: string;
 	gatekeeperNpub?: string;
 	scpData?: ICommunityScpData;
+	membershipType: MembershipType;
+	memberIds?: string[];
 }
 
 //SCP-3

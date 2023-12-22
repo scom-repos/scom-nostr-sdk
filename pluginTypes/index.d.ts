@@ -1170,6 +1170,11 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         Channel = "3",
         ChannelMessage = "4"
     }
+    export enum MembershipType {
+        Open = "Open",
+        NFTExclusive = "NFTExclusive",
+        InviteOnly = "InviteOnly"
+    }
     export interface ICommunityScpData {
         chainId: number;
         nftAddress: string;
@@ -1193,6 +1198,8 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         scpData?: ICommunityScpData;
         moderatorIds?: string[];
         eventData?: INostrEvent;
+        membershipType: MembershipType;
+        memberIds?: string[];
     }
     export interface INewCommunityInfo {
         name: string;
@@ -1202,6 +1209,8 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         rules?: string;
         gatekeeperNpub?: string;
         scpData?: ICommunityScpData;
+        membershipType: MembershipType;
+        memberIds?: string[];
     }
     export interface IChannelScpData {
         communityId: string;
@@ -1356,7 +1365,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
         sendMessage(receiver: string, encryptedMessage: string, privateKey: string): Promise<void>;
         resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
-        fetchApplicationSpecificData(identifier: string): Promise<INostrEvent[]>;
+        fetchApplicationSpecificData(identifier: string): Promise<INostrEvent>;
         updateApplicationSpecificData(identifier: string, content: string, privateKey: string): Promise<INostrSubmitResponse>;
     }
     interface ISocialEventManager {
@@ -1398,7 +1407,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
         sendMessage(receiver: string, encryptedMessage: string, privateKey: string): Promise<void>;
         resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
-        fetchApplicationSpecificData(identifier: string): Promise<INostrEvent[]>;
+        fetchApplicationSpecificData(identifier: string): Promise<INostrEvent>;
         updateApplicationSpecificData(identifier: string, content: string, privateKey: string): Promise<INostrSubmitResponse>;
     }
     class SocialDataManager {
@@ -1452,10 +1461,10 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchUserFollowersList(pubKey: string): Promise<IUserProfile[]>;
         fetchUserRelayList(pubKey: string): Promise<string[]>;
         getCommunityUri(creatorId: string, communityId: string): string;
-        generateGroupKeys(privateKey: string, gatekeeperPublicKey: string): Promise<{
+        generateGroupKeys(privateKey: string, encryptionPublicKeys: string[]): Promise<{
             groupPrivateKey: string;
             groupPublicKey: string;
-            encryptedGroupKey: string;
+            encryptedGroupKeys: Record<string, string>;
         }>;
         createCommunity(newInfo: INewCommunityInfo, creatorId: string, privateKey: string): Promise<ICommunityInfo>;
         updateCommunity(info: ICommunityInfo, privateKey: string): Promise<ICommunityInfo>;
@@ -1482,11 +1491,11 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk/utils/index.ts" />
 declare module "@scom/scom-social-sdk/utils/index.ts" {
-    export { INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityScpData, INoteInfo, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    export { INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityScpData, INoteInfo, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, INewCommunityInfo, MembershipType } from "@scom/scom-social-sdk/utils/interfaces.ts";
     export { NostrEventManager, ISocialEventManager, SocialDataManager } from "@scom/scom-social-sdk/utils/managers.ts";
 }
 /// <amd-module name="@scom/scom-social-sdk" />
 declare module "@scom/scom-social-sdk" {
     export { Event, Keys, Nip19, Bech32, } from "@scom/scom-social-sdk/core/index.ts";
-    export { INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityScpData, INoteInfo, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, NostrEventManager, ISocialEventManager, SocialDataManager } from "@scom/scom-social-sdk/utils/index.ts";
+    export { INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityScpData, INoteInfo, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, INewCommunityInfo, MembershipType, NostrEventManager, ISocialEventManager, SocialDataManager } from "@scom/scom-social-sdk/utils/index.ts";
 }

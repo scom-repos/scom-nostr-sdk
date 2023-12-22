@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile, ScpStandardId } from "./interfaces";
+import { IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
 
 interface IFetchNotesOptions {
     authors?: string[];
@@ -897,7 +897,7 @@ class NostrEventManager {
             "#d": [identifier]
         };
         const events = await this._websocketManager.fetchWebSocketEvents(req);
-        return events;
+        return events?.length > 0 ? events[0] : null;
     }
 
     async updateApplicationSpecificData(identifier: string, content: string, privateKey: string) {
@@ -956,7 +956,7 @@ interface ISocialEventManager {
     fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
     sendMessage(receiver: string, encryptedMessage: string, privateKey: string): Promise<void>;
     resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
-    fetchApplicationSpecificData(identifier: string): Promise<INostrEvent[]>;
+    fetchApplicationSpecificData(identifier: string): Promise<INostrEvent>;
     updateApplicationSpecificData(identifier: string, content: string, privateKey: string): Promise<INostrSubmitResponse>;
 }
 
@@ -1050,12 +1050,17 @@ class SocialDataManager {
         const scpTag = event.tags.find(tag => tag[0] === 'scp');
         let scpData;
         let gatekeeperNpub;
+        let membershipType: MembershipType = MembershipType.Open;
         if (scpTag && scpTag[1] === '1') {
             const scpDataStr = this.base64ToUtf8(scpTag[2]);
             if (!scpDataStr.startsWith('$scp:')) return null;
             scpData = JSON.parse(scpDataStr.substring(5));
             if (scpData.gatekeeperPublicKey) {
                 gatekeeperNpub = Nip19.npubEncode(scpData.gatekeeperPublicKey);
+                membershipType = MembershipType.NFTExclusive;
+            }
+            else {
+                membershipType = MembershipType.InviteOnly;
             }
         }
         const communityUri = `34550:${event.pubkey}:${communityId}`;
@@ -1069,7 +1074,8 @@ class SocialDataManager {
             bannerImgUrl: image,
             scpData,
             eventData: event,
-            gatekeeperNpub
+            gatekeeperNpub,
+            membershipType
         }
 
         return communityInfo;
@@ -1377,6 +1383,12 @@ class SocialDataManager {
         const communityEvent = communityEvents.find(event => event.kind === 34550);
         if(!communityEvent) return null;
         let communityInfo = this.extractCommunityInfo(communityEvent);
+        if (communityInfo.membershipType === MembershipType.InviteOnly) {
+            const keyEvent = await this._socialEventManager.fetchApplicationSpecificData(communityInfo.communityUri + ':keys');
+            if (keyEvent) {
+                const keyMap: Record<string, string> = JSON.parse(keyEvent.content);
+            }
+        }
         return communityInfo;
     }
 
@@ -1577,14 +1589,18 @@ class SocialDataManager {
         return `34550:${decodedPubkey}:${communityId}`;
     }
 
-    async generateGroupKeys(privateKey: string, gatekeeperPublicKey: string) {
+    async generateGroupKeys(privateKey: string, encryptionPublicKeys: string[]) {
         const groupPrivateKey = Keys.generatePrivateKey();
         const groupPublicKey = Keys.getPublicKey(groupPrivateKey);
-        const encryptedGroupKey = await this.encryptMessage(privateKey, gatekeeperPublicKey, groupPrivateKey);
+        let encryptedGroupKeys: Record<string, string> = {};
+        for (let encryptionPublicKey of encryptionPublicKeys) {
+            const encryptedGroupKey = await this.encryptMessage(privateKey, encryptionPublicKey, groupPrivateKey);
+            encryptedGroupKeys[encryptionPublicKey] = encryptedGroupKey;
+        }
         return {
             groupPrivateKey,
             groupPublicKey,
-            encryptedGroupKey
+            encryptedGroupKeys
         }
     }
 
@@ -1599,21 +1615,43 @@ class SocialDataManager {
             bannerImgUrl: newInfo.bannerImgUrl,
             moderatorIds: newInfo.moderatorIds,
             gatekeeperNpub: newInfo.gatekeeperNpub,
-            scpData: newInfo.scpData
+            scpData: newInfo.scpData,
+            membershipType: newInfo.membershipType,
+            memberIds: newInfo.memberIds
         }
         if (communityInfo.scpData) {
-            const gatekeeperPublicKey = Nip19.decode(communityInfo.gatekeeperNpub).data as string;
-            const communityKeys = await this.generateGroupKeys(privateKey, gatekeeperPublicKey);
-            communityInfo.scpData = {
-                ...communityInfo.scpData,
-                publicKey: communityKeys.groupPublicKey,
-                encryptedKey: communityKeys.encryptedGroupKey,
-                gatekeeperPublicKey
+            if (communityInfo.membershipType === MembershipType.NFTExclusive) {
+                const gatekeeperPublicKey = Nip19.decode(communityInfo.gatekeeperNpub).data as string;
+                const communityKeys = await this.generateGroupKeys(privateKey, [gatekeeperPublicKey]);
+                const encryptedKey = communityKeys.encryptedGroupKeys[gatekeeperPublicKey];
+                communityInfo.scpData = {
+                    ...communityInfo.scpData,
+                    publicKey: communityKeys.groupPublicKey,
+                    encryptedKey: encryptedKey,
+                    gatekeeperPublicKey
+                }        
+            }
+            else if (communityInfo.membershipType === MembershipType.InviteOnly) {
+                let encryptionPublicKeys: string[] = [];
+                for (let memberId of communityInfo.memberIds) {
+                    const memberPublicKey = Nip19.decode(memberId).data as string;
+                    encryptionPublicKeys.push(memberPublicKey);
+                }
+                const communityKeys = await this.generateGroupKeys(privateKey, encryptionPublicKeys);
+                await this._socialEventManager.updateApplicationSpecificData(
+                    communityUri + ':keys', 
+                    JSON.stringify(communityKeys.encryptedGroupKeys),
+                    privateKey
+                );
+                communityInfo.scpData = {
+                    ...communityInfo.scpData,
+                    publicKey: communityKeys.groupPublicKey
+                }                 
             }
             const updateChannelResponse = await this.updateCommunityChannel(communityInfo, privateKey);
             if (updateChannelResponse.eventId) {
                 communityInfo.scpData.channelEventId = updateChannelResponse.eventId;
-            }
+            }   
         }
         await this._socialEventManager.updateCommunity(communityInfo, privateKey);
     

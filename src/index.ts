@@ -18,6 +18,8 @@ export {
     IPostStats,
     IChannelInfo,
     IMessageContactInfo,
+    INewCommunityInfo,
+    MembershipType,
     NostrEventManager,
     ISocialEventManager,
     SocialDataManager
