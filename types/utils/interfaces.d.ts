@@ -103,6 +103,7 @@ export interface ICommunityInfo extends ICommunityBasicInfo {
     eventData?: INostrEvent;
     membershipType: MembershipType;
     memberIds?: string[];
+    memberKeyMap?: Record<string, string>;
 }
 export interface INewCommunityInfo {
     name: string;
@@ -206,4 +207,10 @@ export interface IMessageContactInfo {
     cnt?: number;
     isGroup?: boolean;
     communityInfo?: ICommunityInfo;
+}
+export declare enum CommunityRole {
+    Creator = "creator",
+    Moderator = "moderator",
+    GeneralMember = "generalMember",
+    None = "none"
 }

@@ -3517,7 +3517,7 @@ define("@scom/scom-social-sdk/core/index.ts", ["require", "exports", "@scom/scom
 define("@scom/scom-social-sdk/utils/interfaces.ts", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.MembershipType = exports.ScpStandardId = exports.NftType = void 0;
+    exports.CommunityRole = exports.MembershipType = exports.ScpStandardId = exports.NftType = void 0;
     var NftType;
     (function (NftType) {
         NftType["ERC721"] = "ERC721";
@@ -3536,8 +3536,15 @@ define("@scom/scom-social-sdk/utils/interfaces.ts", ["require", "exports"], func
         MembershipType["NFTExclusive"] = "NFTExclusive";
         MembershipType["InviteOnly"] = "InviteOnly";
     })(MembershipType = exports.MembershipType || (exports.MembershipType = {}));
+    var CommunityRole;
+    (function (CommunityRole) {
+        CommunityRole["Creator"] = "creator";
+        CommunityRole["Moderator"] = "moderator";
+        CommunityRole["GeneralMember"] = "generalMember";
+        CommunityRole["None"] = "none";
+    })(CommunityRole = exports.CommunityRole || (exports.CommunityRole = {}));
 });
-define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts"], function (require, exports, index_1, interfaces_1) {
+define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijstech/eth-wallet", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts"], function (require, exports, eth_wallet_1, index_1, interfaces_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.SocialDataManager = exports.NostrEventManager = void 0;
@@ -4491,6 +4498,13 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             const communityInfo = this.extractCommunityInfo(communityEvent);
             if (!communityInfo)
                 throw new Error('No info event found');
+            //FIXME: not the best way to do this
+            if (communityInfo.membershipType === interfaces_1.MembershipType.InviteOnly) {
+                const keyEvent = await this._socialEventManager.fetchApplicationSpecificData(communityInfo.communityUri + ':keys');
+                if (keyEvent) {
+                    communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
+                }
+            }
             return {
                 notes,
                 info: communityInfo
@@ -4555,6 +4569,21 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             }
             return key;
         }
+        async retrieveCommunityPrivateKey(communityInfo, selfPrivateKey) {
+            let communityPrivateKey;
+            if (communityInfo.membershipType === interfaces_1.MembershipType.InviteOnly) {
+                const creatorPubkey = communityInfo.eventData.pubkey;
+                const pubkey = this.convertPrivateKeyToPubkey(selfPrivateKey);
+                const encryptedKey = communityInfo.memberKeyMap?.[pubkey];
+                if (encryptedKey) {
+                    communityPrivateKey = await this.decryptMessage(selfPrivateKey, creatorPubkey, encryptedKey);
+                }
+            }
+            else if (communityInfo.membershipType === interfaces_1.MembershipType.NFTExclusive) {
+                communityPrivateKey = await this.decryptMessage(selfPrivateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
+            }
+            return communityPrivateKey;
+        }
         async retrieveCommunityPostKeys(options) {
             let noteIdToPrivateKey = {};
             if (options.gatekeeperUrl) {
@@ -4582,7 +4611,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                 const communityEvents = await this.retrieveCommunityEvents(options.creatorId, options.communityId);
                 const communityInfo = communityEvents.info;
                 const notes = communityEvents.notes;
-                let communityPrivateKey = await this.decryptMessage(options.privateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
+                let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, options.privateKey);
                 if (!communityPrivateKey)
                     return noteIdToPrivateKey;
                 for (const note of notes) {
@@ -4620,7 +4649,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                 }
             }
             else if (options.privateKey) {
-                let communityPrivateKey = await this.decryptMessage(options.privateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
+                let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, options.privateKey);
                 if (!communityPrivateKey)
                     return noteIdToPrivateKey;
                 for (const note of options.noteEvents) {
@@ -4779,10 +4808,11 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             if (!communityEvent)
                 return null;
             let communityInfo = this.extractCommunityInfo(communityEvent);
+            //FIXME: not the best way to do this
             if (communityInfo.membershipType === interfaces_1.MembershipType.InviteOnly) {
                 const keyEvent = await this._socialEventManager.fetchApplicationSpecificData(communityInfo.communityUri + ':keys');
                 if (keyEvent) {
-                    const keyMap = JSON.parse(keyEvent.content);
+                    communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
                 }
             }
             return communityInfo;
@@ -5001,31 +5031,31 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                 membershipType: newInfo.membershipType,
                 memberIds: newInfo.memberIds
             };
+            if (communityInfo.membershipType === interfaces_1.MembershipType.NFTExclusive) {
+                const gatekeeperPublicKey = index_1.Nip19.decode(communityInfo.gatekeeperNpub).data;
+                const communityKeys = await this.generateGroupKeys(privateKey, [gatekeeperPublicKey]);
+                const encryptedKey = communityKeys.encryptedGroupKeys[gatekeeperPublicKey];
+                communityInfo.scpData = {
+                    ...communityInfo.scpData,
+                    publicKey: communityKeys.groupPublicKey,
+                    encryptedKey: encryptedKey,
+                    gatekeeperPublicKey
+                };
+            }
+            else if (communityInfo.membershipType === interfaces_1.MembershipType.InviteOnly) {
+                let encryptionPublicKeys = [];
+                for (let memberId of communityInfo.memberIds) {
+                    const memberPublicKey = index_1.Nip19.decode(memberId).data;
+                    encryptionPublicKeys.push(memberPublicKey);
+                }
+                const communityKeys = await this.generateGroupKeys(privateKey, encryptionPublicKeys);
+                await this._socialEventManager.updateApplicationSpecificData(communityUri + ':keys', JSON.stringify(communityKeys.encryptedGroupKeys), privateKey);
+                communityInfo.scpData = {
+                    ...communityInfo.scpData,
+                    publicKey: communityKeys.groupPublicKey
+                };
+            }
             if (communityInfo.scpData) {
-                if (communityInfo.membershipType === interfaces_1.MembershipType.NFTExclusive) {
-                    const gatekeeperPublicKey = index_1.Nip19.decode(communityInfo.gatekeeperNpub).data;
-                    const communityKeys = await this.generateGroupKeys(privateKey, [gatekeeperPublicKey]);
-                    const encryptedKey = communityKeys.encryptedGroupKeys[gatekeeperPublicKey];
-                    communityInfo.scpData = {
-                        ...communityInfo.scpData,
-                        publicKey: communityKeys.groupPublicKey,
-                        encryptedKey: encryptedKey,
-                        gatekeeperPublicKey
-                    };
-                }
-                else if (communityInfo.membershipType === interfaces_1.MembershipType.InviteOnly) {
-                    let encryptionPublicKeys = [];
-                    for (let memberId of communityInfo.memberIds) {
-                        const memberPublicKey = index_1.Nip19.decode(memberId).data;
-                        encryptionPublicKeys.push(memberPublicKey);
-                    }
-                    const communityKeys = await this.generateGroupKeys(privateKey, encryptionPublicKeys);
-                    await this._socialEventManager.updateApplicationSpecificData(communityUri + ':keys', JSON.stringify(communityKeys.encryptedGroupKeys), privateKey);
-                    communityInfo.scpData = {
-                        ...communityInfo.scpData,
-                        publicKey: communityKeys.groupPublicKey
-                    };
-                }
                 const updateChannelResponse = await this.updateCommunityChannel(communityInfo, privateKey);
                 if (updateChannelResponse.eventId) {
                     communityInfo.scpData.channelEventId = updateChannelResponse.eventId;
@@ -5292,6 +5322,12 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                 info: channelInfo
             };
         }
+        convertPrivateKeyToPubkey(privateKey) {
+            if (privateKey.startsWith('0x'))
+                privateKey = privateKey.replace('0x', '');
+            let pub = eth_wallet_1.Utils.padLeft(index_1.Keys.getPublicKey(privateKey), 64);
+            return pub;
+        }
         async retrieveChannelMessageKeys(options) {
             let messageIdToPrivateKey = {};
             if (options.gatekeeperUrl) {
@@ -5320,7 +5356,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
                 const channelInfo = channelEvents.info;
                 const messageEvents = channelEvents.messageEvents;
                 const communityInfo = await this.fetchCommunityInfo(channelInfo.eventData.pubkey, channelInfo.scpData.communityId);
-                let communityPrivateKey = await this.decryptMessage(options.privateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
+                let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, options.privateKey);
                 if (!communityPrivateKey)
                     return messageIdToPrivateKey;
                 for (const messageEvent of messageEvents) {
@@ -5397,26 +5433,70 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             }
             return profiles;
         }
+        async mapCommunityUriToMemberIdRoleCombo(communities) {
+            const communityUriToMemberIdRoleComboMap = {};
+            const communityUriToCreatorOrModeratorIdsMap = {};
+            for (let community of communities) {
+                const decodedPubkey = index_1.Nip19.decode(community.creatorId).data;
+                const communityUri = `34550:${decodedPubkey}:${community.communityId}`;
+                communityUriToMemberIdRoleComboMap[communityUri] = [];
+                communityUriToMemberIdRoleComboMap[communityUri].push({
+                    id: community.creatorId,
+                    role: interfaces_1.CommunityRole.Creator
+                });
+                communityUriToCreatorOrModeratorIdsMap[communityUri] = new Set();
+                communityUriToCreatorOrModeratorIdsMap[communityUri].add(community.creatorId);
+                if (community.moderatorIds) {
+                    if (community.moderatorIds.includes(community.creatorId))
+                        continue;
+                    for (let moderator of community.moderatorIds) {
+                        communityUriToMemberIdRoleComboMap[communityUri].push({
+                            id: moderator,
+                            role: interfaces_1.CommunityRole.Moderator
+                        });
+                        communityUriToCreatorOrModeratorIdsMap[communityUri].add(moderator);
+                    }
+                }
+            }
+            const generalMembersEvents = await this._socialEventManager.fetchCommunitiesGeneralMembers(communities);
+            for (let event of generalMembersEvents) {
+                const communityUriArr = event.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
+                for (let communityUri of communityUriArr) {
+                    if (!communityUriToMemberIdRoleComboMap[communityUri])
+                        continue;
+                    const pubkey = index_1.Nip19.npubEncode(event.pubkey);
+                    if (communityUriToCreatorOrModeratorIdsMap[communityUri].has(pubkey))
+                        continue;
+                    communityUriToMemberIdRoleComboMap[communityUri].push({
+                        id: pubkey,
+                        role: interfaces_1.CommunityRole.GeneralMember
+                    });
+                }
+            }
+            return communityUriToMemberIdRoleComboMap;
+        }
     }
     exports.SocialDataManager = SocialDataManager;
 });
 define("@scom/scom-social-sdk/utils/index.ts", ["require", "exports", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/utils/managers.ts"], function (require, exports, interfaces_2, managers_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.SocialDataManager = exports.NostrEventManager = exports.MembershipType = void 0;
+    exports.SocialDataManager = exports.NostrEventManager = exports.CommunityRole = exports.MembershipType = void 0;
     Object.defineProperty(exports, "MembershipType", { enumerable: true, get: function () { return interfaces_2.MembershipType; } });
+    Object.defineProperty(exports, "CommunityRole", { enumerable: true, get: function () { return interfaces_2.CommunityRole; } });
     Object.defineProperty(exports, "NostrEventManager", { enumerable: true, get: function () { return managers_1.NostrEventManager; } });
     Object.defineProperty(exports, "SocialDataManager", { enumerable: true, get: function () { return managers_1.SocialDataManager; } });
 });
 define("@scom/scom-social-sdk", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/index.ts"], function (require, exports, index_2, index_3) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.SocialDataManager = exports.NostrEventManager = exports.MembershipType = exports.Bech32 = exports.Nip19 = exports.Keys = exports.Event = void 0;
+    exports.SocialDataManager = exports.NostrEventManager = exports.CommunityRole = exports.MembershipType = exports.Bech32 = exports.Nip19 = exports.Keys = exports.Event = void 0;
     Object.defineProperty(exports, "Event", { enumerable: true, get: function () { return index_2.Event; } });
     Object.defineProperty(exports, "Keys", { enumerable: true, get: function () { return index_2.Keys; } });
     Object.defineProperty(exports, "Nip19", { enumerable: true, get: function () { return index_2.Nip19; } });
     Object.defineProperty(exports, "Bech32", { enumerable: true, get: function () { return index_2.Bech32; } });
     Object.defineProperty(exports, "MembershipType", { enumerable: true, get: function () { return index_3.MembershipType; } });
+    Object.defineProperty(exports, "CommunityRole", { enumerable: true, get: function () { return index_3.CommunityRole; } });
     Object.defineProperty(exports, "NostrEventManager", { enumerable: true, get: function () { return index_3.NostrEventManager; } });
     Object.defineProperty(exports, "SocialDataManager", { enumerable: true, get: function () { return index_3.SocialDataManager; } });
 });

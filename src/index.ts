@@ -20,6 +20,7 @@ export {
     IMessageContactInfo,
     INewCommunityInfo,
     MembershipType,
+    CommunityRole,
     NostrEventManager,
     ISocialEventManager,
     SocialDataManager

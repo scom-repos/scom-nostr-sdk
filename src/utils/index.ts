@@ -13,7 +13,8 @@ export {
     IChannelInfo,
     IMessageContactInfo,
     INewCommunityInfo,
-    MembershipType
+    MembershipType,
+    CommunityRole
 } from "./interfaces";
 
 export {

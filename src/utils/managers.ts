@@ -1,5 +1,6 @@
+import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
+import { CommunityRole, IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
 
 interface IFetchNotesOptions {
     authors?: string[];
@@ -1088,6 +1089,13 @@ class SocialDataManager {
         if (!communityEvent) throw new Error('No info event found');
         const communityInfo = this.extractCommunityInfo(communityEvent);
         if (!communityInfo) throw new Error('No info event found');
+        //FIXME: not the best way to do this
+        if (communityInfo.membershipType === MembershipType.InviteOnly) {
+            const keyEvent = await this._socialEventManager.fetchApplicationSpecificData(communityInfo.communityUri + ':keys');
+            if (keyEvent) {
+                communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
+            }
+        }
 
         return {
             notes,
@@ -1157,6 +1165,22 @@ class SocialDataManager {
         return key;
     }
 
+    async retrieveCommunityPrivateKey(communityInfo: ICommunityInfo, selfPrivateKey: string) {
+        let communityPrivateKey: string;
+        if (communityInfo.membershipType === MembershipType.InviteOnly) {
+            const creatorPubkey = communityInfo.eventData.pubkey;
+            const pubkey = this.convertPrivateKeyToPubkey(selfPrivateKey);
+            const encryptedKey = communityInfo.memberKeyMap?.[pubkey];
+            if (encryptedKey) {
+                communityPrivateKey = await this.decryptMessage(selfPrivateKey, creatorPubkey, encryptedKey);
+            }
+        }
+        else if (communityInfo.membershipType === MembershipType.NFTExclusive) {
+            communityPrivateKey = await this.decryptMessage(selfPrivateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
+        }
+        return communityPrivateKey;
+    }
+
     async retrieveCommunityPostKeys(options: IRetrieveCommunityPostKeysOptions) {
         let noteIdToPrivateKey: Record<string, string> = {};
         if (options.gatekeeperUrl) {
@@ -1184,7 +1208,7 @@ class SocialDataManager {
             const communityEvents = await this.retrieveCommunityEvents(options.creatorId, options.communityId);
             const communityInfo = communityEvents.info;
             const notes = communityEvents.notes;    
-            let communityPrivateKey = await this.decryptMessage(options.privateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
+            let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, options.privateKey);
             if (!communityPrivateKey) return noteIdToPrivateKey;
             for (const note of notes) {
                 const postPrivateKey = await this.retrievePostPrivateKey(note, communityInfo.communityUri, communityPrivateKey);
@@ -1222,7 +1246,7 @@ class SocialDataManager {
             }
         }
         else if (options.privateKey) {
-            let communityPrivateKey = await this.decryptMessage(options.privateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
+            let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, options.privateKey);
             if (!communityPrivateKey) return noteIdToPrivateKey;
             for (const note of options.noteEvents) {
                 const postPrivateKey = await this.retrievePostPrivateKey(note, communityInfo.communityUri, communityPrivateKey);
@@ -1383,10 +1407,11 @@ class SocialDataManager {
         const communityEvent = communityEvents.find(event => event.kind === 34550);
         if(!communityEvent) return null;
         let communityInfo = this.extractCommunityInfo(communityEvent);
+        //FIXME: not the best way to do this
         if (communityInfo.membershipType === MembershipType.InviteOnly) {
             const keyEvent = await this._socialEventManager.fetchApplicationSpecificData(communityInfo.communityUri + ':keys');
             if (keyEvent) {
-                const keyMap: Record<string, string> = JSON.parse(keyEvent.content);
+                communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
             }
         }
         return communityInfo;
@@ -1619,35 +1644,36 @@ class SocialDataManager {
             membershipType: newInfo.membershipType,
             memberIds: newInfo.memberIds
         }
+
+        if (communityInfo.membershipType === MembershipType.NFTExclusive) {
+            const gatekeeperPublicKey = Nip19.decode(communityInfo.gatekeeperNpub).data as string;
+            const communityKeys = await this.generateGroupKeys(privateKey, [gatekeeperPublicKey]);
+            const encryptedKey = communityKeys.encryptedGroupKeys[gatekeeperPublicKey];
+            communityInfo.scpData = {
+                ...communityInfo.scpData,
+                publicKey: communityKeys.groupPublicKey,
+                encryptedKey: encryptedKey,
+                gatekeeperPublicKey
+            }        
+        }
+        else if (communityInfo.membershipType === MembershipType.InviteOnly) {
+            let encryptionPublicKeys: string[] = [];
+            for (let memberId of communityInfo.memberIds) {
+                const memberPublicKey = Nip19.decode(memberId).data as string;
+                encryptionPublicKeys.push(memberPublicKey);
+            }
+            const communityKeys = await this.generateGroupKeys(privateKey, encryptionPublicKeys);
+            await this._socialEventManager.updateApplicationSpecificData(
+                communityUri + ':keys', 
+                JSON.stringify(communityKeys.encryptedGroupKeys),
+                privateKey
+            );
+            communityInfo.scpData = {
+                ...communityInfo.scpData,
+                publicKey: communityKeys.groupPublicKey
+            }                 
+        }
         if (communityInfo.scpData) {
-            if (communityInfo.membershipType === MembershipType.NFTExclusive) {
-                const gatekeeperPublicKey = Nip19.decode(communityInfo.gatekeeperNpub).data as string;
-                const communityKeys = await this.generateGroupKeys(privateKey, [gatekeeperPublicKey]);
-                const encryptedKey = communityKeys.encryptedGroupKeys[gatekeeperPublicKey];
-                communityInfo.scpData = {
-                    ...communityInfo.scpData,
-                    publicKey: communityKeys.groupPublicKey,
-                    encryptedKey: encryptedKey,
-                    gatekeeperPublicKey
-                }        
-            }
-            else if (communityInfo.membershipType === MembershipType.InviteOnly) {
-                let encryptionPublicKeys: string[] = [];
-                for (let memberId of communityInfo.memberIds) {
-                    const memberPublicKey = Nip19.decode(memberId).data as string;
-                    encryptionPublicKeys.push(memberPublicKey);
-                }
-                const communityKeys = await this.generateGroupKeys(privateKey, encryptionPublicKeys);
-                await this._socialEventManager.updateApplicationSpecificData(
-                    communityUri + ':keys', 
-                    JSON.stringify(communityKeys.encryptedGroupKeys),
-                    privateKey
-                );
-                communityInfo.scpData = {
-                    ...communityInfo.scpData,
-                    publicKey: communityKeys.groupPublicKey
-                }                 
-            }
             const updateChannelResponse = await this.updateCommunityChannel(communityInfo, privateKey);
             if (updateChannelResponse.eventId) {
                 communityInfo.scpData.channelEventId = updateChannelResponse.eventId;
@@ -1928,6 +1954,12 @@ class SocialDataManager {
         }
     }
 
+    convertPrivateKeyToPubkey(privateKey: string) {
+        if (privateKey.startsWith('0x')) privateKey = privateKey.replace('0x', '');
+        let pub = Utils.padLeft(Keys.getPublicKey(privateKey), 64);
+        return pub;
+    }
+
     async retrieveChannelMessageKeys(options: IRetrieveChannelMessageKeysOptions) {
         let messageIdToPrivateKey: Record<string, string> = {};
         if (options.gatekeeperUrl) {
@@ -1956,7 +1988,7 @@ class SocialDataManager {
             const channelInfo = channelEvents.info;
             const messageEvents = channelEvents.messageEvents;
             const communityInfo = await this.fetchCommunityInfo(channelInfo.eventData.pubkey, channelInfo.scpData.communityId);
-            let communityPrivateKey = await this.decryptMessage(options.privateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
+            let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, options.privateKey);
             if (!communityPrivateKey) return messageIdToPrivateKey;
             for (const messageEvent of messageEvents) {
                 const messagePrivateKey = await this.retrieveChannelMessagePrivateKey(messageEvent, channelInfo.id, communityPrivateKey);
@@ -2043,6 +2075,46 @@ class SocialDataManager {
             });
         }
         return profiles;
+    }
+
+    async mapCommunityUriToMemberIdRoleCombo(communities: ICommunityInfo[]) {
+        const communityUriToMemberIdRoleComboMap: Record<string, { id: string; role: CommunityRole }[]> = {};
+        const communityUriToCreatorOrModeratorIdsMap: Record<string, Set<string>> = {};
+        for (let community of communities) {
+            const decodedPubkey = Nip19.decode(community.creatorId).data as string;
+            const communityUri = `34550:${decodedPubkey}:${community.communityId}`;
+            communityUriToMemberIdRoleComboMap[communityUri] = [];
+            communityUriToMemberIdRoleComboMap[communityUri].push({
+                id: community.creatorId,
+                role: CommunityRole.Creator
+            });
+            communityUriToCreatorOrModeratorIdsMap[communityUri] = new Set<string>();
+            communityUriToCreatorOrModeratorIdsMap[communityUri].add(community.creatorId);
+            if (community.moderatorIds) {
+                if (community.moderatorIds.includes(community.creatorId)) continue;
+                for (let moderator of community.moderatorIds) {
+                    communityUriToMemberIdRoleComboMap[communityUri].push({
+                        id: moderator,
+                        role: CommunityRole.Moderator
+                    });
+                    communityUriToCreatorOrModeratorIdsMap[communityUri].add(moderator);
+                }
+            }
+        }
+        const generalMembersEvents = await this._socialEventManager.fetchCommunitiesGeneralMembers(communities);
+        for (let event of generalMembersEvents) {
+            const communityUriArr = event.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
+            for (let communityUri of communityUriArr) {
+                if (!communityUriToMemberIdRoleComboMap[communityUri]) continue;
+                const pubkey = Nip19.npubEncode(event.pubkey);
+                if (communityUriToCreatorOrModeratorIdsMap[communityUri].has(pubkey)) continue;
+                communityUriToMemberIdRoleComboMap[communityUri].push({
+                    id: pubkey,
+                    role: CommunityRole.GeneralMember
+                });
+            }
+        }
+        return communityUriToMemberIdRoleComboMap;
     }
 }
 
