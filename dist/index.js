@@ -5241,7 +5241,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@scom/
             const communityEvents = await this._socialEventManager.fetchCommunities(pubkeyToCommunityIdsMap);
             for (let event of communityEvents) {
                 const communityInfo = this.extractCommunityInfo(event);
-                const channelId = communityInfo.scpData.channelEventId;
+                const channelId = communityInfo.scpData?.channelEventId;
                 if (!channelId)
                     continue;
                 channelIdToCommunityMap[channelId] = communityInfo;
