@@ -1046,6 +1046,7 @@ class SocialDataManager {
     extractCommunityInfo(event: INostrEvent) {
         const communityId = event.tags.find(tag => tag[0] === 'd')?.[1];
         const description = event.tags.find(tag => tag[0] === 'description')?.[1];
+        const rules = event.tags.find(tag => tag[0] === 'rules')?.[1];
         const image = event.tags.find(tag => tag[0] === 'image')?.[1];
         const creatorId = Nip19.npubEncode(event.pubkey);
         const moderatorIds = event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'moderator').map(tag => Nip19.npubEncode(tag[1]));
@@ -1073,6 +1074,7 @@ class SocialDataManager {
             communityUri,
             communityId,
             description,
+            rules,
             bannerImgUrl: image,
             scpData,
             eventData: event,

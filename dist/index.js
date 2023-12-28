@@ -4455,6 +4455,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         extractCommunityInfo(event) {
             const communityId = event.tags.find(tag => tag[0] === 'd')?.[1];
             const description = event.tags.find(tag => tag[0] === 'description')?.[1];
+            const rules = event.tags.find(tag => tag[0] === 'rules')?.[1];
             const image = event.tags.find(tag => tag[0] === 'image')?.[1];
             const creatorId = index_1.Nip19.npubEncode(event.pubkey);
             const moderatorIds = event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'moderator').map(tag => index_1.Nip19.npubEncode(tag[1]));
@@ -4482,6 +4483,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 communityUri,
                 communityId,
                 description,
+                rules,
                 bannerImgUrl: image,
                 scpData,
                 eventData: event,
