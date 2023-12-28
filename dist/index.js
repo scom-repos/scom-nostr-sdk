@@ -4126,6 +4126,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const decodedCreatorId = creatorId.startsWith('npub1') ? index_1.Nip19.decode(creatorId).data : creatorId;
             let channelCreationEventReq = {
                 kinds: [40],
+                ids: [channelId],
                 authors: [decodedCreatorId]
             };
             let channelMetadataEventReq = {
@@ -4285,7 +4286,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             };
             await this._websocketManager.submitEvent(event, privateKey);
         }
-        async fetchMessageCountsCacheEvents(pubKey) {
+        async fetchMessageContactsCacheEvents(pubKey) {
             const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
             let msg = {
                 user_pubkey: decodedPubKey,
@@ -5386,7 +5387,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             await this._socialEventManager.submitChannelMessage(newChannelMessageInfo, privateKey);
         }
         async fetchMessageContacts(pubKey) {
-            const events = await this._socialEventManager.fetchMessageCountsCacheEvents(pubKey);
+            const events = await this._socialEventManager.fetchMessageContactsCacheEvents(pubKey);
             const pubkeyToMessageInfoMap = {};
             let metadataByPubKeyMap = {};
             for (let event of events) {

@@ -649,6 +649,7 @@ class NostrEventManager {
         const decodedCreatorId = creatorId.startsWith('npub1') ? Nip19.decode(creatorId).data : creatorId;
         let channelCreationEventReq: any = {
             kinds: [40],
+            ids: [channelId],
             authors: [decodedCreatorId]
         };
         let channelMetadataEventReq: any = {
@@ -818,7 +819,7 @@ class NostrEventManager {
         await this._websocketManager.submitEvent(event, privateKey);
     }
 
-    async fetchMessageCountsCacheEvents(pubKey: string) {
+    async fetchMessageContactsCacheEvents(pubKey: string) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
         let msg: any = {
             user_pubkey: decodedPubKey,
@@ -953,7 +954,7 @@ interface ISocialEventManager {
     updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
     submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
     updateUserProfile(content: INostrMetadataContent, privateKey: string): Promise<void>;
-    fetchMessageCountsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    fetchMessageContactsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
     sendMessage(receiver: string, encryptedMessage: string, privateKey: string): Promise<void>;
     resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
@@ -2028,7 +2029,7 @@ class SocialDataManager {
     }
 
     async fetchMessageContacts(pubKey: string) {
-        const events = await this._socialEventManager.fetchMessageCountsCacheEvents(pubKey);
+        const events = await this._socialEventManager.fetchMessageContactsCacheEvents(pubKey);
         const pubkeyToMessageInfoMap: Record<string, { cnt: number, latest_at: number, latest_event_id: string }> = {};
         let metadataByPubKeyMap: Record<string, INostrMetadata> = {};
         for (let event of events) {

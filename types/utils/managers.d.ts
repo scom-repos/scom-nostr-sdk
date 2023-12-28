@@ -52,7 +52,7 @@ declare class NostrEventManager {
     submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
     submitChannelMessage(info: INewChannelMessageInfo, privateKey: string): Promise<void>;
     updateUserProfile(content: INostrMetadataContent, privateKey: string): Promise<void>;
-    fetchMessageCountsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    fetchMessageContactsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
     sendMessage(receiver: string, encryptedMessage: string, privateKey: string): Promise<void>;
     resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
@@ -94,7 +94,7 @@ interface ISocialEventManager {
     updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
     submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
     updateUserProfile(content: INostrMetadataContent, privateKey: string): Promise<void>;
-    fetchMessageCountsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    fetchMessageContactsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
     sendMessage(receiver: string, encryptedMessage: string, privateKey: string): Promise<void>;
     resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
