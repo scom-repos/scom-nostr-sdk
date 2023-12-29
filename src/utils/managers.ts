@@ -893,7 +893,7 @@ class NostrEventManager {
         await this._cachedWebsocketManager.fetchCachedEvents('reset_directmsg_count', msg);
     }
 
-    async fetchApplicationSpecificData(identifier: string) {
+    async fetchGroupKeys(identifier: string) {
         let req: any = {
             kinds: [30078],
             "#d": [identifier]
@@ -902,18 +902,43 @@ class NostrEventManager {
         return events?.length > 0 ? events[0] : null;
     }
 
-    async updateApplicationSpecificData(identifier: string, content: string, privateKey: string) {
+    async fetchUserGroupInvitations(groupKinds: number[], pubKey: string) {
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data as string : pubKey;
+        let req: any = {
+            kinds: [30078],
+            "#p": [decodedPubKey],
+            "#k": groupKinds.map(kind => kind.toString())
+        };
+        let events = await this._websocketManager.fetchWebSocketEvents(req);
+        events = events.filter(event => event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'invitee').map(tag => tag[1]).includes(decodedPubKey));
+        return events;
+    }
+
+    async updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[], privateKey: string) {
         let event = {
             "kind": 30078,
             "created_at": Math.round(Date.now() / 1000),
-            "content": content,
+            "content": keys,
             "tags": [
                 [
                     "d",
                     identifier
+                ],
+                [
+                    "k",
+                    groupKind.toString()
                 ]
             ]
         };
+        for (let invitee of invitees) {
+            const decodedInvitee = invitee.startsWith('npub1') ? Nip19.decode(invitee).data as string : invitee;
+            event.tags.push([
+                "p",
+                decodedInvitee,
+                "",
+                "invitee"
+            ]);
+        }
         const response = await this._websocketManager.submitEvent(event, privateKey);
         return response;
     }
@@ -958,8 +983,9 @@ interface ISocialEventManager {
     fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
     sendMessage(receiver: string, encryptedMessage: string, privateKey: string): Promise<void>;
     resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
-    fetchApplicationSpecificData(identifier: string): Promise<INostrEvent>;
-    updateApplicationSpecificData(identifier: string, content: string, privateKey: string): Promise<INostrSubmitResponse>;
+    fetchGroupKeys(identifier: string): Promise<INostrEvent>;
+    fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
+    updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[], privateKey: string): Promise<INostrSubmitResponse>;
 }
 
 class SocialDataManager {
@@ -1094,7 +1120,7 @@ class SocialDataManager {
         if (!communityInfo) throw new Error('No info event found');
         //FIXME: not the best way to do this
         if (communityInfo.membershipType === MembershipType.InviteOnly) {
-            const keyEvent = await this._socialEventManager.fetchApplicationSpecificData(communityInfo.communityUri + ':keys');
+            const keyEvent = await this._socialEventManager.fetchGroupKeys(communityInfo.communityUri + ':keys');
             if (keyEvent) {
                 communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
             }
@@ -1412,7 +1438,7 @@ class SocialDataManager {
         let communityInfo = this.extractCommunityInfo(communityEvent);
         //FIXME: not the best way to do this
         if (communityInfo.membershipType === MembershipType.InviteOnly) {
-            const keyEvent = await this._socialEventManager.fetchApplicationSpecificData(communityInfo.communityUri + ':keys');
+            const keyEvent = await this._socialEventManager.fetchGroupKeys(communityInfo.communityUri + ':keys');
             if (keyEvent) {
                 communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
             }
@@ -1666,9 +1692,11 @@ class SocialDataManager {
                 encryptionPublicKeys.push(memberPublicKey);
             }
             const communityKeys = await this.generateGroupKeys(privateKey, encryptionPublicKeys);
-            await this._socialEventManager.updateApplicationSpecificData(
+            await this._socialEventManager.updateGroupKeys(
                 communityUri + ':keys', 
+                34550,
                 JSON.stringify(communityKeys.encryptedGroupKeys),
+                communityInfo.memberIds,
                 privateKey
             );
             communityInfo.scpData = {
@@ -1688,9 +1716,31 @@ class SocialDataManager {
     }
 
     async updateCommunity(info: ICommunityInfo, privateKey: string) {
-        if (info.scpData) {
+        if (info.membershipType === MembershipType.NFTExclusive) {
             const gatekeeperPublicKey = Nip19.decode(info.gatekeeperNpub).data as string;
             info.scpData.gatekeeperPublicKey = gatekeeperPublicKey;
+        }
+        else if (info.membershipType === MembershipType.InviteOnly) {
+            let encryptionPublicKeys: string[] = [];
+            for (let memberId of info.memberIds) {
+                const memberPublicKey = Nip19.decode(memberId).data as string;
+                encryptionPublicKeys.push(memberPublicKey);
+            }
+
+            const groupPrivateKey = await this.retrieveCommunityPrivateKey(info, privateKey);
+            let encryptedGroupKeys: Record<string, string> = {};
+            for (let encryptionPublicKey of encryptionPublicKeys) {
+                const encryptedGroupKey = await this.encryptMessage(privateKey, encryptionPublicKey, groupPrivateKey);
+                encryptedGroupKeys[encryptionPublicKey] = encryptedGroupKey;
+            }
+            const response = await this._socialEventManager.updateGroupKeys(
+                info.communityUri + ':keys',
+                34550,
+                JSON.stringify(encryptedGroupKeys),
+                info.memberIds,
+                privateKey
+            );
+            console.log('updateCommunity', response);
         }
         await this._socialEventManager.updateCommunity(info, privateKey);
         return info;
@@ -1707,6 +1757,31 @@ class SocialDataManager {
         }
         const updateChannelResponse = await this._socialEventManager.updateChannel(channelInfo, privateKey);
         return updateChannelResponse;
+    }
+
+    async createChannel(channelInfo: IChannelInfo, memberIds: string[], privateKey: string) {
+        let encryptionPublicKeys: string[] = [];
+        for (let memberId of memberIds) {
+            const memberPublicKey = Nip19.decode(memberId).data as string;
+            encryptionPublicKeys.push(memberPublicKey);
+        }
+        const channelKeys = await this.generateGroupKeys(privateKey, encryptionPublicKeys);
+        channelInfo.scpData = {
+            ...channelInfo.scpData,
+            publicKey: channelKeys.groupPublicKey
+        } 
+        const updateChannelResponse = await this._socialEventManager.updateChannel(channelInfo, privateKey);
+        if (updateChannelResponse.eventId) {
+            const channelUri = `40:${updateChannelResponse.eventId}`;
+            await this._socialEventManager.updateGroupKeys(
+                channelUri + ':keys', 
+                40,
+                JSON.stringify(channelKeys.encryptedGroupKeys),
+                memberIds,
+                privateKey
+            );
+        }
+        return channelInfo;
     }
 
     async fetchMyCommunities(pubKey: string) {
@@ -1895,6 +1970,7 @@ class SocialDataManager {
         const pubkeyToCommunityIdsMap: Record<string, string[]> = {};
         for (let channel of channels) {
             const scpData = channel.scpData;
+            if (!scpData.communityId) continue;
             pubkeyToCommunityIdsMap[channel.eventData.pubkey] = pubkeyToCommunityIdsMap[channel.eventData.pubkey] || [];
             if (!pubkeyToCommunityIdsMap[channel.eventData.pubkey].includes(scpData.communityId)) {
                 pubkeyToCommunityIdsMap[channel.eventData.pubkey].push(scpData.communityId);
@@ -2077,7 +2153,21 @@ class SocialDataManager {
                 communityInfo: channel.communityInfo
             });
         }
+        const invitations = await this.fetchUserGroupInvitations(pubKey);
+        console.log('invitations', invitations);
         return profiles;
+    }
+
+    async fetchUserGroupInvitations(pubKey: string) {
+        const identifiers: string[] = [];
+        const events = await this._socialEventManager.fetchUserGroupInvitations([40, 34550], pubKey);
+        for (let event of events) {
+            const identifier = event.tags.find(tag => tag[0] === 'd')?.[1];
+            if (identifier) {
+                identifiers.push(identifier);
+            }
+        }
+        return identifiers;
     }
 
     async mapCommunityUriToMemberIdRoleCombo(communities: ICommunityInfo[]) {

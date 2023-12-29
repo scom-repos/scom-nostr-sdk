@@ -56,8 +56,9 @@ declare class NostrEventManager {
     fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
     sendMessage(receiver: string, encryptedMessage: string, privateKey: string): Promise<void>;
     resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
-    fetchApplicationSpecificData(identifier: string): Promise<INostrEvent>;
-    updateApplicationSpecificData(identifier: string, content: string, privateKey: string): Promise<INostrSubmitResponse>;
+    fetchGroupKeys(identifier: string): Promise<INostrEvent>;
+    fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
+    updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[], privateKey: string): Promise<INostrSubmitResponse>;
 }
 interface ISocialEventManager {
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
@@ -98,8 +99,9 @@ interface ISocialEventManager {
     fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
     sendMessage(receiver: string, encryptedMessage: string, privateKey: string): Promise<void>;
     resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
-    fetchApplicationSpecificData(identifier: string): Promise<INostrEvent>;
-    updateApplicationSpecificData(identifier: string, content: string, privateKey: string): Promise<INostrSubmitResponse>;
+    fetchGroupKeys(identifier: string): Promise<INostrEvent>;
+    fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
+    updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[], privateKey: string): Promise<INostrSubmitResponse>;
 }
 declare class SocialDataManager {
     private _socialEventManager;
@@ -161,6 +163,7 @@ declare class SocialDataManager {
     createCommunity(newInfo: INewCommunityInfo, creatorId: string, privateKey: string): Promise<ICommunityInfo>;
     updateCommunity(info: ICommunityInfo, privateKey: string): Promise<ICommunityInfo>;
     updateCommunityChannel(communityInfo: ICommunityInfo, privateKey: string): Promise<INostrSubmitResponse>;
+    createChannel(channelInfo: IChannelInfo, memberIds: string[], privateKey: string): Promise<IChannelInfo>;
     fetchMyCommunities(pubKey: string): Promise<ICommunityInfo[]>;
     extractBookmarkedCommunities(event: INostrEvent, excludedCommunity?: ICommunityInfo): ICommunityBasicInfo[];
     extractBookmarkedChannels(event: INostrEvent): string[];
@@ -179,6 +182,7 @@ declare class SocialDataManager {
     retrieveChannelMessageKeys(options: IRetrieveChannelMessageKeysOptions): Promise<Record<string, string>>;
     submitChannelMessage(message: string, channelId: string, privateKey: string, communityPublicKey: string, conversationPath?: IConversationPath): Promise<void>;
     fetchMessageContacts(pubKey: string): Promise<IMessageContactInfo[]>;
+    fetchUserGroupInvitations(pubKey: string): Promise<string[]>;
     mapCommunityUriToMemberIdRoleCombo(communities: ICommunityInfo[]): Promise<Record<string, {
         id: string;
         role: CommunityRole;

@@ -134,7 +134,8 @@ export interface INewCommunityInfo {
 
 //SCP-3
 export interface IChannelScpData {
-	communityId: string;
+	communityId?: string; //For community channels
+	publicKey?: string;
 }
 
 export interface IChannelInfo {

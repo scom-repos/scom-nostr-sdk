@@ -4356,7 +4356,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             };
             await this._cachedWebsocketManager.fetchCachedEvents('reset_directmsg_count', msg);
         }
-        async fetchApplicationSpecificData(identifier) {
+        async fetchGroupKeys(identifier) {
             let req = {
                 kinds: [30078],
                 "#d": [identifier]
@@ -4364,18 +4364,42 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const events = await this._websocketManager.fetchWebSocketEvents(req);
             return events?.length > 0 ? events[0] : null;
         }
-        async updateApplicationSpecificData(identifier, content, privateKey) {
+        async fetchUserGroupInvitations(groupKinds, pubKey) {
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
+            let req = {
+                kinds: [30078],
+                "#p": [decodedPubKey],
+                "#k": groupKinds.map(kind => kind.toString())
+            };
+            let events = await this._websocketManager.fetchWebSocketEvents(req);
+            events = events.filter(event => event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'invitee').map(tag => tag[1]).includes(decodedPubKey));
+            return events;
+        }
+        async updateGroupKeys(identifier, groupKind, keys, invitees, privateKey) {
             let event = {
                 "kind": 30078,
                 "created_at": Math.round(Date.now() / 1000),
-                "content": content,
+                "content": keys,
                 "tags": [
                     [
                         "d",
                         identifier
+                    ],
+                    [
+                        "k",
+                        groupKind.toString()
                     ]
                 ]
             };
+            for (let invitee of invitees) {
+                const decodedInvitee = invitee.startsWith('npub1') ? index_1.Nip19.decode(invitee).data : invitee;
+                event.tags.push([
+                    "p",
+                    decodedInvitee,
+                    "",
+                    "invitee"
+                ]);
+            }
             const response = await this._websocketManager.submitEvent(event, privateKey);
             return response;
         }
@@ -4503,7 +4527,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 throw new Error('No info event found');
             //FIXME: not the best way to do this
             if (communityInfo.membershipType === interfaces_1.MembershipType.InviteOnly) {
-                const keyEvent = await this._socialEventManager.fetchApplicationSpecificData(communityInfo.communityUri + ':keys');
+                const keyEvent = await this._socialEventManager.fetchGroupKeys(communityInfo.communityUri + ':keys');
                 if (keyEvent) {
                     communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
                 }
@@ -4813,7 +4837,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             let communityInfo = this.extractCommunityInfo(communityEvent);
             //FIXME: not the best way to do this
             if (communityInfo.membershipType === interfaces_1.MembershipType.InviteOnly) {
-                const keyEvent = await this._socialEventManager.fetchApplicationSpecificData(communityInfo.communityUri + ':keys');
+                const keyEvent = await this._socialEventManager.fetchGroupKeys(communityInfo.communityUri + ':keys');
                 if (keyEvent) {
                     communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
                 }
@@ -5052,7 +5076,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     encryptionPublicKeys.push(memberPublicKey);
                 }
                 const communityKeys = await this.generateGroupKeys(privateKey, encryptionPublicKeys);
-                await this._socialEventManager.updateApplicationSpecificData(communityUri + ':keys', JSON.stringify(communityKeys.encryptedGroupKeys), privateKey);
+                await this._socialEventManager.updateGroupKeys(communityUri + ':keys', 34550, JSON.stringify(communityKeys.encryptedGroupKeys), communityInfo.memberIds, privateKey);
                 communityInfo.scpData = {
                     ...communityInfo.scpData,
                     publicKey: communityKeys.groupPublicKey
@@ -5068,9 +5092,24 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             return communityInfo;
         }
         async updateCommunity(info, privateKey) {
-            if (info.scpData) {
+            if (info.membershipType === interfaces_1.MembershipType.NFTExclusive) {
                 const gatekeeperPublicKey = index_1.Nip19.decode(info.gatekeeperNpub).data;
                 info.scpData.gatekeeperPublicKey = gatekeeperPublicKey;
+            }
+            else if (info.membershipType === interfaces_1.MembershipType.InviteOnly) {
+                let encryptionPublicKeys = [];
+                for (let memberId of info.memberIds) {
+                    const memberPublicKey = index_1.Nip19.decode(memberId).data;
+                    encryptionPublicKeys.push(memberPublicKey);
+                }
+                const groupPrivateKey = await this.retrieveCommunityPrivateKey(info, privateKey);
+                let encryptedGroupKeys = {};
+                for (let encryptionPublicKey of encryptionPublicKeys) {
+                    const encryptedGroupKey = await this.encryptMessage(privateKey, encryptionPublicKey, groupPrivateKey);
+                    encryptedGroupKeys[encryptionPublicKey] = encryptedGroupKey;
+                }
+                const response = await this._socialEventManager.updateGroupKeys(info.communityUri + ':keys', 34550, JSON.stringify(encryptedGroupKeys), info.memberIds, privateKey);
+                console.log('updateCommunity', response);
             }
             await this._socialEventManager.updateCommunity(info, privateKey);
             return info;
@@ -5086,6 +5125,24 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             };
             const updateChannelResponse = await this._socialEventManager.updateChannel(channelInfo, privateKey);
             return updateChannelResponse;
+        }
+        async createChannel(channelInfo, memberIds, privateKey) {
+            let encryptionPublicKeys = [];
+            for (let memberId of memberIds) {
+                const memberPublicKey = index_1.Nip19.decode(memberId).data;
+                encryptionPublicKeys.push(memberPublicKey);
+            }
+            const channelKeys = await this.generateGroupKeys(privateKey, encryptionPublicKeys);
+            channelInfo.scpData = {
+                ...channelInfo.scpData,
+                publicKey: channelKeys.groupPublicKey
+            };
+            const updateChannelResponse = await this._socialEventManager.updateChannel(channelInfo, privateKey);
+            if (updateChannelResponse.eventId) {
+                const channelUri = `40:${updateChannelResponse.eventId}`;
+                await this._socialEventManager.updateGroupKeys(channelUri + ':keys', 40, JSON.stringify(channelKeys.encryptedGroupKeys), memberIds, privateKey);
+            }
+            return channelInfo;
         }
         async fetchMyCommunities(pubKey) {
             let communities = [];
@@ -5266,6 +5323,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const pubkeyToCommunityIdsMap = {};
             for (let channel of channels) {
                 const scpData = channel.scpData;
+                if (!scpData.communityId)
+                    continue;
                 pubkeyToCommunityIdsMap[channel.eventData.pubkey] = pubkeyToCommunityIdsMap[channel.eventData.pubkey] || [];
                 if (!pubkeyToCommunityIdsMap[channel.eventData.pubkey].includes(scpData.communityId)) {
                     pubkeyToCommunityIdsMap[channel.eventData.pubkey].push(scpData.communityId);
@@ -5434,7 +5493,20 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     communityInfo: channel.communityInfo
                 });
             }
+            const invitations = await this.fetchUserGroupInvitations(pubKey);
+            console.log('invitations', invitations);
             return profiles;
+        }
+        async fetchUserGroupInvitations(pubKey) {
+            const identifiers = [];
+            const events = await this._socialEventManager.fetchUserGroupInvitations([40, 34550], pubKey);
+            for (let event of events) {
+                const identifier = event.tags.find(tag => tag[0] === 'd')?.[1];
+                if (identifier) {
+                    identifiers.push(identifier);
+                }
+            }
+            return identifiers;
         }
         async mapCommunityUriToMemberIdRoleCombo(communities) {
             const communityUriToMemberIdRoleComboMap = {};

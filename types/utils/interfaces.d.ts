@@ -117,7 +117,8 @@ export interface INewCommunityInfo {
     memberIds?: string[];
 }
 export interface IChannelScpData {
-    communityId: string;
+    communityId?: string;
+    publicKey?: string;
 }
 export interface IChannelInfo {
     id?: string;
