@@ -200,6 +200,7 @@ export interface IPostStats {
 export interface IMessageContactInfo {
     id: string;
     pubKey: string;
+    creatorId: string;
     username: string;
     displayName: string;
     avatar?: string;
@@ -207,7 +208,7 @@ export interface IMessageContactInfo {
     latestAt?: number;
     cnt?: number;
     isGroup?: boolean;
-    communityInfo?: ICommunityInfo;
+    channelInfo?: IChannelInfo;
 }
 export declare enum CommunityRole {
     Creator = "creator",

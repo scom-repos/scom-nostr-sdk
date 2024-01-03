@@ -1297,6 +1297,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     export interface IMessageContactInfo {
         id: string;
         pubKey: string;
+        creatorId: string;
         username: string;
         displayName: string;
         avatar?: string;
@@ -1304,7 +1305,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         latestAt?: number;
         cnt?: number;
         isGroup?: boolean;
-        communityInfo?: ICommunityInfo;
+        channelInfo?: IChannelInfo;
     }
     export enum CommunityRole {
         Creator = "creator",

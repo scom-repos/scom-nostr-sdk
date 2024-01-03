@@ -2063,14 +2063,30 @@ class SocialDataManager {
             }
         }
         else if (options.privateKey) {
+            let groupPrivateKey;
             const channelEvents = await this.retrieveChannelEvents(options.creatorId, options.channelId);
             const channelInfo = channelEvents.info;
             const messageEvents = channelEvents.messageEvents;
-            const communityInfo = await this.fetchCommunityInfo(channelInfo.eventData.pubkey, channelInfo.scpData.communityId);
-            let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, options.privateKey);
-            if (!communityPrivateKey) return messageIdToPrivateKey;
+            if (channelInfo.scpData.communityId) {
+                const communityInfo = await this.fetchCommunityInfo(channelInfo.eventData.pubkey, channelInfo.scpData.communityId);
+                groupPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, options.privateKey);
+                if (!groupPrivateKey) return messageIdToPrivateKey;
+            }
+            else {
+                const groupUri = `40:${channelInfo.id}`;
+                const keyEvent = await this._socialEventManager.fetchGroupKeys(groupUri + ':keys');
+                if (keyEvent) {
+                    const creatorPubkey = channelInfo.eventData.pubkey;
+                    const pubkey = this.convertPrivateKeyToPubkey(options.privateKey);
+                    const memberKeyMap = JSON.parse(keyEvent.content);
+                    const encryptedKey = memberKeyMap?.[pubkey];
+                    if (encryptedKey) {
+                        groupPrivateKey = await this.decryptMessage(options.privateKey, creatorPubkey, encryptedKey);
+                    }
+                }
+            }
             for (const messageEvent of messageEvents) {
-                const messagePrivateKey = await this.retrieveChannelMessagePrivateKey(messageEvent, channelInfo.id, communityPrivateKey);
+                const messagePrivateKey = await this.retrieveChannelMessagePrivateKey(messageEvent, channelInfo.id, groupPrivateKey);
                 if (messagePrivateKey) {
                     messageIdToPrivateKey[messageEvent.id] = messagePrivateKey;
                 }
@@ -2129,6 +2145,7 @@ class SocialDataManager {
             return {
                 id: encodedPubkey,
                 pubKey: k,
+                creatorId: encodedPubkey,
                 username: v.content.name,
                 displayName: v.content.display_name,
                 avatar: v.content.picture,
@@ -2140,9 +2157,11 @@ class SocialDataManager {
 
         const channels = await this.fetchAllUserRelatedChannels(pubKey);
         for (let channel of channels) {
+            let creatorId = Nip19.npubEncode(channel.eventData.pubkey);
             profiles.push({
                 id: channel.id,
                 pubKey: channel.eventData.pubkey,
+                creatorId,
                 username: channel.name,
                 displayName: channel.name,
                 avatar: channel.picture,
@@ -2150,7 +2169,7 @@ class SocialDataManager {
                 latestAt: 0,
                 cnt: 0,
                 isGroup: true,
-                communityInfo: channel.communityInfo
+                channelInfo: channel
             });
         }
         const invitations = await this.fetchUserGroupInvitations(pubKey);
