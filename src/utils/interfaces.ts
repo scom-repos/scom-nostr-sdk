@@ -249,3 +249,23 @@ export enum CommunityRole {
 	GeneralMember = 'generalMember',
 	None = 'none'
 }
+
+export enum CalendarEventType {
+	DateBased = 'dateBased',
+	TimeBased = 'timeBased'
+}
+
+export interface ICalendarEvent {
+	id: string;
+	name: string;
+	description: string;
+	eventData?: INostrEvent;
+	start: number;
+	end?: number;
+	startTzid?: string;
+	endTzid?: string;
+	type: CalendarEventType;
+	location?: string;
+	geohash?: string;
+	image?: string;
+}

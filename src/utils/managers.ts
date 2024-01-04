@@ -1,6 +1,7 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { CommunityRole, IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
+import { CalendarEventType, CommunityRole, ICalendarEvent, IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
+import Geohash from './geohash';
 
 interface IFetchNotesOptions {
     authors?: string[];
@@ -942,6 +943,89 @@ class NostrEventManager {
         const response = await this._websocketManager.submitEvent(event, privateKey);
         return response;
     }
+    
+    async createCalendarEvent(info: ICalendarEvent, privateKey: string) {
+        let event = {
+            "kind": 31922,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": info.description,
+            "tags": [
+                [
+                    "d",
+                    info.id
+                ],
+                [
+                    "name",
+                    info.name
+                ],
+                [
+                    "start",
+                    info.start.toString()
+                ],
+                [
+                    "end",
+                    info.end.toString()
+                ],
+                [
+                    "location",
+                    info.location
+                ],
+                [
+                    "g",
+                    info.geohash
+                ]
+            ]
+        }
+        const response = await this._websocketManager.submitEvent(event, privateKey);
+        return response;
+    }
+
+    async fetchCalendarEvents() {
+        let req: any = {
+            kinds: [31922, 31923],
+            limit: 10
+        };
+        const events = await this._websocketManager.fetchWebSocketEvents(req);
+        return events;
+    }
+
+    async createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, privateKey: string) {
+        let event = {
+            "kind": 31925,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": "",
+            "tags": [
+                [
+                    "d",
+                    rsvpId
+                ],
+                [
+                    "a",
+                    calendarEventUri
+                ],
+                [
+                    "L",
+                    "status"
+                ],
+                [
+                    "l",
+                    "accepted",
+                    "status"
+                ]
+            ]
+        };
+        const response = await this._websocketManager.submitEvent(event, privateKey);
+        return response;
+    }
+
+    async fetchCalendarEventRSVPs(calendarEventUri: string) {
+        let req: any = {
+            kinds: [31925],
+            "#a": [calendarEventUri]
+        };
+        const events = await this._websocketManager.fetchWebSocketEvents(req);
+        return events;
+    }
 }
 
 interface ISocialEventManager {
@@ -986,6 +1070,10 @@ interface ISocialEventManager {
     fetchGroupKeys(identifier: string): Promise<INostrEvent>;
     fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
     updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[], privateKey: string): Promise<INostrSubmitResponse>;
+    createCalendarEvent(info: ICalendarEvent, privateKey: string): Promise<INostrSubmitResponse>;
+    fetchCalendarEvents(): Promise<INostrEvent[]>;
+    createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, privateKey: string): Promise<INostrSubmitResponse>;
+    fetchCalendarEventRSVPs(calendarEventUri: string): Promise<INostrEvent[]>;
 }
 
 class SocialDataManager {
@@ -2227,6 +2315,58 @@ class SocialDataManager {
             }
         }
         return communityUriToMemberIdRoleComboMap;
+    }
+
+    async retrieveCalendarEvents() {
+        const events = await this._socialEventManager.fetchCalendarEvents();
+        let calendarEvents: ICalendarEvent[] = [];
+        for (let event of events) {
+            const description = event.content;
+            const id = event.tags.find(tag => tag[0] === 'd')?.[1];
+            const name = event.tags.find(tag => tag[0] === 'name')?.[1];
+            const start = event.tags.find(tag => tag[0] === 'start')?.[1];
+            const end = event.tags.find(tag => tag[0] === 'end')?.[1];
+            const startTzid = event.tags.find(tag => tag[0] === 'start_tzid')?.[1];
+            const endTzid = event.tags.find(tag => tag[0] === 'end_tzid')?.[1];
+            const location = event.tags.find(tag => tag[0] === 'location')?.[1];
+            const geohash = event.tags.find(tag => tag[0] === 'g')?.[1];
+            if (geohash) {
+                const lonlat = Geohash.decode(geohash);
+                // console.log('lonlat', lonlat);
+                // let test1 = Geohash.encode(lonlat.latitude, lonlat.longitude, 8);
+                // console.log('test1', test1);
+            }
+            const image = event.tags.find(tag => tag[0] === 'image')?.[1];
+            let type;
+            let startTime: number;
+            let endTime: number;
+            if (event.kind === 31922) {
+                type = CalendarEventType.DateBased;
+                startTime = new Date(start).getTime() / 1000;
+                endTime = new Date(end).getTime() / 1000;
+            }
+            else if (event.kind === 31923) {
+                type = CalendarEventType.TimeBased;
+                startTime = Number(start);
+                endTime = Number(end);
+            }
+            let calendarEvent: ICalendarEvent = {
+                type,
+                id,
+                name,
+                description,
+                start: startTime,
+                end: endTime,
+                startTzid,
+                endTzid,
+                location,
+                geohash,
+                image,
+                eventData: event
+            }
+            calendarEvents.push(calendarEvent);
+        }
+        return calendarEvents;
     }
 }
 

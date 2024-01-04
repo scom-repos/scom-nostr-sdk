@@ -1313,10 +1313,71 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         GeneralMember = "generalMember",
         None = "none"
     }
+    export enum CalendarEventType {
+        DateBased = "dateBased",
+        TimeBased = "timeBased"
+    }
+    export interface ICalendarEvent {
+        id: string;
+        name: string;
+        description: string;
+        eventData?: INostrEvent;
+        start: number;
+        end?: number;
+        startTzid?: string;
+        endTzid?: string;
+        type: CalendarEventType;
+        location?: string;
+        geohash?: string;
+        image?: string;
+    }
+}
+/// <amd-module name="@scom/scom-social-sdk/utils/geohash.ts" />
+declare module "@scom/scom-social-sdk/utils/geohash.ts" {
+    const Geohash: {
+        ENCODE_AUTO: string;
+        encode: (latitude: number | string, longitude: number | string, numberOfChars?: number | 'auto') => string;
+        encode_uint64: (latitude: number, longitude: number, bitDepth: number) => number;
+        encode_int: (latitude: number, longitude: number, bitDepth: number) => number;
+        decode: (hashString: string) => {
+            latitude: number;
+            longitude: number;
+            error: {
+                latitude: number;
+                longitude: number;
+            };
+        };
+        decode_int: (hashInt: number, bitDepth?: number) => {
+            latitude: number;
+            longitude: number;
+            error: {
+                latitude: number;
+                longitude: number;
+            };
+        };
+        decode_uint64: (hashInt: number, bitDepth?: number) => {
+            latitude: number;
+            longitude: number;
+            error: {
+                latitude: number;
+                longitude: number;
+            };
+        };
+        decode_bbox: (hashString: string) => number[];
+        decode_bbox_uint64: (hashInt: number, bitDepth?: number) => number[];
+        decode_bbox_int: (hashInt: number, bitDepth?: number) => number[];
+        neighbor: (hashString: string, direction: [number, number]) => string;
+        neighbor_int: (hashInt: number, direction: [number, number], bitDepth?: number) => number;
+        neighbors: (hashString: string) => string[];
+        neighbors_int: (hashInt: number, bitDepth?: number) => number[];
+        bboxes: (minLat: number, minLon: number, maxLat: number, maxLon: number, numberOfChars: number) => string[];
+        bboxes_int: (minLat: number, minLon: number, maxLat: number, maxLon: number, bitDepth: number) => any[];
+    };
+    export default Geohash;
 }
 /// <amd-module name="@scom/scom-social-sdk/utils/managers.ts" />
 declare module "@scom/scom-social-sdk/utils/managers.ts" {
-    import { CommunityRole, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    import { CommunityRole, ICalendarEvent, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
     interface IFetchNotesOptions {
         authors?: string[];
         ids?: string[];
@@ -1377,6 +1438,10 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchGroupKeys(identifier: string): Promise<INostrEvent>;
         fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
         updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[], privateKey: string): Promise<INostrSubmitResponse>;
+        createCalendarEvent(info: ICalendarEvent, privateKey: string): Promise<INostrSubmitResponse>;
+        fetchCalendarEvents(): Promise<INostrEvent[]>;
+        createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, privateKey: string): Promise<INostrSubmitResponse>;
+        fetchCalendarEventRSVPs(calendarEventUri: string): Promise<INostrEvent[]>;
     }
     interface ISocialEventManager {
         fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
@@ -1420,6 +1485,10 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchGroupKeys(identifier: string): Promise<INostrEvent>;
         fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
         updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[], privateKey: string): Promise<INostrSubmitResponse>;
+        createCalendarEvent(info: ICalendarEvent, privateKey: string): Promise<INostrSubmitResponse>;
+        fetchCalendarEvents(): Promise<INostrEvent[]>;
+        createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, privateKey: string): Promise<INostrSubmitResponse>;
+        fetchCalendarEventRSVPs(calendarEventUri: string): Promise<INostrEvent[]>;
     }
     class SocialDataManager {
         private _socialEventManager;
@@ -1505,6 +1574,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
             id: string;
             role: CommunityRole;
         }[]>>;
+        retrieveCalendarEvents(): Promise<ICalendarEvent[]>;
     }
     export { NostrEventManager, ISocialEventManager, SocialDataManager };
 }
