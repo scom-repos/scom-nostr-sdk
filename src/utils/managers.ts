@@ -1,6 +1,6 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, CommunityRole, ICalendarEvent, IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
+import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
 import Geohash from './geohash';
 
 interface IFetchNotesOptions {
@@ -28,6 +28,14 @@ function determineWebSocketType() {
         return WebSocket;
 	};
 };
+
+function convertUnixTimestampToDate(timestamp: number): string {
+    const date = new Date(timestamp * 1000);
+    const year = date.getFullYear();
+    const month = ("0" + (date.getMonth() + 1)).slice(-2); 
+    const day = ("0" + date.getDate()).slice(-2);
+    return `${year}-${month}-${day}`;
+}
 
 class NostrWebSocketManager {
     protected _url: string;
@@ -944,7 +952,14 @@ class NostrEventManager {
         return response;
     }
     
-    async createCalendarEvent(info: ICalendarEvent, privateKey: string) {
+    async updateCalendarEvent(info: IUpdateCalendarEventInfo, privateKey: string) {
+        let start: string;
+        if (info.type === CalendarEventType.DateBased) {
+            start = convertUnixTimestampToDate(info.start);
+        }
+        else {
+            start = info.start.toString();
+        }
         let event = {
             "kind": 31922,
             "created_at": Math.round(Date.now() / 1000),
@@ -955,16 +970,12 @@ class NostrEventManager {
                     info.id
                 ],
                 [
-                    "name",
-                    info.name
+                    "title",
+                    info.title
                 ],
                 [
                     "start",
-                    info.start.toString()
-                ],
-                [
-                    "end",
-                    info.end.toString()
+                    start
                 ],
                 [
                     "location",
@@ -973,9 +984,50 @@ class NostrEventManager {
                 [
                     "g",
                     info.geohash
+                ],
+                [
+                    "image",
+                    info.image
                 ]
             ]
         }
+        if (info.end) {
+            let end: string;
+            if (info.type === CalendarEventType.DateBased) {
+                end = convertUnixTimestampToDate(info.end);
+            }
+            else {
+                end = info.end.toString();
+            }
+            event.tags.push([
+                "end",
+                end
+            ]);
+        }
+        if (info.startTzid) {
+            event.tags.push([
+                "start_tzid",
+                info.startTzid
+            ]);
+        }
+        if (info.endTzid) {
+            event.tags.push([
+                "end_tzid",
+                info.endTzid
+            ]);
+        }
+        if (info.hostIds) {
+            for (let hostId of info.hostIds) {
+                const decodedHostId = hostId.startsWith('npub1') ? Nip19.decode(hostId).data as string : hostId;
+                event.tags.push([
+                    "p",
+                    decodedHostId,
+                    "",
+                    "host"
+                ]);
+            }
+        }
+        console.log('updateCalendarEvent', event);
         const response = await this._websocketManager.submitEvent(event, privateKey);
         return response;
     }
@@ -989,7 +1041,17 @@ class NostrEventManager {
         return events;
     }
 
-    async createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, privateKey: string) {
+    async fetchCalendarEvent(address: Nip19.AddressPointer) {
+        let req: any = {
+            kinds: [address.kind],
+            "#d": [address.identifier],
+            authors: [address.pubkey]
+        };
+        const events = await this._websocketManager.fetchWebSocketEvents(req);
+        return events?.length > 0 ? events[0] : null;
+    }
+
+    async createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string) {
         let event = {
             "kind": 31925,
             "created_at": Math.round(Date.now() / 1000),
@@ -1009,7 +1071,7 @@ class NostrEventManager {
                 ],
                 [
                     "l",
-                    "accepted",
+                    accepted ? "accepted" : "declined",
                     "status"
                 ]
             ]
@@ -1018,11 +1080,15 @@ class NostrEventManager {
         return response;
     }
 
-    async fetchCalendarEventRSVPs(calendarEventUri: string) {
+    async fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string) {
         let req: any = {
             kinds: [31925],
             "#a": [calendarEventUri]
         };
+        if (pubkey) {
+            const decodedPubKey = pubkey.startsWith('npub1') ? Nip19.decode(pubkey).data : pubkey;
+            req.authors = [decodedPubKey];
+        }
         const events = await this._websocketManager.fetchWebSocketEvents(req);
         return events;
     }
@@ -1070,10 +1136,11 @@ interface ISocialEventManager {
     fetchGroupKeys(identifier: string): Promise<INostrEvent>;
     fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
     updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[], privateKey: string): Promise<INostrSubmitResponse>;
-    createCalendarEvent(info: ICalendarEvent, privateKey: string): Promise<INostrSubmitResponse>;
+    updateCalendarEvent(info: IUpdateCalendarEventInfo, privateKey: string): Promise<INostrSubmitResponse>;
     fetchCalendarEvents(): Promise<INostrEvent[]>;
-    createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, privateKey: string): Promise<INostrSubmitResponse>;
-    fetchCalendarEventRSVPs(calendarEventUri: string): Promise<INostrEvent[]>;
+    fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent | null>;
+    createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse>;
+    fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
 }
 
 class SocialDataManager {
@@ -2317,56 +2384,172 @@ class SocialDataManager {
         return communityUriToMemberIdRoleComboMap;
     }
 
-    async retrieveCalendarEvents() {
-        const events = await this._socialEventManager.fetchCalendarEvents();
-        let calendarEvents: ICalendarEvent[] = [];
-        for (let event of events) {
-            const description = event.content;
-            const id = event.tags.find(tag => tag[0] === 'd')?.[1];
-            const name = event.tags.find(tag => tag[0] === 'name')?.[1];
-            const start = event.tags.find(tag => tag[0] === 'start')?.[1];
-            const end = event.tags.find(tag => tag[0] === 'end')?.[1];
-            const startTzid = event.tags.find(tag => tag[0] === 'start_tzid')?.[1];
-            const endTzid = event.tags.find(tag => tag[0] === 'end_tzid')?.[1];
-            const location = event.tags.find(tag => tag[0] === 'location')?.[1];
-            const geohash = event.tags.find(tag => tag[0] === 'g')?.[1];
-            if (geohash) {
-                const lonlat = Geohash.decode(geohash);
-                // console.log('lonlat', lonlat);
-                // let test1 = Geohash.encode(lonlat.latitude, lonlat.longitude, 8);
-                // console.log('test1', test1);
+    extractCalendarEventInfo(event: INostrEvent) {
+        const description = event.content;
+        const id = event.tags.find(tag => tag[0] === 'd')?.[1];
+        const name = event.tags.find(tag => tag[0] === 'name')?.[1]; //deprecated
+        const title = event.tags.find(tag => tag[0] === 'title')?.[1];
+        const start = event.tags.find(tag => tag[0] === 'start')?.[1];
+        const end = event.tags.find(tag => tag[0] === 'end')?.[1];
+        const startTzid = event.tags.find(tag => tag[0] === 'start_tzid')?.[1];
+        const endTzid = event.tags.find(tag => tag[0] === 'end_tzid')?.[1];
+        const location = event.tags.find(tag => tag[0] === 'location')?.[1];
+        let lonlat;
+        const geohash = event.tags.find(tag => tag[0] === 'g')?.[1];
+        if (geohash) {
+            lonlat = Geohash.decode(geohash);
+        }
+        const image = event.tags.find(tag => tag[0] === 'image')?.[1];
+        let type;
+        let startTime;
+        let endTime;
+        if (event.kind === 31922) {
+            type = CalendarEventType.DateBased;
+            const startDate = new Date(start);
+            startTime = startDate.getTime() / 1000;
+            if (end) {
+                const endDate = new Date(end);
+                endTime = endDate.getTime() / 1000;
             }
-            const image = event.tags.find(tag => tag[0] === 'image')?.[1];
-            let type;
-            let startTime: number;
-            let endTime: number;
-            if (event.kind === 31922) {
-                type = CalendarEventType.DateBased;
-                startTime = new Date(start).getTime() / 1000;
-                endTime = new Date(end).getTime() / 1000;
-            }
-            else if (event.kind === 31923) {
-                type = CalendarEventType.TimeBased;
-                startTime = Number(start);
+        }
+        else if (event.kind === 31923) {
+            type = CalendarEventType.TimeBased;
+            startTime = Number(start);
+            if (end) {
                 endTime = Number(end);
             }
-            let calendarEvent: ICalendarEvent = {
-                type,
-                id,
-                name,
-                description,
-                start: startTime,
-                end: endTime,
-                startTzid,
-                endTzid,
-                location,
-                geohash,
-                image,
-                eventData: event
-            }
-            calendarEvents.push(calendarEvent);
         }
-        return calendarEvents;
+        const naddr = Nip19.naddrEncode({
+            identifier: id,
+            pubkey: event.pubkey,
+            kind: event.kind,
+            relays: []
+        })
+        let calendarEventInfo: ICalendarEventInfo = {
+            naddr,
+            type,
+            id,
+            title: title || name,
+            description,
+            start: startTime,
+            end: endTime,
+            startTzid,
+            endTzid,
+            location,
+            latitude: lonlat?.latitude,
+            longitude: lonlat?.longitude,
+            geohash,
+            image,
+            eventData: event
+        }
+        return calendarEventInfo;
+    }
+
+    async updateCalendarEvent(updateCalendarEventInfo: IUpdateCalendarEventInfo, privateKey: string) {
+        const geohash = Geohash.encode(updateCalendarEventInfo.latitude, updateCalendarEventInfo.longitude);
+        updateCalendarEventInfo = {
+            ...updateCalendarEventInfo,
+            geohash
+        }
+        let naddr: string;
+        const response = await this._socialEventManager.updateCalendarEvent(updateCalendarEventInfo, privateKey);
+        if (response.success) {
+            const pubkey = this.convertPrivateKeyToPubkey(privateKey);
+            naddr = Nip19.naddrEncode({
+                identifier: updateCalendarEventInfo.id,
+                pubkey: pubkey,
+                kind: updateCalendarEventInfo.type === CalendarEventType.DateBased ? 31922 : 31923,
+                relays: []
+            });
+        }
+        return naddr;
+    }
+
+    async retrieveCalendarEventsByDateRange() {
+        const events = await this._socialEventManager.fetchCalendarEvents();
+        let calendarEventInfoList: ICalendarEventInfo[] = [];
+        for (let event of events) {
+            let calendarEventInfo = this.extractCalendarEventInfo(event);
+            calendarEventInfoList.push(calendarEventInfo);
+        }
+        return calendarEventInfoList;
+    }
+
+    async retrieveCalendarEvent(naddr: string) {
+        let address = Nip19.decode(naddr).data as Nip19.AddressPointer;
+        const calendarEvent = await this._socialEventManager.fetchCalendarEvent(address);
+        let calendarEventInfo = this.extractCalendarEventInfo(calendarEvent);
+        let hostPubkeys = calendarEvent.tags.filter(tag => tag[0] === 'p' && tag[3] === 'host')?.map(tag => tag[1]) || [];
+        const calendarEventUri = `${address.kind}:${address.pubkey}:${address.identifier}`;
+        let hosts: ICalendarEventHost[] = [];
+        let attendees: ICalendarEventAttendee[] = [];
+        let attendeePubkeys: string[] = [];
+        let attendeePubkeyToEventMap: Record<string, INostrEvent> = {};
+        const rsvpEvents = await this._socialEventManager.fetchCalendarEventRSVPs(calendarEventUri);
+        for (let rsvpEvent of rsvpEvents) {
+            if (attendeePubkeyToEventMap[rsvpEvent.pubkey]) continue;
+            let attendanceStatus = rsvpEvent.tags.find(tag => tag[0] === 'l' && tag[2] === 'status')?.[1];
+            if (attendanceStatus === 'accepted') {
+                attendeePubkeyToEventMap[rsvpEvent.pubkey] = rsvpEvent;
+                attendeePubkeys.push(rsvpEvent.pubkey);
+            }
+        }
+        const userProfileEvents = await this._socialEventManager.fetchUserProfileCacheEvents([
+            ...hostPubkeys,
+            ...attendeePubkeys
+        ])
+        for (let event of userProfileEvents) {
+            if (event.kind === 0) {
+                let metaData = {
+                    ...event,
+                    content: JSON.parse(event.content)
+                };
+                let userProfile = this.constructUserProfile(metaData);
+                if (hostPubkeys.includes(event.pubkey)) {
+                    let host: ICalendarEventHost = {
+                        pubkey: event.pubkey,
+                        userProfile
+                    }
+                    hosts.push(host);
+                }
+                else if (attendeePubkeyToEventMap[event.pubkey]) {
+                    let attendee: ICalendarEventAttendee = {
+                        pubkey: event.pubkey,
+                        userProfile,
+                        rsvpEventData: attendeePubkeyToEventMap[event.pubkey]
+                    }
+                    attendees.push(attendee);
+                }
+            }
+        }
+        let detailInfo: ICalendarEventDetailInfo = {
+            ...calendarEventInfo,
+            hosts,
+            attendees
+        }
+        return detailInfo;
+    }
+
+    async acceptCalendarEvent(rsvpId: string, naddr: string, privateKey: string) {
+        let address = Nip19.decode(naddr).data as Nip19.AddressPointer;
+        const calendarEventUri = `${address.kind}:${address.pubkey}:${address.identifier}`;
+        const pubkey = this.convertPrivateKeyToPubkey(privateKey);
+        const rsvpEvents = await this._socialEventManager.fetchCalendarEventRSVPs(calendarEventUri, pubkey);
+        if (rsvpEvents.length > 0) {
+            rsvpId = rsvpEvents[0].tags.find(tag => tag[0] === 'd')?.[1];
+        }
+        await this._socialEventManager.createCalendarEventRSVP(rsvpId, calendarEventUri, true, privateKey);
+    }
+
+    async declineCalendarEvent(rsvpId: string, naddr: string, privateKey: string) {
+        let address = Nip19.decode(naddr).data as Nip19.AddressPointer;
+        const calendarEventUri = `${address.kind}:${address.pubkey}:${address.identifier}`;
+        const pubkey = this.convertPrivateKeyToPubkey(privateKey);
+        const rsvpEvents = await this._socialEventManager.fetchCalendarEventRSVPs(calendarEventUri, pubkey);
+        if (rsvpEvents.length > 0) {
+            rsvpId = rsvpEvents[0].tags.find(tag => tag[0] === 'd')?.[1];
+        }
+        await this._socialEventManager.createCalendarEventRSVP(rsvpId, calendarEventUri, false, privateKey);
     }
 }
 

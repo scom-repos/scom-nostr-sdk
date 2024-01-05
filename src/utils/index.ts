@@ -14,7 +14,13 @@ export {
     IMessageContactInfo,
     INewCommunityInfo,
     MembershipType,
-    CommunityRole
+    CommunityRole,
+    CalendarEventType,
+    ICalendarEventInfo,
+    IUpdateCalendarEventInfo,
+    ICalendarEventHost,
+    ICalendarEventAttendee,
+    ICalendarEventDetailInfo
 } from "./interfaces";
 
 export {

@@ -1,4 +1,5 @@
-import { CommunityRole, ICalendarEvent, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUserActivityStats, IUserProfile } from "./interfaces";
+import { Nip19 } from "../core/index";
+import { CommunityRole, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "./interfaces";
 interface IFetchNotesOptions {
     authors?: string[];
     ids?: string[];
@@ -59,10 +60,11 @@ declare class NostrEventManager {
     fetchGroupKeys(identifier: string): Promise<INostrEvent>;
     fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
     updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[], privateKey: string): Promise<INostrSubmitResponse>;
-    createCalendarEvent(info: ICalendarEvent, privateKey: string): Promise<INostrSubmitResponse>;
+    updateCalendarEvent(info: IUpdateCalendarEventInfo, privateKey: string): Promise<INostrSubmitResponse>;
     fetchCalendarEvents(): Promise<INostrEvent[]>;
-    createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, privateKey: string): Promise<INostrSubmitResponse>;
-    fetchCalendarEventRSVPs(calendarEventUri: string): Promise<INostrEvent[]>;
+    fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent>;
+    createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse>;
+    fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
 }
 interface ISocialEventManager {
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
@@ -106,10 +108,11 @@ interface ISocialEventManager {
     fetchGroupKeys(identifier: string): Promise<INostrEvent>;
     fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
     updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[], privateKey: string): Promise<INostrSubmitResponse>;
-    createCalendarEvent(info: ICalendarEvent, privateKey: string): Promise<INostrSubmitResponse>;
+    updateCalendarEvent(info: IUpdateCalendarEventInfo, privateKey: string): Promise<INostrSubmitResponse>;
     fetchCalendarEvents(): Promise<INostrEvent[]>;
-    createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, privateKey: string): Promise<INostrSubmitResponse>;
-    fetchCalendarEventRSVPs(calendarEventUri: string): Promise<INostrEvent[]>;
+    fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent | null>;
+    createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse>;
+    fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
 }
 declare class SocialDataManager {
     private _socialEventManager;
@@ -195,6 +198,11 @@ declare class SocialDataManager {
         id: string;
         role: CommunityRole;
     }[]>>;
-    retrieveCalendarEvents(): Promise<ICalendarEvent[]>;
+    extractCalendarEventInfo(event: INostrEvent): ICalendarEventInfo;
+    updateCalendarEvent(updateCalendarEventInfo: IUpdateCalendarEventInfo, privateKey: string): Promise<string>;
+    retrieveCalendarEventsByDateRange(): Promise<ICalendarEventInfo[]>;
+    retrieveCalendarEvent(naddr: string): Promise<ICalendarEventDetailInfo>;
+    acceptCalendarEvent(rsvpId: string, naddr: string, privateKey: string): Promise<void>;
+    declineCalendarEvent(rsvpId: string, naddr: string, privateKey: string): Promise<void>;
 }
 export { NostrEventManager, ISocialEventManager, SocialDataManager };

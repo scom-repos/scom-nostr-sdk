@@ -21,6 +21,12 @@ export {
     INewCommunityInfo,
     MembershipType,
     CommunityRole,
+    CalendarEventType,
+    ICalendarEventInfo,
+    IUpdateCalendarEventInfo,
+    ICalendarEventHost,
+    ICalendarEventAttendee,
+    ICalendarEventDetailInfo,
     NostrEventManager,
     ISocialEventManager,
     SocialDataManager

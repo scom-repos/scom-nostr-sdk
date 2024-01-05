@@ -255,17 +255,44 @@ export enum CalendarEventType {
 	TimeBased = 'timeBased'
 }
 
-export interface ICalendarEvent {
+export interface ICalendarEventBasicInfo {
 	id: string;
-	name: string;
+	title: string;
 	description: string;
-	eventData?: INostrEvent;
 	start: number;
 	end?: number;
 	startTzid?: string;
 	endTzid?: string;
 	type: CalendarEventType;
 	location?: string;
-	geohash?: string;
+	latitude?: number;
+	longitude?: number;
 	image?: string;
+}
+
+export interface ICalendarEventInfo extends ICalendarEventBasicInfo {
+	naddr: string;
+	eventData?: INostrEvent;
+	geohash?: string;
+}
+
+export interface IUpdateCalendarEventInfo extends ICalendarEventBasicInfo {
+	geohash?: string;
+	hostIds?: string[];
+}
+
+export interface ICalendarEventHost {
+	pubkey: string;
+	userProfile?: IUserProfile;
+}
+
+export interface ICalendarEventAttendee {
+	pubkey: string;
+	userProfile?: IUserProfile;
+	rsvpEventData?: INostrEvent;
+}
+
+export interface ICalendarEventDetailInfo extends ICalendarEventInfo {
+	hosts?: ICalendarEventHost[];
+	attendees?: ICalendarEventAttendee[];
 }

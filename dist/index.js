@@ -3938,6 +3938,13 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         ;
     }
     ;
+    function convertUnixTimestampToDate(timestamp) {
+        const date = new Date(timestamp * 1000);
+        const year = date.getFullYear();
+        const month = ("0" + (date.getMonth() + 1)).slice(-2);
+        const day = ("0" + date.getDate()).slice(-2);
+        return `${year}-${month}-${day}`;
+    }
     class NostrWebSocketManager {
         constructor(url) {
             this.requestCallbackMap = {};
@@ -4781,7 +4788,14 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const response = await this._websocketManager.submitEvent(event, privateKey);
             return response;
         }
-        async createCalendarEvent(info, privateKey) {
+        async updateCalendarEvent(info, privateKey) {
+            let start;
+            if (info.type === interfaces_1.CalendarEventType.DateBased) {
+                start = convertUnixTimestampToDate(info.start);
+            }
+            else {
+                start = info.start.toString();
+            }
             let event = {
                 "kind": 31922,
                 "created_at": Math.round(Date.now() / 1000),
@@ -4792,16 +4806,12 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                         info.id
                     ],
                     [
-                        "name",
-                        info.name
+                        "title",
+                        info.title
                     ],
                     [
                         "start",
-                        info.start.toString()
-                    ],
-                    [
-                        "end",
-                        info.end.toString()
+                        start
                     ],
                     [
                         "location",
@@ -4810,9 +4820,50 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     [
                         "g",
                         info.geohash
+                    ],
+                    [
+                        "image",
+                        info.image
                     ]
                 ]
             };
+            if (info.end) {
+                let end;
+                if (info.type === interfaces_1.CalendarEventType.DateBased) {
+                    end = convertUnixTimestampToDate(info.end);
+                }
+                else {
+                    end = info.end.toString();
+                }
+                event.tags.push([
+                    "end",
+                    end
+                ]);
+            }
+            if (info.startTzid) {
+                event.tags.push([
+                    "start_tzid",
+                    info.startTzid
+                ]);
+            }
+            if (info.endTzid) {
+                event.tags.push([
+                    "end_tzid",
+                    info.endTzid
+                ]);
+            }
+            if (info.hostIds) {
+                for (let hostId of info.hostIds) {
+                    const decodedHostId = hostId.startsWith('npub1') ? index_1.Nip19.decode(hostId).data : hostId;
+                    event.tags.push([
+                        "p",
+                        decodedHostId,
+                        "",
+                        "host"
+                    ]);
+                }
+            }
+            console.log('updateCalendarEvent', event);
             const response = await this._websocketManager.submitEvent(event, privateKey);
             return response;
         }
@@ -4824,7 +4875,16 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const events = await this._websocketManager.fetchWebSocketEvents(req);
             return events;
         }
-        async createCalendarEventRSVP(rsvpId, calendarEventUri, privateKey) {
+        async fetchCalendarEvent(address) {
+            let req = {
+                kinds: [address.kind],
+                "#d": [address.identifier],
+                authors: [address.pubkey]
+            };
+            const events = await this._websocketManager.fetchWebSocketEvents(req);
+            return events?.length > 0 ? events[0] : null;
+        }
+        async createCalendarEventRSVP(rsvpId, calendarEventUri, accepted, privateKey) {
             let event = {
                 "kind": 31925,
                 "created_at": Math.round(Date.now() / 1000),
@@ -4844,7 +4904,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     ],
                     [
                         "l",
-                        "accepted",
+                        accepted ? "accepted" : "declined",
                         "status"
                     ]
                 ]
@@ -4852,11 +4912,15 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const response = await this._websocketManager.submitEvent(event, privateKey);
             return response;
         }
-        async fetchCalendarEventRSVPs(calendarEventUri) {
+        async fetchCalendarEventRSVPs(calendarEventUri, pubkey) {
             let req = {
                 kinds: [31925],
                 "#a": [calendarEventUri]
             };
+            if (pubkey) {
+                const decodedPubKey = pubkey.startsWith('npub1') ? index_1.Nip19.decode(pubkey).data : pubkey;
+                req.authors = [decodedPubKey];
+            }
             const events = await this._websocketManager.fetchWebSocketEvents(req);
             return events;
         }
@@ -6026,56 +6090,168 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             }
             return communityUriToMemberIdRoleComboMap;
         }
-        async retrieveCalendarEvents() {
-            const events = await this._socialEventManager.fetchCalendarEvents();
-            let calendarEvents = [];
-            for (let event of events) {
-                const description = event.content;
-                const id = event.tags.find(tag => tag[0] === 'd')?.[1];
-                const name = event.tags.find(tag => tag[0] === 'name')?.[1];
-                const start = event.tags.find(tag => tag[0] === 'start')?.[1];
-                const end = event.tags.find(tag => tag[0] === 'end')?.[1];
-                const startTzid = event.tags.find(tag => tag[0] === 'start_tzid')?.[1];
-                const endTzid = event.tags.find(tag => tag[0] === 'end_tzid')?.[1];
-                const location = event.tags.find(tag => tag[0] === 'location')?.[1];
-                const geohash = event.tags.find(tag => tag[0] === 'g')?.[1];
-                if (geohash) {
-                    const lonlat = geohash_1.default.decode(geohash);
-                    // console.log('lonlat', lonlat);
-                    // let test1 = Geohash.encode(lonlat.latitude, lonlat.longitude, 8);
-                    // console.log('test1', test1);
+        extractCalendarEventInfo(event) {
+            const description = event.content;
+            const id = event.tags.find(tag => tag[0] === 'd')?.[1];
+            const name = event.tags.find(tag => tag[0] === 'name')?.[1]; //deprecated
+            const title = event.tags.find(tag => tag[0] === 'title')?.[1];
+            const start = event.tags.find(tag => tag[0] === 'start')?.[1];
+            const end = event.tags.find(tag => tag[0] === 'end')?.[1];
+            const startTzid = event.tags.find(tag => tag[0] === 'start_tzid')?.[1];
+            const endTzid = event.tags.find(tag => tag[0] === 'end_tzid')?.[1];
+            const location = event.tags.find(tag => tag[0] === 'location')?.[1];
+            let lonlat;
+            const geohash = event.tags.find(tag => tag[0] === 'g')?.[1];
+            if (geohash) {
+                lonlat = geohash_1.default.decode(geohash);
+            }
+            const image = event.tags.find(tag => tag[0] === 'image')?.[1];
+            let type;
+            let startTime;
+            let endTime;
+            if (event.kind === 31922) {
+                type = interfaces_1.CalendarEventType.DateBased;
+                const startDate = new Date(start);
+                startTime = startDate.getTime() / 1000;
+                if (end) {
+                    const endDate = new Date(end);
+                    endTime = endDate.getTime() / 1000;
                 }
-                const image = event.tags.find(tag => tag[0] === 'image')?.[1];
-                let type;
-                let startTime;
-                let endTime;
-                if (event.kind === 31922) {
-                    type = interfaces_1.CalendarEventType.DateBased;
-                    startTime = new Date(start).getTime() / 1000;
-                    endTime = new Date(end).getTime() / 1000;
-                }
-                else if (event.kind === 31923) {
-                    type = interfaces_1.CalendarEventType.TimeBased;
-                    startTime = Number(start);
+            }
+            else if (event.kind === 31923) {
+                type = interfaces_1.CalendarEventType.TimeBased;
+                startTime = Number(start);
+                if (end) {
                     endTime = Number(end);
                 }
-                let calendarEvent = {
-                    type,
-                    id,
-                    name,
-                    description,
-                    start: startTime,
-                    end: endTime,
-                    startTzid,
-                    endTzid,
-                    location,
-                    geohash,
-                    image,
-                    eventData: event
-                };
-                calendarEvents.push(calendarEvent);
             }
-            return calendarEvents;
+            const naddr = index_1.Nip19.naddrEncode({
+                identifier: id,
+                pubkey: event.pubkey,
+                kind: event.kind,
+                relays: []
+            });
+            let calendarEventInfo = {
+                naddr,
+                type,
+                id,
+                title: title || name,
+                description,
+                start: startTime,
+                end: endTime,
+                startTzid,
+                endTzid,
+                location,
+                latitude: lonlat?.latitude,
+                longitude: lonlat?.longitude,
+                geohash,
+                image,
+                eventData: event
+            };
+            return calendarEventInfo;
+        }
+        async updateCalendarEvent(updateCalendarEventInfo, privateKey) {
+            const geohash = geohash_1.default.encode(updateCalendarEventInfo.latitude, updateCalendarEventInfo.longitude);
+            updateCalendarEventInfo = {
+                ...updateCalendarEventInfo,
+                geohash
+            };
+            let naddr;
+            const response = await this._socialEventManager.updateCalendarEvent(updateCalendarEventInfo, privateKey);
+            if (response.success) {
+                const pubkey = this.convertPrivateKeyToPubkey(privateKey);
+                naddr = index_1.Nip19.naddrEncode({
+                    identifier: updateCalendarEventInfo.id,
+                    pubkey: pubkey,
+                    kind: updateCalendarEventInfo.type === interfaces_1.CalendarEventType.DateBased ? 31922 : 31923,
+                    relays: []
+                });
+            }
+            return naddr;
+        }
+        async retrieveCalendarEventsByDateRange() {
+            const events = await this._socialEventManager.fetchCalendarEvents();
+            let calendarEventInfoList = [];
+            for (let event of events) {
+                let calendarEventInfo = this.extractCalendarEventInfo(event);
+                calendarEventInfoList.push(calendarEventInfo);
+            }
+            return calendarEventInfoList;
+        }
+        async retrieveCalendarEvent(naddr) {
+            let address = index_1.Nip19.decode(naddr).data;
+            const calendarEvent = await this._socialEventManager.fetchCalendarEvent(address);
+            let calendarEventInfo = this.extractCalendarEventInfo(calendarEvent);
+            let hostPubkeys = calendarEvent.tags.filter(tag => tag[0] === 'p' && tag[3] === 'host')?.map(tag => tag[1]) || [];
+            const calendarEventUri = `${address.kind}:${address.pubkey}:${address.identifier}`;
+            let hosts = [];
+            let attendees = [];
+            let attendeePubkeys = [];
+            let attendeePubkeyToEventMap = {};
+            const rsvpEvents = await this._socialEventManager.fetchCalendarEventRSVPs(calendarEventUri);
+            for (let rsvpEvent of rsvpEvents) {
+                if (attendeePubkeyToEventMap[rsvpEvent.pubkey])
+                    continue;
+                let attendanceStatus = rsvpEvent.tags.find(tag => tag[0] === 'l' && tag[2] === 'status')?.[1];
+                if (attendanceStatus === 'accepted') {
+                    attendeePubkeyToEventMap[rsvpEvent.pubkey] = rsvpEvent;
+                    attendeePubkeys.push(rsvpEvent.pubkey);
+                }
+            }
+            const userProfileEvents = await this._socialEventManager.fetchUserProfileCacheEvents([
+                ...hostPubkeys,
+                ...attendeePubkeys
+            ]);
+            for (let event of userProfileEvents) {
+                if (event.kind === 0) {
+                    let metaData = {
+                        ...event,
+                        content: JSON.parse(event.content)
+                    };
+                    let userProfile = this.constructUserProfile(metaData);
+                    if (hostPubkeys.includes(event.pubkey)) {
+                        let host = {
+                            pubkey: event.pubkey,
+                            userProfile
+                        };
+                        hosts.push(host);
+                    }
+                    else if (attendeePubkeyToEventMap[event.pubkey]) {
+                        let attendee = {
+                            pubkey: event.pubkey,
+                            userProfile,
+                            rsvpEventData: attendeePubkeyToEventMap[event.pubkey]
+                        };
+                        attendees.push(attendee);
+                    }
+                }
+            }
+            let detailInfo = {
+                ...calendarEventInfo,
+                hosts,
+                attendees
+            };
+            return detailInfo;
+        }
+        async acceptCalendarEvent(rsvpId, naddr, privateKey) {
+            let address = index_1.Nip19.decode(naddr).data;
+            const calendarEventUri = `${address.kind}:${address.pubkey}:${address.identifier}`;
+            const pubkey = this.convertPrivateKeyToPubkey(privateKey);
+            const rsvpEvents = await this._socialEventManager.fetchCalendarEventRSVPs(calendarEventUri, pubkey);
+            if (rsvpEvents.length > 0) {
+                rsvpId = rsvpEvents[0].tags.find(tag => tag[0] === 'd')?.[1];
+            }
+            await this._socialEventManager.createCalendarEventRSVP(rsvpId, calendarEventUri, true, privateKey);
+        }
+        async declineCalendarEvent(rsvpId, naddr, privateKey) {
+            let address = index_1.Nip19.decode(naddr).data;
+            const calendarEventUri = `${address.kind}:${address.pubkey}:${address.identifier}`;
+            const pubkey = this.convertPrivateKeyToPubkey(privateKey);
+            const rsvpEvents = await this._socialEventManager.fetchCalendarEventRSVPs(calendarEventUri, pubkey);
+            if (rsvpEvents.length > 0) {
+                rsvpId = rsvpEvents[0].tags.find(tag => tag[0] === 'd')?.[1];
+            }
+            await this._socialEventManager.createCalendarEventRSVP(rsvpId, calendarEventUri, false, privateKey);
         }
     }
     exports.SocialDataManager = SocialDataManager;
@@ -6083,22 +6259,24 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
 define("@scom/scom-social-sdk/utils/index.ts", ["require", "exports", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/utils/managers.ts"], function (require, exports, interfaces_2, managers_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.SocialDataManager = exports.NostrEventManager = exports.CommunityRole = exports.MembershipType = void 0;
+    exports.SocialDataManager = exports.NostrEventManager = exports.CalendarEventType = exports.CommunityRole = exports.MembershipType = void 0;
     Object.defineProperty(exports, "MembershipType", { enumerable: true, get: function () { return interfaces_2.MembershipType; } });
     Object.defineProperty(exports, "CommunityRole", { enumerable: true, get: function () { return interfaces_2.CommunityRole; } });
+    Object.defineProperty(exports, "CalendarEventType", { enumerable: true, get: function () { return interfaces_2.CalendarEventType; } });
     Object.defineProperty(exports, "NostrEventManager", { enumerable: true, get: function () { return managers_1.NostrEventManager; } });
     Object.defineProperty(exports, "SocialDataManager", { enumerable: true, get: function () { return managers_1.SocialDataManager; } });
 });
 define("@scom/scom-social-sdk", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/index.ts"], function (require, exports, index_2, index_3) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.SocialDataManager = exports.NostrEventManager = exports.CommunityRole = exports.MembershipType = exports.Bech32 = exports.Nip19 = exports.Keys = exports.Event = void 0;
+    exports.SocialDataManager = exports.NostrEventManager = exports.CalendarEventType = exports.CommunityRole = exports.MembershipType = exports.Bech32 = exports.Nip19 = exports.Keys = exports.Event = void 0;
     Object.defineProperty(exports, "Event", { enumerable: true, get: function () { return index_2.Event; } });
     Object.defineProperty(exports, "Keys", { enumerable: true, get: function () { return index_2.Keys; } });
     Object.defineProperty(exports, "Nip19", { enumerable: true, get: function () { return index_2.Nip19; } });
     Object.defineProperty(exports, "Bech32", { enumerable: true, get: function () { return index_2.Bech32; } });
     Object.defineProperty(exports, "MembershipType", { enumerable: true, get: function () { return index_3.MembershipType; } });
     Object.defineProperty(exports, "CommunityRole", { enumerable: true, get: function () { return index_3.CommunityRole; } });
+    Object.defineProperty(exports, "CalendarEventType", { enumerable: true, get: function () { return index_3.CalendarEventType; } });
     Object.defineProperty(exports, "NostrEventManager", { enumerable: true, get: function () { return index_3.NostrEventManager; } });
     Object.defineProperty(exports, "SocialDataManager", { enumerable: true, get: function () { return index_3.SocialDataManager; } });
 });
