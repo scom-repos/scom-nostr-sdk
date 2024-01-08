@@ -6171,7 +6171,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             }
             return naddr;
         }
-        async retrieveCalendarEventsByDateRange() {
+        async retrieveCalendarEventsByDateRange(start, end) {
+            //FIXME: Fetch events from API
             const events = await this._socialEventManager.fetchCalendarEvents();
             let calendarEventInfoList = [];
             for (let event of events) {

@@ -18,7 +18,9 @@ suite('##Calendar Events', async function() {
         );
     })
     test('Retrieve calendar events by date range', async function() {
-        const events = await manager.retrieveCalendarEventsByDateRange();
+        const start = Math.floor(Date.now() / 1000);
+        const end = start + 2592000; // 1 month from now
+        const events = await manager.retrieveCalendarEventsByDateRange(start, end);
         console.log('events', events);
     })
 

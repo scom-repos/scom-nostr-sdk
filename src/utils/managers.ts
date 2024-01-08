@@ -2467,7 +2467,8 @@ class SocialDataManager {
         return naddr;
     }
 
-    async retrieveCalendarEventsByDateRange() {
+    async retrieveCalendarEventsByDateRange(start: number, end?: number) {
+        //FIXME: Fetch events from API
         const events = await this._socialEventManager.fetchCalendarEvents();
         let calendarEventInfoList: ICalendarEventInfo[] = [];
         for (let event of events) {
