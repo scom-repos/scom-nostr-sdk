@@ -4078,11 +4078,12 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         }
     }
     class NostrEventManager {
-        constructor(relays, cachedServer) {
+        constructor(relays, cachedServer, apiBaseUrl) {
             this._relays = relays;
             this._cachedServer = cachedServer;
             this._websocketManager = new NostrWebSocketManager(this._relays[0]);
             this._cachedWebsocketManager = new NostrCachedWebSocketManager(this._cachedServer);
+            this._apiBaseUrl = apiBaseUrl;
         }
         async fetchThreadCacheEvents(id, pubKey) {
             let decodedId = id.startsWith('note1') ? index_1.Nip19.decode(id).data : id;
@@ -4869,11 +4870,28 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const response = await this._websocketManager.submitEvent(event, privateKey);
             return response;
         }
-        async fetchCalendarEvents() {
-            let req = {
-                kinds: [31922, 31923],
-                limit: 10
-            };
+        async fetchCalendarEvents(start, end) {
+            let req;
+            if (this._apiBaseUrl) {
+                const apiUrl = `${this._apiBaseUrl}/calendar-events?start=${start}&end=${end}`;
+                const apiResponse = await fetch(apiUrl);
+                const apiResult = await apiResponse.json();
+                let calendarEventIds = [];
+                if (apiResult.success) {
+                    const calendarEvents = apiResult.data.calendarEvents;
+                    calendarEventIds = calendarEvents.map(calendarEvent => calendarEvent.eventId);
+                }
+                req = {
+                    kinds: [31922, 31923],
+                    ids: calendarEventIds
+                };
+            }
+            else {
+                req = {
+                    kinds: [31922, 31923],
+                    limit: 10
+                };
+            }
             const events = await this._websocketManager.fetchWebSocketEvents(req);
             return events;
         }
@@ -4929,8 +4947,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
     }
     exports.NostrEventManager = NostrEventManager;
     class SocialDataManager {
-        constructor(relays, cachedServer) {
-            this._socialEventManager = new NostrEventManager(relays, cachedServer);
+        constructor(relays, cachedServer, apiBaseUrl) {
+            this._socialEventManager = new NostrEventManager(relays, cachedServer, apiBaseUrl);
         }
         get socialEventManager() {
             return this._socialEventManager;
@@ -6172,8 +6190,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             return naddr;
         }
         async retrieveCalendarEventsByDateRange(start, end) {
-            //FIXME: Fetch events from API
-            const events = await this._socialEventManager.fetchCalendarEvents();
+            const events = await this._socialEventManager.fetchCalendarEvents(start, end);
             let calendarEventInfoList = [];
             for (let event of events) {
                 let calendarEventInfo = this.extractCalendarEventInfo(event);

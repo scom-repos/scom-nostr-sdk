@@ -3,6 +3,8 @@ import * as assert from 'assert';
 import { CalendarEventType, IUpdateCalendarEventInfo, Nip19, SocialDataManager } from '../src';
 import crypto from 'crypto';
 
+const API_URL = 'http://host.docker.internal:8300/api/social/v0';
+
 suite('##Calendar Events', async function() {
     let calendarEvent1Identifier: string;
     let calendarEvent1Naddr: string;
@@ -14,13 +16,18 @@ suite('##Calendar Events', async function() {
 
     suiteSetup(async function() {  
         manager = new SocialDataManager(
-            ['wss://nos.lol'], 'wss://cache2.primal.net/v1'
+            ['wss://nos.lol'], 
+            'wss://cache2.primal.net/v1',
+            API_URL
         );
     })
     test('Retrieve calendar events by date range', async function() {
         const start = Math.floor(Date.now() / 1000);
         const end = start + 2592000; // 1 month from now
-        const events = await manager.retrieveCalendarEventsByDateRange(start, end);
+        const events = await manager.retrieveCalendarEventsByDateRange(
+            start, 
+            end
+        );
         console.log('events', events);
     })
 

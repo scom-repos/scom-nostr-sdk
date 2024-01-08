@@ -17,7 +17,8 @@ declare class NostrEventManager {
     private _cachedServer;
     private _websocketManager;
     private _cachedWebsocketManager;
-    constructor(relays: string[], cachedServer: string);
+    private _apiBaseUrl;
+    constructor(relays: string[], cachedServer: string, apiBaseUrl: string);
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
     fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
     fetchProfileFeedCacheEvents(pubKey: string): Promise<INostrEvent[]>;
@@ -61,7 +62,7 @@ declare class NostrEventManager {
     fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
     updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[], privateKey: string): Promise<INostrSubmitResponse>;
     updateCalendarEvent(info: IUpdateCalendarEventInfo, privateKey: string): Promise<INostrSubmitResponse>;
-    fetchCalendarEvents(): Promise<INostrEvent[]>;
+    fetchCalendarEvents(start: number, end?: number): Promise<INostrEvent[]>;
     fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent>;
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse>;
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
@@ -109,14 +110,14 @@ interface ISocialEventManager {
     fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
     updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[], privateKey: string): Promise<INostrSubmitResponse>;
     updateCalendarEvent(info: IUpdateCalendarEventInfo, privateKey: string): Promise<INostrSubmitResponse>;
-    fetchCalendarEvents(): Promise<INostrEvent[]>;
+    fetchCalendarEvents(start: number, end?: number): Promise<INostrEvent[]>;
     fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent | null>;
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse>;
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
 }
 declare class SocialDataManager {
     private _socialEventManager;
-    constructor(relays: string[], cachedServer: string);
+    constructor(relays: string[], cachedServer: string, apiBaseUrl: string);
     get socialEventManager(): ISocialEventManager;
     hexStringToUint8Array(hexString: string): Uint8Array;
     base64ToUtf8(base64: string): string;
