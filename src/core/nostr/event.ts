@@ -97,18 +97,18 @@ const isRecord = (obj: unknown): obj is Record<string, unknown> => obj instanceo
 
 export function validateEvent<T>(event: T): event is T & UnsignedEvent<number> {
   if (!isRecord(event)) return false
-  if (typeof event.kind !== 'number') return false
+  if (typeof event.kind !== 'number' || event.content === null) return false
   if (typeof event.content !== 'string') return false
   if (typeof event.created_at !== 'number') return false
   if (typeof event.pubkey !== 'string') return false
-  if (!event.pubkey.match(/^[a-f0-9]{64}$/)) return false
+  if (!event.pubkey.match(/^[a-fA-F0-9]{64}$/)) return false
 
   if (!Array.isArray(event.tags)) return false
   for (let i = 0; i < event.tags.length; i++) {
     let tag = event.tags[i]
     if (!Array.isArray(tag)) return false
     for (let j = 0; j < tag.length; j++) {
-      if (typeof tag[j] === 'object') return false
+      if (typeof tag[j] === 'object' && tag[j] !== null && tag[j] !== undefined) return false
     }
   }
 
