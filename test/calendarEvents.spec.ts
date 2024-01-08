@@ -24,6 +24,7 @@ suite('##Calendar Events', async function() {
 
     test('Create calendar event', async function() {
         const privateKey = Nip19.decode(calendarEvent1CreatorNsec).data as string;
+        const creatorPubkey = manager.convertPrivateKeyToPubkey(privateKey);
         const start = Math.floor(Date.now() / 1000) + 2592000; // 1 month from now
         const end = start + 3600; // 1 hour after start
         calendarEvent1Identifier = crypto.randomUUID();
@@ -39,7 +40,7 @@ suite('##Calendar Events', async function() {
             latitude: 38.8951,
             longitude: -77.0364,
             image: 'https://i.imgur.com/4M34hi2.jpg',
-            hostIds: [calendarEvent1CreatorNsec]
+            hostIds: [creatorPubkey]
         }
         calendarEvent1Naddr = await manager.updateCalendarEvent(updateCalendarEventInfo, privateKey);
         console.log('calendarEvent1Naddr', calendarEvent1Naddr);
@@ -48,6 +49,9 @@ suite('##Calendar Events', async function() {
 
     test('Retrieve calendar event by naddr', async function() {
         const event = await manager.retrieveCalendarEvent(calendarEvent1Naddr);
+        if (!event) {
+            throw new Error('Event not found');
+        }
         if (event.eventData?.id) {
             userToBeDeletedEventsMap[calendarEvent1CreatorNsec] = userToBeDeletedEventsMap[calendarEvent1CreatorNsec] || [];
             userToBeDeletedEventsMap[calendarEvent1CreatorNsec].push(event.eventData.id);
@@ -61,6 +65,9 @@ suite('##Calendar Events', async function() {
         const rsvpId = crypto.randomUUID();
         await manager.acceptCalendarEvent(rsvpId, calendarEvent1Naddr, privateKey);
         const event = await manager.retrieveCalendarEvent(calendarEvent1Naddr);
+        if (!event) {
+            throw new Error('Event not found');
+        }
         assert.strictEqual(event.attendees?.length, 1);
     })
 
@@ -69,6 +76,9 @@ suite('##Calendar Events', async function() {
         const rsvpId = crypto.randomUUID();
         await manager.declineCalendarEvent(rsvpId, calendarEvent1Naddr, privateKey);
         const event = await manager.retrieveCalendarEvent(calendarEvent1Naddr);
+        if (!event) {
+            throw new Error('Event not found');
+        }
         if (event.eventData?.id) {
             userToBeDeletedEventsMap[user1Nsec] = userToBeDeletedEventsMap[user1Nsec] || [];
             userToBeDeletedEventsMap[user1Nsec].push(event.eventData.id);
@@ -76,7 +86,7 @@ suite('##Calendar Events', async function() {
         assert.strictEqual(event.attendees?.length, 0);
     })
 
-    after(async function() {
+    suiteTeardown(async function() {
         for (let userNsec in userToBeDeletedEventsMap) {
             const privateKey = Nip19.decode(userNsec).data as string;
             await manager.socialEventManager.deleteEvents(

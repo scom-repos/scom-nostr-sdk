@@ -4789,15 +4789,18 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             return response;
         }
         async updateCalendarEvent(info, privateKey) {
+            let kind;
             let start;
             if (info.type === interfaces_1.CalendarEventType.DateBased) {
+                kind = 31922;
                 start = convertUnixTimestampToDate(info.start);
             }
             else {
+                kind = 31923;
                 start = info.start.toString();
             }
             let event = {
-                "kind": 31922,
+                "kind": kind,
                 "created_at": Math.round(Date.now() / 1000),
                 "content": info.description,
                 "tags": [
@@ -4863,7 +4866,6 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     ]);
                 }
             }
-            console.log('updateCalendarEvent', event);
             const response = await this._websocketManager.submitEvent(event, privateKey);
             return response;
         }
@@ -6181,6 +6183,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         async retrieveCalendarEvent(naddr) {
             let address = index_1.Nip19.decode(naddr).data;
             const calendarEvent = await this._socialEventManager.fetchCalendarEvent(address);
+            if (!calendarEvent)
+                return null;
             let calendarEventInfo = this.extractCalendarEventInfo(calendarEvent);
             let hostPubkeys = calendarEvent.tags.filter(tag => tag[0] === 'p' && tag[3] === 'host')?.map(tag => tag[1]) || [];
             const calendarEventUri = `${address.kind}:${address.pubkey}:${address.identifier}`;
