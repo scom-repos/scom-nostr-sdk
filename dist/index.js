@@ -3012,7 +3012,7 @@ define("@scom/scom-social-sdk/core/nostr/event.ts", ["require", "exports", "@sco
     function validateEvent(event) {
         if (!isRecord(event))
             return false;
-        if (typeof event.kind !== 'number')
+        if (typeof event.kind !== 'number' || event.content === null)
             return false;
         if (typeof event.content !== 'string')
             return false;
@@ -3020,7 +3020,7 @@ define("@scom/scom-social-sdk/core/nostr/event.ts", ["require", "exports", "@sco
             return false;
         if (typeof event.pubkey !== 'string')
             return false;
-        if (!event.pubkey.match(/^[a-f0-9]{64}$/))
+        if (!event.pubkey.match(/^[a-fA-F0-9]{64}$/))
             return false;
         if (!Array.isArray(event.tags))
             return false;
@@ -3029,7 +3029,7 @@ define("@scom/scom-social-sdk/core/nostr/event.ts", ["require", "exports", "@sco
             if (!Array.isArray(tag))
                 return false;
             for (let j = 0; j < tag.length; j++) {
-                if (typeof tag[j] === 'object')
+                if (typeof tag[j] === 'object' && tag[j] !== null && tag[j] !== undefined)
                     return false;
             }
         }
