@@ -1744,11 +1744,11 @@ class SocialDataManager {
         const internetIdentifier = metadataContent.nip05?.replace('_@', '') || '';
         let userProfile: IUserProfile = {
             id: encodedPubkey,
-            username: metadataContent.username,
+            username: metadataContent.username || metadataContent.name,
             description: metadataContent.about,
             avatar: metadataContent.picture,
             pubKey: encodedPubkey,
-            displayName: metadataContent.display_name || metadataContent.name,
+            displayName: metadataContent.display_name || metadataContent.displayName || metadataContent.name,
             internetIdentifier,
             website: metadataContent.website,
             banner: metadataContent.banner,
