@@ -4870,7 +4870,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const response = await this._websocketManager.submitEvent(event, privateKey);
             return response;
         }
-        async fetchCalendarEvents(start, end) {
+        async fetchCalendarEvents(start, end, limit) {
             let req;
             if (this._apiBaseUrl) {
                 const apiUrl = `${this._apiBaseUrl}/calendar-events?start=${start}&end=${end}`;
@@ -4889,7 +4889,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             else {
                 req = {
                     kinds: [31922, 31923],
-                    limit: 10
+                    limit: limit || 10
                 };
             }
             const events = await this._websocketManager.fetchWebSocketEvents(req);
@@ -5499,11 +5499,11 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const internetIdentifier = metadataContent.nip05?.replace('_@', '') || '';
             let userProfile = {
                 id: encodedPubkey,
-                username: metadataContent.username,
+                username: metadataContent.username || metadataContent.name,
                 description: metadataContent.about,
                 avatar: metadataContent.picture,
                 pubKey: encodedPubkey,
-                displayName: metadataContent.display_name || metadataContent.name,
+                displayName: metadataContent.display_name || metadataContent.displayName || metadataContent.name,
                 internetIdentifier,
                 website: metadataContent.website,
                 banner: metadataContent.banner,
@@ -6189,8 +6189,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             }
             return naddr;
         }
-        async retrieveCalendarEventsByDateRange(start, end) {
-            const events = await this._socialEventManager.fetchCalendarEvents(start, end);
+        async retrieveCalendarEventsByDateRange(start, end, limit) {
+            const events = await this._socialEventManager.fetchCalendarEvents(start, end, limit);
             let calendarEventInfoList = [];
             for (let event of events) {
                 let calendarEventInfo = this.extractCalendarEventInfo(event);

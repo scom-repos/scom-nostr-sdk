@@ -1036,7 +1036,7 @@ class NostrEventManager {
         return response;
     }
 
-    async fetchCalendarEvents(start: number, end?: number) {
+    async fetchCalendarEvents(start: number, end?: number, limit?: number) {
         let req: any;
         if (this._apiBaseUrl) {
             const apiUrl = `${this._apiBaseUrl}/calendar-events?start=${start}&end=${end}`;
@@ -1055,7 +1055,7 @@ class NostrEventManager {
         else {
             req = {
                 kinds: [31922, 31923],
-                limit: 10
+                limit: limit || 10
             }; 
         }
         const events = await this._websocketManager.fetchWebSocketEvents(req);
@@ -1158,7 +1158,7 @@ interface ISocialEventManager {
     fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
     updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[], privateKey: string): Promise<INostrSubmitResponse>;
     updateCalendarEvent(info: IUpdateCalendarEventInfo, privateKey: string): Promise<INostrSubmitResponse>;
-    fetchCalendarEvents(start: number, end?: number): Promise<INostrEvent[]>;
+    fetchCalendarEvents(start: number, end?: number, limit?: number): Promise<INostrEvent[]>;
     fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent | null>;
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse>;
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
@@ -2486,8 +2486,8 @@ class SocialDataManager {
         return naddr;
     }
 
-    async retrieveCalendarEventsByDateRange(start: number, end?: number) {
-        const events = await this._socialEventManager.fetchCalendarEvents(start, end);
+    async retrieveCalendarEventsByDateRange(start: number, end?: number, limit?: number) {
+        const events = await this._socialEventManager.fetchCalendarEvents(start, end, limit);
         let calendarEventInfoList: ICalendarEventInfo[] = [];
         for (let event of events) {
             let calendarEventInfo = this.extractCalendarEventInfo(event);
