@@ -15,6 +15,7 @@ export interface INostrSubmitResponse {
 export interface INostrMetadataContent {
     name: string;
     display_name: string;
+    displayName?: string;
     username?: string;
     website?: string;
     picture?: string;
