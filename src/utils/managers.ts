@@ -1282,12 +1282,30 @@ class SocialUtilsManager {
         }
         return decryptedMessage;
     }
+
+    private static pad(number: number): string {
+        return number < 10 ? '0' + number : number.toString();
+    }
+
+    static getGMTOffset(timezone: string): string {
+        const date = new Date();
+        const utcDate = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
+        const tzDate = new Date(date.toLocaleString('en-US', { timeZone: timezone }));
+        const offset = (tzDate.getTime() - utcDate.getTime()) / (1000 * 60 * 60);
+        const sign = offset < 0 ? '-' : '+';
+        const absoluteOffset = Math.abs(offset);
+        const hours = Math.floor(absoluteOffset);
+        const minutes = (absoluteOffset - hours) * 60;
+        return `GMT${sign}${this.pad(hours)}:${this.pad(minutes)}`;
+    }
 }
 
 class SocialDataManager {
+    private _apiBaseUrl: string;
     private _socialEventManager: ISocialEventManager;
 
     constructor(relays: string[], cachedServer: string, apiBaseUrl: string) {
+        this._apiBaseUrl = apiBaseUrl;
         this._socialEventManager = new NostrEventManager(relays, cachedServer, apiBaseUrl);
     }
 
@@ -2616,6 +2634,38 @@ class SocialDataManager {
             rsvpId = rsvpEvents[0].tags.find(tag => tag[0] === 'd')?.[1];
         }
         await this._socialEventManager.createCalendarEventRSVP(rsvpId, calendarEventUri, false, privateKey);
+    }
+
+    async fetchTimezones() {
+        const apiUrl = `${this._apiBaseUrl}/timezones`;
+        const apiResponse = await fetch(apiUrl);
+        const apiResult = await apiResponse.json();
+        if (!apiResult.success) throw new Error(apiResult.error.message);
+        let timezones: any[] = [];
+        for (let timezone of apiResult.data.timezones) {
+            let gmtOffset = SocialUtilsManager.getGMTOffset(timezone.timezoneName);
+            timezones.push({
+                timezoneName: timezone.timezoneName,
+                description: timezone.description,
+                gmtOffset: gmtOffset
+            });
+        }
+        timezones.sort((a, b) => {
+            if (a.gmtOffset.startsWith('GMT-') && b.gmtOffset.startsWith('GMT+')) return -1;
+            if (a.gmtOffset.startsWith('GMT+') && b.gmtOffset.startsWith('GMT-')) return 1;
+            if (a.gmtOffset.startsWith('GMT-')) {
+                if (a.gmtOffset < b.gmtOffset) return 1;
+                if (a.gmtOffset > b.gmtOffset) return -1;
+            }
+            else {
+                if (a.gmtOffset > b.gmtOffset) return 1;
+                if (a.gmtOffset < b.gmtOffset) return -1;
+            }
+            if (a.description < b.description) return -1;
+            if (a.description > b.description) return 1;
+            return 0;
+        });
+        return timezones;
     }
 }
 

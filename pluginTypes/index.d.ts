@@ -1523,8 +1523,11 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         static convertPrivateKeyToPubkey(privateKey: string): string;
         static encryptMessage(ourPrivateKey: string, theirPublicKey: string, text: string): Promise<string>;
         static decryptMessage(ourPrivateKey: string, theirPublicKey: string, encryptedData: string): Promise<string>;
+        private static pad;
+        static getGMTOffset(timezone: string): string;
     }
     class SocialDataManager {
+        private _apiBaseUrl;
         private _socialEventManager;
         constructor(relays: string[], cachedServer: string, apiBaseUrl: string);
         get socialEventManager(): ISocialEventManager;
@@ -1609,6 +1612,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         retrieveCalendarEvent(naddr: string): Promise<ICalendarEventDetailInfo>;
         acceptCalendarEvent(rsvpId: string, naddr: string, privateKey: string): Promise<void>;
         declineCalendarEvent(rsvpId: string, naddr: string, privateKey: string): Promise<void>;
+        fetchTimezones(): Promise<any[]>;
     }
     export { NostrEventManager, ISocialEventManager, SocialUtilsManager, SocialDataManager };
 }
