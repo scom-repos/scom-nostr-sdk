@@ -115,14 +115,17 @@ interface ISocialEventManager {
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse>;
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
 }
+declare class SocialUtilsManager {
+    static hexStringToUint8Array(hexString: string): Uint8Array;
+    static base64ToUtf8(base64: string): string;
+    static convertPrivateKeyToPubkey(privateKey: string): string;
+    static encryptMessage(ourPrivateKey: string, theirPublicKey: string, text: string): Promise<string>;
+    static decryptMessage(ourPrivateKey: string, theirPublicKey: string, encryptedData: string): Promise<string>;
+}
 declare class SocialDataManager {
     private _socialEventManager;
     constructor(relays: string[], cachedServer: string, apiBaseUrl: string);
     get socialEventManager(): ISocialEventManager;
-    hexStringToUint8Array(hexString: string): Uint8Array;
-    base64ToUtf8(base64: string): string;
-    encryptMessage(ourPrivateKey: string, theirPublicKey: string, text: string): Promise<string>;
-    decryptMessage(ourPrivateKey: string, theirPublicKey: string, encryptedData: string): Promise<string>;
     extractCommunityInfo(event: INostrEvent): ICommunityInfo;
     retrieveCommunityEvents(creatorId: string, communityId: string): Promise<{
         notes: INostrEvent[];
@@ -177,20 +180,19 @@ declare class SocialDataManager {
     updateCommunityChannel(communityInfo: ICommunityInfo, privateKey: string): Promise<INostrSubmitResponse>;
     createChannel(channelInfo: IChannelInfo, memberIds: string[], privateKey: string): Promise<IChannelInfo>;
     fetchMyCommunities(pubKey: string): Promise<ICommunityInfo[]>;
-    extractBookmarkedCommunities(event: INostrEvent, excludedCommunity?: ICommunityInfo): ICommunityBasicInfo[];
-    extractBookmarkedChannels(event: INostrEvent): string[];
+    private extractBookmarkedCommunities;
+    private extractBookmarkedChannels;
     joinCommunity(community: ICommunityInfo, pubKey: string, privateKey: string): Promise<void>;
     leaveCommunity(community: ICommunityInfo, pubKey: string, privateKey: string): Promise<void>;
     private encryptGroupMessage;
     submitCommunityPost(message: string, info: ICommunityInfo, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
-    extractChannelInfo(event: INostrEvent): IChannelInfo;
+    private extractChannelInfo;
     fetchAllUserRelatedChannels(pubKey: string): Promise<IChannelInfo[]>;
     retrieveChannelMessages(channelId: string, since?: number, until?: number): Promise<INostrEvent[]>;
     retrieveChannelEvents(creatorId: string, channelId: string): Promise<{
         messageEvents: INostrEvent[];
         info: IChannelInfo;
     }>;
-    convertPrivateKeyToPubkey(privateKey: string): string;
     retrieveChannelMessageKeys(options: IRetrieveChannelMessageKeysOptions): Promise<Record<string, string>>;
     submitChannelMessage(message: string, channelId: string, privateKey: string, communityPublicKey: string, conversationPath?: IConversationPath): Promise<void>;
     fetchMessageContacts(pubKey: string): Promise<IMessageContactInfo[]>;
@@ -199,11 +201,11 @@ declare class SocialDataManager {
         id: string;
         role: CommunityRole;
     }[]>>;
-    extractCalendarEventInfo(event: INostrEvent): ICalendarEventInfo;
+    private extractCalendarEventInfo;
     updateCalendarEvent(updateCalendarEventInfo: IUpdateCalendarEventInfo, privateKey: string): Promise<string>;
     retrieveCalendarEventsByDateRange(start: number, end?: number, limit?: number): Promise<ICalendarEventInfo[]>;
     retrieveCalendarEvent(naddr: string): Promise<ICalendarEventDetailInfo>;
     acceptCalendarEvent(rsvpId: string, naddr: string, privateKey: string): Promise<void>;
     declineCalendarEvent(rsvpId: string, naddr: string, privateKey: string): Promise<void>;
 }
-export { NostrEventManager, ISocialEventManager, SocialDataManager };
+export { NostrEventManager, ISocialEventManager, SocialUtilsManager, SocialDataManager };

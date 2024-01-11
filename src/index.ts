@@ -29,5 +29,6 @@ export {
     ICalendarEventDetailInfo,
     NostrEventManager,
     ISocialEventManager,
+    SocialUtilsManager,
     SocialDataManager
 } from './utils/index'

@@ -1,6 +1,6 @@
 import 'mocha';
 import * as assert from 'assert';
-import { CalendarEventType, IUpdateCalendarEventInfo, Nip19, SocialDataManager } from '../src';
+import { CalendarEventType, IUpdateCalendarEventInfo, Nip19, SocialDataManager, SocialUtilsManager } from '../src';
 import crypto from 'crypto';
 
 const API_URL = 'http://host.docker.internal:8300/api/social/v0';
@@ -33,7 +33,7 @@ suite('##Calendar Events', async function() {
 
     test('Create calendar event', async function() {
         const privateKey = Nip19.decode(calendarEvent1CreatorNsec).data as string;
-        const creatorPubkey = manager.convertPrivateKeyToPubkey(privateKey);
+        const creatorPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(privateKey);
         const start = Math.floor(Date.now() / 1000) + 2592000; // 1 month from now
         const end = start + 3600; // 1 hour after start
         calendarEvent1Identifier = crypto.randomUUID();

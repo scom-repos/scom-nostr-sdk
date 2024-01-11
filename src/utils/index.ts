@@ -26,5 +26,6 @@ export {
 export {
     NostrEventManager,
     ISocialEventManager,
+    SocialUtilsManager,
     SocialDataManager
 } from './managers'
