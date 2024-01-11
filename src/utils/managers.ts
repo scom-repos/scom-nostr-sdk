@@ -220,44 +220,43 @@ class NostrEventManager {
         return events;
     }
 
-    async fetchProfileFeedCacheEvents(pubKey: string) {
+    async fetchProfileFeedCacheEvents(pubKey: string, since: number = 0) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
         let msg: any = {
             limit: 20,
             notes: "authored",
             pubkey: decodedPubKey,
-            since: 0,
+            since,
             user_pubkey: decodedPubKey
         };
         const events = await this._cachedWebsocketManager.fetchCachedEvents('feed', msg);
         return events;
     }
 
-    async fetchProfileRepliesCacheEvents(pubKey: string) {
+    async fetchProfileRepliesCacheEvents(pubKey: string, since: number = 0) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
         let msg: any = {
             limit: 20,
             notes: "replies",
             pubkey: decodedPubKey,
-            since: 0,
+            since,
             user_pubkey: decodedPubKey
         };
         const events = await this._cachedWebsocketManager.fetchCachedEvents('feed', msg);
         return events;
     }
 
-    async fetchHomeFeedCacheEvents(pubKey?: string) {
+    async fetchHomeFeedCacheEvents(pubKey?: string, since: number = 0) {
         let msg: any = {
             limit: 20,
+            since
         };
         if (pubKey) {
             const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
             msg.pubkey = decodedPubKey;
             msg.user_pubkey = decodedPubKey;
-            msg.since = 0;
         }
         else {
-            msg.since = 0;
             msg.pubkey = Nip19.decode('npub1nfgqmnxqsjsnsvc2r5djhcx4ap3egcjryhf9ppxnajskfel2dx9qq6mnsp').data //FIXME: Account to show Nostr highlights 
         }
         const events = await this._cachedWebsocketManager.fetchCachedEvents('feed', msg);
@@ -1146,9 +1145,9 @@ class NostrEventManager {
 interface ISocialEventManager {
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
     fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
-    fetchProfileFeedCacheEvents(pubKey: string): Promise<INostrEvent[]>;
-    fetchProfileRepliesCacheEvents(pubKey: string): Promise<INostrEvent[]>;
-    fetchHomeFeedCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
+    fetchProfileFeedCacheEvents(pubKey: string, since?: number): Promise<INostrEvent[]>;
+    fetchProfileRepliesCacheEvents(pubKey: string, since?: number): Promise<INostrEvent[]>;
+    fetchHomeFeedCacheEvents(pubKey?: string, since?: number): Promise<INostrEvent[]>;
     fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
     fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchContactListCacheEvents(pubKey: string): Promise<INostrEvent[]>;
