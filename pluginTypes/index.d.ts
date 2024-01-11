@@ -1423,9 +1423,9 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         constructor(relays: string[], cachedServer: string, apiBaseUrl: string);
         fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
         fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
-        fetchProfileFeedCacheEvents(pubKey: string, since?: number): Promise<INostrEvent[]>;
-        fetchProfileRepliesCacheEvents(pubKey: string, since?: number): Promise<INostrEvent[]>;
-        fetchHomeFeedCacheEvents(pubKey?: string, since?: number): Promise<INostrEvent[]>;
+        fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
+        fetchProfileRepliesCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
+        fetchHomeFeedCacheEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
         fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
         fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
         fetchContactListCacheEvents(pubKey: string): Promise<INostrEvent[]>;
@@ -1472,9 +1472,9 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
     interface ISocialEventManager {
         fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
         fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
-        fetchProfileFeedCacheEvents(pubKey: string, since?: number): Promise<INostrEvent[]>;
-        fetchProfileRepliesCacheEvents(pubKey: string, since?: number): Promise<INostrEvent[]>;
-        fetchHomeFeedCacheEvents(pubKey?: string, since?: number): Promise<INostrEvent[]>;
+        fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
+        fetchProfileRepliesCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
+        fetchHomeFeedCacheEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
         fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
         fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
         fetchContactListCacheEvents(pubKey: string): Promise<INostrEvent[]>;

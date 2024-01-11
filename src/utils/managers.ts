@@ -220,37 +220,52 @@ class NostrEventManager {
         return events;
     }
 
-    async fetchProfileFeedCacheEvents(pubKey: string, since: number = 0) {
+    async fetchProfileFeedCacheEvents(pubKey: string, since: number = 0, until: number = 0) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
         let msg: any = {
             limit: 20,
             notes: "authored",
             pubkey: decodedPubKey,
-            since,
             user_pubkey: decodedPubKey
         };
+        if (until === 0) {
+            msg.since = since;
+        }
+        else {
+            msg.until = until;
+        }
         const events = await this._cachedWebsocketManager.fetchCachedEvents('feed', msg);
         return events;
     }
 
-    async fetchProfileRepliesCacheEvents(pubKey: string, since: number = 0) {
+    async fetchProfileRepliesCacheEvents(pubKey: string, since: number = 0, until: number = 0) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
         let msg: any = {
             limit: 20,
             notes: "replies",
             pubkey: decodedPubKey,
-            since,
             user_pubkey: decodedPubKey
         };
+        if (until === 0) {
+            msg.since = since;
+        }
+        else {
+            msg.until = until;
+        }
         const events = await this._cachedWebsocketManager.fetchCachedEvents('feed', msg);
         return events;
     }
 
-    async fetchHomeFeedCacheEvents(pubKey?: string, since: number = 0) {
+    async fetchHomeFeedCacheEvents(pubKey?: string, since: number = 0, until: number = 0) {
         let msg: any = {
-            limit: 20,
-            since
+            limit: 20
         };
+        if (until === 0) {
+            msg.since = since;
+        }
+        else {
+            msg.until = until;
+        }
         if (pubKey) {
             const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
             msg.pubkey = decodedPubKey;
@@ -1145,9 +1160,9 @@ class NostrEventManager {
 interface ISocialEventManager {
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
     fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
-    fetchProfileFeedCacheEvents(pubKey: string, since?: number): Promise<INostrEvent[]>;
-    fetchProfileRepliesCacheEvents(pubKey: string, since?: number): Promise<INostrEvent[]>;
-    fetchHomeFeedCacheEvents(pubKey?: string, since?: number): Promise<INostrEvent[]>;
+    fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
+    fetchProfileRepliesCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
+    fetchHomeFeedCacheEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
     fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchContactListCacheEvents(pubKey: string): Promise<INostrEvent[]>;
