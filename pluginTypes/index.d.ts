@@ -1613,6 +1613,9 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         acceptCalendarEvent(rsvpId: string, naddr: string, privateKey: string): Promise<void>;
         declineCalendarEvent(rsvpId: string, naddr: string, privateKey: string): Promise<void>;
         fetchTimezones(): Promise<any[]>;
+        fetchCitiesByKeyword(keyword: string): Promise<any[]>;
+        fetchCitiesByCoordinates(latitude: number, longitude: number): Promise<any[]>;
+        fetchLocationDataFromIP(apiAccessKey: string): Promise<any>;
     }
     export { NostrEventManager, ISocialEventManager, SocialUtilsManager, SocialDataManager };
 }

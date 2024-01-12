@@ -2667,6 +2667,53 @@ class SocialDataManager {
         });
         return timezones;
     }
+
+    async fetchCitiesByKeyword(keyword: string) {
+        const apiUrl = `${this._apiBaseUrl}/cities?keyword=${keyword}`;
+        const apiResponse = await fetch(apiUrl);
+        const apiResult = await apiResponse.json();
+        if (!apiResult.success) throw new Error(apiResult.error.message);
+        let cities: any[] = [];
+        for (let city of apiResult.data.cities) {
+            cities.push({
+                id: city.id,
+                city: city.city,
+                cityAscii: city.cityAscii,
+                latitude: city.lat,
+                longitude: city.lng,
+                country: city.country
+            });
+        }
+        return cities;
+    }
+
+    async fetchCitiesByCoordinates(latitude: number, longitude: number) {
+        const apiUrl = `${this._apiBaseUrl}/cities?lat=${latitude}&lng=${longitude}`;
+        const apiResponse = await fetch(apiUrl);
+        const apiResult = await apiResponse.json();
+        if (!apiResult.success) throw new Error(apiResult.error.message);
+        let cities: any[] = [];
+        for (let city of apiResult.data.cities) {
+            cities.push({
+                id: city.id,
+                city: city.city,
+                cityAscii: city.cityAscii,
+                latitude: city.lat,
+                longitude: city.lng,
+                country: city.country
+            });
+        }
+        return cities;
+    }
+
+    async fetchLocationDataFromIP(apiAccessKey: string) {
+        const ipAddressResponse = await fetch('https://api.ipify.org?format=json');
+        const ipAddressResult = await ipAddressResponse.json();
+        const ipAddress: string = ipAddressResult.ip;
+        const response = await fetch(`http://api.ipapi.com/${ipAddress}?access_key=${apiAccessKey}`);
+        const data = await response.json();
+        return data;
+    }
 }
 
 export {
