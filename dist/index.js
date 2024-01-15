@@ -5076,9 +5076,10 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
     }
     exports.SocialUtilsManager = SocialUtilsManager;
     class SocialDataManager {
-        constructor(relays, cachedServer, apiBaseUrl) {
-            this._apiBaseUrl = apiBaseUrl;
-            this._socialEventManager = new NostrEventManager(relays, cachedServer, apiBaseUrl);
+        constructor(config) {
+            this._apiBaseUrl = config.apiBaseUrl;
+            this._ipLocationServiceApiKey = config.ipLocationServiceApiKey;
+            this._socialEventManager = new NostrEventManager(config.relays, config.cachedServer, config.apiBaseUrl);
         }
         get socialEventManager() {
             return this._socialEventManager;
@@ -6413,13 +6414,24 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             }
             return cities;
         }
-        async fetchLocationDataFromIP(apiAccessKey) {
+        async fetchLocationInfoFromIP() {
+            if (!this._ipLocationServiceApiKey)
+                return null;
             const ipAddressResponse = await fetch('https://api.ipify.org?format=json');
             const ipAddressResult = await ipAddressResponse.json();
             const ipAddress = ipAddressResult.ip;
-            const response = await fetch(`http://api.ipapi.com/${ipAddress}?access_key=${apiAccessKey}`);
+            const response = await fetch(`http://api.ipapi.com/${ipAddress}?access_key=${this._ipLocationServiceApiKey}`);
             const data = await response.json();
-            return data;
+            if (data.success === false) {
+                console.log('error', data.error);
+                return null;
+            }
+            let locationInfo = {
+                ip: data.ip,
+                latitude: data.latitude,
+                longitude: data.longitude
+            };
+            return locationInfo;
         }
     }
     exports.SocialDataManager = SocialDataManager;

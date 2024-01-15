@@ -1,5 +1,5 @@
 import { Nip19 } from "../core/index";
-import { CommunityRole, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "./interfaces";
+import { CommunityRole, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IIPLocationInfo, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "./interfaces";
 interface IFetchNotesOptions {
     authors?: string[];
     ids?: string[];
@@ -126,8 +126,9 @@ declare class SocialUtilsManager {
 }
 declare class SocialDataManager {
     private _apiBaseUrl;
+    private _ipLocationServiceApiKey;
     private _socialEventManager;
-    constructor(relays: string[], cachedServer: string, apiBaseUrl: string);
+    constructor(config: ISocialDataManagerConfig);
     get socialEventManager(): ISocialEventManager;
     extractCommunityInfo(event: INostrEvent): ICommunityInfo;
     retrieveCommunityEvents(creatorId: string, communityId: string): Promise<{
@@ -213,6 +214,6 @@ declare class SocialDataManager {
     fetchTimezones(): Promise<any[]>;
     fetchCitiesByKeyword(keyword: string): Promise<any[]>;
     fetchCitiesByCoordinates(latitude: number, longitude: number): Promise<any[]>;
-    fetchLocationDataFromIP(apiAccessKey: string): Promise<any>;
+    fetchLocationInfoFromIP(): Promise<IIPLocationInfo>;
 }
 export { NostrEventManager, ISocialEventManager, SocialUtilsManager, SocialDataManager };

@@ -16,9 +16,11 @@ suite('##Calendar Events', async function() {
 
     suiteSetup(async function() {  
         manager = new SocialDataManager(
-            ['wss://nos.lol'], 
-            'wss://cache2.primal.net/v1',
-            API_URL
+            {
+                relays: ['wss://relay.primal.net'], 
+                cachedServer: 'wss://cache2.primal.net/v1',
+                apiBaseUrl: API_URL
+            }
         );
     })
     test('Retrieve calendar events by date range', async function() {

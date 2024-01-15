@@ -20,7 +20,9 @@ export {
     IUpdateCalendarEventInfo,
     ICalendarEventHost,
     ICalendarEventAttendee,
-    ICalendarEventDetailInfo
+    ICalendarEventDetailInfo,
+    IIPLocationInfo,
+    ISocialDataManagerConfig
 } from "./interfaces";
 
 export {

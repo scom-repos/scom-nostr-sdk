@@ -27,6 +27,8 @@ export {
     ICalendarEventHost,
     ICalendarEventAttendee,
     ICalendarEventDetailInfo,
+    IIPLocationInfo,
+    ISocialDataManagerConfig,
     NostrEventManager,
     ISocialEventManager,
     SocialUtilsManager,

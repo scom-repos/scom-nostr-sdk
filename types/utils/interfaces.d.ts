@@ -257,3 +257,14 @@ export interface ICalendarEventDetailInfo extends ICalendarEventInfo {
     hosts?: ICalendarEventHost[];
     attendees?: ICalendarEventAttendee[];
 }
+export interface IIPLocationInfo {
+    ip: string;
+    latitude: number;
+    longitude: number;
+}
+export interface ISocialDataManagerConfig {
+    relays: string[];
+    cachedServer: string;
+    apiBaseUrl: string;
+    ipLocationServiceApiKey?: string;
+}

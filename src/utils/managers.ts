@@ -1,6 +1,6 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
+import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IIPLocationInfo, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
 import Geohash from './geohash';
 
 interface IFetchNotesOptions {
@@ -1302,11 +1302,17 @@ class SocialUtilsManager {
 
 class SocialDataManager {
     private _apiBaseUrl: string;
+    private _ipLocationServiceApiKey: string;
     private _socialEventManager: ISocialEventManager;
 
-    constructor(relays: string[], cachedServer: string, apiBaseUrl: string) {
-        this._apiBaseUrl = apiBaseUrl;
-        this._socialEventManager = new NostrEventManager(relays, cachedServer, apiBaseUrl);
+    constructor(config: ISocialDataManagerConfig) {
+        this._apiBaseUrl = config.apiBaseUrl;
+        this._ipLocationServiceApiKey = config.ipLocationServiceApiKey;
+        this._socialEventManager = new NostrEventManager(
+            config.relays, 
+            config.cachedServer, 
+            config.apiBaseUrl
+        );
     }
 
     get socialEventManager() {
@@ -2706,13 +2712,23 @@ class SocialDataManager {
         return cities;
     }
 
-    async fetchLocationDataFromIP(apiAccessKey: string) {
+    async fetchLocationInfoFromIP() {
+        if (!this._ipLocationServiceApiKey) return null;
         const ipAddressResponse = await fetch('https://api.ipify.org?format=json');
         const ipAddressResult = await ipAddressResponse.json();
         const ipAddress: string = ipAddressResult.ip;
-        const response = await fetch(`http://api.ipapi.com/${ipAddress}?access_key=${apiAccessKey}`);
+        const response = await fetch(`http://api.ipapi.com/${ipAddress}?access_key=${this._ipLocationServiceApiKey}`);
         const data = await response.json();
-        return data;
+        if (data.success === false) {
+            console.log('error', data.error);
+            return null;
+        }
+        let locationInfo: IIPLocationInfo = {
+            ip: data.ip,
+            latitude: data.latitude,
+            longitude: data.longitude
+        }
+        return locationInfo;
     }
 }
 
