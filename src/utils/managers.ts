@@ -1048,6 +1048,12 @@ class NostrEventManager {
                 ]);
             }
         }
+        if (info.city) {
+            event.tags.push([
+                "city",
+                info.city
+            ]);
+        }
         const response = await this._websocketManager.submitEvent(event, privateKey);
         if (response.success) {
             let pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(privateKey);
@@ -2483,6 +2489,7 @@ class SocialDataManager {
         const startTzid = event.tags.find(tag => tag[0] === 'start_tzid')?.[1];
         const endTzid = event.tags.find(tag => tag[0] === 'end_tzid')?.[1];
         const location = event.tags.find(tag => tag[0] === 'location')?.[1];
+        const city = event.tags.find(tag => tag[0] === 'city')?.[1];
         let lonlat;
         const geohash = event.tags.find(tag => tag[0] === 'g')?.[1];
         if (geohash) {
@@ -2525,6 +2532,7 @@ class SocialDataManager {
             startTzid,
             endTzid,
             location,
+            city,
             latitude: lonlat?.latitude,
             longitude: lonlat?.longitude,
             geohash,

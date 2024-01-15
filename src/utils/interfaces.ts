@@ -268,6 +268,7 @@ export interface ICalendarEventBasicInfo {
 	location?: string;
 	latitude?: number;
 	longitude?: number;
+	city?: string;
 	image?: string;
 }
 
