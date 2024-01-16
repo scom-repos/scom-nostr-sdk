@@ -11,6 +11,7 @@ export {
     ICommunityInfo,
     ICommunityScpData,
     INoteInfo,
+    INoteInfoExtended,
     INoteCommunityInfo,
     ICommunityGatekeeperInfo,
     IUserProfile,

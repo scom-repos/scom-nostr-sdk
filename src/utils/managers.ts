@@ -1,6 +1,6 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IIPLocationInfo, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
+import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IIPLocationInfo, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
 import Geohash from './geohash';
 
 interface IFetchNotesOptions {
@@ -266,13 +266,10 @@ class NostrEventManager {
         else {
             msg.until = until;
         }
+        msg.pubkey = Nip19.decode('npub1nfgqmnxqsjsnsvc2r5djhcx4ap3egcjryhf9ppxnajskfel2dx9qq6mnsp').data //FIXME: Account to show Nostr highlights 
         if (pubKey) {
             const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
-            msg.pubkey = decodedPubKey;
             msg.user_pubkey = decodedPubKey;
-        }
-        else {
-            msg.pubkey = Nip19.decode('npub1nfgqmnxqsjsnsvc2r5djhcx4ap3egcjryhf9ppxnajskfel2dx9qq6mnsp').data //FIXME: Account to show Nostr highlights 
         }
         const events = await this._cachedWebsocketManager.fetchCachedEvents('feed', msg);
         return events;
@@ -1161,6 +1158,25 @@ class NostrEventManager {
         const events = await this._websocketManager.fetchWebSocketEvents(req);
         return events;
     }
+
+    async fetchLongFormContentEvents(pubKey?: string, since: number = 0, until: number = 0) {
+        let req: any = {
+            kinds: [30023],
+            limit: 20
+        };
+        if (pubKey) {
+            const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+            req.authors = [decodedPubKey];
+        }
+        if (until === 0) {
+            req.since = since;
+        }
+        else {
+            req.until = until;
+        }
+        const events = await this._websocketManager.fetchWebSocketEvents(req);
+        return events;
+    }
 }
 
 interface ISocialEventManager {
@@ -1210,6 +1226,7 @@ interface ISocialEventManager {
     fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent | null>;
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse>;
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
+    fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
 }
 
 class SocialUtilsManager {
@@ -1294,15 +1311,48 @@ class SocialUtilsManager {
     }
 
     static getGMTOffset(timezone: string): string {
-        const date = new Date();
-        const utcDate = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
-        const tzDate = new Date(date.toLocaleString('en-US', { timeZone: timezone }));
-        const offset = (tzDate.getTime() - utcDate.getTime()) / (1000 * 60 * 60);
-        const sign = offset < 0 ? '-' : '+';
-        const absoluteOffset = Math.abs(offset);
-        const hours = Math.floor(absoluteOffset);
-        const minutes = (absoluteOffset - hours) * 60;
-        return `GMT${sign}${this.pad(hours)}:${this.pad(minutes)}`;
+        let gmtOffset
+        try {
+            const date = new Date();
+            const utcDate = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
+            const tzDate = new Date(date.toLocaleString('en-US', { timeZone: timezone }));
+            const offset = (tzDate.getTime() - utcDate.getTime()) / (1000 * 60 * 60);
+            const sign = offset < 0 ? '-' : '+';
+            const absoluteOffset = Math.abs(offset);
+            const hours = Math.floor(absoluteOffset);
+            const minutes = (absoluteOffset - hours) * 60;
+            gmtOffset = `GMT${sign}${this.pad(hours)}:${this.pad(minutes)}`;
+        } catch (err) {
+            console.error(err);
+        }
+        return gmtOffset;
+    }
+
+    static async exponentialBackoffRetry<T>(
+        fn: () => Promise<T>, // Function to retry
+        retries: number, // Maximum number of retries
+        delay: number, // Initial delay duration in milliseconds
+        maxDelay: number, // Maximum delay duration in milliseconds
+        factor: number // Exponential backoff factor
+    ): Promise<T> {
+        let currentDelay = delay;
+    
+        for (let i = 0; i < retries; i++) {
+            try {
+                return await fn();
+            } catch (error) {
+                console.error(`Attempt ${i + 1} failed. Retrying in ${currentDelay}ms...`);
+    
+                // Wait for the current delay period
+                await new Promise(resolve => setTimeout(resolve, currentDelay));
+    
+                // Update delay for the next iteration, capped at maxDelay
+                currentDelay = Math.min(maxDelay, currentDelay * factor);
+            }
+        }
+    
+        // If all retries have been exhausted, throw an error
+        throw new Error(`Failed after ${retries} retries`);
     }
 }
 
@@ -1629,6 +1679,139 @@ class SocialDataManager {
             return acc;
         }, {});
         return metadataByPubKeyMap;
+    }
+
+    async fetchUserProfiles(pubKeys: string[]): Promise<IUserProfile[]> {
+        const fetchFromCache = true;
+        let metadataArr: INostrMetadata[] = [];
+        const fetchData = async () => {
+            if (fetchFromCache) {
+                const events = await this._socialEventManager.fetchUserProfileCacheEvents(pubKeys);
+                for (let event of events) {
+                    if (event.kind === 0) {
+                        metadataArr.push({
+                            ...event,
+                            content: JSON.parse(event.content)
+                        });
+                    }
+                }
+            }
+            else {
+                const metadataEvents = await this._socialEventManager.fetchMetadata({
+                    authors: pubKeys
+                });
+                if (metadataEvents.length === 0) return null;
+                metadataArr.push({
+                    ...metadataEvents[0],
+                    content: JSON.parse(metadataEvents[0].content)
+                });
+            }
+            // if (metadataArr.length == 0) {
+            //     throw new Error(`Metadata not found`);
+            // }
+        };
+        try {
+            await SocialUtilsManager.exponentialBackoffRetry(fetchData, 5, 1000, 16000, 2);
+        }
+        catch (error) { }
+        if (metadataArr.length == 0) return null;
+        const userProfiles: IUserProfile[] = [];
+        for (let metadata of metadataArr) {
+            const encodedPubkey = Nip19.npubEncode(metadata.pubkey);
+            const metadataContent = metadata.content;
+            const internetIdentifier = metadataContent.nip05?.replace('_@', '') || '';
+            let userProfile: IUserProfile = {
+                id: encodedPubkey,
+                username: metadataContent.username || metadataContent.name,
+                description: metadataContent.about,
+                avatar: metadataContent.picture,
+                pubKey: encodedPubkey,
+                displayName: metadataContent.display_name || metadataContent.displayName || metadataContent.name,
+                internetIdentifier,
+                website: metadataContent.website,
+                banner: metadataContent.banner
+            }
+            userProfiles.push(userProfile);
+        }
+        return userProfiles;
+    }
+
+    async fetchProfileFeedInfo(pubKey: string, since: number = 0, until?: number) {
+        const events = await this._socialEventManager.fetchProfileFeedCacheEvents(pubKey, since, until);
+        const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
+        const {
+            notes,
+            metadataByPubKeyMap,
+            quotedNotesMap
+        } = this.createNoteEventMappings(events);
+        return {
+            notes,
+            metadataByPubKeyMap,
+            quotedNotesMap,
+            earliest
+        };
+    }
+
+    async fetchProfileRepliesInfo(pubKey: string, since: number = 0, until?: number) {
+        const events = await this._socialEventManager.fetchProfileRepliesCacheEvents(pubKey, since, until);
+        const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
+        const {
+            notes,
+            metadataByPubKeyMap,
+            quotedNotesMap,
+            noteToParentAuthorIdMap
+        } = this.createNoteEventMappings(events, true);
+        for (let note of notes as INoteInfoExtended[]) {
+            const noteId = note.eventData.id;
+            const parentAuthorId = noteToParentAuthorIdMap[noteId];
+            if (!parentAuthorId) continue;
+            const metadata = metadataByPubKeyMap[parentAuthorId];
+            if (!metadata) continue;
+            const metadataContent = metadata.content;
+            const encodedPubkey = Nip19.npubEncode(metadata.pubkey);
+            const internetIdentifier = metadataContent.nip05?.replace('_@', '') || '';
+            note.parentAuthor = {
+                id: encodedPubkey,
+                username: '',
+                description: metadataContent.about,
+                avatar: metadataContent.picture,
+                pubKey: encodedPubkey,
+                displayName: metadataContent.display_name || metadataContent.name,
+                internetIdentifier: internetIdentifier
+            };
+        }
+    
+        return {
+            notes,
+            metadataByPubKeyMap,
+            quotedNotesMap,
+            earliest
+        };
+    }
+
+    private getEarliestEventTimestamp(events: INostrEvent[]) {
+        if (!events || events.length === 0) {
+            return 0;
+        }
+        return events.reduce((createdAt, event) => {
+            return Math.min(createdAt, event.created_at);
+        }, events[0].created_at);
+    }
+
+    async fetchHomeFeedInfo(pubKey: string, since: number = 0, until?: number) {
+        let events: INostrEvent[] = await this._socialEventManager.fetchHomeFeedCacheEvents(pubKey, since, until);
+        const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
+        const {
+            notes,
+            metadataByPubKeyMap,
+            quotedNotesMap
+        } = this.createNoteEventMappings(events);
+        return {
+            notes,
+            metadataByPubKeyMap,
+            quotedNotesMap,
+            earliest
+        }
     }
 
     createNoteEventMappings(events: INostrEvent[], parentAuthorsInfo: boolean = false) {
@@ -2658,6 +2841,7 @@ class SocialDataManager {
         let timezones: any[] = [];
         for (let timezone of apiResult.data.timezones) {
             let gmtOffset = SocialUtilsManager.getGMTOffset(timezone.timezoneName);
+            if (!gmtOffset) continue;
             timezones.push({
                 timezoneName: timezone.timezoneName,
                 description: timezone.description,
@@ -2737,6 +2921,71 @@ class SocialDataManager {
             longitude: data.longitude
         }
         return locationInfo;
+    }
+
+    private async fetchEventMetadataFromIPFS(ipfsBaseUrl: string, eventId: string) {
+        const url = `${ipfsBaseUrl}/nostr/${eventId}`;
+        const response = await fetch(url);
+        const result = await response.json();
+        return result;
+    }
+
+    async getAccountBalance(walletAddress: string) {
+        const apiUrl = 'https://rpc.ankr.com/multichain/79258ce7f7ee046decc3b5292a24eb4bf7c910d7e39b691384c7ce0cfb839a01/?ankr_getAccountBalance';
+        const bodyData = {
+            jsonrpc: '2.0',
+            method: 'ankr_getAccountBalance',
+            params: {
+                blockchain: [
+                    'bsc',
+                    'avalanche'
+                ],
+                walletAddress
+            },
+            id: 1
+        }
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(bodyData)
+        });
+        const data = await response.json();
+        if (data.error) {
+            console.log('error', data.error);
+            return null;
+        }
+        return data.result;
+    }
+
+    async getNFTsByOwner(walletAddress: string) {
+        const apiUrl = 'https://rpc.ankr.com/multichain/79258ce7f7ee046decc3b5292a24eb4bf7c910d7e39b691384c7ce0cfb839a01/?ankr_getNFTsByOwner';
+        const bodyData = {
+            jsonrpc: '2.0',
+            method: 'ankr_getNFTsByOwner',
+            params: {
+                blockchain: [
+                    'bsc',
+                    'avalanche'
+                ],
+                walletAddress
+            },
+            id: 1
+        }
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(bodyData)
+        });
+        const data = await response.json();
+        if (data.error) {
+            console.log('error', data.error);
+            return null;
+        }
+        return data.result;
     }
 }
 

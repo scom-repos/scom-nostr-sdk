@@ -58,6 +58,18 @@ export interface INoteInfo {
     eventData: INostrEvent;
     stats?: IPostStats;
 }
+export interface IAuthor {
+    id: string;
+    username: string;
+    description: string;
+    avatar: string;
+    pubKey?: string;
+    displayName?: string;
+    internetIdentifier: string;
+}
+export interface INoteInfoExtended extends INoteInfo {
+    parentAuthor?: IAuthor;
+}
 export interface INoteCommunityInfo {
     eventData: INostrEvent;
     communityUri?: string;
@@ -268,4 +280,12 @@ export interface ISocialDataManagerConfig {
     cachedServer: string;
     apiBaseUrl: string;
     ipLocationServiceApiKey?: string;
+}
+export interface ILongFormContentInfo {
+    eventData: INostrEvent;
+    id: string;
+    title: string;
+    image?: string;
+    summary?: string;
+    publishedAt: number;
 }

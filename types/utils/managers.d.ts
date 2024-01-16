@@ -66,6 +66,7 @@ declare class NostrEventManager {
     fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent>;
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse>;
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
+    fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
 }
 interface ISocialEventManager {
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
@@ -114,6 +115,7 @@ interface ISocialEventManager {
     fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent | null>;
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse>;
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
+    fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
 }
 declare class SocialUtilsManager {
     static hexStringToUint8Array(hexString: string): Uint8Array;
@@ -123,6 +125,7 @@ declare class SocialUtilsManager {
     static decryptMessage(ourPrivateKey: string, theirPublicKey: string, encryptedData: string): Promise<string>;
     private static pad;
     static getGMTOffset(timezone: string): string;
+    static exponentialBackoffRetry<T>(fn: () => Promise<T>, retries: number, delay: number, maxDelay: number, factor: number): Promise<T>;
 }
 declare class SocialDataManager {
     private _apiBaseUrl;
@@ -144,6 +147,26 @@ declare class SocialDataManager {
     retrieveCommunityThreadPostKeys(options: IRetrieveCommunityThreadPostKeysOptions): Promise<Record<string, string>>;
     retrieveCommunityPostKeysByNoteEvents(options: IRetrieveCommunityPostKeysByNoteEventsOptions): Promise<Record<string, string>>;
     constructMetadataByPubKeyMap(notes: INostrEvent[]): Promise<Record<string, INostrMetadata>>;
+    fetchUserProfiles(pubKeys: string[]): Promise<IUserProfile[]>;
+    fetchProfileFeedInfo(pubKey: string, since?: number, until?: number): Promise<{
+        notes: INoteInfo[];
+        metadataByPubKeyMap: Record<string, INostrMetadata>;
+        quotedNotesMap: Record<string, INoteInfo>;
+        earliest: number;
+    }>;
+    fetchProfileRepliesInfo(pubKey: string, since?: number, until?: number): Promise<{
+        notes: INoteInfo[];
+        metadataByPubKeyMap: Record<string, INostrMetadata>;
+        quotedNotesMap: Record<string, INoteInfo>;
+        earliest: number;
+    }>;
+    private getEarliestEventTimestamp;
+    fetchHomeFeedInfo(pubKey: string, since?: number, until?: number): Promise<{
+        notes: INoteInfo[];
+        metadataByPubKeyMap: Record<string, INostrMetadata>;
+        quotedNotesMap: Record<string, INoteInfo>;
+        earliest: number;
+    }>;
     createNoteEventMappings(events: INostrEvent[], parentAuthorsInfo?: boolean): {
         notes: INoteInfo[];
         metadataByPubKeyMap: Record<string, INostrMetadata>;
@@ -215,5 +238,8 @@ declare class SocialDataManager {
     fetchCitiesByKeyword(keyword: string): Promise<any[]>;
     fetchCitiesByCoordinates(latitude: number, longitude: number): Promise<any[]>;
     fetchLocationInfoFromIP(): Promise<IIPLocationInfo>;
+    private fetchEventMetadataFromIPFS;
+    getAccountBalance(walletAddress: string): Promise<any>;
+    getNFTsByOwner(walletAddress: string): Promise<any>;
 }
 export { NostrEventManager, ISocialEventManager, SocialUtilsManager, SocialDataManager };

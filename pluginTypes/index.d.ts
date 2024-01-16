@@ -1155,6 +1155,18 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         eventData: INostrEvent;
         stats?: IPostStats;
     }
+    export interface IAuthor {
+        id: string;
+        username: string;
+        description: string;
+        avatar: string;
+        pubKey?: string;
+        displayName?: string;
+        internetIdentifier: string;
+    }
+    export interface INoteInfoExtended extends INoteInfo {
+        parentAuthor?: IAuthor;
+    }
     export interface INoteCommunityInfo {
         eventData: INostrEvent;
         communityUri?: string;
@@ -1366,6 +1378,14 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         apiBaseUrl: string;
         ipLocationServiceApiKey?: string;
     }
+    export interface ILongFormContentInfo {
+        eventData: INostrEvent;
+        id: string;
+        title: string;
+        image?: string;
+        summary?: string;
+        publishedAt: number;
+    }
 }
 /// <amd-module name="@scom/scom-social-sdk/utils/geohash.ts" />
 declare module "@scom/scom-social-sdk/utils/geohash.ts" {
@@ -1480,6 +1500,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent>;
         createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse>;
         fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
+        fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     }
     interface ISocialEventManager {
         fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
@@ -1528,6 +1549,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent | null>;
         createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse>;
         fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
+        fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     }
     class SocialUtilsManager {
         static hexStringToUint8Array(hexString: string): Uint8Array;
@@ -1537,6 +1559,11 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         static decryptMessage(ourPrivateKey: string, theirPublicKey: string, encryptedData: string): Promise<string>;
         private static pad;
         static getGMTOffset(timezone: string): string;
+        static exponentialBackoffRetry<T>(fn: () => Promise<T>, // Function to retry
+        retries: number, // Maximum number of retries
+        delay: number, // Initial delay duration in milliseconds
+        maxDelay: number, // Maximum delay duration in milliseconds
+        factor: number): Promise<T>;
     }
     class SocialDataManager {
         private _apiBaseUrl;
@@ -1558,6 +1585,26 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         retrieveCommunityThreadPostKeys(options: IRetrieveCommunityThreadPostKeysOptions): Promise<Record<string, string>>;
         retrieveCommunityPostKeysByNoteEvents(options: IRetrieveCommunityPostKeysByNoteEventsOptions): Promise<Record<string, string>>;
         constructMetadataByPubKeyMap(notes: INostrEvent[]): Promise<Record<string, INostrMetadata>>;
+        fetchUserProfiles(pubKeys: string[]): Promise<IUserProfile[]>;
+        fetchProfileFeedInfo(pubKey: string, since?: number, until?: number): Promise<{
+            notes: INoteInfo[];
+            metadataByPubKeyMap: Record<string, INostrMetadata>;
+            quotedNotesMap: Record<string, INoteInfo>;
+            earliest: number;
+        }>;
+        fetchProfileRepliesInfo(pubKey: string, since?: number, until?: number): Promise<{
+            notes: INoteInfo[];
+            metadataByPubKeyMap: Record<string, INostrMetadata>;
+            quotedNotesMap: Record<string, INoteInfo>;
+            earliest: number;
+        }>;
+        private getEarliestEventTimestamp;
+        fetchHomeFeedInfo(pubKey: string, since?: number, until?: number): Promise<{
+            notes: INoteInfo[];
+            metadataByPubKeyMap: Record<string, INostrMetadata>;
+            quotedNotesMap: Record<string, INoteInfo>;
+            earliest: number;
+        }>;
         createNoteEventMappings(events: INostrEvent[], parentAuthorsInfo?: boolean): {
             notes: INoteInfo[];
             metadataByPubKeyMap: Record<string, INostrMetadata>;
@@ -1629,16 +1676,19 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchCitiesByKeyword(keyword: string): Promise<any[]>;
         fetchCitiesByCoordinates(latitude: number, longitude: number): Promise<any[]>;
         fetchLocationInfoFromIP(): Promise<IIPLocationInfo>;
+        private fetchEventMetadataFromIPFS;
+        getAccountBalance(walletAddress: string): Promise<any>;
+        getNFTsByOwner(walletAddress: string): Promise<any>;
     }
     export { NostrEventManager, ISocialEventManager, SocialUtilsManager, SocialDataManager };
 }
 /// <amd-module name="@scom/scom-social-sdk/utils/index.ts" />
 declare module "@scom/scom-social-sdk/utils/index.ts" {
-    export { INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityScpData, INoteInfo, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, INewCommunityInfo, MembershipType, CommunityRole, CalendarEventType, ICalendarEventInfo, IUpdateCalendarEventInfo, ICalendarEventHost, ICalendarEventAttendee, ICalendarEventDetailInfo, IIPLocationInfo, ISocialDataManagerConfig } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    export { INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityScpData, INoteInfo, INoteInfoExtended, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, INewCommunityInfo, MembershipType, CommunityRole, CalendarEventType, ICalendarEventInfo, IUpdateCalendarEventInfo, ICalendarEventHost, ICalendarEventAttendee, ICalendarEventDetailInfo, IIPLocationInfo, ISocialDataManagerConfig } from "@scom/scom-social-sdk/utils/interfaces.ts";
     export { NostrEventManager, ISocialEventManager, SocialUtilsManager, SocialDataManager } from "@scom/scom-social-sdk/utils/managers.ts";
 }
 /// <amd-module name="@scom/scom-social-sdk" />
 declare module "@scom/scom-social-sdk" {
     export { Event, Keys, Nip19, Bech32, } from "@scom/scom-social-sdk/core/index.ts";
-    export { INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityScpData, INoteInfo, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, INewCommunityInfo, MembershipType, CommunityRole, CalendarEventType, ICalendarEventInfo, IUpdateCalendarEventInfo, ICalendarEventHost, ICalendarEventAttendee, ICalendarEventDetailInfo, IIPLocationInfo, ISocialDataManagerConfig, NostrEventManager, ISocialEventManager, SocialUtilsManager, SocialDataManager } from "@scom/scom-social-sdk/utils/index.ts";
+    export { INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityScpData, INoteInfo, INoteInfoExtended, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, INewCommunityInfo, MembershipType, CommunityRole, CalendarEventType, ICalendarEventInfo, IUpdateCalendarEventInfo, ICalendarEventHost, ICalendarEventAttendee, ICalendarEventDetailInfo, IIPLocationInfo, ISocialDataManagerConfig, NostrEventManager, ISocialEventManager, SocialUtilsManager, SocialDataManager } from "@scom/scom-social-sdk/utils/index.ts";
 }
