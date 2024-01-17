@@ -270,8 +270,7 @@ export interface ICalendarEventDetailInfo extends ICalendarEventInfo {
     hosts?: ICalendarEventHost[];
     attendees?: ICalendarEventAttendee[];
 }
-export interface IIPLocationInfo {
-    ip: string;
+export interface ILocationCoordinates {
     latitude: number;
     longitude: number;
 }

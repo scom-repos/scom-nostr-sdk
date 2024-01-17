@@ -5229,7 +5229,6 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         constructor(config) {
             this._apiBaseUrl = config.apiBaseUrl;
             this._ipLocationServiceBaseUrl = config.ipLocationServiceBaseUrl;
-            this._ipLocationServiceApiKey = config.ipLocationServiceApiKey;
             this._socialEventManager = new NostrEventManager(config.relays, config.cachedServer, config.apiBaseUrl);
         }
         get socialEventManager() {
@@ -6688,22 +6687,17 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             return cities;
         }
         async fetchLocationInfoFromIP() {
-            if (!this._ipLocationServiceBaseUrl || !this._ipLocationServiceApiKey)
+            if (!this._ipLocationServiceBaseUrl)
                 return null;
-            const ipAddressResponse = await fetch('https://api.ipify.org?format=json');
-            const ipAddressResult = await ipAddressResponse.json();
-            const ipAddress = ipAddressResult.ip;
-            const response = await fetch(`${this._ipLocationServiceBaseUrl}/${ipAddress}?access_key=${this._ipLocationServiceApiKey}`);
-            const data = await response.json();
-            if (data.success === false) {
-                console.log('error', data.error);
-                return null;
+            const response = await fetch(this._ipLocationServiceBaseUrl);
+            const result = await response.json();
+            let locationInfo;
+            if (result.success) {
+                locationInfo = {
+                    latitude: result.data.lat,
+                    longitude: result.data.long
+                };
             }
-            let locationInfo = {
-                ip: data.ip,
-                latitude: data.latitude,
-                longitude: data.longitude
-            };
             return locationInfo;
         }
         async fetchEventMetadataFromIPFS(ipfsBaseUrl, eventId) {
@@ -6771,7 +6765,11 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         async submitMessage(message, privateKey, conversationPath) {
             await this._socialEventManager.postNote(message, privateKey, conversationPath);
         }
-        async submitLike(tags, privateKey) {
+        async submitLike(postEventData, privateKey) {
+            let tags = postEventData.tags.filter(tag => tag.length >= 2 && (tag[0] === 'e' || tag[0] === 'p'));
+            tags.push(['e', postEventData.id]);
+            tags.push(['p', postEventData.pubkey]);
+            tags.push(['k', postEventData.kind.toString()]);
             await this._socialEventManager.submitLike(tags, privateKey);
         }
     }

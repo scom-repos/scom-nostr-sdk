@@ -1,6 +1,6 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IIPLocationInfo, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
+import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, ILocationCoordinates, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
 import Geohash from './geohash';
 import GeoQuery from './geoquery';
 
@@ -1381,13 +1381,11 @@ class SocialUtilsManager {
 class SocialDataManager {
     private _apiBaseUrl: string;
     private _ipLocationServiceBaseUrl: string;
-    private _ipLocationServiceApiKey: string;
     private _socialEventManager: ISocialEventManager;
 
     constructor(config: ISocialDataManagerConfig) {
         this._apiBaseUrl = config.apiBaseUrl;
         this._ipLocationServiceBaseUrl = config.ipLocationServiceBaseUrl;
-        this._ipLocationServiceApiKey = config.ipLocationServiceApiKey;
         this._socialEventManager = new NostrEventManager(
             config.relays, 
             config.cachedServer, 
@@ -2929,20 +2927,15 @@ class SocialDataManager {
     }
 
     async fetchLocationInfoFromIP() {
-        if (!this._ipLocationServiceBaseUrl || !this._ipLocationServiceApiKey) return null;
-        const ipAddressResponse = await fetch('https://api.ipify.org?format=json');
-        const ipAddressResult = await ipAddressResponse.json();
-        const ipAddress: string = ipAddressResult.ip;
-        const response = await fetch(`${this._ipLocationServiceBaseUrl}/${ipAddress}?access_key=${this._ipLocationServiceApiKey}`);
-        const data = await response.json();
-        if (data.success === false) {
-            console.log('error', data.error);
-            return null;
-        }
-        let locationInfo: IIPLocationInfo = {
-            ip: data.ip,
-            latitude: data.latitude,
-            longitude: data.longitude
+        if (!this._ipLocationServiceBaseUrl) return null;
+        const response = await fetch(this._ipLocationServiceBaseUrl);
+        const result = await response.json();
+        let locationInfo: ILocationCoordinates;
+        if (result.success) {
+            locationInfo = {
+                latitude: result.data.lat,
+                longitude: result.data.long
+            }
         }
         return locationInfo;
     }
@@ -3016,7 +3009,13 @@ class SocialDataManager {
         await this._socialEventManager.postNote(message, privateKey, conversationPath);
     }
 
-    async submitLike(tags: string[][], privateKey: string) {
+    async submitLike(postEventData: INostrEvent, privateKey: string) {
+        let tags: string[][] = postEventData.tags.filter(
+            tag => tag.length >= 2 && (tag[0] === 'e' || tag[0] === 'p')
+        );
+        tags.push(['e', postEventData.id]);
+        tags.push(['p', postEventData.pubkey]);
+        tags.push(['k', postEventData.kind.toString()]);
         await this._socialEventManager.submitLike(tags, privateKey);
     }
 }

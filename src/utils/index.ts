@@ -22,7 +22,7 @@ export {
     ICalendarEventHost,
     ICalendarEventAttendee,
     ICalendarEventDetailInfo,
-    IIPLocationInfo,
+    ILocationCoordinates,
     ISocialDataManagerConfig
 } from "./interfaces";
 

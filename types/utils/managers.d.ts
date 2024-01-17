@@ -1,5 +1,5 @@
 import { Nip19 } from "../core/index";
-import { CommunityRole, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IIPLocationInfo, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "./interfaces";
+import { CommunityRole, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, ILocationCoordinates, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "./interfaces";
 interface IFetchMetadataOptions {
     authors?: string[];
     decodedAuthors?: string[];
@@ -120,7 +120,6 @@ declare class SocialUtilsManager {
 declare class SocialDataManager {
     private _apiBaseUrl;
     private _ipLocationServiceBaseUrl;
-    private _ipLocationServiceApiKey;
     private _socialEventManager;
     constructor(config: ISocialDataManagerConfig);
     get socialEventManager(): ISocialEventManager;
@@ -228,11 +227,11 @@ declare class SocialDataManager {
     fetchTimezones(): Promise<any[]>;
     fetchCitiesByKeyword(keyword: string): Promise<any[]>;
     fetchCitiesByCoordinates(latitude: number, longitude: number): Promise<any[]>;
-    fetchLocationInfoFromIP(): Promise<IIPLocationInfo>;
+    fetchLocationInfoFromIP(): Promise<ILocationCoordinates>;
     private fetchEventMetadataFromIPFS;
     getAccountBalance(walletAddress: string): Promise<any>;
     getNFTsByOwner(walletAddress: string): Promise<any>;
     submitMessage(message: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
-    submitLike(tags: string[][], privateKey: string): Promise<void>;
+    submitLike(postEventData: INostrEvent, privateKey: string): Promise<void>;
 }
 export { NostrEventManager, ISocialEventManager, SocialUtilsManager, SocialDataManager };
