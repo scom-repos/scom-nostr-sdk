@@ -1392,8 +1392,8 @@ declare module "@scom/scom-social-sdk/utils/geohash.ts" {
     const Geohash: {
         ENCODE_AUTO: string;
         encode: (latitude: number | string, longitude: number | string, numberOfChars?: number | 'auto') => string;
-        encode_uint64: (latitude: number, longitude: number, bitDepth: number) => number;
-        encode_int: (latitude: number, longitude: number, bitDepth: number) => number;
+        encode_uint64: (latitude: number, longitude: number, bitDepth?: number) => number;
+        encode_int: (latitude: number, longitude: number, bitDepth?: number) => number;
         decode: (hashString: string) => {
             latitude: number;
             longitude: number;
@@ -1430,21 +1430,21 @@ declare module "@scom/scom-social-sdk/utils/geohash.ts" {
     };
     export default Geohash;
 }
+/// <amd-module name="@scom/scom-social-sdk/utils/geoquery.ts" />
+declare module "@scom/scom-social-sdk/utils/geoquery.ts" {
+    const _default: {
+        queryByProximity: (lat: number, lon: number, radius: number) => number[][];
+        calculateGeoIndex: (lat: number, lon: number) => number;
+    };
+    export default _default;
+}
 /// <amd-module name="@scom/scom-social-sdk/utils/managers.ts" />
 declare module "@scom/scom-social-sdk/utils/managers.ts" {
     import { Nip19 } from "@scom/scom-social-sdk/core/index.ts";
     import { CommunityRole, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IIPLocationInfo, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
-    interface IFetchNotesOptions {
-        authors?: string[];
-        ids?: string[];
-    }
     interface IFetchMetadataOptions {
         authors?: string[];
         decodedAuthors?: string[];
-    }
-    interface IFetchRepliesOptions {
-        noteIds?: string[];
-        decodedIds?: string[];
     }
     class NostrEventManager {
         private _relays;
@@ -1469,12 +1469,9 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
         fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
         fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
-        fetchNotes(options: IFetchNotesOptions): Promise<INostrEvent[]>;
         fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
-        fetchReplies(options: IFetchRepliesOptions): Promise<INostrEvent[]>;
-        fetchFollowing(npubs: string[]): Promise<INostrEvent[]>;
         postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
-        calculateConversationPathTags(conversationPath: IConversationPath): string[][];
+        private calculateConversationPathTags;
         deleteEvents(eventIds: string[], privateKey: string): Promise<INostrSubmitResponse>;
         updateChannel(info: IChannelInfo, privateKey: string): Promise<INostrSubmitResponse>;
         updateUserBookmarkedChannels(channelEventIds: string[], privateKey: string): Promise<void>;
@@ -1501,6 +1498,8 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse>;
         fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
         fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
+        submitLike(eventId: string, privateKey: string): Promise<void>;
+        fetchLikes(eventId: string): Promise<INostrEvent[]>;
     }
     interface ISocialEventManager {
         fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
@@ -1519,10 +1518,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
         fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
         fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
-        fetchNotes(options: IFetchNotesOptions): Promise<INostrEvent[]>;
         fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
-        fetchReplies(options: IFetchRepliesOptions): Promise<INostrEvent[]>;
-        fetchFollowing(npubs: string[]): Promise<INostrEvent[]>;
         postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
         deleteEvents(eventIds: string[], privateKey: string): Promise<INostrSubmitResponse>;
         updateCommunity(info: ICommunityInfo, privateKey: string): Promise<INostrSubmitResponse>;
@@ -1550,6 +1546,8 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse>;
         fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
         fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
+        submitLike(eventId: string, privateKey: string): Promise<void>;
+        fetchLikes(eventId: string): Promise<INostrEvent[]>;
     }
     class SocialUtilsManager {
         static hexStringToUint8Array(hexString: string): Uint8Array;

@@ -1,16 +1,8 @@
 import { Nip19 } from "../core/index";
 import { CommunityRole, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IIPLocationInfo, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "./interfaces";
-interface IFetchNotesOptions {
-    authors?: string[];
-    ids?: string[];
-}
 interface IFetchMetadataOptions {
     authors?: string[];
     decodedAuthors?: string[];
-}
-interface IFetchRepliesOptions {
-    noteIds?: string[];
-    decodedIds?: string[];
 }
 declare class NostrEventManager {
     private _relays;
@@ -35,12 +27,9 @@ declare class NostrEventManager {
     fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
-    fetchNotes(options: IFetchNotesOptions): Promise<INostrEvent[]>;
     fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
-    fetchReplies(options: IFetchRepliesOptions): Promise<INostrEvent[]>;
-    fetchFollowing(npubs: string[]): Promise<INostrEvent[]>;
     postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
-    calculateConversationPathTags(conversationPath: IConversationPath): string[][];
+    private calculateConversationPathTags;
     deleteEvents(eventIds: string[], privateKey: string): Promise<INostrSubmitResponse>;
     updateChannel(info: IChannelInfo, privateKey: string): Promise<INostrSubmitResponse>;
     updateUserBookmarkedChannels(channelEventIds: string[], privateKey: string): Promise<void>;
@@ -67,6 +56,8 @@ declare class NostrEventManager {
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse>;
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
     fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
+    submitLike(eventId: string, privateKey: string): Promise<void>;
+    fetchLikes(eventId: string): Promise<INostrEvent[]>;
 }
 interface ISocialEventManager {
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
@@ -85,10 +76,7 @@ interface ISocialEventManager {
     fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
-    fetchNotes(options: IFetchNotesOptions): Promise<INostrEvent[]>;
     fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
-    fetchReplies(options: IFetchRepliesOptions): Promise<INostrEvent[]>;
-    fetchFollowing(npubs: string[]): Promise<INostrEvent[]>;
     postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
     deleteEvents(eventIds: string[], privateKey: string): Promise<INostrSubmitResponse>;
     updateCommunity(info: ICommunityInfo, privateKey: string): Promise<INostrSubmitResponse>;
@@ -116,6 +104,8 @@ interface ISocialEventManager {
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse>;
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
     fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
+    submitLike(eventId: string, privateKey: string): Promise<void>;
+    fetchLikes(eventId: string): Promise<INostrEvent[]>;
 }
 declare class SocialUtilsManager {
     static hexStringToUint8Array(hexString: string): Uint8Array;

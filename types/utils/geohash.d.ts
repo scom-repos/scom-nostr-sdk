@@ -1,8 +1,8 @@
 declare const Geohash: {
     ENCODE_AUTO: string;
     encode: (latitude: number | string, longitude: number | string, numberOfChars?: number | 'auto') => string;
-    encode_uint64: (latitude: number, longitude: number, bitDepth: number) => number;
-    encode_int: (latitude: number, longitude: number, bitDepth: number) => number;
+    encode_uint64: (latitude: number, longitude: number, bitDepth?: number) => number;
+    encode_int: (latitude: number, longitude: number, bitDepth?: number) => number;
     decode: (hashString: string) => {
         latitude: number;
         longitude: number;

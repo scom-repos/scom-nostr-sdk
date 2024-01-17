@@ -109,7 +109,7 @@ const encode = (
  * @param {Number} bitDepth
  * @returns {Number}
  */
-const encode_int = (latitude: number, longitude: number, bitDepth: number) => {
+const encode_int = (latitude: number, longitude: number, bitDepth?: number) => {
     bitDepth = bitDepth || 52;
 
     let bitsTotal = 0;

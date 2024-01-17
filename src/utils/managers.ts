@@ -2,6 +2,7 @@ import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
 import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, IIPLocationInfo, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
 import Geohash from './geohash';
+import GeoQuery from './geoquery';
 
 interface IFetchNotesOptions {
     authors?: string[];
@@ -425,18 +426,18 @@ class NostrEventManager {
         return events;        
     }
 
-    async fetchNotes(options: IFetchNotesOptions) {
-        const decodedNpubs = options.authors?.map(npub => Nip19.decode(npub).data);
-        let decodedIds = options.ids?.map(id => id.startsWith('note1') ? Nip19.decode(id).data : id);
-        let msg: any = {
-            kinds: [1],
-            limit: 20
-        };
-        if (decodedNpubs) msg.authors = decodedNpubs;
-        if (decodedIds) msg.ids = decodedIds;
-        const events = await this._websocketManager.fetchWebSocketEvents(msg);
-        return events;
-    }
+    // async fetchNotes(options: IFetchNotesOptions) {
+    //     const decodedNpubs = options.authors?.map(npub => Nip19.decode(npub).data);
+    //     let decodedIds = options.ids?.map(id => id.startsWith('note1') ? Nip19.decode(id).data : id);
+    //     let msg: any = {
+    //         kinds: [1],
+    //         limit: 20
+    //     };
+    //     if (decodedNpubs) msg.authors = decodedNpubs;
+    //     if (decodedIds) msg.ids = decodedIds;
+    //     const events = await this._websocketManager.fetchWebSocketEvents(msg);
+    //     return events;
+    // }
 
     async fetchMetadata(options: IFetchMetadataOptions) {
         let decodedNpubs;
@@ -454,32 +455,32 @@ class NostrEventManager {
         return events;
     }
 
-    async fetchReplies(options: IFetchRepliesOptions) {
-        let decodedNoteIds;
-        if (options.decodedIds) {
-            decodedNoteIds = options.decodedIds;
-        }
-        else {
-            decodedNoteIds = options.noteIds?.map(id => id.startsWith('note1') ? Nip19.decode(id).data : id);
-        }
-        const msg = {
-            "#e": decodedNoteIds,
-            kinds: [1],
-            limit: 20,
-        }
-        const events = await this._websocketManager.fetchWebSocketEvents(msg);
-        return events;
-    }
+    // async fetchReplies(options: IFetchRepliesOptions) {
+    //     let decodedNoteIds;
+    //     if (options.decodedIds) {
+    //         decodedNoteIds = options.decodedIds;
+    //     }
+    //     else {
+    //         decodedNoteIds = options.noteIds?.map(id => id.startsWith('note1') ? Nip19.decode(id).data : id);
+    //     }
+    //     const msg = {
+    //         "#e": decodedNoteIds,
+    //         kinds: [1],
+    //         limit: 20,
+    //     }
+    //     const events = await this._websocketManager.fetchWebSocketEvents(msg);
+    //     return events;
+    // }
 
-    async fetchFollowing(npubs: string[]) {
-        const decodedNpubs = npubs.map(npub => Nip19.decode(npub).data);
-        const msg = {
-            authors: decodedNpubs,
-            kinds: [3]
-        }
-        const events = await this._websocketManager.fetchWebSocketEvents(msg);
-        return events;
-    }
+    // async fetchFollowing(npubs: string[]) {
+    //     const decodedNpubs = npubs.map(npub => Nip19.decode(npub).data);
+    //     const msg = {
+    //         authors: decodedNpubs,
+    //         kinds: [3]
+    //     }
+    //     const events = await this._websocketManager.fetchWebSocketEvents(msg);
+    //     return events;
+    // }
 
     async postNote(content: string, privateKey: string, conversationPath?: IConversationPath) {
         let event = {
@@ -496,7 +497,7 @@ class NostrEventManager {
         await this._websocketManager.submitEvent(event, privateKey);
     }
 
-    calculateConversationPathTags(conversationPath: IConversationPath) {
+    private calculateConversationPathTags(conversationPath: IConversationPath) {
         let tags: string[][] = [];
         for (let i = 0; i < conversationPath.noteIds.length; i++) {
             const noteId = conversationPath.noteIds[i];
@@ -1177,6 +1178,30 @@ class NostrEventManager {
         const events = await this._websocketManager.fetchWebSocketEvents(req);
         return events;
     }
+
+    async submitLike(eventId: string, privateKey: string) {
+        let event = {
+            "kind": 7,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": "+",
+            "tags": [
+                [
+                    "e",
+                    eventId
+                ]
+            ]
+        };
+        await this._websocketManager.submitEvent(event, privateKey);
+    }
+
+    async fetchLikes(eventId: string) {
+        let req: any = {
+            kinds: [7],
+            "#e": [eventId]
+        };
+        const events = await this._websocketManager.fetchWebSocketEvents(req);
+        return events;
+    }
 }
 
 interface ISocialEventManager {
@@ -1196,10 +1221,10 @@ interface ISocialEventManager {
     fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
-    fetchNotes(options: IFetchNotesOptions): Promise<INostrEvent[]>;
+    // fetchNotes(options: IFetchNotesOptions): Promise<INostrEvent[]>;
     fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
-    fetchReplies(options: IFetchRepliesOptions): Promise<INostrEvent[]>;
-    fetchFollowing(npubs: string[]): Promise<INostrEvent[]>;
+    // fetchReplies(options: IFetchRepliesOptions): Promise<INostrEvent[]>;
+    // fetchFollowing(npubs: string[]): Promise<INostrEvent[]>;
     postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
     deleteEvents(eventIds: string[], privateKey: string): Promise<INostrSubmitResponse>;
     updateCommunity(info: ICommunityInfo, privateKey: string): Promise<INostrSubmitResponse>;
@@ -1227,6 +1252,8 @@ interface ISocialEventManager {
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse>;
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
     fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
+    submitLike(eventId: string, privateKey: string): Promise<void>;
+    fetchLikes(eventId: string): Promise<INostrEvent[]>;
 }
 
 class SocialUtilsManager {
