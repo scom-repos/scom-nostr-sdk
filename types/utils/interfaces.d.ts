@@ -279,6 +279,7 @@ export interface ISocialDataManagerConfig {
     relays: string[];
     cachedServer: string;
     apiBaseUrl: string;
+    ipLocationServiceBaseUrl?: string;
     ipLocationServiceApiKey?: string;
 }
 export interface ILongFormContentInfo {

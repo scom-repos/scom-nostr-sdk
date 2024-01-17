@@ -1179,17 +1179,12 @@ class NostrEventManager {
         return events;
     }
 
-    async submitLike(eventId: string, privateKey: string) {
+    async submitLike(tags: string[][], privateKey: string) {
         let event = {
             "kind": 7,
             "created_at": Math.round(Date.now() / 1000),
             "content": "+",
-            "tags": [
-                [
-                    "e",
-                    eventId
-                ]
-            ]
+            "tags": tags
         };
         await this._websocketManager.submitEvent(event, privateKey);
     }
@@ -1252,7 +1247,7 @@ interface ISocialEventManager {
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse>;
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
     fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    submitLike(eventId: string, privateKey: string): Promise<void>;
+    submitLike(tags: string[][], privateKey: string): Promise<void>;
     fetchLikes(eventId: string): Promise<INostrEvent[]>;
 }
 
@@ -1385,11 +1380,13 @@ class SocialUtilsManager {
 
 class SocialDataManager {
     private _apiBaseUrl: string;
+    private _ipLocationServiceBaseUrl: string;
     private _ipLocationServiceApiKey: string;
     private _socialEventManager: ISocialEventManager;
 
     constructor(config: ISocialDataManagerConfig) {
         this._apiBaseUrl = config.apiBaseUrl;
+        this._ipLocationServiceBaseUrl = config.ipLocationServiceBaseUrl;
         this._ipLocationServiceApiKey = config.ipLocationServiceApiKey;
         this._socialEventManager = new NostrEventManager(
             config.relays, 
@@ -2932,11 +2929,11 @@ class SocialDataManager {
     }
 
     async fetchLocationInfoFromIP() {
-        if (!this._ipLocationServiceApiKey) return null;
+        if (!this._ipLocationServiceBaseUrl || !this._ipLocationServiceApiKey) return null;
         const ipAddressResponse = await fetch('https://api.ipify.org?format=json');
         const ipAddressResult = await ipAddressResponse.json();
         const ipAddress: string = ipAddressResult.ip;
-        const response = await fetch(`http://api.ipapi.com/${ipAddress}?access_key=${this._ipLocationServiceApiKey}`);
+        const response = await fetch(`${this._ipLocationServiceBaseUrl}/${ipAddress}?access_key=${this._ipLocationServiceApiKey}`);
         const data = await response.json();
         if (data.success === false) {
             console.log('error', data.error);
@@ -3013,6 +3010,14 @@ class SocialDataManager {
             return null;
         }
         return data.result;
+    }
+
+    async submitMessage(message: string, privateKey: string, conversationPath?: IConversationPath) {
+        await this._socialEventManager.postNote(message, privateKey, conversationPath);
+    }
+
+    async submitLike(tags: string[][], privateKey: string) {
+        await this._socialEventManager.submitLike(tags, privateKey);
     }
 }
 

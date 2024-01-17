@@ -56,7 +56,7 @@ declare class NostrEventManager {
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse>;
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
     fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    submitLike(eventId: string, privateKey: string): Promise<void>;
+    submitLike(tags: string[][], privateKey: string): Promise<void>;
     fetchLikes(eventId: string): Promise<INostrEvent[]>;
 }
 interface ISocialEventManager {
@@ -104,7 +104,7 @@ interface ISocialEventManager {
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse>;
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
     fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    submitLike(eventId: string, privateKey: string): Promise<void>;
+    submitLike(tags: string[][], privateKey: string): Promise<void>;
     fetchLikes(eventId: string): Promise<INostrEvent[]>;
 }
 declare class SocialUtilsManager {
@@ -119,6 +119,7 @@ declare class SocialUtilsManager {
 }
 declare class SocialDataManager {
     private _apiBaseUrl;
+    private _ipLocationServiceBaseUrl;
     private _ipLocationServiceApiKey;
     private _socialEventManager;
     constructor(config: ISocialDataManagerConfig);
@@ -231,5 +232,7 @@ declare class SocialDataManager {
     private fetchEventMetadataFromIPFS;
     getAccountBalance(walletAddress: string): Promise<any>;
     getNFTsByOwner(walletAddress: string): Promise<any>;
+    submitMessage(message: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
+    submitLike(tags: string[][], privateKey: string): Promise<void>;
 }
 export { NostrEventManager, ISocialEventManager, SocialUtilsManager, SocialDataManager };
