@@ -229,6 +229,16 @@ export declare enum CommunityRole {
     GeneralMember = "generalMember",
     None = "none"
 }
+export interface ICommunityMember {
+    id?: string;
+    name?: string;
+    profileImageUrl?: string;
+    username?: string;
+    role: CommunityRole;
+}
+export interface ICommunity extends ICommunityInfo {
+    members: ICommunityMember[];
+}
 export declare enum CalendarEventType {
     DateBased = "dateBased",
     TimeBased = "timeBased"

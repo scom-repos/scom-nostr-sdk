@@ -1,5 +1,5 @@
 import { Nip19 } from "../core/index";
-import { CommunityRole, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, ILocationCoordinates, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "./interfaces";
+import { CommunityRole, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, IConversationPath, ILocationCoordinates, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "./interfaces";
 interface IFetchMetadataOptions {
     authors?: string[];
     decodedAuthors?: string[];
@@ -140,6 +140,11 @@ declare class SocialDataManager {
     retrieveCommunityPostKeysByNoteEvents(options: IRetrieveCommunityPostKeysByNoteEventsOptions): Promise<Record<string, string>>;
     constructMetadataByPubKeyMap(notes: INostrEvent[]): Promise<Record<string, INostrMetadata>>;
     fetchUserProfiles(pubKeys: string[]): Promise<IUserProfile[]>;
+    updateUserProfile(content: INostrMetadataContent, privateKey: string): Promise<void>;
+    fetchTrendingNotesInfo(): Promise<{
+        notes: INoteInfo[];
+        metadataByPubKeyMap: Record<string, INostrMetadata>;
+    }>;
     fetchProfileFeedInfo(pubKey: string, since?: number, until?: number): Promise<{
         notes: INoteInfo[];
         metadataByPubKeyMap: Record<string, INostrMetadata>;
@@ -198,6 +203,8 @@ declare class SocialDataManager {
     updateCommunity(info: ICommunityInfo, privateKey: string): Promise<ICommunityInfo>;
     updateCommunityChannel(communityInfo: ICommunityInfo, privateKey: string): Promise<INostrSubmitResponse>;
     createChannel(channelInfo: IChannelInfo, memberIds: string[], privateKey: string): Promise<IChannelInfo>;
+    fetchCommunitiesMembers(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
+    fetchCommunities(): Promise<ICommunity[]>;
     fetchMyCommunities(pubKey: string): Promise<ICommunityInfo[]>;
     private extractBookmarkedCommunities;
     private extractBookmarkedChannels;
@@ -214,6 +221,13 @@ declare class SocialDataManager {
     }>;
     retrieveChannelMessageKeys(options: IRetrieveChannelMessageKeysOptions): Promise<Record<string, string>>;
     submitChannelMessage(message: string, channelId: string, privateKey: string, communityPublicKey: string, conversationPath?: IConversationPath): Promise<void>;
+    fetchDirectMessagesBySender(selfPubKey: string, senderPubKey: string, since?: number, until?: number): Promise<{
+        decodedSenderPubKey: string;
+        encryptedMessages: any[];
+        metadataByPubKeyMap: Record<string, INostrMetadata>;
+    }>;
+    sendDirectMessage(chatId: string, message: string, privateKey: string): Promise<void>;
+    resetMessageCount(selfPubKey: string, senderPubKey: string, privateKey: string): Promise<void>;
     fetchMessageContacts(pubKey: string): Promise<IMessageContactInfo[]>;
     fetchUserGroupInvitations(pubKey: string): Promise<string[]>;
     mapCommunityUriToMemberIdRoleCombo(communities: ICommunityInfo[]): Promise<Record<string, {

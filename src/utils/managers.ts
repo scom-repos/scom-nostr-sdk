@@ -1,6 +1,6 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunityBasicInfo, ICommunityInfo, IConversationPath, ILocationCoordinates, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
+import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, IConversationPath, ILocationCoordinates, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
 import Geohash from './geohash';
 import GeoQuery from './geoquery';
 
@@ -36,6 +36,13 @@ function convertUnixTimestampToDate(timestamp: number): string {
     const month = ("0" + (date.getMonth() + 1)).slice(-2); 
     const day = ("0" + date.getDate()).slice(-2);
     return `${year}-${month}-${day}`;
+}
+
+//FIXME: remove this when compiler is fixed
+function flatMap<T, U>(array: T[], callback: (item: T) => U[]): U[] {
+    return array.reduce((acc, item) => {
+        return acc.concat(callback(item));
+    }, [] as U[]);
 }
 
 class NostrWebSocketManager {
@@ -1769,6 +1776,40 @@ class SocialDataManager {
         return userProfiles;
     }
 
+    async updateUserProfile(content: INostrMetadataContent, privateKey: string) {
+        await this._socialEventManager.updateUserProfile({
+            name: content.name,
+            display_name: content.display_name,
+            website: content.website,
+            picture: content.picture,
+            about: content.about,
+            banner: content.banner
+        }, privateKey)
+    }
+
+    async fetchTrendingNotesInfo() {
+        let notes: INoteInfo[] = [];
+        let metadataByPubKeyMap: Record<string, INostrMetadata> = {};
+        const events = await this._socialEventManager.fetchTrendingCacheEvents();
+        for (let event of events) {
+            if (event.kind === 0) {
+                metadataByPubKeyMap[event.pubkey] = {
+                    ...event,
+                    content: JSON.parse(event.content)
+                };
+            }
+            else if (event.kind === 1) {
+                notes.push({
+                    eventData: event
+                });
+            }
+        }
+        return {
+            notes,
+            metadataByPubKeyMap
+        };
+    }
+
     async fetchProfileFeedInfo(pubKey: string, since: number = 0, until?: number) {
         const events = await this._socialEventManager.fetchProfileFeedCacheEvents(pubKey, since, until);
         const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
@@ -2256,6 +2297,56 @@ class SocialDataManager {
         return channelInfo;
     }
 
+    async fetchCommunitiesMembers(communities: ICommunityInfo[]) {
+        const communityUriToMemberIdRoleComboMap = await this.mapCommunityUriToMemberIdRoleCombo(communities);
+        let pubkeys = new Set(flatMap(Object.values(communityUriToMemberIdRoleComboMap), combo => combo.map(c => c.id)));
+        const communityUriToMembersMap: Record<string, ICommunityMember[]> = {};
+        if (pubkeys.size > 0) {
+            const userProfiles = await this.fetchUserProfiles(Array.from(pubkeys));
+            for (let community of communities) {
+                const decodedPubkey = Nip19.decode(community.creatorId).data as string;
+                const communityUri = `34550:${decodedPubkey}:${community.communityId}`;
+                const memberIds = communityUriToMemberIdRoleComboMap[communityUri];
+                if (!memberIds) continue;
+                const communityMembers: ICommunityMember[] = [];
+                for (let memberIdRoleCombo of memberIds) {
+                    const userProfile = userProfiles.find(profile => profile.pubKey === memberIdRoleCombo.id);
+                    if (!userProfile) continue;
+                    let communityMember: ICommunityMember = {
+                        id: userProfile.pubKey,
+                        name: userProfile.displayName,
+                        profileImageUrl: userProfile.avatar,
+                        username: userProfile.username,
+                        role: memberIdRoleCombo.role
+                    }
+                    communityMembers.push(communityMember);
+                }
+                communityUriToMembersMap[communityUri] = communityMembers;
+            }
+        }
+        return communityUriToMembersMap;
+    }
+    
+    async fetchCommunities() {
+        let communities: ICommunity[] = [];
+        const events = await this._socialEventManager.fetchCommunities();
+        for (let event of events) {
+            const communityInfo = this.extractCommunityInfo(event);
+            let community: ICommunity = {
+                ...communityInfo,
+                members: []
+            }
+            communities.push(community);
+        }
+        const communityUriToMembersMap = await this.fetchCommunitiesMembers(communities);
+        for (let community of communities) {
+            const decodedPubkey = Nip19.decode(community.creatorId).data as string;
+            const communityUri = `34550:${decodedPubkey}:${community.communityId}`;
+            community.members = communityUriToMembersMap[communityUri];
+        }
+        return communities;
+    }
+
     async fetchMyCommunities(pubKey: string) {
         let communities: ICommunityInfo[] = [];
         const pubkeyToCommunityIdsMap: Record<string, string[]> = {};
@@ -2362,15 +2453,25 @@ class SocialDataManager {
             encryptedMessage,
             encryptedGroupKey
         } = await this.encryptGroupMessage(privateKey, info.scpData.publicKey, JSON.stringify(messageContent));
-        const newCommunityPostInfo: INewCommunityPostInfo = {
-            community: info,
-            message: encryptedMessage,
-            conversationPath,
-            scpData: {
-                encryptedKey: encryptedGroupKey,
-                communityUri: info.communityUri
+        let newCommunityPostInfo: INewCommunityPostInfo;
+        if (info.membershipType === MembershipType.Open) {
+            newCommunityPostInfo = {
+                community: info,
+                message,
+                conversationPath
             }
         }
+        else {
+            newCommunityPostInfo = {
+                community: info,
+                message: encryptedMessage,
+                conversationPath,
+                scpData: {
+                    encryptedKey: encryptedGroupKey,
+                    communityUri: info.communityUri
+                }
+            }
+        }   
         await this._socialEventManager.submitCommunityPost(newCommunityPostInfo, privateKey);
     }
 
@@ -2586,6 +2687,38 @@ class SocialDataManager {
             }
         }
         await this._socialEventManager.submitChannelMessage(newChannelMessageInfo, privateKey);
+    }
+
+    async fetchDirectMessagesBySender(selfPubKey: string, senderPubKey: string, since?: number, until?: number) {
+        const decodedSenderPubKey = Nip19.decode(senderPubKey).data as string;
+        const events = await this._socialEventManager.fetchDirectMessages(selfPubKey, decodedSenderPubKey, since, until);
+        let metadataByPubKeyMap: Record<string, INostrMetadata> = {};
+        const encryptedMessages = [];
+        for (let event of events) {
+            if (event.kind === 0) {
+                metadataByPubKeyMap[event.pubkey] = {
+                    ...event,
+                    content: JSON.parse(event.content)
+                };
+            } else if (event.kind === 4) {
+                encryptedMessages.push(event);
+            }
+        }
+        return { 
+            decodedSenderPubKey, 
+            encryptedMessages,
+            metadataByPubKeyMap 
+        };
+    }
+    
+    async sendDirectMessage(chatId: string, message: string, privateKey: string) {
+        const decodedReceiverPubKey = Nip19.decode(chatId).data as string;
+        const content = await SocialUtilsManager.encryptMessage(privateKey, decodedReceiverPubKey, message);
+        await this._socialEventManager.sendMessage(decodedReceiverPubKey, content, privateKey);
+    }
+
+    async resetMessageCount(selfPubKey: string, senderPubKey: string, privateKey: string) {
+        await this._socialEventManager.resetMessageCount(selfPubKey, senderPubKey, privateKey);
     }
 
     async fetchMessageContacts(pubKey: string) {

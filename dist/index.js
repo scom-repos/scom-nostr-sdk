@@ -4030,6 +4030,12 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         const day = ("0" + date.getDate()).slice(-2);
         return `${year}-${month}-${day}`;
     }
+    //FIXME: remove this when compiler is fixed
+    function flatMap(array, callback) {
+        return array.reduce((acc, item) => {
+            return acc.concat(callback(item));
+        }, []);
+    }
     class NostrWebSocketManager {
         constructor(url) {
             this.requestCallbackMap = {};
@@ -5597,6 +5603,38 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             }
             return userProfiles;
         }
+        async updateUserProfile(content, privateKey) {
+            await this._socialEventManager.updateUserProfile({
+                name: content.name,
+                display_name: content.display_name,
+                website: content.website,
+                picture: content.picture,
+                about: content.about,
+                banner: content.banner
+            }, privateKey);
+        }
+        async fetchTrendingNotesInfo() {
+            let notes = [];
+            let metadataByPubKeyMap = {};
+            const events = await this._socialEventManager.fetchTrendingCacheEvents();
+            for (let event of events) {
+                if (event.kind === 0) {
+                    metadataByPubKeyMap[event.pubkey] = {
+                        ...event,
+                        content: JSON.parse(event.content)
+                    };
+                }
+                else if (event.kind === 1) {
+                    notes.push({
+                        eventData: event
+                    });
+                }
+            }
+            return {
+                notes,
+                metadataByPubKeyMap
+            };
+        }
         async fetchProfileFeedInfo(pubKey, since = 0, until) {
             const events = await this._socialEventManager.fetchProfileFeedCacheEvents(pubKey, since, until);
             const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
@@ -6029,6 +6067,56 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             }
             return channelInfo;
         }
+        async fetchCommunitiesMembers(communities) {
+            const communityUriToMemberIdRoleComboMap = await this.mapCommunityUriToMemberIdRoleCombo(communities);
+            let pubkeys = new Set(flatMap(Object.values(communityUriToMemberIdRoleComboMap), combo => combo.map(c => c.id)));
+            const communityUriToMembersMap = {};
+            if (pubkeys.size > 0) {
+                const userProfiles = await this.fetchUserProfiles(Array.from(pubkeys));
+                for (let community of communities) {
+                    const decodedPubkey = index_1.Nip19.decode(community.creatorId).data;
+                    const communityUri = `34550:${decodedPubkey}:${community.communityId}`;
+                    const memberIds = communityUriToMemberIdRoleComboMap[communityUri];
+                    if (!memberIds)
+                        continue;
+                    const communityMembers = [];
+                    for (let memberIdRoleCombo of memberIds) {
+                        const userProfile = userProfiles.find(profile => profile.pubKey === memberIdRoleCombo.id);
+                        if (!userProfile)
+                            continue;
+                        let communityMember = {
+                            id: userProfile.pubKey,
+                            name: userProfile.displayName,
+                            profileImageUrl: userProfile.avatar,
+                            username: userProfile.username,
+                            role: memberIdRoleCombo.role
+                        };
+                        communityMembers.push(communityMember);
+                    }
+                    communityUriToMembersMap[communityUri] = communityMembers;
+                }
+            }
+            return communityUriToMembersMap;
+        }
+        async fetchCommunities() {
+            let communities = [];
+            const events = await this._socialEventManager.fetchCommunities();
+            for (let event of events) {
+                const communityInfo = this.extractCommunityInfo(event);
+                let community = {
+                    ...communityInfo,
+                    members: []
+                };
+                communities.push(community);
+            }
+            const communityUriToMembersMap = await this.fetchCommunitiesMembers(communities);
+            for (let community of communities) {
+                const decodedPubkey = index_1.Nip19.decode(community.creatorId).data;
+                const communityUri = `34550:${decodedPubkey}:${community.communityId}`;
+                community.members = communityUriToMembersMap[communityUri];
+            }
+            return communities;
+        }
         async fetchMyCommunities(pubKey) {
             let communities = [];
             const pubkeyToCommunityIdsMap = {};
@@ -6127,15 +6215,25 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 message,
             };
             const { encryptedMessage, encryptedGroupKey } = await this.encryptGroupMessage(privateKey, info.scpData.publicKey, JSON.stringify(messageContent));
-            const newCommunityPostInfo = {
-                community: info,
-                message: encryptedMessage,
-                conversationPath,
-                scpData: {
-                    encryptedKey: encryptedGroupKey,
-                    communityUri: info.communityUri
-                }
-            };
+            let newCommunityPostInfo;
+            if (info.membershipType === interfaces_1.MembershipType.Open) {
+                newCommunityPostInfo = {
+                    community: info,
+                    message,
+                    conversationPath
+                };
+            }
+            else {
+                newCommunityPostInfo = {
+                    community: info,
+                    message: encryptedMessage,
+                    conversationPath,
+                    scpData: {
+                        encryptedKey: encryptedGroupKey,
+                        communityUri: info.communityUri
+                    }
+                };
+            }
             await this._socialEventManager.submitCommunityPost(newCommunityPostInfo, privateKey);
         }
         extractChannelInfo(event) {
@@ -6341,6 +6439,36 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 }
             };
             await this._socialEventManager.submitChannelMessage(newChannelMessageInfo, privateKey);
+        }
+        async fetchDirectMessagesBySender(selfPubKey, senderPubKey, since, until) {
+            const decodedSenderPubKey = index_1.Nip19.decode(senderPubKey).data;
+            const events = await this._socialEventManager.fetchDirectMessages(selfPubKey, decodedSenderPubKey, since, until);
+            let metadataByPubKeyMap = {};
+            const encryptedMessages = [];
+            for (let event of events) {
+                if (event.kind === 0) {
+                    metadataByPubKeyMap[event.pubkey] = {
+                        ...event,
+                        content: JSON.parse(event.content)
+                    };
+                }
+                else if (event.kind === 4) {
+                    encryptedMessages.push(event);
+                }
+            }
+            return {
+                decodedSenderPubKey,
+                encryptedMessages,
+                metadataByPubKeyMap
+            };
+        }
+        async sendDirectMessage(chatId, message, privateKey) {
+            const decodedReceiverPubKey = index_1.Nip19.decode(chatId).data;
+            const content = await SocialUtilsManager.encryptMessage(privateKey, decodedReceiverPubKey, message);
+            await this._socialEventManager.sendMessage(decodedReceiverPubKey, content, privateKey);
+        }
+        async resetMessageCount(selfPubKey, senderPubKey, privateKey) {
+            await this._socialEventManager.resetMessageCount(selfPubKey, senderPubKey, privateKey);
         }
         async fetchMessageContacts(pubKey) {
             const events = await this._socialEventManager.fetchMessageContactsCacheEvents(pubKey);

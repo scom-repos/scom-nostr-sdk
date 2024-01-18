@@ -22,6 +22,8 @@ export {
     INewCommunityInfo,
     MembershipType,
     CommunityRole,
+    ICommunityMember,
+    ICommunity,
     CalendarEventType,
     ICalendarEventInfo,
     IUpdateCalendarEventInfo,
