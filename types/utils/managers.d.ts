@@ -58,6 +58,7 @@ declare class NostrEventManager {
     fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     submitLike(tags: string[][], privateKey: string): Promise<void>;
     fetchLikes(eventId: string): Promise<INostrEvent[]>;
+    submitRepost(content: string, tags: string[][], privateKey: string): Promise<void>;
 }
 interface ISocialEventManager {
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
@@ -106,6 +107,7 @@ interface ISocialEventManager {
     fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     submitLike(tags: string[][], privateKey: string): Promise<void>;
     fetchLikes(eventId: string): Promise<INostrEvent[]>;
+    submitRepost(content: string, tags: string[][], privateKey: string): Promise<void>;
 }
 declare class SocialUtilsManager {
     static hexStringToUint8Array(hexString: string): Uint8Array;
@@ -233,5 +235,6 @@ declare class SocialDataManager {
     getNFTsByOwner(walletAddress: string): Promise<any>;
     submitMessage(message: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
     submitLike(postEventData: INostrEvent, privateKey: string): Promise<void>;
+    submitRepost(postEventData: INostrEvent, privateKey: string): Promise<void>;
 }
 export { NostrEventManager, ISocialEventManager, SocialUtilsManager, SocialDataManager };

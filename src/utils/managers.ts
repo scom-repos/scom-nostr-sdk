@@ -1197,6 +1197,16 @@ class NostrEventManager {
         const events = await this._websocketManager.fetchWebSocketEvents(req);
         return events;
     }
+
+    async submitRepost(content: string, tags: string[][], privateKey: string) {
+        let event = {
+            "kind": 6,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": content,
+            "tags": tags
+        };
+        await this._websocketManager.submitEvent(event, privateKey);
+    }
 }
 
 interface ISocialEventManager {
@@ -1249,6 +1259,7 @@ interface ISocialEventManager {
     fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     submitLike(tags: string[][], privateKey: string): Promise<void>;
     fetchLikes(eventId: string): Promise<INostrEvent[]>;
+    submitRepost(content: string, tags: string[][], privateKey: string): Promise<void>;
 }
 
 class SocialUtilsManager {
@@ -3017,6 +3028,21 @@ class SocialDataManager {
         tags.push(['p', postEventData.pubkey]);
         tags.push(['k', postEventData.kind.toString()]);
         await this._socialEventManager.submitLike(tags, privateKey);
+    }
+
+    async submitRepost(postEventData: INostrEvent, privateKey: string) {
+        let tags: string[][] = [
+            [
+                'e', 
+                postEventData.id
+            ],
+            [
+                'p', 
+                postEventData.pubkey
+            ]
+        ]
+        const content = JSON.stringify(postEventData);
+        await this._socialEventManager.submitRepost(content, tags, privateKey);
     }
 }
 

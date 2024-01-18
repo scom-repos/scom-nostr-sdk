@@ -5107,6 +5107,15 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const events = await this._websocketManager.fetchWebSocketEvents(req);
             return events;
         }
+        async submitRepost(content, tags, privateKey) {
+            let event = {
+                "kind": 6,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": content,
+                "tags": tags
+            };
+            await this._websocketManager.submitEvent(event, privateKey);
+        }
     }
     exports.NostrEventManager = NostrEventManager;
     class SocialUtilsManager {
@@ -6771,6 +6780,20 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             tags.push(['p', postEventData.pubkey]);
             tags.push(['k', postEventData.kind.toString()]);
             await this._socialEventManager.submitLike(tags, privateKey);
+        }
+        async submitRepost(postEventData, privateKey) {
+            let tags = [
+                [
+                    'e',
+                    postEventData.id
+                ],
+                [
+                    'p',
+                    postEventData.pubkey
+                ]
+            ];
+            const content = JSON.stringify(postEventData);
+            await this._socialEventManager.submitRepost(content, tags, privateKey);
         }
     }
     exports.SocialDataManager = SocialDataManager;
