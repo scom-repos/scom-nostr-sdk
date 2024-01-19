@@ -4010,7 +4010,7 @@ define("@scom/scom-social-sdk/utils/geoquery.ts", ["require", "exports", "@scom/
 define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijstech/eth-wallet", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/utils/geohash.ts"], function (require, exports, eth_wallet_1, index_1, interfaces_1, geohash_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.SocialDataManager = exports.SocialUtilsManager = exports.NostrEventManager = void 0;
+    exports.NostrWebSocketManager = exports.SocialDataManager = exports.SocialUtilsManager = exports.NostrEventManager = void 0;
     function determineWebSocketType() {
         if (typeof window !== "undefined") {
             return WebSocket;
@@ -4035,6 +4035,63 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         return array.reduce((acc, item) => {
             return acc.concat(callback(item));
         }, []);
+    }
+    class NostrRestAPIManager {
+        constructor(url) {
+            this.requestCallbackMap = {};
+            this._url = url;
+        }
+        get url() {
+            return this._url;
+        }
+        set url(url) {
+            this._url = url;
+        }
+        async fetchEvents(...requests) {
+            try {
+                const response = await fetch(`${this._url}/fetch-events`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        requests: [...requests]
+                    })
+                });
+                const data = await response.json();
+                return data;
+            }
+            catch (error) {
+                console.error('Error fetching events:', error);
+                throw error;
+            }
+        }
+        async fetchCachedEvents(eventType, msg) {
+            const events = await this.fetchEvents({
+                cache: [
+                    eventType,
+                    msg
+                ]
+            });
+            return events;
+        }
+        async submitEvent(event) {
+            try {
+                const response = await fetch(`${this._url}/submit-event`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(event)
+                });
+                const data = await response.json();
+                return data;
+            }
+            catch (error) {
+                console.error('Error submitting event:', error);
+                throw error;
+            }
+        }
     }
     class NostrWebSocketManager {
         constructor(url) {
@@ -4099,7 +4156,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 }
             });
         }
-        async fetchWebSocketEvents(...requests) {
+        async fetchEvents(...requests) {
             let requestId;
             do {
                 requestId = this.generateRandomNumber();
@@ -4121,12 +4178,20 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 ws.send(JSON.stringify(["REQ", requestId, ...requests]));
             });
         }
-        async submitEvent(event, privateKey) {
+        async fetchCachedEvents(eventType, msg) {
+            const events = await this.fetchEvents({
+                cache: [
+                    eventType,
+                    msg
+                ]
+            });
+            return events;
+        }
+        async submitEvent(event) {
             return new Promise(async (resolve, reject) => {
-                const verifiedEvent = index_1.Event.finishEvent(event, privateKey);
-                let msg = JSON.stringify(["EVENT", verifiedEvent]);
+                let msg = JSON.stringify(["EVENT", event]);
                 console.log(msg);
-                const ws = await this.establishConnection(verifiedEvent.id, (message) => {
+                const ws = await this.establishConnection(event.id, (message) => {
                     console.log('from server:', message);
                     resolve({
                         eventId: message[1],
@@ -4138,42 +4203,28 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             });
         }
     }
-    class NostrCachedWebSocketManager extends NostrWebSocketManager {
-        async fetchCachedEvents(eventType, msg) {
-            let requestId;
-            do {
-                requestId = eventType + '_' + this.generateRandomNumber();
-            } while (this.requestCallbackMap[requestId]);
-            return new Promise(async (resolve, reject) => {
-                let events = [];
-                const ws = await this.establishConnection(requestId, (message) => {
-                    // console.log('from server:', message);
-                    if (message[0] === "EVENT") {
-                        const eventData = message[2];
-                        // Implement the verifySignature function according to your needs
-                        // console.log(verifySignature(eventData)); // true
-                        events.push(eventData);
-                    }
-                    else if (message[0] === "EOSE") {
-                        resolve(events);
-                        console.log("end of stored events");
-                    }
-                });
-                ws.send(JSON.stringify(["REQ", requestId, {
-                        cache: [
-                            eventType,
-                            msg
-                        ]
-                    }]));
-            });
-        }
-    }
+    exports.NostrWebSocketManager = NostrWebSocketManager;
     class NostrEventManager {
         constructor(relays, cachedServer, apiBaseUrl) {
+            this._relays = [];
+            this._nostrCommunicationManagers = [];
             this._relays = relays;
             this._cachedServer = cachedServer;
-            this._websocketManager = new NostrWebSocketManager(this._relays[0]);
-            this._cachedWebsocketManager = new NostrCachedWebSocketManager(this._cachedServer);
+            const restAPIRelay = relays.find(relay => !relay.startsWith('wss://'));
+            if (restAPIRelay) {
+                this._nostrCommunicationManagers.push(new NostrRestAPIManager(restAPIRelay));
+            }
+            else {
+                for (let relay of relays) {
+                    this._nostrCommunicationManagers.push(new NostrWebSocketManager(relay));
+                }
+            }
+            if (this._cachedServer.startsWith('wss://')) {
+                this._nostrCachedCommunicationManager = new NostrWebSocketManager(this._cachedServer);
+            }
+            else {
+                this._nostrCachedCommunicationManager = new NostrRestAPIManager(this._cachedServer);
+            }
             this._apiBaseUrl = apiBaseUrl;
         }
         async fetchThreadCacheEvents(id, pubKey) {
@@ -4186,7 +4237,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
                 msg.user_pubkey = decodedPubKey;
             }
-            const events = await this._cachedWebsocketManager.fetchCachedEvents('thread_view', msg);
+            const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('thread_view', msg);
             return events;
         }
         async fetchTrendingCacheEvents(pubKey) {
@@ -4195,7 +4246,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
                 msg.user_pubkey = decodedPubKey;
             }
-            const events = await this._cachedWebsocketManager.fetchCachedEvents('explore_global_trending_24h', msg);
+            const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('explore_global_trending_24h', msg);
             return events;
         }
         async fetchProfileFeedCacheEvents(pubKey, since = 0, until = 0) {
@@ -4212,7 +4263,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             else {
                 msg.until = until;
             }
-            const events = await this._cachedWebsocketManager.fetchCachedEvents('feed', msg);
+            const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('feed', msg);
             return events;
         }
         async fetchProfileRepliesCacheEvents(pubKey, since = 0, until = 0) {
@@ -4229,7 +4280,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             else {
                 msg.until = until;
             }
-            const events = await this._cachedWebsocketManager.fetchCachedEvents('feed', msg);
+            const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('feed', msg);
             return events;
         }
         async fetchHomeFeedCacheEvents(pubKey, since = 0, until = 0) {
@@ -4247,7 +4298,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
                 msg.user_pubkey = decodedPubKey;
             }
-            const events = await this._cachedWebsocketManager.fetchCachedEvents('feed', msg);
+            const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('feed', msg);
             return events;
         }
         async fetchUserProfileCacheEvents(pubKeys) {
@@ -4255,7 +4306,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             let msg = {
                 pubkeys: decodedPubKeys
             };
-            const events = await this._cachedWebsocketManager.fetchCachedEvents('user_infos', msg);
+            const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('user_infos', msg);
             return events;
         }
         async fetchUserProfileDetailCacheEvents(pubKey) {
@@ -4264,7 +4315,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 pubkey: decodedPubKey,
                 user_pubkey: decodedPubKey
             };
-            const events = await this._cachedWebsocketManager.fetchCachedEvents('user_profile', msg);
+            const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('user_profile', msg);
             return events;
         }
         async fetchContactListCacheEvents(pubKey) {
@@ -4273,7 +4324,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 extended_response: true,
                 pubkey: decodedPubKey
             };
-            const events = await this._cachedWebsocketManager.fetchCachedEvents('contact_list', msg);
+            const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('contact_list', msg);
             return events;
         }
         async fetchFollowersCacheEvents(pubKey) {
@@ -4281,7 +4332,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             let msg = {
                 pubkey: decodedPubKey
             };
-            const events = await this._cachedWebsocketManager.fetchCachedEvents('user_followers', msg);
+            const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('user_followers', msg);
             return events;
         }
         async fetchRelaysCacheEvents(pubKey) {
@@ -4290,10 +4341,11 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 extended_response: false,
                 pubkey: decodedPubKey
             };
-            const events = await this._cachedWebsocketManager.fetchCachedEvents('contact_list', msg);
+            const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('contact_list', msg);
             return events;
         }
         async fetchCommunities(pubkeyToCommunityIdsMap) {
+            const manager = this._nostrCommunicationManagers[0];
             let events;
             if (pubkeyToCommunityIdsMap && Object.keys(pubkeyToCommunityIdsMap).length > 0) {
                 let requests = [];
@@ -4307,14 +4359,14 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     };
                     requests.push(request);
                 }
-                events = await this._websocketManager.fetchWebSocketEvents(...requests);
+                events = await manager.fetchEvents(...requests);
             }
             else {
                 let request = {
                     kinds: [34550],
                     limit: 50
                 };
-                events = await this._websocketManager.fetchWebSocketEvents(request);
+                events = await manager.fetchEvents(request);
             }
             return events;
         }
@@ -4333,7 +4385,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 kinds: [34550],
                 "#p": [decodedPubKey]
             };
-            const events = await this._websocketManager.fetchWebSocketEvents(requestForCreatedCommunities, requestForFollowedCommunities, requestForModeratedCommunities);
+            const manager = this._nostrCommunicationManagers[0];
+            const events = await manager.fetchEvents(requestForCreatedCommunities, requestForFollowedCommunities, requestForModeratedCommunities);
             return events;
         }
         async fetchUserBookmarkedCommunities(pubKey) {
@@ -4343,7 +4396,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 "#d": ["communities"],
                 authors: [decodedPubKey]
             };
-            const events = await this._websocketManager.fetchWebSocketEvents(request);
+            const manager = this._nostrCommunicationManagers[0];
+            const events = await manager.fetchEvents(request);
             return events;
         }
         async fetchCommunity(creatorId, communityId) {
@@ -4353,7 +4407,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 authors: [decodedCreatorId],
                 "#d": [communityId]
             };
-            const events = await this._websocketManager.fetchWebSocketEvents(infoMsg);
+            const manager = this._nostrCommunicationManagers[0];
+            const events = await manager.fetchEvents(infoMsg);
             return events;
         }
         async fetchCommunityFeed(creatorId, communityId) {
@@ -4368,7 +4423,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 "#a": [`34550:${decodedCreatorId}:${communityId}`],
                 limit: 50
             };
-            const events = await this._websocketManager.fetchWebSocketEvents(infoMsg, notesMsg);
+            const manager = this._nostrCommunicationManagers[0];
+            const events = await manager.fetchEvents(infoMsg, notesMsg);
             return events;
         }
         async fetchCommunitiesGeneralMembers(communities) {
@@ -4382,7 +4438,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 "#d": ["communities"],
                 "#a": communityUriArr
             };
-            const events = await this._websocketManager.fetchWebSocketEvents(request);
+            const manager = this._nostrCommunicationManagers[0];
+            const events = await manager.fetchEvents(request);
             return events;
         }
         // async fetchNotes(options: IFetchNotesOptions) {
@@ -4394,7 +4451,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         //     };
         //     if (decodedNpubs) msg.authors = decodedNpubs;
         //     if (decodedIds) msg.ids = decodedIds;
-        //     const events = await this._websocketManager.fetchWebSocketEvents(msg);
+        //     const events = await this._nostrCommunicationManager.fetchEvents(msg);
         //     return events;
         // }
         async fetchMetadata(options) {
@@ -4409,7 +4466,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 authors: decodedNpubs,
                 kinds: [0]
             };
-            const events = await this._websocketManager.fetchWebSocketEvents(msg);
+            const manager = this._nostrCommunicationManagers[0];
+            const events = await manager.fetchEvents(msg);
             return events;
         }
         // async fetchReplies(options: IFetchRepliesOptions) {
@@ -4425,7 +4483,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         //         kinds: [1],
         //         limit: 20,
         //     }
-        //     const events = await this._websocketManager.fetchWebSocketEvents(msg);
+        //     const events = await this._nostrCommunicationManager.fetchEvents(msg);
         //     return events;
         // }
         // async fetchFollowing(npubs: string[]) {
@@ -4434,7 +4492,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         //         authors: decodedNpubs,
         //         kinds: [3]
         //     }
-        //     const events = await this._websocketManager.fetchWebSocketEvents(msg);
+        //     const events = await this._nostrCommunicationManager.fetchEvents(msg);
         //     return events;
         // }
         async postNote(content, privateKey, conversationPath) {
@@ -4449,7 +4507,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 event.tags = conversationPathTags;
             }
             console.log('postNote', event);
-            await this._websocketManager.submitEvent(event, privateKey);
+            const verifiedEvent = index_1.Event.finishEvent(event, privateKey);
+            await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
         calculateConversationPathTags(conversationPath) {
             let tags = [];
@@ -4504,8 +4563,9 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     decodedEventId
                 ]);
             }
-            const response = await this._websocketManager.submitEvent(event, privateKey);
-            return response;
+            const verifiedEvent = index_1.Event.finishEvent(event, privateKey);
+            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            return responses;
         }
         async updateChannel(info, privateKey) {
             let kind = info.id ? 41 : 40;
@@ -4533,8 +4593,9 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     encodedScpData
                 ]);
             }
-            const response = await this._websocketManager.submitEvent(event, privateKey);
-            return response;
+            const verifiedEvent = index_1.Event.finishEvent(event, privateKey);
+            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            return responses;
         }
         async updateUserBookmarkedChannels(channelEventIds, privateKey) {
             let event = {
@@ -4554,7 +4615,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     channelEventId
                 ]);
             }
-            await this._websocketManager.submitEvent(event, privateKey);
+            const verifiedEvent = index_1.Event.finishEvent(event, privateKey);
+            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
         async fetchAllUserRelatedChannels(pubKey) {
             const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
@@ -4571,7 +4633,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 kinds: [34550],
                 "#p": [decodedPubKey]
             };
-            const events = await this._websocketManager.fetchWebSocketEvents(requestForCreatedChannels, requestForJoinedChannels, requestForModeratedCommunities);
+            const manager = this._nostrCommunicationManagers[0];
+            const events = await manager.fetchEvents(requestForCreatedChannels, requestForJoinedChannels, requestForModeratedCommunities);
             return events;
         }
         async fetchUserBookmarkedChannels(pubKey) {
@@ -4581,7 +4644,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 "#d": ["channels"],
                 authors: [decodedPubKey]
             };
-            const events = await this._websocketManager.fetchWebSocketEvents(requestForJoinedChannels);
+            const manager = this._nostrCommunicationManagers[0];
+            const events = await manager.fetchEvents(requestForJoinedChannels);
             return events;
         }
         async fetchChannels(channelEventIds) {
@@ -4589,7 +4653,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 kinds: [40, 41],
                 ids: channelEventIds
             };
-            let events = await this._websocketManager.fetchWebSocketEvents(request);
+            const manager = this._nostrCommunicationManagers[0];
+            let events = await manager.fetchEvents(request);
             return events;
         }
         async fetchChannelMessages(channelId, since = 0, until = 0) {
@@ -4605,7 +4670,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             else {
                 messagesReq.until = until;
             }
-            const events = await this._websocketManager.fetchWebSocketEvents(messagesReq);
+            const manager = this._nostrCommunicationManagers[0];
+            const events = await manager.fetchEvents(messagesReq);
             return events;
         }
         async fetchChannelInfoMessages(creatorId, channelId) {
@@ -4625,7 +4691,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 "#e": [channelId],
                 limit: 20
             };
-            const events = await this._websocketManager.fetchWebSocketEvents(channelCreationEventReq, channelMetadataEventReq, messagesReq);
+            const manager = this._nostrCommunicationManagers[0];
+            const events = await manager.fetchEvents(channelCreationEventReq, channelMetadataEventReq, messagesReq);
             return events;
         }
         async updateCommunity(info, privateKey) {
@@ -4673,8 +4740,9 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     "moderator"
                 ]);
             }
-            const response = await this._websocketManager.submitEvent(event, privateKey);
-            return response;
+            const verifiedEvent = index_1.Event.finishEvent(event, privateKey);
+            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            return responses;
         }
         async updateUserBookmarkedCommunities(communities, privateKey) {
             let communityUriArr = [];
@@ -4699,7 +4767,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     communityUri
                 ]);
             }
-            await this._websocketManager.submitEvent(event, privateKey);
+            const verifiedEvent = index_1.Event.finishEvent(event, privateKey);
+            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
         async submitCommunityPost(info, privateKey) {
             const community = info.community;
@@ -4732,7 +4801,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 ]);
             }
             console.log('submitCommunityPost', event);
-            await this._websocketManager.submitEvent(event, privateKey);
+            const verifiedEvent = index_1.Event.finishEvent(event, privateKey);
+            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
         async submitChannelMessage(info, privateKey) {
             let event = {
@@ -4761,7 +4831,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     "root"
                 ]);
             }
-            await this._websocketManager.submitEvent(event, privateKey);
+            const verifiedEvent = index_1.Event.finishEvent(event, privateKey);
+            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
         async updateUserProfile(content, privateKey) {
             let event = {
@@ -4770,7 +4841,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 "content": JSON.stringify(content),
                 "tags": []
             };
-            await this._websocketManager.submitEvent(event, privateKey);
+            const verifiedEvent = index_1.Event.finishEvent(event, privateKey);
+            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
         async fetchMessageContactsCacheEvents(pubKey) {
             const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
@@ -4778,12 +4850,12 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 user_pubkey: decodedPubKey,
                 relation: 'follows'
             };
-            const followsEvents = await this._cachedWebsocketManager.fetchCachedEvents('get_directmsg_contacts', msg);
+            const followsEvents = await this._nostrCachedCommunicationManager.fetchCachedEvents('get_directmsg_contacts', msg);
             msg = {
                 user_pubkey: decodedPubKey,
                 relation: 'other'
             };
-            const otherEvents = await this._cachedWebsocketManager.fetchCachedEvents('get_directmsg_contacts', msg);
+            const otherEvents = await this._nostrCachedCommunicationManager.fetchCachedEvents('get_directmsg_contacts', msg);
             return [...followsEvents, ...otherEvents];
         }
         async fetchDirectMessages(pubKey, sender, since = 0, until = 0) {
@@ -4800,7 +4872,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             else {
                 req.until = until;
             }
-            const events = await this._cachedWebsocketManager.fetchCachedEvents('get_directmsgs', req);
+            const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('get_directmsgs', req);
             return events;
         }
         async sendMessage(receiver, encryptedMessage, privateKey) {
@@ -4816,7 +4888,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     ]
                 ]
             };
-            await this._websocketManager.submitEvent(event, privateKey);
+            const verifiedEvent = index_1.Event.finishEvent(event, privateKey);
+            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
         async resetMessageCount(pubKey, sender, privateKey) {
             const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
@@ -4840,14 +4913,15 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 event_from_user: event,
                 sender: decodedSenderPubKey
             };
-            await this._cachedWebsocketManager.fetchCachedEvents('reset_directmsg_count', msg);
+            await this._nostrCachedCommunicationManager.fetchCachedEvents('reset_directmsg_count', msg);
         }
         async fetchGroupKeys(identifier) {
             let req = {
                 kinds: [30078],
                 "#d": [identifier]
             };
-            const events = await this._websocketManager.fetchWebSocketEvents(req);
+            const manager = this._nostrCommunicationManagers[0];
+            const events = await manager.fetchEvents(req);
             return events?.length > 0 ? events[0] : null;
         }
         async fetchUserGroupInvitations(groupKinds, pubKey) {
@@ -4857,7 +4931,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 "#p": [decodedPubKey],
                 "#k": groupKinds.map(kind => kind.toString())
             };
-            let events = await this._websocketManager.fetchWebSocketEvents(req);
+            const manager = this._nostrCommunicationManagers[0];
+            let events = await manager.fetchEvents(req);
             events = events.filter(event => event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'invitee').map(tag => tag[1]).includes(decodedPubKey));
             return events;
         }
@@ -4886,8 +4961,9 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     "invitee"
                 ]);
             }
-            const response = await this._websocketManager.submitEvent(event, privateKey);
-            return response;
+            const verifiedEvent = index_1.Event.finishEvent(event, privateKey);
+            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            return responses;
         }
         async updateCalendarEvent(info, privateKey) {
             let kind;
@@ -4975,8 +5051,11 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     info.city
                 ]);
             }
-            const response = await this._websocketManager.submitEvent(event, privateKey);
-            if (response.success) {
+            const verifiedEvent = index_1.Event.finishEvent(event, privateKey);
+            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            const failedResponses = responses.filter(response => !response.success); //FIXME: Handle failed responses
+            if (failedResponses.length === 0) {
+                let response = responses[0];
                 let pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(privateKey);
                 let eventKey = `${kind}:${pubkey}:${info.id}`;
                 let apiRequestBody = {
@@ -4995,7 +5074,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     body: JSON.stringify(apiRequestBody)
                 });
             }
-            return response;
+            return responses;
         }
         async fetchCalendarEvents(start, end, limit) {
             let req;
@@ -5026,7 +5105,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     limit: limit || 10
                 };
             }
-            const events = await this._websocketManager.fetchWebSocketEvents(req);
+            const manager = this._nostrCommunicationManagers[0];
+            const events = await manager.fetchEvents(req);
             return events;
         }
         async fetchCalendarEvent(address) {
@@ -5035,7 +5115,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 "#d": [address.identifier],
                 authors: [address.pubkey]
             };
-            const events = await this._websocketManager.fetchWebSocketEvents(req);
+            const manager = this._nostrCommunicationManagers[0];
+            const events = await manager.fetchEvents(req);
             return events?.length > 0 ? events[0] : null;
         }
         async createCalendarEventRSVP(rsvpId, calendarEventUri, accepted, privateKey) {
@@ -5063,8 +5144,9 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     ]
                 ]
             };
-            const response = await this._websocketManager.submitEvent(event, privateKey);
-            return response;
+            const verifiedEvent = index_1.Event.finishEvent(event, privateKey);
+            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            return responses;
         }
         async fetchCalendarEventRSVPs(calendarEventUri, pubkey) {
             let req = {
@@ -5075,7 +5157,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 const decodedPubKey = pubkey.startsWith('npub1') ? index_1.Nip19.decode(pubkey).data : pubkey;
                 req.authors = [decodedPubKey];
             }
-            const events = await this._websocketManager.fetchWebSocketEvents(req);
+            const manager = this._nostrCommunicationManagers[0];
+            const events = await manager.fetchEvents(req);
             return events;
         }
         async fetchLongFormContentEvents(pubKey, since = 0, until = 0) {
@@ -5093,7 +5176,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             else {
                 req.until = until;
             }
-            const events = await this._websocketManager.fetchWebSocketEvents(req);
+            const manager = this._nostrCommunicationManagers[0];
+            const events = await manager.fetchEvents(req);
             return events;
         }
         async submitLike(tags, privateKey) {
@@ -5103,14 +5187,16 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 "content": "+",
                 "tags": tags
             };
-            await this._websocketManager.submitEvent(event, privateKey);
+            const verifiedEvent = index_1.Event.finishEvent(event, privateKey);
+            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
         async fetchLikes(eventId) {
             let req = {
                 kinds: [7],
                 "#e": [eventId]
             };
-            const events = await this._websocketManager.fetchWebSocketEvents(req);
+            const manager = this._nostrCommunicationManagers[0];
+            const events = await manager.fetchEvents(req);
             return events;
         }
         async submitRepost(content, tags, privateKey) {
@@ -5120,7 +5206,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 "content": content,
                 "tags": tags
             };
-            await this._websocketManager.submitEvent(event, privateKey);
+            const verifiedEvent = index_1.Event.finishEvent(event, privateKey);
+            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
     }
     exports.NostrEventManager = NostrEventManager;
@@ -6006,7 +6093,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 };
             }
             if (communityInfo.scpData) {
-                const updateChannelResponse = await this.updateCommunityChannel(communityInfo, privateKey);
+                const updateChannelResponses = await this.updateCommunityChannel(communityInfo, privateKey);
+                const updateChannelResponse = updateChannelResponses[0];
                 if (updateChannelResponse.eventId) {
                     communityInfo.scpData.channelEventId = updateChannelResponse.eventId;
                 }
@@ -6060,7 +6148,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 ...channelInfo.scpData,
                 publicKey: channelKeys.groupPublicKey
             };
-            const updateChannelResponse = await this._socialEventManager.updateChannel(channelInfo, privateKey);
+            const updateChannelResponses = await this._socialEventManager.updateChannel(channelInfo, privateKey);
+            const updateChannelResponse = updateChannelResponses[0];
             if (updateChannelResponse.eventId) {
                 const channelUri = `40:${updateChannelResponse.eventId}`;
                 await this._socialEventManager.updateGroupKeys(channelUri + ':keys', 40, JSON.stringify(channelKeys.encryptedGroupKeys), memberIds, privateKey);
@@ -6645,7 +6734,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 geohash
             };
             let naddr;
-            const response = await this._socialEventManager.updateCalendarEvent(updateCalendarEventInfo, privateKey);
+            const responses = await this._socialEventManager.updateCalendarEvent(updateCalendarEventInfo, privateKey);
+            const response = responses[0];
             if (response.success) {
                 const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(privateKey);
                 naddr = index_1.Nip19.naddrEncode({
@@ -6929,18 +7019,19 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
 define("@scom/scom-social-sdk/utils/index.ts", ["require", "exports", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/utils/managers.ts"], function (require, exports, interfaces_2, managers_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.SocialDataManager = exports.SocialUtilsManager = exports.NostrEventManager = exports.CalendarEventType = exports.CommunityRole = exports.MembershipType = void 0;
+    exports.NostrWebSocketManager = exports.SocialDataManager = exports.SocialUtilsManager = exports.NostrEventManager = exports.CalendarEventType = exports.CommunityRole = exports.MembershipType = void 0;
     Object.defineProperty(exports, "MembershipType", { enumerable: true, get: function () { return interfaces_2.MembershipType; } });
     Object.defineProperty(exports, "CommunityRole", { enumerable: true, get: function () { return interfaces_2.CommunityRole; } });
     Object.defineProperty(exports, "CalendarEventType", { enumerable: true, get: function () { return interfaces_2.CalendarEventType; } });
     Object.defineProperty(exports, "NostrEventManager", { enumerable: true, get: function () { return managers_1.NostrEventManager; } });
     Object.defineProperty(exports, "SocialUtilsManager", { enumerable: true, get: function () { return managers_1.SocialUtilsManager; } });
     Object.defineProperty(exports, "SocialDataManager", { enumerable: true, get: function () { return managers_1.SocialDataManager; } });
+    Object.defineProperty(exports, "NostrWebSocketManager", { enumerable: true, get: function () { return managers_1.NostrWebSocketManager; } });
 });
 define("@scom/scom-social-sdk", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/index.ts"], function (require, exports, index_2, index_3) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.SocialDataManager = exports.SocialUtilsManager = exports.NostrEventManager = exports.CalendarEventType = exports.CommunityRole = exports.MembershipType = exports.Bech32 = exports.Nip19 = exports.Keys = exports.Event = void 0;
+    exports.NostrWebSocketManager = exports.SocialDataManager = exports.SocialUtilsManager = exports.NostrEventManager = exports.CalendarEventType = exports.CommunityRole = exports.MembershipType = exports.Bech32 = exports.Nip19 = exports.Keys = exports.Event = void 0;
     Object.defineProperty(exports, "Event", { enumerable: true, get: function () { return index_2.Event; } });
     Object.defineProperty(exports, "Keys", { enumerable: true, get: function () { return index_2.Keys; } });
     Object.defineProperty(exports, "Nip19", { enumerable: true, get: function () { return index_2.Nip19; } });
@@ -6951,4 +7042,5 @@ define("@scom/scom-social-sdk", ["require", "exports", "@scom/scom-social-sdk/co
     Object.defineProperty(exports, "NostrEventManager", { enumerable: true, get: function () { return index_3.NostrEventManager; } });
     Object.defineProperty(exports, "SocialUtilsManager", { enumerable: true, get: function () { return index_3.SocialUtilsManager; } });
     Object.defineProperty(exports, "SocialDataManager", { enumerable: true, get: function () { return index_3.SocialDataManager; } });
+    Object.defineProperty(exports, "NostrWebSocketManager", { enumerable: true, get: function () { return index_3.NostrWebSocketManager; } });
 });

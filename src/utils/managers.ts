@@ -45,7 +45,74 @@ function flatMap<T, U>(array: T[], callback: (item: T) => U[]): U[] {
     }, [] as U[]);
 }
 
-class NostrWebSocketManager {
+interface INostrCommunicationManager {
+    fetchEvents(...requests: any): Promise<INostrEvent[]>;
+    fetchCachedEvents(eventType: string, msg: any): Promise<INostrEvent[]>;
+    submitEvent(event: Event.VerifiedEvent<number>): Promise<INostrSubmitResponse>;
+}
+
+class NostrRestAPIManager implements INostrCommunicationManager {
+    protected _url: string;
+    protected requestCallbackMap: Record<string, (response: any) => void> = {};
+
+    constructor(url: string) {
+        this._url = url;
+    }
+
+    get url() {
+        return this._url;
+    }
+
+    set url(url: string) {
+        this._url = url;
+    }
+
+    async fetchEvents(...requests: any): Promise<any[]> {
+        try {
+            const response = await fetch(`${this._url}/fetch-events`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    requests: [...requests]
+                })
+            });
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error fetching events:', error);
+            throw error;
+        }
+    }
+    async fetchCachedEvents(eventType: string, msg: any) {
+        const events = await this.fetchEvents({
+            cache: [
+                eventType,
+                msg
+            ]   
+        });
+        return events;
+    }    
+    async submitEvent(event: any): Promise<any> {
+        try {
+            const response = await fetch(`${this._url}/submit-event`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(event)
+            });
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error submitting event:', error);
+            throw error;
+        }
+    }
+}
+
+class NostrWebSocketManager implements INostrCommunicationManager {
     protected _url: string;
     protected ws: any;
     protected requestCallbackMap: Record<string, (message: any) => void> = {};
@@ -117,7 +184,7 @@ class NostrWebSocketManager {
             }
         });
     }
-    async fetchWebSocketEvents(...requests: any) {
+    async fetchEvents(...requests: any) {
         let requestId;
         do {
             requestId = this.generateRandomNumber();
@@ -139,12 +206,20 @@ class NostrWebSocketManager {
             ws.send(JSON.stringify(["REQ", requestId, ...requests]));
         });
     }
-    async submitEvent(event: Event.EventTemplate<number>, privateKey: string) {
+    async fetchCachedEvents(eventType: string, msg: any) {
+        const events = await this.fetchEvents({
+            cache: [
+                eventType,
+                msg
+            ]   
+        });
+        return events;
+    }
+    async submitEvent(event: Event.VerifiedEvent<number>) {
         return new Promise<INostrSubmitResponse>(async (resolve, reject) => {
-            const verifiedEvent = Event.finishEvent(event, privateKey)
-            let msg = JSON.stringify(["EVENT", verifiedEvent]);
+            let msg = JSON.stringify(["EVENT", event]);
             console.log(msg);
-            const ws = await this.establishConnection(verifiedEvent.id, (message) => {
+            const ws = await this.establishConnection(event.id, (message) => {
                 console.log('from server:', message);
                 resolve({
                     eventId: message[1],
@@ -157,49 +232,31 @@ class NostrWebSocketManager {
     }
 }
 
-class NostrCachedWebSocketManager extends NostrWebSocketManager {
-    async fetchCachedEvents(eventType: string, msg: any) {
-        let requestId;
-        do {
-            requestId = eventType + '_' + this.generateRandomNumber();
-        } while (this.requestCallbackMap[requestId]);
-        return new Promise<INostrEvent[]>(async (resolve, reject) => {
-            let events: INostrEvent[] = [];
-            const ws = await this.establishConnection(requestId, (message) => {
-                // console.log('from server:', message);
-                if (message[0] === "EVENT") {
-                    const eventData = message[2];
-                    // Implement the verifySignature function according to your needs
-                    // console.log(verifySignature(eventData)); // true
-                    events.push(eventData);
-                } else if (message[0] === "EOSE") {
-                    resolve(events);
-                    console.log("end of stored events");
-                }
-            });
-
-            ws.send(JSON.stringify(["REQ", requestId, {
-                cache: [
-                    eventType,
-                    msg
-                ]
-            }]));
-        });
-    }
-}
-
 class NostrEventManager {
-    private _relays: string[];
+    private _relays: string[] = [];
     private _cachedServer: string;
-    private _websocketManager: NostrWebSocketManager;
-    private _cachedWebsocketManager: NostrCachedWebSocketManager;
+    private _nostrCommunicationManagers: INostrCommunicationManager[] = [];
+    private _nostrCachedCommunicationManager: INostrCommunicationManager;
     private _apiBaseUrl: string;
 
     constructor(relays: string[], cachedServer: string, apiBaseUrl: string) {
         this._relays = relays;
         this._cachedServer = cachedServer;
-        this._websocketManager = new NostrWebSocketManager(this._relays[0]);
-        this._cachedWebsocketManager = new NostrCachedWebSocketManager(this._cachedServer);
+        const restAPIRelay = relays.find(relay => !relay.startsWith('wss://'));
+        if (restAPIRelay) {
+            this._nostrCommunicationManagers.push(new NostrRestAPIManager(restAPIRelay));
+        }
+        else {
+            for (let relay of relays) {
+                this._nostrCommunicationManagers.push(new NostrWebSocketManager(relay));
+            }
+        }
+        if (this._cachedServer.startsWith('wss://')) {
+            this._nostrCachedCommunicationManager = new NostrWebSocketManager(this._cachedServer);
+        }
+        else {
+            this._nostrCachedCommunicationManager = new NostrRestAPIManager(this._cachedServer);
+        }
         this._apiBaseUrl = apiBaseUrl;
     }
 
@@ -213,7 +270,7 @@ class NostrEventManager {
             const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
             msg.user_pubkey = decodedPubKey;
         }
-        const events = await this._cachedWebsocketManager.fetchCachedEvents('thread_view', msg);
+        const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('thread_view', msg);
         return events;
     }
 
@@ -224,7 +281,7 @@ class NostrEventManager {
             const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
             msg.user_pubkey = decodedPubKey;
         }
-        const events = await this._cachedWebsocketManager.fetchCachedEvents('explore_global_trending_24h', msg);
+        const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('explore_global_trending_24h', msg);
         return events;
     }
 
@@ -242,7 +299,7 @@ class NostrEventManager {
         else {
             msg.until = until;
         }
-        const events = await this._cachedWebsocketManager.fetchCachedEvents('feed', msg);
+        const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('feed', msg);
         return events;
     }
 
@@ -260,7 +317,7 @@ class NostrEventManager {
         else {
             msg.until = until;
         }
-        const events = await this._cachedWebsocketManager.fetchCachedEvents('feed', msg);
+        const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('feed', msg);
         return events;
     }
 
@@ -279,7 +336,7 @@ class NostrEventManager {
             const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
             msg.user_pubkey = decodedPubKey;
         }
-        const events = await this._cachedWebsocketManager.fetchCachedEvents('feed', msg);
+        const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('feed', msg);
         return events;
     }
 
@@ -288,7 +345,7 @@ class NostrEventManager {
         let msg: any = {
             pubkeys: decodedPubKeys
         };
-        const events = await this._cachedWebsocketManager.fetchCachedEvents('user_infos', msg);
+        const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('user_infos', msg);
         return events;
     }
 
@@ -298,7 +355,7 @@ class NostrEventManager {
             pubkey: decodedPubKey,
             user_pubkey: decodedPubKey
         };
-        const events = await this._cachedWebsocketManager.fetchCachedEvents('user_profile', msg);
+        const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('user_profile', msg);
         return events;
     }
 
@@ -308,7 +365,7 @@ class NostrEventManager {
             extended_response: true,
             pubkey: decodedPubKey
         };
-        const events = await this._cachedWebsocketManager.fetchCachedEvents('contact_list', msg);
+        const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('contact_list', msg);
         return events;
     }    
 
@@ -317,7 +374,7 @@ class NostrEventManager {
         let msg: any = {
             pubkey: decodedPubKey
         };
-        const events = await this._cachedWebsocketManager.fetchCachedEvents('user_followers', msg);
+        const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('user_followers', msg);
         return events;
     }  
 
@@ -327,11 +384,12 @@ class NostrEventManager {
             extended_response: false,
             pubkey: decodedPubKey
         };
-        const events = await this._cachedWebsocketManager.fetchCachedEvents('contact_list', msg);
+        const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('contact_list', msg);
         return events;
     }   
 
     async fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>) {
+        const manager = this._nostrCommunicationManagers[0];
         let events;
         if (pubkeyToCommunityIdsMap && Object.keys(pubkeyToCommunityIdsMap).length > 0) {
             let requests: any[] = [];
@@ -345,14 +403,14 @@ class NostrEventManager {
                 };
                 requests.push(request);
             }
-            events = await this._websocketManager.fetchWebSocketEvents(...requests);
+            events = await manager.fetchEvents(...requests);
         }
         else {
             let request: any = {
                 kinds: [34550],
                 limit: 50
             };
-            events = await this._websocketManager.fetchWebSocketEvents(request);
+            events = await manager.fetchEvents(request);
         }
         return events;
     }
@@ -372,7 +430,8 @@ class NostrEventManager {
             kinds: [34550],
             "#p": [decodedPubKey]
         };
-        const events = await this._websocketManager.fetchWebSocketEvents(
+        const manager = this._nostrCommunicationManagers[0];
+        const events = await manager.fetchEvents(
             requestForCreatedCommunities, 
             requestForFollowedCommunities,
             requestForModeratedCommunities
@@ -387,7 +446,8 @@ class NostrEventManager {
             "#d": ["communities"],
             authors: [decodedPubKey]
         };
-        const events = await this._websocketManager.fetchWebSocketEvents(request);
+        const manager = this._nostrCommunicationManagers[0];
+        const events = await manager.fetchEvents(request);
         return events;
     }
 
@@ -398,7 +458,8 @@ class NostrEventManager {
             authors: [decodedCreatorId],
             "#d": [communityId]
         };
-        const events = await this._websocketManager.fetchWebSocketEvents(infoMsg);
+        const manager = this._nostrCommunicationManagers[0];
+        const events = await manager.fetchEvents(infoMsg);
         return events;        
     }
 
@@ -414,7 +475,8 @@ class NostrEventManager {
             "#a": [`34550:${decodedCreatorId}:${communityId}`],
             limit: 50
         };
-        const events = await this._websocketManager.fetchWebSocketEvents(infoMsg, notesMsg);
+        const manager = this._nostrCommunicationManagers[0];
+        const events = await manager.fetchEvents(infoMsg, notesMsg);
         return events;        
     }
 
@@ -429,7 +491,8 @@ class NostrEventManager {
             "#d": ["communities"],
             "#a": communityUriArr
         };
-        const events = await this._websocketManager.fetchWebSocketEvents(request);
+        const manager = this._nostrCommunicationManagers[0];
+        const events = await manager.fetchEvents(request);
         return events;        
     }
 
@@ -442,7 +505,7 @@ class NostrEventManager {
     //     };
     //     if (decodedNpubs) msg.authors = decodedNpubs;
     //     if (decodedIds) msg.ids = decodedIds;
-    //     const events = await this._websocketManager.fetchWebSocketEvents(msg);
+    //     const events = await this._nostrCommunicationManager.fetchEvents(msg);
     //     return events;
     // }
 
@@ -458,7 +521,8 @@ class NostrEventManager {
             authors: decodedNpubs,
             kinds: [0]
         };
-        const events = await this._websocketManager.fetchWebSocketEvents(msg);
+        const manager = this._nostrCommunicationManagers[0];
+        const events = await manager.fetchEvents(msg);
         return events;
     }
 
@@ -475,7 +539,7 @@ class NostrEventManager {
     //         kinds: [1],
     //         limit: 20,
     //     }
-    //     const events = await this._websocketManager.fetchWebSocketEvents(msg);
+    //     const events = await this._nostrCommunicationManager.fetchEvents(msg);
     //     return events;
     // }
 
@@ -485,7 +549,7 @@ class NostrEventManager {
     //         authors: decodedNpubs,
     //         kinds: [3]
     //     }
-    //     const events = await this._websocketManager.fetchWebSocketEvents(msg);
+    //     const events = await this._nostrCommunicationManager.fetchEvents(msg);
     //     return events;
     // }
 
@@ -501,7 +565,8 @@ class NostrEventManager {
             event.tags = conversationPathTags;
         }
         console.log('postNote', event);
-        await this._websocketManager.submitEvent(event, privateKey);
+        const verifiedEvent = Event.finishEvent(event, privateKey);
+        await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
     }
 
     private calculateConversationPathTags(conversationPath: IConversationPath) {
@@ -558,8 +623,9 @@ class NostrEventManager {
                 decodedEventId
             ]);
         }
-        const response = await this._websocketManager.submitEvent(event, privateKey);
-        return response;
+        const verifiedEvent = Event.finishEvent(event, privateKey);
+        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        return responses;
     }
 
     async updateChannel(info: IChannelInfo, privateKey: string) {
@@ -588,8 +654,9 @@ class NostrEventManager {
                 encodedScpData
             ]);
         }
-        const response = await this._websocketManager.submitEvent(event, privateKey);
-        return response;
+        const verifiedEvent = Event.finishEvent(event, privateKey);
+        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        return responses;
     }
 
     async updateUserBookmarkedChannels(channelEventIds: string[], privateKey: string) {
@@ -610,7 +677,8 @@ class NostrEventManager {
                 channelEventId
             ]);
         }
-        await this._websocketManager.submitEvent(event, privateKey);
+        const verifiedEvent = Event.finishEvent(event, privateKey);
+        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
     }
 
     async fetchAllUserRelatedChannels(pubKey: string) {
@@ -628,7 +696,8 @@ class NostrEventManager {
             kinds: [34550],
             "#p": [decodedPubKey]
         };
-        const events = await this._websocketManager.fetchWebSocketEvents(
+        const manager = this._nostrCommunicationManagers[0];
+        const events = await manager.fetchEvents(
             requestForCreatedChannels, 
             requestForJoinedChannels,
             requestForModeratedCommunities
@@ -643,7 +712,8 @@ class NostrEventManager {
             "#d": ["channels"],
             authors: [decodedPubKey]
         }
-        const events = await this._websocketManager.fetchWebSocketEvents(requestForJoinedChannels);
+        const manager = this._nostrCommunicationManagers[0];
+        const events = await manager.fetchEvents(requestForJoinedChannels);
         return events;
     }
 
@@ -652,7 +722,8 @@ class NostrEventManager {
             kinds: [40, 41],
             ids: channelEventIds
         };
-        let events = await this._websocketManager.fetchWebSocketEvents(request);
+        const manager = this._nostrCommunicationManagers[0];
+        let events = await manager.fetchEvents(request);
         return events;
     }
 
@@ -669,7 +740,8 @@ class NostrEventManager {
         else {
             messagesReq.until = until;
         }
-        const events = await this._websocketManager.fetchWebSocketEvents(
+        const manager = this._nostrCommunicationManagers[0];
+        const events = await manager.fetchEvents(
             messagesReq
         );
         return events;        
@@ -692,7 +764,8 @@ class NostrEventManager {
             "#e": [channelId],
             limit: 20
         };
-        const events = await this._websocketManager.fetchWebSocketEvents(
+        const manager = this._nostrCommunicationManagers[0];
+        const events = await manager.fetchEvents(
             channelCreationEventReq, 
             channelMetadataEventReq,
             messagesReq
@@ -745,8 +818,9 @@ class NostrEventManager {
                 "moderator"
             ]);
         }
-        const response = await this._websocketManager.submitEvent(event, privateKey);
-        return response;
+        const verifiedEvent = Event.finishEvent(event, privateKey);
+        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        return responses;
     }
 
     async updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[], privateKey: string) {
@@ -772,7 +846,8 @@ class NostrEventManager {
                 communityUri
             ]);
         }
-        await this._websocketManager.submitEvent(event, privateKey);
+        const verifiedEvent = Event.finishEvent(event, privateKey);
+        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
     }
 
     async submitCommunityPost(info: INewCommunityPostInfo, privateKey: string) {
@@ -806,7 +881,8 @@ class NostrEventManager {
             ]);
         }
         console.log('submitCommunityPost', event);
-        await this._websocketManager.submitEvent(event, privateKey);
+        const verifiedEvent = Event.finishEvent(event, privateKey);
+        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
     }
 
     async submitChannelMessage(info: INewChannelMessageInfo, privateKey: string) {
@@ -836,7 +912,8 @@ class NostrEventManager {
                 "root"
             ]);
         }
-        await this._websocketManager.submitEvent(event, privateKey);
+        const verifiedEvent = Event.finishEvent(event, privateKey);
+        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
     }
 
     async updateUserProfile(content: INostrMetadataContent, privateKey: string) {
@@ -846,7 +923,8 @@ class NostrEventManager {
             "content": JSON.stringify(content),
             "tags": []
         };
-        await this._websocketManager.submitEvent(event, privateKey);
+        const verifiedEvent = Event.finishEvent(event, privateKey);
+        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
     }
 
     async fetchMessageContactsCacheEvents(pubKey: string) {
@@ -855,12 +933,12 @@ class NostrEventManager {
             user_pubkey: decodedPubKey,
             relation: 'follows'
         };
-        const followsEvents = await this._cachedWebsocketManager.fetchCachedEvents('get_directmsg_contacts', msg);
+        const followsEvents = await this._nostrCachedCommunicationManager.fetchCachedEvents('get_directmsg_contacts', msg);
         msg = {
             user_pubkey: decodedPubKey,
             relation: 'other'
         };
-        const otherEvents = await this._cachedWebsocketManager.fetchCachedEvents('get_directmsg_contacts', msg);
+        const otherEvents = await this._nostrCachedCommunicationManager.fetchCachedEvents('get_directmsg_contacts', msg);
         return [...followsEvents, ...otherEvents];
     }
 
@@ -878,7 +956,7 @@ class NostrEventManager {
         else {
             req.until = until;
         }
-        const events = await this._cachedWebsocketManager.fetchCachedEvents('get_directmsgs', req);
+        const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('get_directmsgs', req);
         return events;
     }
 
@@ -895,7 +973,8 @@ class NostrEventManager {
                 ]
             ]
         }
-        await this._websocketManager.submitEvent(event, privateKey);
+        const verifiedEvent = Event.finishEvent(event, privateKey);
+        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
     }
 
     async resetMessageCount(pubKey: string, sender: string, privateKey: string) {
@@ -920,7 +999,7 @@ class NostrEventManager {
             event_from_user: event,
             sender: decodedSenderPubKey
         };
-        await this._cachedWebsocketManager.fetchCachedEvents('reset_directmsg_count', msg);
+        await this._nostrCachedCommunicationManager.fetchCachedEvents('reset_directmsg_count', msg);
     }
 
     async fetchGroupKeys(identifier: string) {
@@ -928,7 +1007,8 @@ class NostrEventManager {
             kinds: [30078],
             "#d": [identifier]
         };
-        const events = await this._websocketManager.fetchWebSocketEvents(req);
+        const manager = this._nostrCommunicationManagers[0];
+        const events = await manager.fetchEvents(req);
         return events?.length > 0 ? events[0] : null;
     }
 
@@ -939,7 +1019,8 @@ class NostrEventManager {
             "#p": [decodedPubKey],
             "#k": groupKinds.map(kind => kind.toString())
         };
-        let events = await this._websocketManager.fetchWebSocketEvents(req);
+        const manager = this._nostrCommunicationManagers[0];
+        let events = await manager.fetchEvents(req);
         events = events.filter(event => event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'invitee').map(tag => tag[1]).includes(decodedPubKey));
         return events;
     }
@@ -969,8 +1050,9 @@ class NostrEventManager {
                 "invitee"
             ]);
         }
-        const response = await this._websocketManager.submitEvent(event, privateKey);
-        return response;
+        const verifiedEvent = Event.finishEvent(event, privateKey);
+        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        return responses;
     }
     
     async updateCalendarEvent(info: IUpdateCalendarEventInfo, privateKey: string) {
@@ -1059,8 +1141,11 @@ class NostrEventManager {
                 info.city
             ]);
         }
-        const response = await this._websocketManager.submitEvent(event, privateKey);
-        if (response.success) {
+        const verifiedEvent = Event.finishEvent(event, privateKey);
+        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        const failedResponses = responses.filter(response => !response.success); //FIXME: Handle failed responses
+        if (failedResponses.length === 0) {
+            let response = responses[0];
             let pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(privateKey);
             let eventKey = `${kind}:${pubkey}:${info.id}`;
             let apiRequestBody: any = {
@@ -1079,7 +1164,7 @@ class NostrEventManager {
                 body: JSON.stringify(apiRequestBody)
             });
         }
-        return response;
+        return responses;
     }
 
     async fetchCalendarEvents(start: number, end?: number, limit?: number) {
@@ -1111,7 +1196,8 @@ class NostrEventManager {
                 limit: limit || 10
             }; 
         }
-        const events = await this._websocketManager.fetchWebSocketEvents(req);
+        const manager = this._nostrCommunicationManagers[0];
+        const events = await manager.fetchEvents(req);
         return events;
     }
 
@@ -1121,7 +1207,8 @@ class NostrEventManager {
             "#d": [address.identifier],
             authors: [address.pubkey]
         };
-        const events = await this._websocketManager.fetchWebSocketEvents(req);
+        const manager = this._nostrCommunicationManagers[0];
+        const events = await manager.fetchEvents(req);
         return events?.length > 0 ? events[0] : null;
     }
 
@@ -1150,8 +1237,9 @@ class NostrEventManager {
                 ]
             ]
         };
-        const response = await this._websocketManager.submitEvent(event, privateKey);
-        return response;
+        const verifiedEvent = Event.finishEvent(event, privateKey);
+        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        return responses;
     }
 
     async fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string) {
@@ -1163,7 +1251,8 @@ class NostrEventManager {
             const decodedPubKey = pubkey.startsWith('npub1') ? Nip19.decode(pubkey).data : pubkey;
             req.authors = [decodedPubKey];
         }
-        const events = await this._websocketManager.fetchWebSocketEvents(req);
+        const manager = this._nostrCommunicationManagers[0];
+        const events = await manager.fetchEvents(req);
         return events;
     }
 
@@ -1182,7 +1271,8 @@ class NostrEventManager {
         else {
             req.until = until;
         }
-        const events = await this._websocketManager.fetchWebSocketEvents(req);
+        const manager = this._nostrCommunicationManagers[0];
+        const events = await manager.fetchEvents(req);
         return events;
     }
 
@@ -1193,7 +1283,8 @@ class NostrEventManager {
             "content": "+",
             "tags": tags
         };
-        await this._websocketManager.submitEvent(event, privateKey);
+        const verifiedEvent = Event.finishEvent(event, privateKey);
+        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
     }
 
     async fetchLikes(eventId: string) {
@@ -1201,7 +1292,8 @@ class NostrEventManager {
             kinds: [7],
             "#e": [eventId]
         };
-        const events = await this._websocketManager.fetchWebSocketEvents(req);
+        const manager = this._nostrCommunicationManagers[0];
+        const events = await manager.fetchEvents(req);
         return events;
     }
 
@@ -1212,7 +1304,8 @@ class NostrEventManager {
             "content": content,
             "tags": tags
         };
-        await this._websocketManager.submitEvent(event, privateKey);
+        const verifiedEvent = Event.finishEvent(event, privateKey);
+        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
     }
 }
 
@@ -1238,9 +1331,9 @@ interface ISocialEventManager {
     // fetchReplies(options: IFetchRepliesOptions): Promise<INostrEvent[]>;
     // fetchFollowing(npubs: string[]): Promise<INostrEvent[]>;
     postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
-    deleteEvents(eventIds: string[], privateKey: string): Promise<INostrSubmitResponse>;
-    updateCommunity(info: ICommunityInfo, privateKey: string): Promise<INostrSubmitResponse>;
-    updateChannel(info: IChannelInfo, privateKey: string): Promise<INostrSubmitResponse>;
+    deleteEvents(eventIds: string[], privateKey: string): Promise<INostrSubmitResponse[]>;
+    updateCommunity(info: ICommunityInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
+    updateChannel(info: IChannelInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
     fetchChannels(channelEventIds: string[]): Promise<INostrEvent[]>;
     updateUserBookmarkedChannels(channelEventIds: string[], privateKey: string): Promise<void>;
     fetchAllUserRelatedChannels(pubKey: string): Promise<INostrEvent[]>;
@@ -1257,11 +1350,11 @@ interface ISocialEventManager {
     resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
     fetchGroupKeys(identifier: string): Promise<INostrEvent>;
     fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
-    updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[], privateKey: string): Promise<INostrSubmitResponse>;
-    updateCalendarEvent(info: IUpdateCalendarEventInfo, privateKey: string): Promise<INostrSubmitResponse>;
+    updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[], privateKey: string): Promise<INostrSubmitResponse[]>;
+    updateCalendarEvent(info: IUpdateCalendarEventInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
     fetchCalendarEvents(start: number, end?: number, limit?: number): Promise<INostrEvent[]>;
     fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent | null>;
-    createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse>;
+    createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse[]>;
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
     fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     submitLike(tags: string[][], privateKey: string): Promise<void>;
@@ -2218,7 +2311,8 @@ class SocialDataManager {
             }                 
         }
         if (communityInfo.scpData) {
-            const updateChannelResponse = await this.updateCommunityChannel(communityInfo, privateKey);
+            const updateChannelResponses = await this.updateCommunityChannel(communityInfo, privateKey);
+            const updateChannelResponse = updateChannelResponses[0];
             if (updateChannelResponse.eventId) {
                 communityInfo.scpData.channelEventId = updateChannelResponse.eventId;
             }   
@@ -2283,7 +2377,8 @@ class SocialDataManager {
             ...channelInfo.scpData,
             publicKey: channelKeys.groupPublicKey
         } 
-        const updateChannelResponse = await this._socialEventManager.updateChannel(channelInfo, privateKey);
+        const updateChannelResponses = await this._socialEventManager.updateChannel(channelInfo, privateKey);
+        const updateChannelResponse = updateChannelResponses[0];
         if (updateChannelResponse.eventId) {
             const channelUri = `40:${updateChannelResponse.eventId}`;
             await this._socialEventManager.updateGroupKeys(
@@ -2788,7 +2883,7 @@ class SocialDataManager {
         return identifiers;
     }
 
-    async mapCommunityUriToMemberIdRoleCombo(communities: ICommunityInfo[]) {
+    private async mapCommunityUriToMemberIdRoleCombo(communities: ICommunityInfo[]) {
         const communityUriToMemberIdRoleComboMap: Record<string, { id: string; role: CommunityRole }[]> = {};
         const communityUriToCreatorOrModeratorIdsMap: Record<string, Set<string>> = {};
         for (let community of communities) {
@@ -2898,7 +2993,8 @@ class SocialDataManager {
             geohash
         }
         let naddr: string;
-        const response = await this._socialEventManager.updateCalendarEvent(updateCalendarEventInfo, privateKey);
+        const responses = await this._socialEventManager.updateCalendarEvent(updateCalendarEventInfo, privateKey);
+        const response = responses[0];
         if (response.success) {
             const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(privateKey);
             naddr = Nip19.naddrEncode({
@@ -3183,5 +3279,6 @@ export {
     NostrEventManager,
     ISocialEventManager,
     SocialUtilsManager,
-    SocialDataManager
+    SocialDataManager,
+    NostrWebSocketManager
 }

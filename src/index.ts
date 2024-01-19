@@ -35,5 +35,6 @@ export {
     NostrEventManager,
     ISocialEventManager,
     SocialUtilsManager,
-    SocialDataManager
+    SocialDataManager,
+    NostrWebSocketManager
 } from './utils/index'
