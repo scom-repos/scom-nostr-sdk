@@ -4210,13 +4210,12 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             this._nostrCommunicationManagers = [];
             this._relays = relays;
             this._cachedServer = cachedServer;
-            const restAPIRelay = relays.find(relay => !relay.startsWith('wss://'));
-            if (restAPIRelay) {
-                this._nostrCommunicationManagers.push(new NostrRestAPIManager(restAPIRelay));
-            }
-            else {
-                for (let relay of relays) {
+            for (let relay of relays) {
+                if (relay.startsWith('wss://')) {
                     this._nostrCommunicationManagers.push(new NostrWebSocketManager(relay));
+                }
+                else {
+                    this._nostrCommunicationManagers.push(new NostrRestAPIManager(relay));
                 }
             }
             if (this._cachedServer.startsWith('wss://')) {
