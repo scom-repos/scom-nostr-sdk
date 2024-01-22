@@ -290,6 +290,9 @@ export interface ISocialDataManagerConfig {
     apiBaseUrl: string;
     ipLocationServiceBaseUrl?: string;
     ipLocationServiceApiKey?: string;
+    mqttBrokerUrl?: string;
+    mqttSubscriptions?: string[];
+    mqttMessageCallback?: (topic: string, message: string) => void;
 }
 export interface ILongFormContentInfo {
     eventData: INostrEvent;

@@ -13,10 +13,12 @@ declare class NostrWebSocketManager implements INostrCommunicationManager {
     protected _url: string;
     protected ws: any;
     protected requestCallbackMap: Record<string, (message: any) => void>;
+    protected messageListenerBound: any;
     constructor(url: any);
     get url(): string;
     set url(url: string);
     generateRandomNumber(): string;
+    messageListener(event: any): void;
     establishConnection(requestId: string, cb: (message: any) => void): Promise<WebSocket>;
     fetchEvents(...requests: any): Promise<INostrEvent[]>;
     fetchCachedEvents(eventType: string, msg: any): Promise<INostrEvent[]>;
@@ -141,8 +143,12 @@ declare class SocialDataManager {
     private _apiBaseUrl;
     private _ipLocationServiceBaseUrl;
     private _socialEventManager;
+    private mqttManager;
     constructor(config: ISocialDataManagerConfig);
     get socialEventManager(): ISocialEventManager;
+    subscribeToMqttTopics(topics: string[]): void;
+    unsubscribeFromMqttTopics(topics: string[]): void;
+    publishToMqttTopic(topic: string, message: string): void;
     extractCommunityInfo(event: INostrEvent): ICommunityInfo;
     retrieveCommunityEvents(creatorId: string, communityId: string): Promise<{
         notes: INostrEvent[];

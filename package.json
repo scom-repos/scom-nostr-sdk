@@ -7,10 +7,11 @@
     "types": "types/index.d.ts",
     "dependencies": {
         "@ijstech/eth-contract": "^0.1.25",
-        "@ijstech/eth-wallet": "^0.1.84"
+        "@ijstech/eth-wallet": "^0.1.84",
+        "ws": "^8.14.2",
+        "mqtt": "^5.3.4"
     },
     "devDependencies": {
-        "ws": "^8.14.2",
         "@ijstech/compiler": "^0.1.35",
         "@types/node": "^18.18.6",
         "@types/ws": "^8.5.6",
@@ -20,7 +21,7 @@
         "mocha": "10.0.0"
     },
     "scripts": {
-        "build": "rm -rf dist && rm -rf lib && rm -rf pluginTypes && rm -rf types && npx @ijstech/compiler",
+        "build": "rm -rf dist && rm -rf lib && rm -rf pluginTypes && rm -rf types && npx @ijstech/compiler && bash ./scripts/copy.bash",
         "test": "mocha --ui tdd --exit --require ts-node/register test/*.spec.ts"
     }
 }

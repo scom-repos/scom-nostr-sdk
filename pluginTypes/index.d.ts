@@ -1387,6 +1387,9 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         apiBaseUrl: string;
         ipLocationServiceBaseUrl?: string;
         ipLocationServiceApiKey?: string;
+        mqttBrokerUrl?: string;
+        mqttSubscriptions?: string[];
+        mqttMessageCallback?: (topic: string, message: string) => void;
     }
     export interface ILongFormContentInfo {
         eventData: INostrEvent;
@@ -1448,6 +1451,27 @@ declare module "@scom/scom-social-sdk/utils/geoquery.ts" {
     };
     export default _default;
 }
+/// <amd-module name="@scom/scom-social-sdk/utils/mqtt.ts" />
+declare module "@scom/scom-social-sdk/utils/mqtt.ts" {
+    interface IMqttManagerConfig {
+        brokerUrl: string;
+        subscriptions?: string[];
+        connectCallback?: () => void;
+        errorCallback?: (error: any) => void;
+        messageCallback?: (topic: string, message: string) => void;
+    }
+    class MqttManager {
+        private config;
+        private client;
+        private subscriptions;
+        constructor(config: IMqttManagerConfig);
+        subscribe(topics: string[]): void;
+        unsubscribe(topics: string[]): void;
+        publish(topic: string, message: string): void;
+        disconnect(): void;
+    }
+    export { MqttManager };
+}
 /// <amd-module name="@scom/scom-social-sdk/utils/managers.ts" />
 declare module "@scom/scom-social-sdk/utils/managers.ts" {
     import { Nip19, Event } from "@scom/scom-social-sdk/core/index.ts";
@@ -1465,10 +1489,12 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         protected _url: string;
         protected ws: any;
         protected requestCallbackMap: Record<string, (message: any) => void>;
+        protected messageListenerBound: any;
         constructor(url: any);
         get url(): string;
         set url(url: string);
         generateRandomNumber(): string;
+        messageListener(event: any): void;
         establishConnection(requestId: string, cb: (message: any) => void): Promise<WebSocket>;
         fetchEvents(...requests: any): Promise<INostrEvent[]>;
         fetchCachedEvents(eventType: string, msg: any): Promise<INostrEvent[]>;
@@ -1597,8 +1623,12 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         private _apiBaseUrl;
         private _ipLocationServiceBaseUrl;
         private _socialEventManager;
+        private mqttManager;
         constructor(config: ISocialDataManagerConfig);
         get socialEventManager(): ISocialEventManager;
+        subscribeToMqttTopics(topics: string[]): void;
+        unsubscribeFromMqttTopics(topics: string[]): void;
+        publishToMqttTopic(topic: string, message: string): void;
         extractCommunityInfo(event: INostrEvent): ICommunityInfo;
         retrieveCommunityEvents(creatorId: string, communityId: string): Promise<{
             notes: INostrEvent[];
@@ -1728,9 +1758,10 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
 declare module "@scom/scom-social-sdk/utils/index.ts" {
     export { INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityScpData, INoteInfo, INoteInfoExtended, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, INewCommunityInfo, MembershipType, CommunityRole, ICommunityMember, ICommunity, CalendarEventType, ICalendarEventInfo, IUpdateCalendarEventInfo, ICalendarEventHost, ICalendarEventAttendee, ICalendarEventDetailInfo, ILocationCoordinates, ISocialDataManagerConfig } from "@scom/scom-social-sdk/utils/interfaces.ts";
     export { NostrEventManager, ISocialEventManager, SocialUtilsManager, SocialDataManager, NostrWebSocketManager } from "@scom/scom-social-sdk/utils/managers.ts";
+    export { MqttManager } from "@scom/scom-social-sdk/utils/mqtt.ts";
 }
 /// <amd-module name="@scom/scom-social-sdk" />
 declare module "@scom/scom-social-sdk" {
     export { Event, Keys, Nip19, Bech32, } from "@scom/scom-social-sdk/core/index.ts";
-    export { INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityScpData, INoteInfo, INoteInfoExtended, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, INewCommunityInfo, MembershipType, CommunityRole, ICommunityMember, ICommunity, CalendarEventType, ICalendarEventInfo, IUpdateCalendarEventInfo, ICalendarEventHost, ICalendarEventAttendee, ICalendarEventDetailInfo, ILocationCoordinates, ISocialDataManagerConfig, NostrEventManager, ISocialEventManager, SocialUtilsManager, SocialDataManager, NostrWebSocketManager } from "@scom/scom-social-sdk/utils/index.ts";
+    export { INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityScpData, INoteInfo, INoteInfoExtended, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, INewCommunityInfo, MembershipType, CommunityRole, ICommunityMember, ICommunity, CalendarEventType, ICalendarEventInfo, IUpdateCalendarEventInfo, ICalendarEventHost, ICalendarEventAttendee, ICalendarEventDetailInfo, ILocationCoordinates, ISocialDataManagerConfig, NostrEventManager, ISocialEventManager, SocialUtilsManager, SocialDataManager, NostrWebSocketManager, MqttManager } from "@scom/scom-social-sdk/utils/index.ts";
 }

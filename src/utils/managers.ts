@@ -3,6 +3,7 @@ import { Nip19, Event, Keys } from "../core/index";
 import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, IConversationPath, ILocationCoordinates, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
 import Geohash from './geohash';
 import GeoQuery from './geoquery';
+import { MqttManager } from "./mqtt";
 
 interface IFetchNotesOptions {
     authors?: string[];
@@ -116,9 +117,11 @@ class NostrWebSocketManager implements INostrCommunicationManager {
     protected _url: string;
     protected ws: any;
     protected requestCallbackMap: Record<string, (message: any) => void> = {};
+    protected messageListenerBound: any;
 
     constructor(url) {
         this._url = url;
+        this.messageListenerBound = this.messageListener.bind(this);
     }
 
     get url() {
@@ -137,6 +140,23 @@ class NostrWebSocketManager implements INostrCommunicationManager {
         return randomNumber;
     }
 
+    messageListener(event: any) {
+        const messageStr = event.data.toString();
+        const message = JSON.parse(messageStr);
+        let requestId = message[1];
+        if (message[0] === 'EOSE' || message[0] === 'OK') {
+            if (this.requestCallbackMap[requestId]) {
+                this.requestCallbackMap[requestId](message);
+                delete this.requestCallbackMap[requestId];
+            }
+        }
+        else if (message[0] === 'EVENT') {
+            if (this.requestCallbackMap[requestId]) {
+                this.requestCallbackMap[requestId](message);
+            }
+        }
+    }
+
     establishConnection(requestId: string, cb: (message: any) => void) {
         const WebSocket = determineWebSocketType();
         this.requestCallbackMap[requestId] = cb; 
@@ -149,22 +169,7 @@ class NostrWebSocketManager implements INostrCommunicationManager {
             if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
                 this.ws = new WebSocket(this._url);
                 this.ws.addEventListener('open', openListener);
-                this.ws.addEventListener('message', (event) => {
-                    const messageStr = event.data.toString();
-                    const message = JSON.parse(messageStr);
-                    let requestId = message[1];
-                    if (message[0] === 'EOSE' || message[0] === 'OK') {
-                        if (this.requestCallbackMap[requestId]) {
-                            this.requestCallbackMap[requestId](message);
-                            delete this.requestCallbackMap[requestId];
-                        }
-                    }
-                    else if (message[0] === 'EVENT') {
-                        if (this.requestCallbackMap[requestId]) {
-                            this.requestCallbackMap[requestId](message);
-                        }
-                    }
-                });
+                this.ws.addEventListener('message', this.messageListenerBound);
 
                 this.ws.addEventListener('close', () => {
                     console.log('Disconnected from server');
@@ -1492,6 +1497,7 @@ class SocialDataManager {
     private _apiBaseUrl: string;
     private _ipLocationServiceBaseUrl: string;
     private _socialEventManager: ISocialEventManager;
+    private mqttManager: MqttManager;
 
     constructor(config: ISocialDataManagerConfig) {
         this._apiBaseUrl = config.apiBaseUrl;
@@ -1501,10 +1507,29 @@ class SocialDataManager {
             config.cachedServer, 
             config.apiBaseUrl
         );
+        if (config.mqttBrokerUrl) {
+            this.mqttManager = new MqttManager({
+                brokerUrl: config.mqttBrokerUrl,
+                subscriptions: config.mqttSubscriptions,
+                messageCallback: config.mqttMessageCallback
+            });
+        }
     }
 
     get socialEventManager() {
         return this._socialEventManager;
+    }
+
+    subscribeToMqttTopics(topics: string[]) {
+        this.mqttManager.subscribe(topics);
+    }
+
+    unsubscribeFromMqttTopics(topics: string[]) {
+        this.mqttManager.unsubscribe(topics);
+    }
+
+    publishToMqttTopic(topic: string, message: string) {
+        this.mqttManager.publish(topic, message);
     }
 
     extractCommunityInfo(event: INostrEvent) {

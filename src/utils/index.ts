@@ -34,4 +34,8 @@ export {
     SocialUtilsManager,
     SocialDataManager,
     NostrWebSocketManager
-} from './managers'
+} from './managers';
+
+export {
+    MqttManager
+} from './mqtt';
