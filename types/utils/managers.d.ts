@@ -38,9 +38,9 @@ declare class NostrEventManager {
     fetchHomeFeedCacheEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
     fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
-    fetchContactListCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    fetchContactListCacheEvents(pubKey: string, detailIncluded?: boolean): Promise<INostrEvent[]>;
     fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
-    fetchRelaysCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    updateContactList(content: string, contactPubKeys: string[], privateKey: string): Promise<void>;
     fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<any>;
     fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;
     fetchUserBookmarkedCommunities(pubKey: string): Promise<INostrEvent[]>;
@@ -88,9 +88,9 @@ interface ISocialEventManager {
     fetchHomeFeedCacheEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
     fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
-    fetchContactListCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    fetchContactListCacheEvents(pubKey: string, detailIncluded?: boolean): Promise<INostrEvent[]>;
     fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
-    fetchRelaysCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    updateContactList(content: string, contactPubKeys: string[], privateKey: string): Promise<void>;
     fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<INostrEvent[]>;
     fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;
     fetchUserBookmarkedCommunities(pubKey: string): Promise<INostrEvent[]>;
@@ -217,6 +217,8 @@ declare class SocialDataManager {
     fetchUserContactList(pubKey: string): Promise<IUserProfile[]>;
     fetchUserFollowersList(pubKey: string): Promise<IUserProfile[]>;
     fetchUserRelayList(pubKey: string): Promise<string[]>;
+    followUser(userPubKey: string, privateKey: string): Promise<void>;
+    unfollowUser(userPubKey: string, privateKey: string): Promise<void>;
     getCommunityUri(creatorId: string, communityId: string): string;
     generateGroupKeys(privateKey: string, encryptionPublicKeys: string[]): Promise<{
         groupPrivateKey: string;

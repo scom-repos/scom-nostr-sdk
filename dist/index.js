@@ -4401,10 +4401,10 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('user_profile', msg);
             return events;
         }
-        async fetchContactListCacheEvents(pubKey) {
+        async fetchContactListCacheEvents(pubKey, detailIncluded = true) {
             const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
             let msg = {
-                extended_response: true,
+                extended_response: detailIncluded,
                 pubkey: decodedPubKey
             };
             const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('contact_list', msg);
@@ -4418,14 +4418,21 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('user_followers', msg);
             return events;
         }
-        async fetchRelaysCacheEvents(pubKey) {
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
-            let msg = {
-                extended_response: false,
-                pubkey: decodedPubKey
+        async updateContactList(content, contactPubKeys, privateKey) {
+            let event = {
+                "kind": 3,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": content,
+                "tags": []
             };
-            const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('contact_list', msg);
-            return events;
+            for (let contactPubKey of contactPubKeys) {
+                event.tags.push([
+                    "p",
+                    contactPubKey
+                ]);
+            }
+            const verifiedEvent = index_1.Event.finishEvent(event, privateKey);
+            await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
         async fetchCommunities(pubkeyToCommunityIdsMap) {
             const manager = this._nostrCommunicationManagers[0];
@@ -6083,7 +6090,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         async fetchUserContactList(pubKey) {
             let metadataArr = [];
             let followersCountMap = {};
-            const userContactEvents = await this._socialEventManager.fetchContactListCacheEvents(pubKey);
+            const userContactEvents = await this._socialEventManager.fetchContactListCacheEvents(pubKey, true);
             for (let event of userContactEvents) {
                 if (event.kind === 0) {
                     metadataArr.push({
@@ -6126,13 +6133,44 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         }
         async fetchUserRelayList(pubKey) {
             let relayList = [];
-            const relaysEvents = await this._socialEventManager.fetchRelaysCacheEvents(pubKey);
+            const relaysEvents = await this._socialEventManager.fetchContactListCacheEvents(pubKey, false);
             const relaysEvent = relaysEvents.find(event => event.kind === 3);
             if (!relaysEvent)
                 return relayList;
-            let content = JSON.parse(relaysEvent.content);
+            let content = relaysEvent.content ? JSON.parse(relaysEvent.content) : {};
             relayList = Object.keys(content);
             return relayList;
+        }
+        async followUser(userPubKey, privateKey) {
+            const decodedUserPubKey = userPubKey.startsWith('npub1') ? index_1.Nip19.decode(userPubKey).data : userPubKey;
+            const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(privateKey);
+            const contactListEvents = await this._socialEventManager.fetchContactListCacheEvents(selfPubkey, false);
+            let content = '';
+            let contactPubKeys = [];
+            const contactListEvent = contactListEvents.find(event => event.kind === 3);
+            if (contactListEvent) {
+                content = contactListEvent.content;
+                contactPubKeys = contactListEvent.tags.filter(tag => tag[0] === 'p')?.[1] || [];
+            }
+            contactPubKeys.push(decodedUserPubKey);
+            await this._socialEventManager.updateContactList(content, contactPubKeys, privateKey);
+        }
+        async unfollowUser(userPubKey, privateKey) {
+            const decodedUserPubKey = userPubKey.startsWith('npub1') ? index_1.Nip19.decode(userPubKey).data : userPubKey;
+            const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(privateKey);
+            const contactListEvents = await this._socialEventManager.fetchContactListCacheEvents(selfPubkey, false);
+            let content = '';
+            let contactPubKeys = [];
+            const contactListEvent = contactListEvents.find(event => event.kind === 3);
+            if (contactListEvent) {
+                content = contactListEvent.content;
+                for (let tag of contactListEvent.tags) {
+                    if (tag[0] === 'p' && tag[1] !== decodedUserPubKey) {
+                        contactPubKeys.push(tag[1]);
+                    }
+                }
+            }
+            await this._socialEventManager.updateContactList(content, contactPubKeys, privateKey);
         }
         getCommunityUri(creatorId, communityId) {
             const decodedPubkey = index_1.Nip19.decode(creatorId).data;
@@ -6261,6 +6299,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const communityUriToMembersMap = {};
             if (pubkeys.size > 0) {
                 const userProfiles = await this.fetchUserProfiles(Array.from(pubkeys));
+                if (!userProfiles)
+                    return communityUriToMembersMap;
                 for (let community of communities) {
                     const decodedPubkey = index_1.Nip19.decode(community.creatorId).data;
                     const communityUri = `34550:${decodedPubkey}:${community.communityId}`;

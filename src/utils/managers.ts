@@ -363,10 +363,10 @@ class NostrEventManager {
         return events;
     }
 
-    async fetchContactListCacheEvents(pubKey: string) {
+    async fetchContactListCacheEvents(pubKey: string, detailIncluded: boolean = true) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
         let msg: any = {
-            extended_response: true,
+            extended_response: detailIncluded,
             pubkey: decodedPubKey
         };
         const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('contact_list', msg);
@@ -382,15 +382,22 @@ class NostrEventManager {
         return events;
     }  
 
-    async fetchRelaysCacheEvents(pubKey: string) {
-        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
-        let msg: any = {
-            extended_response: false,
-            pubkey: decodedPubKey
+    async updateContactList(content: string, contactPubKeys: string[], privateKey: string) {
+        let event = {
+            "kind": 3,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": content,
+            "tags": []
         };
-        const events = await this._nostrCachedCommunicationManager.fetchCachedEvents('contact_list', msg);
-        return events;
-    }   
+        for (let contactPubKey of contactPubKeys) {
+            event.tags.push([
+                "p",
+                contactPubKey
+            ]);
+        }
+        const verifiedEvent = Event.finishEvent(event, privateKey);
+        await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+    }  
 
     async fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>) {
         const manager = this._nostrCommunicationManagers[0];
@@ -1321,9 +1328,9 @@ interface ISocialEventManager {
     fetchHomeFeedCacheEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
     fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
-    fetchContactListCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    fetchContactListCacheEvents(pubKey: string, detailIncluded?: boolean): Promise<INostrEvent[]>;
     fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
-    fetchRelaysCacheEvents(pubKey: string): Promise<INostrEvent[]>;
+    updateContactList(content: string, contactPubKeys: string[], privateKey: string): Promise<void>;
     fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<INostrEvent[]>;
     fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;
     fetchUserBookmarkedCommunities(pubKey: string): Promise<INostrEvent[]>;
@@ -2215,7 +2222,7 @@ class SocialDataManager {
     async fetchUserContactList(pubKey: string) {
         let metadataArr: INostrMetadata[] = [];
         let followersCountMap: Record<string, number> = {};
-        const userContactEvents = await this._socialEventManager.fetchContactListCacheEvents(pubKey);
+        const userContactEvents = await this._socialEventManager.fetchContactListCacheEvents(pubKey, true);
         for (let event of userContactEvents) {
             if (event.kind === 0) {
                 metadataArr.push({
@@ -2260,12 +2267,45 @@ class SocialDataManager {
 
     async fetchUserRelayList(pubKey: string) {
         let relayList: string[] = [];
-        const relaysEvents = await this._socialEventManager.fetchRelaysCacheEvents(pubKey);
+        const relaysEvents = await this._socialEventManager.fetchContactListCacheEvents(pubKey, false);
         const relaysEvent = relaysEvents.find(event => event.kind === 3);
         if (!relaysEvent) return relayList;
-        let content = JSON.parse(relaysEvent.content);
+        let content = relaysEvent.content ? JSON.parse(relaysEvent.content) : {};
         relayList = Object.keys(content);
         return relayList;
+    }
+
+    async followUser(userPubKey: string, privateKey: string) {
+        const decodedUserPubKey = userPubKey.startsWith('npub1') ? Nip19.decode(userPubKey).data as string : userPubKey;
+        const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(privateKey);
+        const contactListEvents = await this._socialEventManager.fetchContactListCacheEvents(selfPubkey, false);
+        let content = '';
+        let contactPubKeys: string[] = [];
+        const contactListEvent = contactListEvents.find(event => event.kind === 3);
+        if (contactListEvent) {
+            content = contactListEvent.content;
+            contactPubKeys = contactListEvent.tags.filter(tag => tag[0] === 'p')?.[1] || [];
+        }
+        contactPubKeys.push(decodedUserPubKey);
+        await this._socialEventManager.updateContactList(content, contactPubKeys, privateKey);
+    }
+
+    async unfollowUser(userPubKey: string, privateKey: string) {
+        const decodedUserPubKey = userPubKey.startsWith('npub1') ? Nip19.decode(userPubKey).data as string : userPubKey;
+        const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(privateKey);
+        const contactListEvents = await this._socialEventManager.fetchContactListCacheEvents(selfPubkey, false);
+        let content = '';
+        let contactPubKeys: string[] = [];
+        const contactListEvent = contactListEvents.find(event => event.kind === 3);
+        if (contactListEvent) {
+            content = contactListEvent.content;
+            for (let tag of contactListEvent.tags) {
+                if (tag[0] === 'p' && tag[1] !== decodedUserPubKey) {
+                    contactPubKeys.push(tag[1]);
+                }
+            }
+        }
+        await this._socialEventManager.updateContactList(content, contactPubKeys, privateKey);
     }
 
     getCommunityUri(creatorId: string, communityId: string) {
@@ -2422,6 +2462,7 @@ class SocialDataManager {
         const communityUriToMembersMap: Record<string, ICommunityMember[]> = {};
         if (pubkeys.size > 0) {
             const userProfiles = await this.fetchUserProfiles(Array.from(pubkeys));
+            if (!userProfiles) return communityUriToMembersMap;
             for (let community of communities) {
                 const decodedPubkey = Nip19.decode(community.creatorId).data as string;
                 const communityUri = `34550:${decodedPubkey}:${community.communityId}`;
