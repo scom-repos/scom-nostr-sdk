@@ -56,6 +56,7 @@ export interface IUserActivityStats {
 }
 export interface INoteInfo {
     eventData: INostrEvent;
+    originalNoteEventData?: INostrEvent;
     stats?: IPostStats;
 }
 export interface IAuthor {

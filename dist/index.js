@@ -5920,6 +5920,19 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                         }
                     }
                 }
+                else if (event.kind === 6) {
+                    const originalNoteContent = JSON.parse(event.content);
+                    notes.push({
+                        // originalNoteEventData: originalNoteContent,
+                        eventData: originalNoteContent
+                    });
+                    if (parentAuthorsInfo) {
+                        const parentAuthors = event.tags.filter(tag => tag[0] === 'p')?.map(tag => tag[1]) || [];
+                        if (parentAuthors.length > 0) {
+                            noteToParentAuthorIdMap[event.id] = parentAuthors[parentAuthors.length - 1];
+                        }
+                    }
+                }
                 else if (event.kind === 10000100) {
                     const content = JSON.parse(event.content);
                     noteStatsMap[content.event_id] = {

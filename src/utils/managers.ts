@@ -1901,14 +1901,7 @@ class SocialDataManager {
     }
 
     async updateUserProfile(content: INostrMetadataContent, privateKey: string) {
-        await this._socialEventManager.updateUserProfile({
-            name: content.name,
-            display_name: content.display_name,
-            website: content.website,
-            picture: content.picture,
-            about: content.about,
-            banner: content.banner
-        }, privateKey)
+        await this._socialEventManager.updateUserProfile(content, privateKey)
     }
 
     async fetchTrendingNotesInfo() {
@@ -2034,6 +2027,18 @@ class SocialDataManager {
             else if (event.kind === 1) {
                 notes.push({
                     eventData: event
+                });
+                if (parentAuthorsInfo) {
+                    const parentAuthors = event.tags.filter(tag => tag[0] === 'p')?.map(tag => tag[1]) || [];
+                    if (parentAuthors.length > 0) {
+                        noteToParentAuthorIdMap[event.id] = parentAuthors[parentAuthors.length - 1];
+                    }
+                }
+            }
+            else if (event.kind === 6) {
+                const originalNoteContent = JSON.parse(event.content);
+                notes.push({
+                    eventData: originalNoteContent
                 });
                 if (parentAuthorsInfo) {
                     const parentAuthors = event.tags.filter(tag => tag[0] === 'p')?.map(tag => tag[1]) || [];
