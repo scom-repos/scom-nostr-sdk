@@ -1153,7 +1153,6 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     }
     export interface INoteInfo {
         eventData: INostrEvent;
-        originalNoteEventData?: INostrEvent;
         stats?: IPostStats;
     }
     export interface IAuthor {
