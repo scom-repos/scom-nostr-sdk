@@ -1332,6 +1332,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         name?: string;
         profileImageUrl?: string;
         username?: string;
+        internetIdentifier?: string;
         role: CommunityRole;
     }
     export interface ICommunity extends ICommunityInfo {

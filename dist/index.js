@@ -6330,6 +6330,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                             name: userProfile.displayName,
                             profileImageUrl: userProfile.avatar,
                             username: userProfile.username,
+                            internetIdentifier: userProfile.internetIdentifier,
                             role: memberIdRoleCombo.role
                         };
                         communityMembers.push(communityMember);
