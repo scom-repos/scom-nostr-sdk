@@ -270,6 +270,7 @@ export interface ICommunityMember {
 	name?: string;
 	profileImageUrl?: string;
 	username?: string;
+	internetIdentifier?: string;
 	role: CommunityRole;
 }
 

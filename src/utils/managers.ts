@@ -2482,6 +2482,7 @@ class SocialDataManager {
                         name: userProfile.displayName,
                         profileImageUrl: userProfile.avatar,
                         username: userProfile.username,
+                        internetIdentifier: userProfile.internetIdentifier,
                         role: memberIdRoleCombo.role
                     }
                     communityMembers.push(communityMember);
