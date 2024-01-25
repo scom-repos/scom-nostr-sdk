@@ -6455,7 +6455,6 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 communityUri: info.communityUri,
                 message,
             };
-            const { encryptedMessage, encryptedGroupKey } = await this.encryptGroupMessage(privateKey, info.scpData.publicKey, JSON.stringify(messageContent));
             let newCommunityPostInfo;
             if (info.membershipType === interfaces_1.MembershipType.Open) {
                 newCommunityPostInfo = {
@@ -6465,6 +6464,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 };
             }
             else {
+                const { encryptedMessage, encryptedGroupKey } = await this.encryptGroupMessage(privateKey, info.scpData.publicKey, JSON.stringify(messageContent));
                 newCommunityPostInfo = {
                     community: info,
                     message: encryptedMessage,
