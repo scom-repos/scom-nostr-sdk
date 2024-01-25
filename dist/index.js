@@ -5426,6 +5426,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         constructor(config) {
             this._apiBaseUrl = config.apiBaseUrl;
             this._ipLocationServiceBaseUrl = config.ipLocationServiceBaseUrl;
+            this._defaultRestAPIRelay = config.relays.find(relay => !relay.startsWith('wss://'));
             this._socialEventManager = new NostrEventManager(config.relays, config.cachedServer, config.apiBaseUrl);
             if (config.mqttBrokerUrl) {
                 this.mqttManager = new mqtt_1.MqttManager({
@@ -7164,6 +7165,57 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             ];
             const content = JSON.stringify(postEventData);
             await this._socialEventManager.submitRepost(content, tags, privateKey);
+        }
+        async sendPingRequest(pubkey, walletAddress, signature) {
+            if (!this._defaultRestAPIRelay)
+                return null;
+            let msg = pubkey;
+            const data = {
+                msg: msg,
+                signature: signature,
+                pubkey: pubkey,
+                walletAddress: walletAddress
+            };
+            let response = await fetch(this._defaultRestAPIRelay + '/ping', {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+            let result = await response.json();
+            return result;
+        }
+        async fetchUnreadMessageCounts(pubkey) {
+            if (!this._defaultRestAPIRelay)
+                return null;
+            let url = this._defaultRestAPIRelay + '/unread-message-counts?pubkey=' + pubkey;
+            const response = await fetch(url);
+            const result = await response.json();
+            return result;
+        }
+        async updateMessageLastReadReceipt(pubkey, walletAddress, signature, fromId) {
+            if (!this._defaultRestAPIRelay)
+                return null;
+            let msg = pubkey;
+            const data = {
+                fromId: fromId,
+                msg: msg,
+                signature: signature,
+                pubkey: pubkey,
+                walletAddress: walletAddress
+            };
+            let response = await fetch(this._defaultRestAPIRelay + '/update-message-last-read-receipt', {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+            let result = await response.json();
+            return result;
         }
     }
     exports.SocialDataManager = SocialDataManager;

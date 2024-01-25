@@ -1623,6 +1623,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         factor: number): Promise<T>;
     }
     class SocialDataManager {
+        private _defaultRestAPIRelay;
         private _apiBaseUrl;
         private _ipLocationServiceBaseUrl;
         private _socialEventManager;
@@ -1756,6 +1757,9 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         submitMessage(message: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
         submitLike(postEventData: INostrEvent, privateKey: string): Promise<void>;
         submitRepost(postEventData: INostrEvent, privateKey: string): Promise<void>;
+        sendPingRequest(pubkey: string, walletAddress: string, signature: string): Promise<any>;
+        fetchUnreadMessageCounts(pubkey: string): Promise<any>;
+        updateMessageLastReadReceipt(pubkey: string, walletAddress: string, signature: string, fromId: string): Promise<any>;
     }
     export { NostrEventManager, ISocialEventManager, SocialUtilsManager, SocialDataManager, NostrWebSocketManager };
 }

@@ -140,6 +140,7 @@ declare class SocialUtilsManager {
     static exponentialBackoffRetry<T>(fn: () => Promise<T>, retries: number, delay: number, maxDelay: number, factor: number): Promise<T>;
 }
 declare class SocialDataManager {
+    private _defaultRestAPIRelay;
     private _apiBaseUrl;
     private _ipLocationServiceBaseUrl;
     private _socialEventManager;
@@ -273,5 +274,8 @@ declare class SocialDataManager {
     submitMessage(message: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
     submitLike(postEventData: INostrEvent, privateKey: string): Promise<void>;
     submitRepost(postEventData: INostrEvent, privateKey: string): Promise<void>;
+    sendPingRequest(pubkey: string, walletAddress: string, signature: string): Promise<any>;
+    fetchUnreadMessageCounts(pubkey: string): Promise<any>;
+    updateMessageLastReadReceipt(pubkey: string, walletAddress: string, signature: string, fromId: string): Promise<any>;
 }
 export { NostrEventManager, ISocialEventManager, SocialUtilsManager, SocialDataManager, NostrWebSocketManager };
