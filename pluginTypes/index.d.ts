@@ -927,6 +927,7 @@ declare module "@scom/scom-social-sdk/core/nostr/keys.ts" {
     export function getPublicKey(privateKey: string): string;
     export function getPublicKeyY(privateKey: string): string;
     export function getSharedSecret(privateKey: string, publicKey: string): string;
+    export function decompressPublicKey(publicKey: string): string;
 }
 /// <amd-module name="@scom/scom-social-sdk/core/nostr/event.ts" />
 declare module "@scom/scom-social-sdk/core/nostr/event.ts" {

@@ -17,3 +17,8 @@ export function getPublicKeyY(privateKey: string): string {
 export function getSharedSecret(privateKey: string, publicKey: string): string {
   return bytesToHex(secp256k1.getSharedSecret(privateKey, publicKey))
 }
+
+export function decompressPublicKey(publicKey: string): string {
+  const decompressedPublicKey = secp256k1.ProjectivePoint.fromHex(publicKey).toHex(false);
+  return decompressedPublicKey;
+}

@@ -2923,7 +2923,7 @@ define("@scom/scom-social-sdk/core/curves/secp256k1.ts", ["require", "exports", 
 define("@scom/scom-social-sdk/core/nostr/keys.ts", ["require", "exports", "@scom/scom-social-sdk/core/curves/secp256k1.ts", "@scom/scom-social-sdk/core/hashes/utils.ts"], function (require, exports, secp256k1_1, utils_11) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.getSharedSecret = exports.getPublicKeyY = exports.getPublicKey = exports.generatePrivateKey = void 0;
+    exports.decompressPublicKey = exports.getSharedSecret = exports.getPublicKeyY = exports.getPublicKey = exports.generatePrivateKey = void 0;
     function generatePrivateKey() {
         return (0, utils_11.bytesToHex)(secp256k1_1.schnorr.utils.randomPrivateKey());
     }
@@ -2940,6 +2940,11 @@ define("@scom/scom-social-sdk/core/nostr/keys.ts", ["require", "exports", "@scom
         return (0, utils_11.bytesToHex)(secp256k1_1.secp256k1.getSharedSecret(privateKey, publicKey));
     }
     exports.getSharedSecret = getSharedSecret;
+    function decompressPublicKey(publicKey) {
+        const decompressedPublicKey = secp256k1_1.secp256k1.ProjectivePoint.fromHex(publicKey).toHex(false);
+        return decompressedPublicKey;
+    }
+    exports.decompressPublicKey = decompressPublicKey;
 });
 define("@scom/scom-social-sdk/core/nostr/event.ts", ["require", "exports", "@scom/scom-social-sdk/core/curves/secp256k1.ts", "@scom/scom-social-sdk/core/hashes/sha256.ts", "@scom/scom-social-sdk/core/hashes/utils.ts", "@scom/scom-social-sdk/core/nostr/keys.ts"], function (require, exports, secp256k1_2, sha256_2, utils_12, keys_1) {
     "use strict";
