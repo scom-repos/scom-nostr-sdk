@@ -1889,7 +1889,8 @@ class SocialDataManager {
                 username: metadataContent.username || metadataContent.name,
                 description: metadataContent.about,
                 avatar: metadataContent.picture,
-                pubKey: encodedPubkey,
+                pubkey: metadata.pubkey,
+                npub: encodedPubkey,
                 displayName: metadataContent.display_name || metadataContent.displayName || metadataContent.name,
                 internetIdentifier,
                 website: metadataContent.website,
@@ -2213,7 +2214,8 @@ class SocialDataManager {
             username: metadataContent.username || metadataContent.name,
             description: metadataContent.about,
             avatar: metadataContent.picture,
-            pubKey: encodedPubkey,
+            npub: encodedPubkey,
+            pubkey: metadata.pubkey,
             displayName: metadataContent.display_name || metadataContent.displayName || metadataContent.name,
             internetIdentifier,
             website: metadataContent.website,
@@ -2475,10 +2477,10 @@ class SocialDataManager {
                 if (!memberIds) continue;
                 const communityMembers: ICommunityMember[] = [];
                 for (let memberIdRoleCombo of memberIds) {
-                    const userProfile = userProfiles.find(profile => profile.pubKey === memberIdRoleCombo.id);
+                    const userProfile = userProfiles.find(profile => profile.npub === memberIdRoleCombo.id);
                     if (!userProfile) continue;
                     let communityMember: ICommunityMember = {
-                        id: userProfile.pubKey,
+                        id: userProfile.npub,
                         name: userProfile.displayName,
                         profileImageUrl: userProfile.avatar,
                         username: userProfile.username,

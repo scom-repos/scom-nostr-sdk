@@ -38,7 +38,8 @@ export interface IUserProfile {
     username: string;
     description: string;
     avatar: string;
-    pubKey: string;
+    npub: string;
+    pubkey: string;
     displayName?: string;
     website?: string;
     banner?: string;

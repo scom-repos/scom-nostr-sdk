@@ -1136,7 +1136,8 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         username: string;
         description: string;
         avatar: string;
-        pubKey: string;
+        npub: string;
+        pubkey: string;
         displayName?: string;
         website?: string;
         banner?: string;
