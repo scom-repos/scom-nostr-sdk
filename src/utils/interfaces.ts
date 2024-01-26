@@ -322,6 +322,7 @@ export interface ICalendarEventAttendee {
 export interface ICalendarEventDetailInfo extends ICalendarEventInfo {
 	hosts?: ICalendarEventHost[];
 	attendees?: ICalendarEventAttendee[];
+	notes?: INoteInfo[];
 }
 
 export interface INewCalendarEventPostInfo {

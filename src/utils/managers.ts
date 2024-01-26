@@ -1223,6 +1223,17 @@ class NostrEventManager {
         return events?.length > 0 ? events[0] : null;
     }
 
+    async fetchCalendarEventPosts(calendarEventUri: string) {
+        let request: any = {
+            kinds: [1],
+            "#a": [calendarEventUri],
+            limit: 50
+        };
+        const manager = this._nostrCommunicationManagers[0];
+        const events = await manager.fetchEvents(request);
+        return events;        
+    }
+
     async createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string) {
         let event = {
             "kind": 31925,
@@ -1288,6 +1299,7 @@ class NostrEventManager {
         }
         const verifiedEvent = Event.finishEvent(event, privateKey);
         const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        return responses;
     }
 
     async fetchLongFormContentEvents(pubKey?: string, since: number = 0, until: number = 0) {
@@ -1386,11 +1398,12 @@ interface ISocialEventManager {
     fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
     updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[], privateKey: string): Promise<INostrSubmitResponse[]>;
     updateCalendarEvent(info: IUpdateCalendarEventInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
+    fetchCalendarEventPosts(calendarEventUri: string): Promise<INostrEvent[]>;
     fetchCalendarEvents(start: number, end?: number, limit?: number): Promise<INostrEvent[]>;
     fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent | null>;
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse[]>;
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
-    submitCalendarEventPost(info: INewCalendarEventPostInfo, privateKey: string): Promise<void>;
+    submitCalendarEventPost(info: INewCalendarEventPostInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
     fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     submitLike(tags: string[][], privateKey: string): Promise<void>;
     fetchLikes(eventId: string): Promise<INostrEvent[]>;
@@ -3131,6 +3144,14 @@ class SocialDataManager {
         let attendees: ICalendarEventAttendee[] = [];
         let attendeePubkeys: string[] = [];
         let attendeePubkeyToEventMap: Record<string, INostrEvent> = {};
+        const postEvents = await this._socialEventManager.fetchCalendarEventPosts(calendarEventUri);
+        const notes: INoteInfo[] = [];
+        for (let postEvent of postEvents) {
+            const note: INoteInfo = {
+                eventData: postEvent
+            }
+            notes.push(note);
+        }
         const rsvpEvents = await this._socialEventManager.fetchCalendarEventRSVPs(calendarEventUri);
         for (let rsvpEvent of rsvpEvents) {
             if (attendeePubkeyToEventMap[rsvpEvent.pubkey]) continue;
@@ -3171,7 +3192,8 @@ class SocialDataManager {
         let detailInfo: ICalendarEventDetailInfo = {
             ...calendarEventInfo,
             hosts,
-            attendees
+            attendees,
+            notes
         }
         return detailInfo;
     }
@@ -3206,7 +3228,9 @@ class SocialDataManager {
             message,
             conversationPath
         }
-        await this._socialEventManager.submitCalendarEventPost(info, this._privateKey);
+        const responses = await this._socialEventManager.submitCalendarEventPost(info, this._privateKey);
+        const response = responses[0];
+        return response.success ? response.eventId : null;
     }
 
     async fetchTimezones() {

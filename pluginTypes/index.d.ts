@@ -1376,6 +1376,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     export interface ICalendarEventDetailInfo extends ICalendarEventInfo {
         hosts?: ICalendarEventHost[];
         attendees?: ICalendarEventAttendee[];
+        notes?: INoteInfo[];
     }
     export interface INewCalendarEventPostInfo {
         calendarEventUri: string;
@@ -1554,9 +1555,10 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         updateCalendarEvent(info: IUpdateCalendarEventInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
         fetchCalendarEvents(start: number, end?: number, limit?: number): Promise<INostrEvent[]>;
         fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent>;
+        fetchCalendarEventPosts(calendarEventUri: string): Promise<INostrEvent[]>;
         createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse[]>;
         fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
-        submitCalendarEventPost(info: INewCalendarEventPostInfo, privateKey: string): Promise<void>;
+        submitCalendarEventPost(info: INewCalendarEventPostInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
         fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
         submitLike(tags: string[][], privateKey: string): Promise<void>;
         fetchLikes(eventId: string): Promise<INostrEvent[]>;
@@ -1602,11 +1604,12 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
         updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[], privateKey: string): Promise<INostrSubmitResponse[]>;
         updateCalendarEvent(info: IUpdateCalendarEventInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
+        fetchCalendarEventPosts(calendarEventUri: string): Promise<INostrEvent[]>;
         fetchCalendarEvents(start: number, end?: number, limit?: number): Promise<INostrEvent[]>;
         fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent | null>;
         createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse[]>;
         fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
-        submitCalendarEventPost(info: INewCalendarEventPostInfo, privateKey: string): Promise<void>;
+        submitCalendarEventPost(info: INewCalendarEventPostInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
         fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
         submitLike(tags: string[][], privateKey: string): Promise<void>;
         fetchLikes(eventId: string): Promise<INostrEvent[]>;
@@ -1753,7 +1756,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         retrieveCalendarEvent(naddr: string): Promise<ICalendarEventDetailInfo>;
         acceptCalendarEvent(rsvpId: string, naddr: string): Promise<void>;
         declineCalendarEvent(rsvpId: string, naddr: string): Promise<void>;
-        submitCalendarEventPost(naddr: string, message: string, conversationPath?: IConversationPath): Promise<void>;
+        submitCalendarEventPost(naddr: string, message: string, conversationPath?: IConversationPath): Promise<string>;
         fetchTimezones(): Promise<any[]>;
         fetchCitiesByKeyword(keyword: string): Promise<any[]>;
         fetchCitiesByCoordinates(latitude: number, longitude: number): Promise<any[]>;

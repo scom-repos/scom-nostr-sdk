@@ -5214,6 +5214,16 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const events = await manager.fetchEvents(req);
             return events?.length > 0 ? events[0] : null;
         }
+        async fetchCalendarEventPosts(calendarEventUri) {
+            let request = {
+                kinds: [1],
+                "#a": [calendarEventUri],
+                limit: 50
+            };
+            const manager = this._nostrCommunicationManagers[0];
+            const events = await manager.fetchEvents(request);
+            return events;
+        }
         async createCalendarEventRSVP(rsvpId, calendarEventUri, accepted, privateKey) {
             let event = {
                 "kind": 31925,
@@ -5277,6 +5287,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             }
             const verifiedEvent = index_1.Event.finishEvent(event, privateKey);
             const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            return responses;
         }
         async fetchLongFormContentEvents(pubKey, since = 0, until = 0) {
             let req = {
@@ -6946,6 +6957,14 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             let attendees = [];
             let attendeePubkeys = [];
             let attendeePubkeyToEventMap = {};
+            const postEvents = await this._socialEventManager.fetchCalendarEventPosts(calendarEventUri);
+            const notes = [];
+            for (let postEvent of postEvents) {
+                const note = {
+                    eventData: postEvent
+                };
+                notes.push(note);
+            }
             const rsvpEvents = await this._socialEventManager.fetchCalendarEventRSVPs(calendarEventUri);
             for (let rsvpEvent of rsvpEvents) {
                 if (attendeePubkeyToEventMap[rsvpEvent.pubkey])
@@ -6987,7 +7006,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             let detailInfo = {
                 ...calendarEventInfo,
                 hosts,
-                attendees
+                attendees,
+                notes
             };
             return detailInfo;
         }
@@ -7019,7 +7039,9 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 message,
                 conversationPath
             };
-            await this._socialEventManager.submitCalendarEventPost(info, this._privateKey);
+            const responses = await this._socialEventManager.submitCalendarEventPost(info, this._privateKey);
+            const response = responses[0];
+            return response.success ? response.eventId : null;
         }
         async fetchTimezones() {
             const apiUrl = `${this._apiBaseUrl}/timezones`;

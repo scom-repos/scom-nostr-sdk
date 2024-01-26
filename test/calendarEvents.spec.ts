@@ -34,7 +34,6 @@ suite('##Calendar Events', async function() {
         );
         console.log('events', events);
     })
-
     test('Create calendar event', async function() {
         const privateKey = Nip19.decode(calendarEvent1CreatorNsec).data as string;
         const creatorPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(privateKey);
@@ -58,6 +57,17 @@ suite('##Calendar Events', async function() {
         calendarEvent1Naddr = await manager.updateCalendarEvent(updateCalendarEventInfo);
         console.log('calendarEvent1Naddr', calendarEvent1Naddr);
         assert.strictEqual(calendarEvent1Naddr.startsWith('naddr1'), true);
+    })
+
+    test('Submit calendar event post', async function() {
+        const eventId = await manager.submitCalendarEventPost(
+            calendarEvent1Naddr, 
+            'Hello'
+        );
+        if (eventId) {
+            userToBeDeletedEventsMap[calendarEvent1CreatorNsec] = userToBeDeletedEventsMap[calendarEvent1CreatorNsec] || [];
+            userToBeDeletedEventsMap[calendarEvent1CreatorNsec].push(eventId);
+        }
     })
 
     test('Retrieve calendar event by naddr', async function() {
