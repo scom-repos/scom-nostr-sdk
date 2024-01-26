@@ -1,6 +1,6 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, IConversationPath, ILocationCoordinates, IMessageContactInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
+import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, IConversationPath, ILocationCoordinates, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
 import Geohash from './geohash';
 import GeoQuery from './geoquery';
 import { MqttManager } from "./mqtt";
@@ -1267,6 +1267,29 @@ class NostrEventManager {
         return events;
     }
 
+    async submitCalendarEventPost(info: INewCalendarEventPostInfo, privateKey: string) {
+        let event = {
+            "kind": 1,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": info.message,
+            "tags": []
+        };
+        if (info.conversationPath) {
+            const conversationPathTags = this.calculateConversationPathTags(info.conversationPath);
+            event.tags.push(...conversationPathTags);
+        }
+        else {
+            event.tags.push([
+                "a",
+                info.calendarEventUri,
+                "",
+                "root"
+            ]);
+        }
+        const verifiedEvent = Event.finishEvent(event, privateKey);
+        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+    }
+
     async fetchLongFormContentEvents(pubKey?: string, since: number = 0, until: number = 0) {
         let req: any = {
             kinds: [30023],
@@ -1367,6 +1390,7 @@ interface ISocialEventManager {
     fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent | null>;
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse[]>;
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
+    submitCalendarEventPost(info: INewCalendarEventPostInfo, privateKey: string): Promise<void>;
     fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     submitLike(tags: string[][], privateKey: string): Promise<void>;
     fetchLikes(eventId: string): Promise<INostrEvent[]>;
@@ -1505,6 +1529,7 @@ class SocialDataManager {
     private _apiBaseUrl: string;
     private _ipLocationServiceBaseUrl: string;
     private _socialEventManager: ISocialEventManager;
+    private _privateKey: string;
     private mqttManager: MqttManager;
 
     constructor(config: ISocialDataManagerConfig) {
@@ -1523,6 +1548,10 @@ class SocialDataManager {
                 messageCallback: config.mqttMessageCallback
             });
         }
+    }
+
+    set privateKey(privateKey: string) {
+        this._privateKey = privateKey;
     }
 
     get socialEventManager() {
@@ -1705,11 +1734,11 @@ class SocialDataManager {
                 noteIdToPrivateKey = result.data;
             }
         }
-        else if (options.privateKey) {
+        else {
             const communityEvents = await this.retrieveCommunityEvents(options.creatorId, options.communityId);
             const communityInfo = communityEvents.info;
             const notes = communityEvents.notes;    
-            let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, options.privateKey);
+            let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
             if (!communityPrivateKey) return noteIdToPrivateKey;
             for (const note of notes) {
                 const postPrivateKey = await this.retrievePostPrivateKey(note, communityInfo.communityUri, communityPrivateKey);
@@ -1746,8 +1775,8 @@ class SocialDataManager {
                 noteIdToPrivateKey = result.data;
             }
         }
-        else if (options.privateKey) {
-            let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, options.privateKey);
+        else {
+            let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
             if (!communityPrivateKey) return noteIdToPrivateKey;
             for (const note of options.noteEvents) {
                 const postPrivateKey = await this.retrievePostPrivateKey(note, communityInfo.communityUri, communityPrivateKey);
@@ -1767,7 +1796,7 @@ class SocialDataManager {
         const communityInfoMap: Record<string, ICommunityInfo> = {};
         for (let communityInfo of noteCommunityMappings.communityInfoList) {
             if (options.pubKey === communityInfo.creatorId) {
-                let communityPrivateKey = await SocialUtilsManager.decryptMessage(options.privateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
+                let communityPrivateKey = await SocialUtilsManager.decryptMessage(this._privateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
                 if (communityPrivateKey) {
                     communityPrivateKeyMap[communityInfo.communityUri] = communityPrivateKey;
                 }
@@ -1903,8 +1932,8 @@ class SocialDataManager {
         return userProfiles;
     }
 
-    async updateUserProfile(content: INostrMetadataContent, privateKey: string) {
-        await this._socialEventManager.updateUserProfile(content, privateKey)
+    async updateUserProfile(content: INostrMetadataContent) {
+        await this._socialEventManager.updateUserProfile(content, this._privateKey)
     }
 
     async fetchTrendingNotesInfo() {
@@ -2284,9 +2313,9 @@ class SocialDataManager {
         return relayList;
     }
 
-    async followUser(userPubKey: string, privateKey: string) {
+    async followUser(userPubKey: string) {
         const decodedUserPubKey = userPubKey.startsWith('npub1') ? Nip19.decode(userPubKey).data as string : userPubKey;
-        const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(privateKey);
+        const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
         const contactListEvents = await this._socialEventManager.fetchContactListCacheEvents(selfPubkey, false);
         let content = '';
         let contactPubKeys: string[] = [];
@@ -2296,12 +2325,12 @@ class SocialDataManager {
             contactPubKeys = contactListEvent.tags.filter(tag => tag[0] === 'p')?.[1] || [];
         }
         contactPubKeys.push(decodedUserPubKey);
-        await this._socialEventManager.updateContactList(content, contactPubKeys, privateKey);
+        await this._socialEventManager.updateContactList(content, contactPubKeys, this._privateKey);
     }
 
-    async unfollowUser(userPubKey: string, privateKey: string) {
+    async unfollowUser(userPubKey: string) {
         const decodedUserPubKey = userPubKey.startsWith('npub1') ? Nip19.decode(userPubKey).data as string : userPubKey;
-        const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(privateKey);
+        const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
         const contactListEvents = await this._socialEventManager.fetchContactListCacheEvents(selfPubkey, false);
         let content = '';
         let contactPubKeys: string[] = [];
@@ -2314,7 +2343,7 @@ class SocialDataManager {
                 }
             }
         }
-        await this._socialEventManager.updateContactList(content, contactPubKeys, privateKey);
+        await this._socialEventManager.updateContactList(content, contactPubKeys, this._privateKey);
     }
 
     getCommunityUri(creatorId: string, communityId: string) {
@@ -2337,7 +2366,7 @@ class SocialDataManager {
         }
     }
 
-    async createCommunity(newInfo: INewCommunityInfo, creatorId: string, privateKey: string) {
+    async createCommunity(newInfo: INewCommunityInfo, creatorId: string) {
         const communityUri = this.getCommunityUri(creatorId, newInfo.name);
         let communityInfo: ICommunityInfo = {
             communityUri,
@@ -2355,7 +2384,7 @@ class SocialDataManager {
 
         if (communityInfo.membershipType === MembershipType.NFTExclusive) {
             const gatekeeperPublicKey = Nip19.decode(communityInfo.gatekeeperNpub).data as string;
-            const communityKeys = await this.generateGroupKeys(privateKey, [gatekeeperPublicKey]);
+            const communityKeys = await this.generateGroupKeys(this._privateKey, [gatekeeperPublicKey]);
             const encryptedKey = communityKeys.encryptedGroupKeys[gatekeeperPublicKey];
             communityInfo.scpData = {
                 ...communityInfo.scpData,
@@ -2370,13 +2399,13 @@ class SocialDataManager {
                 const memberPublicKey = Nip19.decode(memberId).data as string;
                 encryptionPublicKeys.push(memberPublicKey);
             }
-            const communityKeys = await this.generateGroupKeys(privateKey, encryptionPublicKeys);
+            const communityKeys = await this.generateGroupKeys(this._privateKey, encryptionPublicKeys);
             await this._socialEventManager.updateGroupKeys(
                 communityUri + ':keys', 
                 34550,
                 JSON.stringify(communityKeys.encryptedGroupKeys),
                 communityInfo.memberIds,
-                privateKey
+                this._privateKey
             );
             communityInfo.scpData = {
                 ...communityInfo.scpData,
@@ -2384,18 +2413,18 @@ class SocialDataManager {
             }                 
         }
         if (communityInfo.scpData) {
-            const updateChannelResponses = await this.updateCommunityChannel(communityInfo, privateKey);
+            const updateChannelResponses = await this.updateCommunityChannel(communityInfo);
             const updateChannelResponse = updateChannelResponses[0];
             if (updateChannelResponse.eventId) {
                 communityInfo.scpData.channelEventId = updateChannelResponse.eventId;
             }   
         }
-        await this._socialEventManager.updateCommunity(communityInfo, privateKey);
+        await this._socialEventManager.updateCommunity(communityInfo, this._privateKey);
     
         return communityInfo;
     }
 
-    async updateCommunity(info: ICommunityInfo, privateKey: string) {
+    async updateCommunity(info: ICommunityInfo) {
         if (info.membershipType === MembershipType.NFTExclusive) {
             const gatekeeperPublicKey = Nip19.decode(info.gatekeeperNpub).data as string;
             info.scpData.gatekeeperPublicKey = gatekeeperPublicKey;
@@ -2407,10 +2436,10 @@ class SocialDataManager {
                 encryptionPublicKeys.push(memberPublicKey);
             }
 
-            const groupPrivateKey = await this.retrieveCommunityPrivateKey(info, privateKey);
+            const groupPrivateKey = await this.retrieveCommunityPrivateKey(info, this._privateKey);
             let encryptedGroupKeys: Record<string, string> = {};
             for (let encryptionPublicKey of encryptionPublicKeys) {
-                const encryptedGroupKey = await SocialUtilsManager.encryptMessage(privateKey, encryptionPublicKey, groupPrivateKey);
+                const encryptedGroupKey = await SocialUtilsManager.encryptMessage(this._privateKey, encryptionPublicKey, groupPrivateKey);
                 encryptedGroupKeys[encryptionPublicKey] = encryptedGroupKey;
             }
             const response = await this._socialEventManager.updateGroupKeys(
@@ -2418,15 +2447,15 @@ class SocialDataManager {
                 34550,
                 JSON.stringify(encryptedGroupKeys),
                 info.memberIds,
-                privateKey
+                this._privateKey
             );
             console.log('updateCommunity', response);
         }
-        await this._socialEventManager.updateCommunity(info, privateKey);
+        await this._socialEventManager.updateCommunity(info, this._privateKey);
         return info;
     }
 
-    async updateCommunityChannel(communityInfo: ICommunityInfo, privateKey: string) {
+    async updateCommunityChannel(communityInfo: ICommunityInfo) {
         let channelScpData: IChannelScpData = {
             communityId: communityInfo.communityId
         }
@@ -2435,22 +2464,22 @@ class SocialDataManager {
             about: communityInfo.description,
             scpData: channelScpData
         }
-        const updateChannelResponse = await this._socialEventManager.updateChannel(channelInfo, privateKey);
+        const updateChannelResponse = await this._socialEventManager.updateChannel(channelInfo, this._privateKey);
         return updateChannelResponse;
     }
 
-    async createChannel(channelInfo: IChannelInfo, memberIds: string[], privateKey: string) {
+    async createChannel(channelInfo: IChannelInfo, memberIds: string[]) {
         let encryptionPublicKeys: string[] = [];
         for (let memberId of memberIds) {
             const memberPublicKey = Nip19.decode(memberId).data as string;
             encryptionPublicKeys.push(memberPublicKey);
         }
-        const channelKeys = await this.generateGroupKeys(privateKey, encryptionPublicKeys);
+        const channelKeys = await this.generateGroupKeys(this._privateKey, encryptionPublicKeys);
         channelInfo.scpData = {
             ...channelInfo.scpData,
             publicKey: channelKeys.groupPublicKey
         } 
-        const updateChannelResponses = await this._socialEventManager.updateChannel(channelInfo, privateKey);
+        const updateChannelResponses = await this._socialEventManager.updateChannel(channelInfo, this._privateKey);
         const updateChannelResponse = updateChannelResponses[0];
         if (updateChannelResponse.eventId) {
             const channelUri = `40:${updateChannelResponse.eventId}`;
@@ -2459,7 +2488,7 @@ class SocialDataManager {
                 40,
                 JSON.stringify(channelKeys.encryptedGroupKeys),
                 memberIds,
-                privateKey
+                this._privateKey
             );
         }
         return channelInfo;
@@ -2571,26 +2600,26 @@ class SocialDataManager {
         return channelEventIds;
     }
 
-    async joinCommunity(community: ICommunityInfo, pubKey: string, privateKey: string) {
+    async joinCommunity(community: ICommunityInfo, pubKey: string) {
         const bookmarkedCommunitiesEvents = await this._socialEventManager.fetchUserBookmarkedCommunities(pubKey);
         const bookmarkedCommunitiesEvent = bookmarkedCommunitiesEvents.find(event => event.kind === 30001);
         const communities: ICommunityBasicInfo[] = this.extractBookmarkedCommunities(bookmarkedCommunitiesEvent);
         communities.push(community);
-        await this._socialEventManager.updateUserBookmarkedCommunities(communities, privateKey);
+        await this._socialEventManager.updateUserBookmarkedCommunities(communities, this._privateKey);
         if (community.scpData?.channelEventId) {
             const bookmarkedChannelsEvents = await this._socialEventManager.fetchUserBookmarkedChannels(pubKey);
             const bookmarkedChannelsEvent = bookmarkedChannelsEvents.find(event => event.kind === 30001);
             const channelEventIds = this.extractBookmarkedChannels(bookmarkedChannelsEvent);
             channelEventIds.push(community.scpData.channelEventId);
-            await this._socialEventManager.updateUserBookmarkedChannels(channelEventIds, privateKey);
+            await this._socialEventManager.updateUserBookmarkedChannels(channelEventIds, this._privateKey);
         }
     }
     
-    async leaveCommunity(community: ICommunityInfo, pubKey: string, privateKey: string) {
+    async leaveCommunity(community: ICommunityInfo, pubKey: string) {
         const events = await this._socialEventManager.fetchUserBookmarkedCommunities(pubKey);
         const bookmarkedEvent = events.find(event => event.kind === 30001);
         const communities: ICommunityBasicInfo[] = this.extractBookmarkedCommunities(bookmarkedEvent, community);
-        await this._socialEventManager.updateUserBookmarkedCommunities(communities, privateKey);
+        await this._socialEventManager.updateUserBookmarkedCommunities(communities, this._privateKey);
         if (community.scpData?.channelEventId) {
             const bookmarkedChannelsEvents = await this._socialEventManager.fetchUserBookmarkedChannels(pubKey);
             const bookmarkedChannelsEvent = bookmarkedChannelsEvents.find(event => event.kind === 30001);
@@ -2599,7 +2628,7 @@ class SocialDataManager {
             if (index > -1) {
                 channelEventIds.splice(index, 1);
             }
-            await this._socialEventManager.updateUserBookmarkedChannels(channelEventIds, privateKey);
+            await this._socialEventManager.updateUserBookmarkedChannels(channelEventIds, this._privateKey);
         }
     }
 
@@ -2614,7 +2643,7 @@ class SocialDataManager {
         }
     }
 
-    async submitCommunityPost(message: string, info: ICommunityInfo, privateKey: string, conversationPath?: IConversationPath) {
+    async submitCommunityPost(message: string, info: ICommunityInfo, conversationPath?: IConversationPath) {
         const messageContent = {
             communityUri: info.communityUri,
             message,
@@ -2631,7 +2660,7 @@ class SocialDataManager {
             const {
                 encryptedMessage,
                 encryptedGroupKey
-            } = await this.encryptGroupMessage(privateKey, info.scpData.publicKey, JSON.stringify(messageContent));
+            } = await this.encryptGroupMessage(this._privateKey, info.scpData.publicKey, JSON.stringify(messageContent));
             newCommunityPostInfo = {
                 community: info,
                 message: encryptedMessage,
@@ -2642,7 +2671,7 @@ class SocialDataManager {
                 }
             }
         }   
-        await this._socialEventManager.submitCommunityPost(newCommunityPostInfo, privateKey);
+        await this._socialEventManager.submitCommunityPost(newCommunityPostInfo, this._privateKey);
     }
 
     private extractChannelInfo(event: INostrEvent) {
@@ -2835,7 +2864,6 @@ class SocialDataManager {
     async submitChannelMessage(
         message: string, 
         channelId: string, 
-        privateKey: string, 
         communityPublicKey: string, 
         conversationPath?: IConversationPath
     ) {
@@ -2846,7 +2874,7 @@ class SocialDataManager {
         const {
             encryptedMessage,
             encryptedGroupKey
-        } = await this.encryptGroupMessage(privateKey, communityPublicKey, JSON.stringify(messageContent));
+        } = await this.encryptGroupMessage(this._privateKey, communityPublicKey, JSON.stringify(messageContent));
         const newChannelMessageInfo: INewChannelMessageInfo = {
             channelId: channelId,
             message: encryptedMessage,
@@ -2856,7 +2884,7 @@ class SocialDataManager {
                 channelId: channelId
             }
         }
-        await this._socialEventManager.submitChannelMessage(newChannelMessageInfo, privateKey);
+        await this._socialEventManager.submitChannelMessage(newChannelMessageInfo, this._privateKey);
     }
 
     async fetchDirectMessagesBySender(selfPubKey: string, senderPubKey: string, since?: number, until?: number) {
@@ -2881,14 +2909,14 @@ class SocialDataManager {
         };
     }
     
-    async sendDirectMessage(chatId: string, message: string, privateKey: string) {
+    async sendDirectMessage(chatId: string, message: string) {
         const decodedReceiverPubKey = Nip19.decode(chatId).data as string;
-        const content = await SocialUtilsManager.encryptMessage(privateKey, decodedReceiverPubKey, message);
-        await this._socialEventManager.sendMessage(decodedReceiverPubKey, content, privateKey);
+        const content = await SocialUtilsManager.encryptMessage(this._privateKey, decodedReceiverPubKey, message);
+        await this._socialEventManager.sendMessage(decodedReceiverPubKey, content, this._privateKey);
     }
 
-    async resetMessageCount(selfPubKey: string, senderPubKey: string, privateKey: string) {
-        await this._socialEventManager.resetMessageCount(selfPubKey, senderPubKey, privateKey);
+    async resetMessageCount(selfPubKey: string, senderPubKey: string) {
+        await this._socialEventManager.resetMessageCount(selfPubKey, senderPubKey, this._privateKey);
     }
 
     async fetchMessageContacts(pubKey: string) {
@@ -3061,17 +3089,17 @@ class SocialDataManager {
         return calendarEventInfo;
     }
 
-    async updateCalendarEvent(updateCalendarEventInfo: IUpdateCalendarEventInfo, privateKey: string) {
+    async updateCalendarEvent(updateCalendarEventInfo: IUpdateCalendarEventInfo) {
         const geohash = Geohash.encode(updateCalendarEventInfo.latitude, updateCalendarEventInfo.longitude);
         updateCalendarEventInfo = {
             ...updateCalendarEventInfo,
             geohash
         }
         let naddr: string;
-        const responses = await this._socialEventManager.updateCalendarEvent(updateCalendarEventInfo, privateKey);
+        const responses = await this._socialEventManager.updateCalendarEvent(updateCalendarEventInfo, this._privateKey);
         const response = responses[0];
         if (response.success) {
-            const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(privateKey);
+            const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
             naddr = Nip19.naddrEncode({
                 identifier: updateCalendarEventInfo.id,
                 pubkey: pubkey,
@@ -3148,26 +3176,37 @@ class SocialDataManager {
         return detailInfo;
     }
 
-    async acceptCalendarEvent(rsvpId: string, naddr: string, privateKey: string) {
+    async acceptCalendarEvent(rsvpId: string, naddr: string) {
         let address = Nip19.decode(naddr).data as Nip19.AddressPointer;
         const calendarEventUri = `${address.kind}:${address.pubkey}:${address.identifier}`;
-        const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(privateKey);
+        const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
         const rsvpEvents = await this._socialEventManager.fetchCalendarEventRSVPs(calendarEventUri, pubkey);
         if (rsvpEvents.length > 0) {
             rsvpId = rsvpEvents[0].tags.find(tag => tag[0] === 'd')?.[1];
         }
-        await this._socialEventManager.createCalendarEventRSVP(rsvpId, calendarEventUri, true, privateKey);
+        await this._socialEventManager.createCalendarEventRSVP(rsvpId, calendarEventUri, true, this._privateKey);
     }
 
-    async declineCalendarEvent(rsvpId: string, naddr: string, privateKey: string) {
+    async declineCalendarEvent(rsvpId: string, naddr: string) {
         let address = Nip19.decode(naddr).data as Nip19.AddressPointer;
         const calendarEventUri = `${address.kind}:${address.pubkey}:${address.identifier}`;
-        const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(privateKey);
+        const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
         const rsvpEvents = await this._socialEventManager.fetchCalendarEventRSVPs(calendarEventUri, pubkey);
         if (rsvpEvents.length > 0) {
             rsvpId = rsvpEvents[0].tags.find(tag => tag[0] === 'd')?.[1];
         }
-        await this._socialEventManager.createCalendarEventRSVP(rsvpId, calendarEventUri, false, privateKey);
+        await this._socialEventManager.createCalendarEventRSVP(rsvpId, calendarEventUri, false, this._privateKey);
+    }
+
+    async submitCalendarEventPost(naddr: string, message: string, conversationPath?: IConversationPath) {
+        let address = Nip19.decode(naddr).data as Nip19.AddressPointer;
+        const calendarEventUri = `${address.kind}:${address.pubkey}:${address.identifier}`;
+        let info: INewCalendarEventPostInfo = {
+            calendarEventUri,
+            message,
+            conversationPath
+        }
+        await this._socialEventManager.submitCalendarEventPost(info, this._privateKey);
     }
 
     async fetchTimezones() {
@@ -3320,21 +3359,21 @@ class SocialDataManager {
         return data.result;
     }
 
-    async submitMessage(message: string, privateKey: string, conversationPath?: IConversationPath) {
-        await this._socialEventManager.postNote(message, privateKey, conversationPath);
+    async submitMessage(message: string, conversationPath?: IConversationPath) {
+        await this._socialEventManager.postNote(message, this._privateKey, conversationPath);
     }
 
-    async submitLike(postEventData: INostrEvent, privateKey: string) {
+    async submitLike(postEventData: INostrEvent) {
         let tags: string[][] = postEventData.tags.filter(
             tag => tag.length >= 2 && (tag[0] === 'e' || tag[0] === 'p')
         );
         tags.push(['e', postEventData.id]);
         tags.push(['p', postEventData.pubkey]);
         tags.push(['k', postEventData.kind.toString()]);
-        await this._socialEventManager.submitLike(tags, privateKey);
+        await this._socialEventManager.submitLike(tags, this._privateKey);
     }
 
-    async submitRepost(postEventData: INostrEvent, privateKey: string) {
+    async submitRepost(postEventData: INostrEvent) {
         let tags: string[][] = [
             [
                 'e', 
@@ -3346,7 +3385,7 @@ class SocialDataManager {
             ]
         ]
         const content = JSON.stringify(postEventData);
-        await this._socialEventManager.submitRepost(content, tags, privateKey);
+        await this._socialEventManager.submitRepost(content, tags, this._privateKey);
     }
 
     async sendPingRequest(pubkey: string, walletAddress: string, signature: string) {

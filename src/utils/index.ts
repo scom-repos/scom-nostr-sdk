@@ -24,6 +24,7 @@ export {
     ICalendarEventHost,
     ICalendarEventAttendee,
     ICalendarEventDetailInfo,
+    INewCalendarEventPostInfo,
     ILocationCoordinates,
     ISocialDataManagerConfig
 } from "./interfaces";

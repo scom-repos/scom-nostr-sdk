@@ -22,6 +22,8 @@ suite('##Calendar Events', async function() {
                 apiBaseUrl: API_URL
             }
         );
+        const privateKey = Nip19.decode(user1Nsec).data as string;
+        manager.privateKey = privateKey;
     })
     test('Retrieve calendar events by date range', async function() {
         const start = Math.floor(Date.now() / 1000);
@@ -53,7 +55,7 @@ suite('##Calendar Events', async function() {
             image: 'https://i.imgur.com/4M34hi2.jpg',
             hostIds: [creatorPubkey]
         }
-        calendarEvent1Naddr = await manager.updateCalendarEvent(updateCalendarEventInfo, privateKey);
+        calendarEvent1Naddr = await manager.updateCalendarEvent(updateCalendarEventInfo);
         console.log('calendarEvent1Naddr', calendarEvent1Naddr);
         assert.strictEqual(calendarEvent1Naddr.startsWith('naddr1'), true);
     })
@@ -74,7 +76,7 @@ suite('##Calendar Events', async function() {
     test('User 1 accepts calendar event', async function() {
         const privateKey = Nip19.decode(user1Nsec).data as string;
         const rsvpId = crypto.randomUUID();
-        await manager.acceptCalendarEvent(rsvpId, calendarEvent1Naddr, privateKey);
+        await manager.acceptCalendarEvent(rsvpId, calendarEvent1Naddr);
         const event = await manager.retrieveCalendarEvent(calendarEvent1Naddr);
         if (!event) {
             throw new Error('Event not found');
@@ -85,7 +87,7 @@ suite('##Calendar Events', async function() {
     test('User 1 declines calendar event', async function() {
         const privateKey = Nip19.decode(user1Nsec).data as string;
         const rsvpId = crypto.randomUUID();
-        await manager.declineCalendarEvent(rsvpId, calendarEvent1Naddr, privateKey);
+        await manager.declineCalendarEvent(rsvpId, calendarEvent1Naddr);
         const event = await manager.retrieveCalendarEvent(calendarEvent1Naddr);
         if (!event) {
             throw new Error('Event not found');

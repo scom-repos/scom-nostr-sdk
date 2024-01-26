@@ -30,6 +30,7 @@ export {
     ICalendarEventHost,
     ICalendarEventAttendee,
     ICalendarEventDetailInfo,
+    INewCalendarEventPostInfo,
     ILocationCoordinates,
     ISocialDataManagerConfig,
     NostrEventManager,

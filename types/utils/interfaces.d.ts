@@ -178,7 +178,6 @@ export interface INewCommunityPostInfo {
 export interface IRetrieveCommunityPostKeysOptions {
     creatorId: string;
     communityId: string;
-    privateKey?: string;
     gatekeeperUrl?: string;
     message?: string;
     signature?: string;
@@ -191,7 +190,6 @@ export interface ICommunityGatekeeperInfo {
 export interface IRetrieveCommunityPostKeysByNoteEventsOptions {
     notes: INostrEvent[];
     pubKey: string;
-    privateKey: string;
     getSignature: (message: string) => Promise<string>;
     gatekeepers: ICommunityGatekeeperInfo[];
 }
@@ -199,7 +197,6 @@ export interface IRetrieveCommunityThreadPostKeysOptions {
     communityInfo: ICommunityInfo;
     noteEvents: INostrEvent[];
     focusedNoteId: string;
-    privateKey?: string;
     gatekeeperUrl?: string;
     message?: string;
     signature?: string;
@@ -281,6 +278,11 @@ export interface ICalendarEventAttendee {
 export interface ICalendarEventDetailInfo extends ICalendarEventInfo {
     hosts?: ICalendarEventHost[];
     attendees?: ICalendarEventAttendee[];
+}
+export interface INewCalendarEventPostInfo {
+    calendarEventUri: string;
+    message: string;
+    conversationPath?: IConversationPath;
 }
 export interface ILocationCoordinates {
     latitude: number;
