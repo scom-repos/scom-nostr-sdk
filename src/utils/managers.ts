@@ -2619,10 +2619,6 @@ class SocialDataManager {
             communityUri: info.communityUri,
             message,
         }
-        const {
-            encryptedMessage,
-            encryptedGroupKey
-        } = await this.encryptGroupMessage(privateKey, info.scpData.publicKey, JSON.stringify(messageContent));
         let newCommunityPostInfo: INewCommunityPostInfo;
         if (info.membershipType === MembershipType.Open) {
             newCommunityPostInfo = {
@@ -2632,6 +2628,10 @@ class SocialDataManager {
             }
         }
         else {
+            const {
+                encryptedMessage,
+                encryptedGroupKey
+            } = await this.encryptGroupMessage(privateKey, info.scpData.publicKey, JSON.stringify(messageContent));
             newCommunityPostInfo = {
                 community: info,
                 message: encryptedMessage,
