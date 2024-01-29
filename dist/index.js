@@ -4218,7 +4218,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         establishConnection(requestId, cb) {
             const WebSocket = determineWebSocketType();
             this.requestCallbackMap[requestId] = cb;
-            return new Promise((resolve) => {
+            return new Promise((resolve, reject) => {
                 const openListener = () => {
                     console.log('Connected to server');
                     this.ws.removeEventListener('open', openListener);
@@ -4233,6 +4233,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     });
                     this.ws.addEventListener('error', (error) => {
                         console.error('WebSocket Error:', error);
+                        reject(error);
                     });
                 }
                 else {
@@ -4252,19 +4253,24 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             } while (this.requestCallbackMap[requestId]);
             return new Promise(async (resolve, reject) => {
                 let events = [];
-                const ws = await this.establishConnection(requestId, (message) => {
-                    if (message[0] === "EVENT") {
-                        const eventData = message[2];
-                        // Implement the verifySignature function according to your needs
-                        // console.log(verifySignature(eventData)); // true
-                        events.push(eventData);
-                    }
-                    else if (message[0] === "EOSE") {
-                        resolve(events);
-                        console.log("end of stored events");
-                    }
-                });
-                ws.send(JSON.stringify(["REQ", requestId, ...requests]));
+                try {
+                    const ws = await this.establishConnection(requestId, (message) => {
+                        if (message[0] === "EVENT") {
+                            const eventData = message[2];
+                            // Implement the verifySignature function according to your needs
+                            // console.log(verifySignature(eventData)); // true
+                            events.push(eventData);
+                        }
+                        else if (message[0] === "EOSE") {
+                            resolve(events);
+                            console.log("end of stored events");
+                        }
+                    });
+                    ws.send(JSON.stringify(["REQ", requestId, ...requests]));
+                }
+                catch (err) {
+                    resolve([]);
+                }
             });
         }
         async fetchCachedEvents(eventType, msg) {
@@ -4280,15 +4286,24 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             return new Promise(async (resolve, reject) => {
                 let msg = JSON.stringify(["EVENT", event]);
                 console.log(msg);
-                const ws = await this.establishConnection(event.id, (message) => {
-                    console.log('from server:', message);
-                    resolve({
-                        eventId: message[1],
-                        success: message[2],
-                        message: message[3]
+                try {
+                    const ws = await this.establishConnection(event.id, (message) => {
+                        console.log('from server:', message);
+                        resolve({
+                            eventId: message[1],
+                            success: message[2],
+                            message: message[3]
+                        });
                     });
-                });
-                ws.send(msg);
+                    ws.send(msg);
+                }
+                catch (err) {
+                    resolve({
+                        eventId: event.id,
+                        success: false,
+                        message: err.toString()
+                    });
+                }
             });
         }
     }
@@ -7227,10 +7242,12 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             if (!this._defaultRestAPIRelay)
                 return null;
             let msg = pubkey;
+            const pubkeyY = index_1.Keys.getPublicKeyY(this._privateKey);
             const data = {
                 msg: msg,
                 signature: signature,
                 pubkey: pubkey,
+                pubkeyY: pubkeyY,
                 walletAddress: walletAddress
             };
             let response = await fetch(this._defaultRestAPIRelay + '/ping', {

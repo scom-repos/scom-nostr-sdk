@@ -160,7 +160,7 @@ class NostrWebSocketManager implements INostrCommunicationManager {
     establishConnection(requestId: string, cb: (message: any) => void) {
         const WebSocket = determineWebSocketType();
         this.requestCallbackMap[requestId] = cb; 
-        return new Promise<WebSocket>((resolve) => {
+        return new Promise<WebSocket>((resolve, reject) => {
             const openListener = () => {
                 console.log('Connected to server');
                 this.ws.removeEventListener('open', openListener);
@@ -177,6 +177,7 @@ class NostrWebSocketManager implements INostrCommunicationManager {
 
                 this.ws.addEventListener('error', (error) => {
                     console.error('WebSocket Error:', error);
+                    reject(error);
                 });
             }
             else {
@@ -196,19 +197,24 @@ class NostrWebSocketManager implements INostrCommunicationManager {
         } while (this.requestCallbackMap[requestId]);
         return new Promise<INostrEvent[]>(async (resolve, reject) => {
             let events: INostrEvent[] = [];
-            const ws = await this.establishConnection(requestId, (message) => {
-                if (message[0] === "EVENT") {
-                    const eventData = message[2];
-                    // Implement the verifySignature function according to your needs
-                    // console.log(verifySignature(eventData)); // true
-                    events.push(eventData);
-                } 
-                else if (message[0] === "EOSE") {
-                    resolve(events);
-                    console.log("end of stored events");
-                }
-            });
-            ws.send(JSON.stringify(["REQ", requestId, ...requests]));
+            try {
+                const ws = await this.establishConnection(requestId, (message) => {
+                    if (message[0] === "EVENT") {
+                        const eventData = message[2];
+                        // Implement the verifySignature function according to your needs
+                        // console.log(verifySignature(eventData)); // true
+                        events.push(eventData);
+                    } 
+                    else if (message[0] === "EOSE") {
+                        resolve(events);
+                        console.log("end of stored events");
+                    }
+                });
+                ws.send(JSON.stringify(["REQ", requestId, ...requests]));
+            } 
+            catch (err) {
+                resolve([]);
+            }
         });
     }
     async fetchCachedEvents(eventType: string, msg: any) {
@@ -224,15 +230,24 @@ class NostrWebSocketManager implements INostrCommunicationManager {
         return new Promise<INostrSubmitResponse>(async (resolve, reject) => {
             let msg = JSON.stringify(["EVENT", event]);
             console.log(msg);
-            const ws = await this.establishConnection(event.id, (message) => {
-                console.log('from server:', message);
-                resolve({
-                    eventId: message[1],
-                    success: message[2],
-                    message: message[3]
+            try {
+                const ws = await this.establishConnection(event.id, (message) => {
+                    console.log('from server:', message);
+                    resolve({
+                        eventId: message[1],
+                        success: message[2],
+                        message: message[3]
+                    });
                 });
-            });
-            ws.send(msg);
+                ws.send(msg);
+            } 
+            catch (err) {
+                resolve({
+                    eventId: event.id,
+                    success: false,
+                    message: err.toString()               
+                });
+            }
         });
     }
 }
@@ -3415,10 +3430,12 @@ class SocialDataManager {
     async sendPingRequest(pubkey: string, walletAddress: string, signature: string) {
         if (!this._defaultRestAPIRelay) return null;
         let msg = pubkey;
+        const pubkeyY = Keys.getPublicKeyY(this._privateKey);
         const data = {
             msg: msg,
             signature: signature,
             pubkey: pubkey,
+            pubkeyY: pubkeyY,
             walletAddress: walletAddress
         };
         let response = await fetch(this._defaultRestAPIRelay + '/ping', {
