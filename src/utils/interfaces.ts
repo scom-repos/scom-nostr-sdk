@@ -8,6 +8,11 @@ export interface INostrEvent {
     sig: string;  // 64-bytes lowercase hex of signature
 }
 
+export interface INostrFetchEventsResponse {
+	error?: string;
+	events?: INostrEvent[];
+}
+
 export interface INostrSubmitResponse {
 	eventId: string;
 	success: boolean;

@@ -1,12 +1,12 @@
 import { Nip19, Event } from "../core/index";
-import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, IConversationPath, ILocationCoordinates, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "./interfaces";
+import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, IConversationPath, ILocationCoordinates, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrFetchEventsResponse, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "./interfaces";
 interface IFetchMetadataOptions {
     authors?: string[];
     decodedAuthors?: string[];
 }
 interface INostrCommunicationManager {
-    fetchEvents(...requests: any): Promise<INostrEvent[]>;
-    fetchCachedEvents(eventType: string, msg: any): Promise<INostrEvent[]>;
+    fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
+    fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
     submitEvent(event: Event.VerifiedEvent<number>): Promise<INostrSubmitResponse>;
 }
 declare class NostrWebSocketManager implements INostrCommunicationManager {
@@ -19,9 +19,12 @@ declare class NostrWebSocketManager implements INostrCommunicationManager {
     set url(url: string);
     generateRandomNumber(): string;
     messageListener(event: any): void;
-    establishConnection(requestId: string, cb: (message: any) => void): Promise<WebSocket>;
-    fetchEvents(...requests: any): Promise<INostrEvent[]>;
-    fetchCachedEvents(eventType: string, msg: any): Promise<INostrEvent[]>;
+    establishConnection(requestId: string, cb: (message: any) => void): Promise<{
+        ws: any;
+        error: any;
+    }>;
+    fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
+    fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
     submitEvent(event: Event.VerifiedEvent<number>): Promise<INostrSubmitResponse>;
 }
 declare class NostrEventManager {

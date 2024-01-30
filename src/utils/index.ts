@@ -26,7 +26,8 @@ export {
     ICalendarEventDetailInfo,
     INewCalendarEventPostInfo,
     ILocationCoordinates,
-    ISocialDataManagerConfig
+    ISocialDataManagerConfig,
+    INostrFetchEventsResponse
 } from "./interfaces";
 
 export {

@@ -33,6 +33,7 @@ export {
     INewCalendarEventPostInfo,
     ILocationCoordinates,
     ISocialDataManagerConfig,
+    INostrFetchEventsResponse,
     NostrEventManager,
     ISocialEventManager,
     SocialUtilsManager,

@@ -7,6 +7,10 @@ export interface INostrEvent {
     content: string;
     sig: string;
 }
+export interface INostrFetchEventsResponse {
+    error?: string;
+    events?: INostrEvent[];
+}
 export interface INostrSubmitResponse {
     eventId: string;
     success: boolean;
