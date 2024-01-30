@@ -1681,6 +1681,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
             quotedNotesMap: Record<string, INoteInfo>;
             earliest: number;
         }>;
+        parseContent(content: string): any;
         createNoteEventMappings(events: INostrEvent[], parentAuthorsInfo?: boolean): {
             notes: INoteInfo[];
             metadataByPubKeyMap: Record<string, INostrMetadata>;

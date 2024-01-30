@@ -5807,7 +5807,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                         if (event.kind === 0) {
                             metadataArr.push({
                                 ...event,
-                                content: JSON.parse(event.content)
+                                content: this.parseContent(event.content)
                             });
                         }
                     }
@@ -5837,7 +5837,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             for (let metadata of metadataArr) {
                 const encodedPubkey = index_1.Nip19.npubEncode(metadata.pubkey);
                 const metadataContent = metadata.content;
-                const internetIdentifier = metadataContent.nip05?.replace('_@', '') || '';
+                const internetIdentifier = metadataContent?.nip05?.replace('_@', '') || '';
                 let userProfile = {
                     id: encodedPubkey,
                     username: metadataContent.username || metadataContent.name,
@@ -5865,7 +5865,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 if (event.kind === 0) {
                     metadataByPubKeyMap[event.pubkey] = {
                         ...event,
-                        content: JSON.parse(event.content)
+                        content: this.parseContent(event.content)
                     };
                 }
                 else if (event.kind === 1) {
@@ -5941,6 +5941,16 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 earliest
             };
         }
+        parseContent(content) {
+            try {
+                return JSON.parse(content);
+            }
+            catch (err) {
+                console.log('Error parsing content', content);
+            }
+            ;
+        }
+        ;
         createNoteEventMappings(events, parentAuthorsInfo = false) {
             let notes = [];
             let metadataByPubKeyMap = {};
@@ -5951,11 +5961,11 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 if (event.kind === 0) {
                     metadataByPubKeyMap[event.pubkey] = {
                         ...event,
-                        content: JSON.parse(event.content)
+                        content: this.parseContent(event.content)
                     };
                 }
                 else if (event.kind === 10000107) {
-                    const noteEvent = JSON.parse(event.content);
+                    const noteEvent = this.parseContent(event.content);
                     quotedNotesMap[noteEvent.id] = {
                         eventData: noteEvent
                     };
@@ -5972,7 +5982,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     }
                 }
                 else if (event.kind === 6) {
-                    const originalNoteContent = JSON.parse(event.content);
+                    const originalNoteContent = this.parseContent(event.content);
                     notes.push({
                         eventData: originalNoteContent
                     });
@@ -5984,7 +5994,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     }
                 }
                 else if (event.kind === 10000100) {
-                    const content = JSON.parse(event.content);
+                    const content = this.parseContent(event.content);
                     noteStatsMap[content.event_id] = {
                         upvotes: content.likes,
                         replies: content.replies,
@@ -5993,11 +6003,11 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 }
                 else if (event.kind === 10000113) {
                     //"{\"since\":1700034697,\"until\":1700044097,\"order_by\":\"created_at\"}"
-                    const timeInfo = JSON.parse(event.content);
+                    const timeInfo = this.parseContent(event.content);
                 }
             }
             for (let note of notes) {
-                const noteId = note.eventData.id;
+                const noteId = note.eventData?.id;
                 note.stats = noteStatsMap[noteId];
             }
             return {
@@ -6107,11 +6117,11 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 if (event.kind === 0) {
                     metadata = {
                         ...event,
-                        content: JSON.parse(event.content)
+                        content: this.parseContent(event.content)
                     };
                 }
                 else if (event.kind === 10000105) {
-                    let content = JSON.parse(event.content);
+                    let content = this.parseContent(event.content);
                     stats = {
                         notes: content.note_count,
                         replies: content.reply_count,
@@ -6159,11 +6169,11 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 if (event.kind === 0) {
                     metadataArr.push({
                         ...event,
-                        content: JSON.parse(event.content)
+                        content: this.parseContent(event.content)
                     });
                 }
                 else if (event.kind === 10000108) {
-                    followersCountMap = JSON.parse(event.content);
+                    followersCountMap = this.parseContent(event.content);
                 }
             }
             const userProfiles = [];
@@ -6181,11 +6191,11 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 if (event.kind === 0) {
                     metadataArr.push({
                         ...event,
-                        content: JSON.parse(event.content)
+                        content: this.parseContent(event.content)
                     });
                 }
                 else if (event.kind === 10000108) {
-                    followersCountMap = JSON.parse(event.content);
+                    followersCountMap = this.parseContent(event.content);
                 }
             }
             const userProfiles = [];
@@ -6530,7 +6540,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             await this._socialEventManager.submitCommunityPost(newCommunityPostInfo, this._privateKey);
         }
         extractChannelInfo(event) {
-            const content = JSON.parse(event.content);
+            const content = this.parseContent(event.content);
             let eventId;
             if (event.kind === 40) {
                 eventId = event.id;
@@ -6742,7 +6752,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 if (event.kind === 0) {
                     metadataByPubKeyMap[event.pubkey] = {
                         ...event,
-                        content: JSON.parse(event.content)
+                        content: this.parseContent(event.content)
                     };
                 }
                 else if (event.kind === 4) {
@@ -6769,7 +6779,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             let metadataByPubKeyMap = {};
             for (let event of events) {
                 if (event.kind === 10000118) {
-                    const content = JSON.parse(event.content);
+                    const content = this.parseContent(event.content);
                     Object.keys(content).forEach(pubkey => {
                         pubkeyToMessageInfoMap[pubkey] = content[pubkey];
                     });
@@ -6777,7 +6787,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 if (event.kind === 0) {
                     metadataByPubKeyMap[event.pubkey] = {
                         ...event,
-                        content: JSON.parse(event.content)
+                        content: this.parseContent(event.content)
                     };
                 }
             }
@@ -6998,7 +7008,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 if (event.kind === 0) {
                     let metaData = {
                         ...event,
-                        content: JSON.parse(event.content)
+                        content: this.parseContent(event.content)
                     };
                     let userProfile = this.constructUserProfile(metaData);
                     if (hostPubkeys.includes(event.pubkey)) {

@@ -1914,7 +1914,7 @@ class SocialDataManager {
                     if (event.kind === 0) {
                         metadataArr.push({
                             ...event,
-                            content: JSON.parse(event.content)
+                            content: this.parseContent(event.content)
                         });
                     }
                 }
@@ -1942,7 +1942,7 @@ class SocialDataManager {
         for (let metadata of metadataArr) {
             const encodedPubkey = Nip19.npubEncode(metadata.pubkey);
             const metadataContent = metadata.content;
-            const internetIdentifier = metadataContent.nip05?.replace('_@', '') || '';
+            const internetIdentifier = metadataContent?.nip05?.replace('_@', '') || '';
             let userProfile: IUserProfile = {
                 id: encodedPubkey,
                 username: metadataContent.username || metadataContent.name,
@@ -1972,7 +1972,7 @@ class SocialDataManager {
             if (event.kind === 0) {
                 metadataByPubKeyMap[event.pubkey] = {
                     ...event,
-                    content: JSON.parse(event.content)
+                    content: this.parseContent(event.content)
                 };
             }
             else if (event.kind === 1) {
@@ -2064,7 +2064,14 @@ class SocialDataManager {
             earliest
         }
     }
-
+    parseContent(content: string): any {
+        try{
+            return JSON.parse(content);
+        }
+        catch(err){
+            console.log('Error parsing content', content);
+        };
+    };
     createNoteEventMappings(events: INostrEvent[], parentAuthorsInfo: boolean = false) {
         let notes: INoteInfo[] = [];
         let metadataByPubKeyMap: Record<string, INostrMetadata> = {};
@@ -2075,11 +2082,11 @@ class SocialDataManager {
             if (event.kind === 0) {
                 metadataByPubKeyMap[event.pubkey] = {
                     ...event,
-                    content: JSON.parse(event.content)
+                    content: this.parseContent(event.content)
                 };
             }
             else if (event.kind === 10000107) {
-                const noteEvent = JSON.parse(event.content) as INostrEvent;
+                const noteEvent = this.parseContent(event.content) as INostrEvent;
                 quotedNotesMap[noteEvent.id] = {
                     eventData: noteEvent
                 }
@@ -2096,7 +2103,7 @@ class SocialDataManager {
                 }
             }
             else if (event.kind === 6) {
-                const originalNoteContent = JSON.parse(event.content);
+                const originalNoteContent = this.parseContent(event.content);
                 notes.push({
                     eventData: originalNoteContent
                 });
@@ -2108,7 +2115,7 @@ class SocialDataManager {
                 }
             }
             else if (event.kind === 10000100) {
-                const content = JSON.parse(event.content);
+                const content = this.parseContent(event.content);
                 noteStatsMap[content.event_id] = {
                     upvotes: content.likes,
                     replies: content.replies,
@@ -2117,11 +2124,11 @@ class SocialDataManager {
             }
             else if (event.kind === 10000113) {
                 //"{\"since\":1700034697,\"until\":1700044097,\"order_by\":\"created_at\"}"
-                const timeInfo = JSON.parse(event.content);
+                const timeInfo = this.parseContent(event.content);
             }
         }
         for (let note of notes) {
-            const noteId = note.eventData.id;
+            const noteId = note.eventData?.id;
             note.stats = noteStatsMap[noteId];
         }
         return {
@@ -2240,11 +2247,11 @@ class SocialDataManager {
             if (event.kind === 0) {
                 metadata = {
                     ...event,
-                    content: JSON.parse(event.content)
+                    content: this.parseContent(event.content)
                 };
             }
             else if (event.kind === 10000105) {
-                let content = JSON.parse(event.content);
+                let content = this.parseContent(event.content);
                 stats = {
                     notes: content.note_count,
                     replies: content.reply_count,
@@ -2293,11 +2300,11 @@ class SocialDataManager {
             if (event.kind === 0) {
                 metadataArr.push({
                     ...event,
-                    content: JSON.parse(event.content)
+                    content: this.parseContent(event.content)
                 });
             }
             else if (event.kind === 10000108) {
-                followersCountMap = JSON.parse(event.content);
+                followersCountMap = this.parseContent(event.content);
             }
         }
         const userProfiles: IUserProfile[] = [];
@@ -2316,11 +2323,11 @@ class SocialDataManager {
             if (event.kind === 0) {
                 metadataArr.push({
                     ...event,
-                    content: JSON.parse(event.content)
+                    content: this.parseContent(event.content)
                 });
             }
             else if (event.kind === 10000108) {
-                followersCountMap = JSON.parse(event.content);
+                followersCountMap = this.parseContent(event.content);
             }
         }
         const userProfiles: IUserProfile[] = [];
@@ -2703,7 +2710,7 @@ class SocialDataManager {
     }
 
     private extractChannelInfo(event: INostrEvent) {
-        const content = JSON.parse(event.content);
+        const content = this.parseContent(event.content);
         let eventId;
         if (event.kind === 40) {
             eventId = event.id;
@@ -2924,7 +2931,7 @@ class SocialDataManager {
             if (event.kind === 0) {
                 metadataByPubKeyMap[event.pubkey] = {
                     ...event,
-                    content: JSON.parse(event.content)
+                    content: this.parseContent(event.content)
                 };
             } else if (event.kind === 4) {
                 encryptedMessages.push(event);
@@ -2953,7 +2960,7 @@ class SocialDataManager {
         let metadataByPubKeyMap: Record<string, INostrMetadata> = {};
         for (let event of events) {
             if (event.kind === 10000118) {
-                const content = JSON.parse(event.content);
+                const content = this.parseContent(event.content);
                 Object.keys(content).forEach(pubkey => {
                     pubkeyToMessageInfoMap[pubkey] = content[pubkey];
                 })
@@ -2961,7 +2968,7 @@ class SocialDataManager {
             if (event.kind === 0) {
                 metadataByPubKeyMap[event.pubkey] = {
                     ...event,
-                    content: JSON.parse(event.content)
+                    content: this.parseContent(event.content)
                 };
             }
         }
@@ -3184,7 +3191,7 @@ class SocialDataManager {
             if (event.kind === 0) {
                 let metaData = {
                     ...event,
-                    content: JSON.parse(event.content)
+                    content: this.parseContent(event.content)
                 };
                 let userProfile = this.constructUserProfile(metaData);
                 if (hostPubkeys.includes(event.pubkey)) {

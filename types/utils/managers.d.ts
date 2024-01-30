@@ -195,6 +195,7 @@ declare class SocialDataManager {
         quotedNotesMap: Record<string, INoteInfo>;
         earliest: number;
     }>;
+    parseContent(content: string): any;
     createNoteEventMappings(events: INostrEvent[], parentAuthorsInfo?: boolean): {
         notes: INoteInfo[];
         metadataByPubKeyMap: Record<string, INostrMetadata>;
