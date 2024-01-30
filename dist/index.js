@@ -5982,6 +5982,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     }
                 }
                 else if (event.kind === 6) {
+                    if (!event.content)
+                        continue;
                     const originalNoteContent = this.parseContent(event.content);
                     notes.push({
                         eventData: originalNoteContent
