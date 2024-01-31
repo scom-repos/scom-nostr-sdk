@@ -305,10 +305,11 @@ export interface ISocialDataManagerConfig {
     mqttMessageCallback?: (topic: string, message: string) => void;
 }
 export interface ILongFormContentInfo {
-    eventData: INostrEvent;
     id: string;
-    title: string;
+    content: string;
+    title?: string;
     image?: string;
     summary?: string;
-    publishedAt: number;
+    publishedAt?: number;
+    eventData?: INostrEvent;
 }

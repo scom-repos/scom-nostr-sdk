@@ -354,10 +354,11 @@ export interface ISocialDataManagerConfig {
 }
 
 export interface ILongFormContentInfo {
-	eventData: INostrEvent;
 	id: string;
-	title: string;
+	content: string;
+	title?: string;
 	image?: string;
 	summary?: string;
-	publishedAt: number;
+	publishedAt?: number;
+	eventData?: INostrEvent;
 }

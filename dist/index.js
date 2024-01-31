@@ -4535,7 +4535,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 "#d": [communityId]
             };
             let notesMsg = {
-                kinds: [1, 7, 9735],
+                // kinds: [1, 7, 9735],
+                kinds: [1],
                 "#a": [`34550:${decodedCreatorId}:${communityId}`],
                 limit: 50
             };
@@ -5328,6 +5329,45 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const manager = this._nostrCommunicationManagers[0];
             const fetchEventsResponse = await manager.fetchEvents(req);
             return fetchEventsResponse.events;
+        }
+        async submitLongFormContentEvents(info, privateKey) {
+            let event = {
+                "kind": 30023,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": info.content,
+                "tags": [
+                    [
+                        "d",
+                        info.id
+                    ]
+                ]
+            };
+            if (info.title) {
+                event.tags.push([
+                    "title",
+                    info.title
+                ]);
+            }
+            if (info.image) {
+                event.tags.push([
+                    "image",
+                    info.image
+                ]);
+            }
+            if (info.summary) {
+                event.tags.push([
+                    "summary",
+                    info.summary
+                ]);
+            }
+            if (info.publishedAt) {
+                event.tags.push([
+                    "published_at",
+                    info.publishedAt.toString()
+                ]);
+            }
+            const verifiedEvent = index_1.Event.finishEvent(event, privateKey);
+            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
         async submitLike(tags, privateKey) {
             let event = {
@@ -6641,7 +6681,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const pubkeyToCommunityIdsMap = {};
             for (let channel of channels) {
                 const scpData = channel.scpData;
-                if (!scpData.communityId)
+                if (!scpData?.communityId)
                     continue;
                 pubkeyToCommunityIdsMap[channel.eventData.pubkey] = pubkeyToCommunityIdsMap[channel.eventData.pubkey] || [];
                 if (!pubkeyToCommunityIdsMap[channel.eventData.pubkey].includes(scpData.communityId)) {
@@ -7258,6 +7298,9 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         }
         async submitMessage(message, conversationPath) {
             await this._socialEventManager.postNote(message, this._privateKey, conversationPath);
+        }
+        async submitLongFormContent(info) {
+            await this._socialEventManager.submitLongFormContentEvents(info, this._privateKey);
         }
         async submitLike(postEventData) {
             let tags = postEventData.tags.filter(tag => tag.length >= 2 && (tag[0] === 'e' || tag[0] === 'p'));

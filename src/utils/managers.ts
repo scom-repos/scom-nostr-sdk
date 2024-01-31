@@ -1,6 +1,6 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, IConversationPath, ILocationCoordinates, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrFetchEventsResponse, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
+import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrFetchEventsResponse, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
 import Geohash from './geohash';
 import GeoQuery from './geoquery';
 import { MqttManager } from "./mqtt";
@@ -503,7 +503,8 @@ class NostrEventManager {
             "#d": [communityId]
         };
         let notesMsg: any = {
-            kinds: [1, 7, 9735],
+            // kinds: [1, 7, 9735],
+            kinds: [1],
             "#a": [`34550:${decodedCreatorId}:${communityId}`],
             limit: 50
         };
@@ -1343,6 +1344,46 @@ class NostrEventManager {
         return fetchEventsResponse.events;
     }
 
+    async submitLongFormContentEvents(info: ILongFormContentInfo, privateKey: string) {
+        let event = {
+            "kind": 30023,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": info.content,
+            "tags": [
+                [
+                    "d",
+                    info.id
+                ]
+            ]
+        };
+        if (info.title) {
+            event.tags.push([
+                "title",
+                info.title
+            ]);
+        }
+        if (info.image) {
+            event.tags.push([
+                "image",
+                info.image
+            ]);
+        }
+        if (info.summary) {
+            event.tags.push([
+                "summary",
+                info.summary
+            ]);
+        }
+        if (info.publishedAt) {
+            event.tags.push([
+                "published_at",
+                info.publishedAt.toString()
+            ]);
+        }
+        const verifiedEvent = Event.finishEvent(event, privateKey);
+        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+    }
+
     async submitLike(tags: string[][], privateKey: string) {
         let event = {
             "kind": 7,
@@ -1426,6 +1467,7 @@ interface ISocialEventManager {
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
     submitCalendarEventPost(info: INewCalendarEventPostInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
     fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
+    submitLongFormContentEvents(info: ILongFormContentInfo, privateKey: string): Promise<void>;
     submitLike(tags: string[][], privateKey: string): Promise<void>;
     fetchLikes(eventId: string): Promise<INostrEvent[]>;
     submitRepost(content: string, tags: string[][], privateKey: string): Promise<void>;
@@ -2807,7 +2849,7 @@ class SocialDataManager {
         const pubkeyToCommunityIdsMap: Record<string, string[]> = {};
         for (let channel of channels) {
             const scpData = channel.scpData;
-            if (!scpData.communityId) continue;
+            if (!scpData?.communityId) continue;
             pubkeyToCommunityIdsMap[channel.eventData.pubkey] = pubkeyToCommunityIdsMap[channel.eventData.pubkey] || [];
             if (!pubkeyToCommunityIdsMap[channel.eventData.pubkey].includes(scpData.communityId)) {
                 pubkeyToCommunityIdsMap[channel.eventData.pubkey].push(scpData.communityId);
@@ -3437,6 +3479,10 @@ class SocialDataManager {
 
     async submitMessage(message: string, conversationPath?: IConversationPath) {
         await this._socialEventManager.postNote(message, this._privateKey, conversationPath);
+    }
+
+    async submitLongFormContent(info: ILongFormContentInfo) {
+        await this._socialEventManager.submitLongFormContentEvents(info, this._privateKey);
     }
 
     async submitLike(postEventData: INostrEvent) {

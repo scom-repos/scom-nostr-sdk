@@ -1403,12 +1403,13 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         mqttMessageCallback?: (topic: string, message: string) => void;
     }
     export interface ILongFormContentInfo {
-        eventData: INostrEvent;
         id: string;
-        title: string;
+        content: string;
+        title?: string;
         image?: string;
         summary?: string;
-        publishedAt: number;
+        publishedAt?: number;
+        eventData?: INostrEvent;
     }
 }
 /// <amd-module name="@scom/scom-social-sdk/utils/geohash.ts" />
@@ -1486,7 +1487,7 @@ declare module "@scom/scom-social-sdk/utils/mqtt.ts" {
 /// <amd-module name="@scom/scom-social-sdk/utils/managers.ts" />
 declare module "@scom/scom-social-sdk/utils/managers.ts" {
     import { Nip19, Event } from "@scom/scom-social-sdk/core/index.ts";
-    import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, IConversationPath, ILocationCoordinates, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrFetchEventsResponse, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrFetchEventsResponse, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
     interface IFetchMetadataOptions {
         authors?: string[];
         decodedAuthors?: string[];
@@ -1568,6 +1569,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
         submitCalendarEventPost(info: INewCalendarEventPostInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
         fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
+        submitLongFormContentEvents(info: ILongFormContentInfo, privateKey: string): Promise<void>;
         submitLike(tags: string[][], privateKey: string): Promise<void>;
         fetchLikes(eventId: string): Promise<INostrEvent[]>;
         submitRepost(content: string, tags: string[][], privateKey: string): Promise<void>;
@@ -1619,6 +1621,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
         submitCalendarEventPost(info: INewCalendarEventPostInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
         fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
+        submitLongFormContentEvents(info: ILongFormContentInfo, privateKey: string): Promise<void>;
         submitLike(tags: string[][], privateKey: string): Promise<void>;
         fetchLikes(eventId: string): Promise<INostrEvent[]>;
         submitRepost(content: string, tags: string[][], privateKey: string): Promise<void>;
@@ -1775,6 +1778,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         getAccountBalance(walletAddress: string): Promise<any>;
         getNFTsByOwner(walletAddress: string): Promise<any>;
         submitMessage(message: string, conversationPath?: IConversationPath): Promise<void>;
+        submitLongFormContent(info: ILongFormContentInfo): Promise<void>;
         submitLike(postEventData: INostrEvent): Promise<void>;
         submitRepost(postEventData: INostrEvent): Promise<void>;
         sendPingRequest(pubkey: string, walletAddress: string, signature: string): Promise<any>;
