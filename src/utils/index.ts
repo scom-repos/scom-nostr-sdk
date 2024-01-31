@@ -31,8 +31,10 @@ export {
 } from "./interfaces";
 
 export {
-    NostrEventManager,
-    ISocialEventManager,
+    NostrEventManagerRead,
+    NostrEventManagerWrite,
+    ISocialEventManagerRead,
+    ISocialEventManagerWrite,
     SocialUtilsManager,
     SocialDataManager,
     NostrWebSocketManager

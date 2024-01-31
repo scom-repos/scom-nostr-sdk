@@ -112,7 +112,7 @@ suite('##Calendar Events', async function() {
     suiteTeardown(async function() {
         for (let userNsec in userToBeDeletedEventsMap) {
             const privateKey = Nip19.decode(userNsec).data as string;
-            await manager.socialEventManager.deleteEvents(
+            await manager.socialEventManagerWrite.deleteEvents(
                 userToBeDeletedEventsMap[userNsec], 
                 privateKey
             );
