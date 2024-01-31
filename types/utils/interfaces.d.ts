@@ -74,6 +74,7 @@ export interface IAuthor {
 }
 export interface INoteInfoExtended extends INoteInfo {
     parentAuthor?: IAuthor;
+    repost?: IAuthor;
 }
 export interface INoteCommunityInfo {
     eventData: INostrEvent;
