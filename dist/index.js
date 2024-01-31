@@ -5888,7 +5888,28 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         async fetchProfileFeedInfo(pubKey, since = 0, until) {
             const events = await this._socialEventManager.fetchProfileFeedCacheEvents(pubKey, since, until);
             const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
-            const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(events);
+            const { notes, metadataByPubKeyMap, quotedNotesMap, noteToRepostIdMap } = this.createNoteEventMappings(events);
+            for (let note of notes) {
+                const noteId = note.eventData.id;
+                const repostId = noteToRepostIdMap[noteId];
+                if (!repostId)
+                    continue;
+                const metadata = metadataByPubKeyMap[repostId];
+                if (!metadata)
+                    continue;
+                const metadataContent = metadata.content;
+                const encodedPubkey = index_1.Nip19.npubEncode(metadata.pubkey);
+                const internetIdentifier = metadataContent.nip05?.replace('_@', '') || '';
+                note.repost = {
+                    id: encodedPubkey,
+                    username: '',
+                    description: metadataContent.about,
+                    avatar: metadataContent.picture,
+                    pubKey: encodedPubkey,
+                    displayName: metadataContent.display_name || metadataContent.name,
+                    internetIdentifier: internetIdentifier
+                };
+            }
             return {
                 notes,
                 metadataByPubKeyMap,
@@ -5962,6 +5983,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             let metadataByPubKeyMap = {};
             let quotedNotesMap = {};
             let noteToParentAuthorIdMap = {};
+            let noteToRepostIdMap = {};
             let noteStatsMap = {};
             for (let event of events) {
                 if (event.kind === 0) {
@@ -5994,6 +6016,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     notes.push({
                         eventData: originalNoteContent
                     });
+                    noteToRepostIdMap[originalNoteContent.id] = event.pubkey;
                     if (parentAuthorsInfo) {
                         const parentAuthors = event.tags.filter(tag => tag[0] === 'p')?.map(tag => tag[1]) || [];
                         if (parentAuthors.length > 0) {
@@ -6023,7 +6046,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 metadataByPubKeyMap,
                 quotedNotesMap,
                 noteToParentAuthorIdMap,
-                noteStatsMap
+                noteStatsMap,
+                noteToRepostIdMap
             };
         }
         async fetchCommunityInfo(creatorId, communityId) {

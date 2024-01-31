@@ -1999,8 +1999,28 @@ class SocialDataManager {
         const {
             notes,
             metadataByPubKeyMap,
-            quotedNotesMap
+            quotedNotesMap,
+            noteToRepostIdMap
         } = this.createNoteEventMappings(events);
+        for (let note of notes as INoteInfoExtended[]) {
+            const noteId = note.eventData.id;
+            const repostId = noteToRepostIdMap[noteId];
+            if (!repostId) continue;
+            const metadata = metadataByPubKeyMap[repostId];
+            if (!metadata) continue;
+            const metadataContent = metadata.content;
+            const encodedPubkey = Nip19.npubEncode(metadata.pubkey);
+            const internetIdentifier = metadataContent.nip05?.replace('_@', '') || '';
+            note.repost = {
+                id: encodedPubkey,
+                username: '',
+                description: metadataContent.about,
+                avatar: metadataContent.picture,
+                pubKey: encodedPubkey,
+                displayName: metadataContent.display_name || metadataContent.name,
+                internetIdentifier: internetIdentifier
+            };
+        }
         return {
             notes,
             metadataByPubKeyMap,
@@ -2083,6 +2103,7 @@ class SocialDataManager {
         let metadataByPubKeyMap: Record<string, INostrMetadata> = {};
         let quotedNotesMap: Record<string, INoteInfo> = {};
         let noteToParentAuthorIdMap: Record<string, string> = {};
+        let noteToRepostIdMap: Record<string, string> = {};
         let noteStatsMap: Record<string, IPostStats> = {};
         for (let event of events) {
             if (event.kind === 0) {
@@ -2114,6 +2135,7 @@ class SocialDataManager {
                 notes.push({
                     eventData: originalNoteContent
                 });
+                noteToRepostIdMap[originalNoteContent.id] = event.pubkey;
                 if (parentAuthorsInfo) {
                     const parentAuthors = event.tags.filter(tag => tag[0] === 'p')?.map(tag => tag[1]) || [];
                     if (parentAuthors.length > 0) {
@@ -2143,7 +2165,8 @@ class SocialDataManager {
             metadataByPubKeyMap,
             quotedNotesMap,
             noteToParentAuthorIdMap,
-            noteStatsMap
+            noteStatsMap,
+            noteToRepostIdMap
         }
     }
     
