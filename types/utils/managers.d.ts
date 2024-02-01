@@ -1,9 +1,5 @@
 import { Nip19, Event } from "../core/index";
 import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrFetchEventsResponse, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "./interfaces";
-interface IFetchMetadataOptions {
-    authors?: string[];
-    decodedAuthors?: string[];
-}
 interface INostrCommunicationManager {
     fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
     fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
@@ -45,7 +41,6 @@ interface ISocialEventManagerRead {
     fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
-    fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
     fetchChannels(channelEventIds: string[]): Promise<INostrEvent[]>;
     fetchAllUserRelatedChannels(pubKey: string): Promise<INostrEvent[]>;
     fetchUserBookmarkedChannels(pubKey: string): Promise<INostrEvent[]>;
@@ -125,7 +120,6 @@ declare class NostrEventManagerRead implements ISocialEventManagerRead {
     fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
-    fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
     fetchAllUserRelatedChannels(pubKey: string): Promise<INostrEvent[]>;
     fetchUserBookmarkedChannels(pubKey: string): Promise<INostrEvent[]>;
     fetchChannels(channelEventIds: string[]): Promise<INostrEvent[]>;

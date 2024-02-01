@@ -94,7 +94,7 @@ interface ISocialEventManagerRead {
     fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
     // fetchNotes(options: IFetchNotesOptions): Promise<INostrEvent[]>;
-    fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
+    // fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
     // fetchReplies(options: IFetchRepliesOptions): Promise<INostrEvent[]>;
     // fetchFollowing(npubs: string[]): Promise<INostrEvent[]>;
     fetchChannels(channelEventIds: string[]): Promise<INostrEvent[]>;
@@ -1167,21 +1167,21 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
     //     return events;
     // }
 
-    async fetchMetadata(options: IFetchMetadataOptions) {
-        let decodedNpubs;
-        if (options.decodedAuthors) {
-            decodedNpubs = options.decodedAuthors;
-        }
-        else {
-            decodedNpubs = options.authors?.map(npub => Nip19.decode(npub).data) || [];
-        }
-        const msg = {
-            authors: decodedNpubs,
-            kinds: [0]
-        };
-        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(msg);
-        return fetchEventsResponse.events;
-    }
+    // async fetchMetadata(options: IFetchMetadataOptions) {
+    //     let decodedNpubs;
+    //     if (options.decodedAuthors) {
+    //         decodedNpubs = options.decodedAuthors;
+    //     }
+    //     else {
+    //         decodedNpubs = options.authors?.map(npub => Nip19.decode(npub).data) || [];
+    //     }
+    //     const msg = {
+    //         authors: decodedNpubs,
+    //         kinds: [0]
+    //     };
+    //     const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(msg);
+    //     return fetchEventsResponse.events;
+    // }
 
     // async fetchReplies(options: IFetchRepliesOptions) {
     //     let decodedNoteIds;
@@ -1480,6 +1480,47 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
         super(manager, cachedManager, apiBaseUrl);
     }
 
+    async fetchUserProfileCacheEvents(pubKeys: string[]) {
+        const decodedPubKeys = pubKeys.map(pubKey => pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey);
+        let msg: any = {
+            pubkeys: decodedPubKeys
+        };
+        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-user-profiles', msg);
+        return fetchEventsResponse.events;
+    }
+
+    async fetchProfileFeedCacheEvents(pubKey: string, since: number = 0, until: number = 0) {
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        let msg: any = {
+            limit: 20,
+            pubkey: decodedPubKey
+        };
+        if (until === 0) {
+            msg.since = since;
+        }
+        else {
+            msg.until = until;
+        }
+        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-profile-feed', msg);
+        return fetchEventsResponse.events;
+    }
+
+    async fetchProfileRepliesCacheEvents(pubKey: string, since: number = 0, until: number = 0) {
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        let msg: any = {
+            limit: 20,
+            pubkey: decodedPubKey
+        };
+        if (until === 0) {
+            msg.since = since;
+        }
+        else {
+            msg.until = until;
+        }
+        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-profile-replies', msg);
+        return fetchEventsResponse.events;
+    }
+
     async fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>) {
         let events;
         if (pubkeyToCommunityIdsMap && Object.keys(pubkeyToCommunityIdsMap).length > 0) {
@@ -1545,6 +1586,33 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
         };
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-events', msg);
         return fetchEventsResponse.events;  
+    }
+
+    async fetchCalendarEvent(address: Nip19.AddressPointer) {
+        const key = `${address.kind}:${address.pubkey}:${address.identifier}`;
+        let msg: any = {
+            key
+        };
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-events', msg);
+        return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+    } 
+
+    async fetchDirectMessages(pubKey: string, sender: string, since: number = 0, until: number = 0) {
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        const decodedSenderPubKey = sender.startsWith('npub1') ? Nip19.decode(sender).data : sender;
+        const msg: any = {
+            receiver: decodedPubKey,
+            sender: decodedSenderPubKey,
+            limit: 20
+        }
+        if (until === 0) {
+            msg.since = since;
+        }
+        else {
+            msg.until = until;
+        }
+        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-direct-messages', msg);
+        return fetchEventsResponse.events;
     }
 }
 
@@ -1701,7 +1769,7 @@ class SocialDataManager {
             }
         }
 
-        const enableV2 = false;
+        const enableV2 = true;
         if (config.cachedServer.startsWith('wss://')) {
             nostrCachedCommunicationManager = new NostrWebSocketManager(config.cachedServer);
         }
@@ -2051,9 +2119,7 @@ class SocialDataManager {
         }
         const uniqueKeys = Array.from(mentionAuthorSet) as string[];
         const npubs = notes.map(note => note.pubkey).filter((value, index, self) => self.indexOf(value) === index);
-        const metadata = await this._socialEventManagerRead.fetchMetadata({
-            decodedAuthors: [...npubs, ...uniqueKeys]
-        });
+        const metadata = await this._socialEventManagerRead.fetchUserProfileCacheEvents([...npubs, ...uniqueKeys]);
     
         const metadataByPubKeyMap: Record<string, INostrMetadata> = metadata.reduce((acc, cur) => {
             const content = JSON.parse(cur.content);
@@ -2081,16 +2147,16 @@ class SocialDataManager {
                     }
                 }
             }
-            else {
-                const metadataEvents = await this._socialEventManagerRead.fetchMetadata({
-                    authors: pubKeys
-                });
-                if (metadataEvents.length === 0) return null;
-                metadataArr.push({
-                    ...metadataEvents[0],
-                    content: JSON.parse(metadataEvents[0].content)
-                });
-            }
+            // else {
+            //     const metadataEvents = await this._socialEventManagerRead.fetchMetadata({
+            //         authors: pubKeys
+            //     });
+            //     if (metadataEvents.length === 0) return null;
+            //     metadataArr.push({
+            //         ...metadataEvents[0],
+            //         content: JSON.parse(metadataEvents[0].content)
+            //     });
+            // }
             // if (metadataArr.length == 0) {
             //     throw new Error(`Metadata not found`);
             // }

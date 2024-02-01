@@ -5113,21 +5113,21 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         //     const events = await this._nostrCommunicationManager.fetchEvents(msg);
         //     return events;
         // }
-        async fetchMetadata(options) {
-            let decodedNpubs;
-            if (options.decodedAuthors) {
-                decodedNpubs = options.decodedAuthors;
-            }
-            else {
-                decodedNpubs = options.authors?.map(npub => index_1.Nip19.decode(npub).data) || [];
-            }
-            const msg = {
-                authors: decodedNpubs,
-                kinds: [0]
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(msg);
-            return fetchEventsResponse.events;
-        }
+        // async fetchMetadata(options: IFetchMetadataOptions) {
+        //     let decodedNpubs;
+        //     if (options.decodedAuthors) {
+        //         decodedNpubs = options.decodedAuthors;
+        //     }
+        //     else {
+        //         decodedNpubs = options.authors?.map(npub => Nip19.decode(npub).data) || [];
+        //     }
+        //     const msg = {
+        //         authors: decodedNpubs,
+        //         kinds: [0]
+        //     };
+        //     const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(msg);
+        //     return fetchEventsResponse.events;
+        // }
         // async fetchReplies(options: IFetchRepliesOptions) {
         //     let decodedNoteIds;
         //     if (options.decodedIds) {
@@ -5393,6 +5393,44 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         constructor(manager, cachedManager, apiBaseUrl) {
             super(manager, cachedManager, apiBaseUrl);
         }
+        async fetchUserProfileCacheEvents(pubKeys) {
+            const decodedPubKeys = pubKeys.map(pubKey => pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey);
+            let msg = {
+                pubkeys: decodedPubKeys
+            };
+            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-user-profiles', msg);
+            return fetchEventsResponse.events;
+        }
+        async fetchProfileFeedCacheEvents(pubKey, since = 0, until = 0) {
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
+            let msg = {
+                limit: 20,
+                pubkey: decodedPubKey
+            };
+            if (until === 0) {
+                msg.since = since;
+            }
+            else {
+                msg.until = until;
+            }
+            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-profile-feed', msg);
+            return fetchEventsResponse.events;
+        }
+        async fetchProfileRepliesCacheEvents(pubKey, since = 0, until = 0) {
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
+            let msg = {
+                limit: 20,
+                pubkey: decodedPubKey
+            };
+            if (until === 0) {
+                msg.since = since;
+            }
+            else {
+                msg.until = until;
+            }
+            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-profile-replies', msg);
+            return fetchEventsResponse.events;
+        }
         async fetchCommunities(pubkeyToCommunityIdsMap) {
             let events;
             if (pubkeyToCommunityIdsMap && Object.keys(pubkeyToCommunityIdsMap).length > 0) {
@@ -5454,6 +5492,31 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 limit: limit || 10
             };
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-events', msg);
+            return fetchEventsResponse.events;
+        }
+        async fetchCalendarEvent(address) {
+            const key = `${address.kind}:${address.pubkey}:${address.identifier}`;
+            let msg = {
+                key
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-events', msg);
+            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        }
+        async fetchDirectMessages(pubKey, sender, since = 0, until = 0) {
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
+            const decodedSenderPubKey = sender.startsWith('npub1') ? index_1.Nip19.decode(sender).data : sender;
+            const msg = {
+                receiver: decodedPubKey,
+                sender: decodedSenderPubKey,
+                limit: 20
+            };
+            if (until === 0) {
+                msg.since = since;
+            }
+            else {
+                msg.until = until;
+            }
+            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-direct-messages', msg);
             return fetchEventsResponse.events;
         }
     }
@@ -5590,7 +5653,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     }
                 }
             }
-            const enableV2 = false;
+            const enableV2 = true;
             if (config.cachedServer.startsWith('wss://')) {
                 nostrCachedCommunicationManager = new NostrWebSocketManager(config.cachedServer);
             }
@@ -5915,9 +5978,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             }
             const uniqueKeys = Array.from(mentionAuthorSet);
             const npubs = notes.map(note => note.pubkey).filter((value, index, self) => self.indexOf(value) === index);
-            const metadata = await this._socialEventManagerRead.fetchMetadata({
-                decodedAuthors: [...npubs, ...uniqueKeys]
-            });
+            const metadata = await this._socialEventManagerRead.fetchUserProfileCacheEvents([...npubs, ...uniqueKeys]);
             const metadataByPubKeyMap = metadata.reduce((acc, cur) => {
                 const content = JSON.parse(cur.content);
                 acc[cur.pubkey] = {
@@ -5943,17 +6004,16 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                         }
                     }
                 }
-                else {
-                    const metadataEvents = await this._socialEventManagerRead.fetchMetadata({
-                        authors: pubKeys
-                    });
-                    if (metadataEvents.length === 0)
-                        return null;
-                    metadataArr.push({
-                        ...metadataEvents[0],
-                        content: JSON.parse(metadataEvents[0].content)
-                    });
-                }
+                // else {
+                //     const metadataEvents = await this._socialEventManagerRead.fetchMetadata({
+                //         authors: pubKeys
+                //     });
+                //     if (metadataEvents.length === 0) return null;
+                //     metadataArr.push({
+                //         ...metadataEvents[0],
+                //         content: JSON.parse(metadataEvents[0].content)
+                //     });
+                // }
                 // if (metadataArr.length == 0) {
                 //     throw new Error(`Metadata not found`);
                 // }

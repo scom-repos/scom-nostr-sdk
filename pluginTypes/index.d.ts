@@ -1488,10 +1488,6 @@ declare module "@scom/scom-social-sdk/utils/mqtt.ts" {
 declare module "@scom/scom-social-sdk/utils/managers.ts" {
     import { Nip19, Event } from "@scom/scom-social-sdk/core/index.ts";
     import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrFetchEventsResponse, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
-    interface IFetchMetadataOptions {
-        authors?: string[];
-        decodedAuthors?: string[];
-    }
     interface INostrCommunicationManager {
         fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
         fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
@@ -1533,7 +1529,6 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
         fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
         fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
-        fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
         fetchChannels(channelEventIds: string[]): Promise<INostrEvent[]>;
         fetchAllUserRelatedChannels(pubKey: string): Promise<INostrEvent[]>;
         fetchUserBookmarkedChannels(pubKey: string): Promise<INostrEvent[]>;
@@ -1613,7 +1608,6 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
         fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
         fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
-        fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
         fetchAllUserRelatedChannels(pubKey: string): Promise<INostrEvent[]>;
         fetchUserBookmarkedChannels(pubKey: string): Promise<INostrEvent[]>;
         fetchChannels(channelEventIds: string[]): Promise<INostrEvent[]>;
