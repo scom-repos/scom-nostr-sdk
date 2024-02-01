@@ -5653,7 +5653,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     }
                 }
             }
-            const enableV2 = true;
+            const enableV2 = false;
             if (config.cachedServer.startsWith('wss://')) {
                 nostrCachedCommunicationManager = new NostrWebSocketManager(config.cachedServer);
             }
