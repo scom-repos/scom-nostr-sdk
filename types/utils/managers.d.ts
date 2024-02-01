@@ -106,9 +106,9 @@ declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
     submitRepost(content: string, tags: string[][], privateKey: string): Promise<void>;
 }
 declare class NostrEventManagerRead implements ISocialEventManagerRead {
-    private _nostrCommunicationManager;
-    private _nostrCachedCommunicationManager;
-    private _apiBaseUrl;
+    protected _nostrCommunicationManager: INostrCommunicationManager;
+    protected _nostrCachedCommunicationManager: INostrCommunicationManager;
+    protected _apiBaseUrl: string;
     constructor(manager: INostrCommunicationManager, cachedManager: INostrCommunicationManager, apiBaseUrl: string);
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
     fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;

@@ -4153,6 +4153,23 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 throw error;
             }
         }
+        async fetchEventsFromAPI(endpoint, msg) {
+            try {
+                const response = await fetch(`${this._url}/${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(msg)
+                });
+                const data = await response.json();
+                return data;
+            }
+            catch (error) {
+                console.error('Error fetching events:', error);
+                throw error;
+            }
+        }
         async fetchCachedEvents(eventType, msg) {
             const events = await this.fetchEvents({
                 cache: [
@@ -5373,6 +5390,72 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
     }
     exports.NostrEventManagerRead = NostrEventManagerRead;
     class NostrEventManagerReadV2 extends NostrEventManagerRead {
+        constructor(manager, cachedManager, apiBaseUrl) {
+            super(manager, cachedManager, apiBaseUrl);
+        }
+        async fetchCommunities(pubkeyToCommunityIdsMap) {
+            let events;
+            if (pubkeyToCommunityIdsMap && Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+                let msg = {
+                    identifiers: []
+                };
+                for (let pubkey in pubkeyToCommunityIdsMap) {
+                    const decodedPubKey = pubkey.startsWith('npub1') ? index_1.Nip19.decode(pubkey).data : pubkey;
+                    const communityIds = pubkeyToCommunityIdsMap[pubkey];
+                    let request = {
+                        pubkey: decodedPubKey,
+                        names: communityIds
+                    };
+                    msg.identifiers.push(request);
+                }
+                let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities', msg);
+                events = response.events;
+            }
+            else {
+                let msg = {
+                    limit: 50
+                };
+                let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities', msg);
+                events = response.events;
+            }
+            return events;
+        }
+        async fetchCommunity(creatorId, communityId) {
+            const decodedCreatorId = creatorId.startsWith('npub1') ? index_1.Nip19.decode(creatorId).data : creatorId;
+            let msg = {
+                identifiers: [
+                    {
+                        pubkey: decodedCreatorId,
+                        names: [communityId]
+                    }
+                ]
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities', msg);
+            return fetchEventsResponse.events;
+        }
+        async fetchCommunityFeed(creatorId, communityId) {
+            const decodedCreatorId = creatorId.startsWith('npub1') ? index_1.Nip19.decode(creatorId).data : creatorId;
+            let msg = {
+                identifiers: [
+                    {
+                        pubkey: decodedCreatorId,
+                        names: [communityId]
+                    }
+                ],
+                limit: 50
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-feed', msg);
+            return fetchEventsResponse.events;
+        }
+        async fetchCalendarEvents(start, end, limit) {
+            let msg = {
+                start: start,
+                end: end,
+                limit: limit || 10
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-events', msg);
+            return fetchEventsResponse.events;
+        }
     }
     class SocialUtilsManager {
         static hexStringToUint8Array(hexString) {
@@ -5502,16 +5585,24 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 }
                 else {
                     nostrCommunicationManagers.push(new NostrRestAPIManager(relay));
+                    if (!this._defaultRestAPIRelay) {
+                        this._defaultRestAPIRelay = relay;
+                    }
                 }
             }
+            const enableV2 = false;
             if (config.cachedServer.startsWith('wss://')) {
                 nostrCachedCommunicationManager = new NostrWebSocketManager(config.cachedServer);
             }
             else {
                 nostrCachedCommunicationManager = new NostrRestAPIManager(config.cachedServer);
             }
-            this._defaultRestAPIRelay = config.relays.find(relay => !relay.startsWith('wss://'));
-            this._socialEventManagerRead = new NostrEventManagerReadV2(nostrCommunicationManagers[0], nostrCachedCommunicationManager, config.apiBaseUrl);
+            if (enableV2) {
+                this._socialEventManagerRead = new NostrEventManagerReadV2(nostrCommunicationManagers[0], nostrCachedCommunicationManager, config.apiBaseUrl);
+            }
+            else {
+                this._socialEventManagerRead = new NostrEventManagerRead(nostrCommunicationManagers[0], nostrCachedCommunicationManager, config.apiBaseUrl);
+            }
             this._socialEventManagerWrite = new NostrEventManagerWrite(nostrCommunicationManagers, config.apiBaseUrl);
             if (config.mqttBrokerUrl) {
                 this.mqttManager = new mqtt_1.MqttManager({

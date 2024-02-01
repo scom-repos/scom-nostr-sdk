@@ -52,6 +52,10 @@ interface INostrCommunicationManager {
     submitEvent(event: Event.VerifiedEvent<number>): Promise<INostrSubmitResponse>;
 }
 
+interface INostrRestAPIManager extends INostrCommunicationManager {
+    fetchEventsFromAPI(endpoint: string, msg: any): Promise<INostrFetchEventsResponse>;
+}
+
 interface ISocialEventManagerWrite {
     updateContactList(content: string, contactPubKeys: string[], privateKey: string): Promise<void>;
     postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
@@ -111,7 +115,7 @@ interface ISocialEventManagerRead {
     fetchLikes(eventId: string): Promise<INostrEvent[]>;
 }
 
-class NostrRestAPIManager implements INostrCommunicationManager {
+class NostrRestAPIManager implements INostrRestAPIManager {
     protected _url: string;
     protected requestCallbackMap: Record<string, (response: any) => void> = {};
 
@@ -137,6 +141,22 @@ class NostrRestAPIManager implements INostrCommunicationManager {
                 body: JSON.stringify({
                     requests: [...requests]
                 })
+            });
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error fetching events:', error);
+            throw error;
+        }
+    }
+    async fetchEventsFromAPI(endpoint: string, msg: any): Promise<INostrFetchEventsResponse> {
+        try {
+            const response = await fetch(`${this._url}/${endpoint}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(msg)
             });
             const data = await response.json();
             return data;
@@ -901,9 +921,9 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
 }
 
 class NostrEventManagerRead implements ISocialEventManagerRead {
-    private _nostrCommunicationManager: INostrCommunicationManager;
-    private _nostrCachedCommunicationManager: INostrCommunicationManager;
-    private _apiBaseUrl: string;
+    protected _nostrCommunicationManager: INostrCommunicationManager;
+    protected _nostrCachedCommunicationManager: INostrCommunicationManager;
+    protected _apiBaseUrl: string;
 
     constructor(manager: INostrCommunicationManager, cachedManager: INostrCommunicationManager, apiBaseUrl: string) {
         this._nostrCommunicationManager = manager;
@@ -1452,6 +1472,80 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
 }
 
 class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEventManagerRead {
+    protected _nostrCommunicationManager: INostrRestAPIManager;
+    protected _nostrCachedCommunicationManager: INostrRestAPIManager;
+    protected _apiBaseUrl: string;
+
+    constructor(manager: INostrRestAPIManager, cachedManager: INostrRestAPIManager, apiBaseUrl: string) {
+        super(manager, cachedManager, apiBaseUrl);
+    }
+
+    async fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>) {
+        let events;
+        if (pubkeyToCommunityIdsMap && Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+            let msg = {
+                identifiers: []
+            }
+            for (let pubkey in pubkeyToCommunityIdsMap) {
+                const decodedPubKey = pubkey.startsWith('npub1') ? Nip19.decode(pubkey).data : pubkey;
+                const communityIds = pubkeyToCommunityIdsMap[pubkey];
+                let request: any = {
+                    pubkey: decodedPubKey,
+                    names: communityIds
+                };
+                msg.identifiers.push(request);
+            }
+            let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities', msg);
+            events = response.events;
+        }   
+        else {
+            let msg: any = {
+                limit: 50
+            };
+            let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities', msg);
+            events = response.events;
+        }
+        return events;
+    }
+
+    async fetchCommunity(creatorId: string, communityId: string) {
+        const decodedCreatorId = creatorId.startsWith('npub1') ? Nip19.decode(creatorId).data : creatorId;
+        let msg: any = {
+            identifiers: [
+                {
+                    pubkey: decodedCreatorId,
+                    names: [communityId]
+                }
+            ]
+        };
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities', msg);
+        return fetchEventsResponse.events;        
+    }
+
+    async fetchCommunityFeed(creatorId: string, communityId: string) {
+        const decodedCreatorId = creatorId.startsWith('npub1') ? Nip19.decode(creatorId).data : creatorId;
+        let msg: any = {
+            identifiers: [
+                {
+                    pubkey: decodedCreatorId,
+                    names: [communityId]
+                }
+            ],
+            limit: 50
+        };
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-feed', msg);
+        return fetchEventsResponse.events;        
+    }
+
+    async fetchCalendarEvents(start: number, end?: number, limit?: number) {
+        let msg: any = {
+            start: start,
+            end: end,
+            limit: limit || 10
+        };
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-events', msg);
+        return fetchEventsResponse.events;  
+    }
 }
 
 class SocialUtilsManager {
@@ -1601,20 +1695,34 @@ class SocialDataManager {
             }
             else {
                 nostrCommunicationManagers.push(new NostrRestAPIManager(relay));
+                if (!this._defaultRestAPIRelay) {
+                    this._defaultRestAPIRelay = relay;
+                }
             }
         }
+
+        const enableV2 = false;
         if (config.cachedServer.startsWith('wss://')) {
             nostrCachedCommunicationManager = new NostrWebSocketManager(config.cachedServer);
         }
         else {
             nostrCachedCommunicationManager = new NostrRestAPIManager(config.cachedServer);
         }
-        this._defaultRestAPIRelay = config.relays.find(relay => !relay.startsWith('wss://'));
-        this._socialEventManagerRead = new NostrEventManagerReadV2(
-            nostrCommunicationManagers[0], 
-            nostrCachedCommunicationManager, 
-            config.apiBaseUrl
-        );
+        if (enableV2) {
+            this._socialEventManagerRead = new NostrEventManagerReadV2(
+                nostrCommunicationManagers[0] as NostrRestAPIManager,
+                nostrCachedCommunicationManager as NostrRestAPIManager, 
+                config.apiBaseUrl
+            );
+        }
+        else {
+            this._socialEventManagerRead = new NostrEventManagerRead(
+                nostrCommunicationManagers[0], 
+                nostrCachedCommunicationManager, 
+                config.apiBaseUrl
+            );
+        }
+
         this._socialEventManagerWrite = new NostrEventManagerWrite(
             nostrCommunicationManagers, 
             config.apiBaseUrl
