@@ -32,12 +32,14 @@ export {
 
 export {
     NostrEventManagerRead,
+    NostrEventManagerReadV2,
     NostrEventManagerWrite,
     ISocialEventManagerRead,
     ISocialEventManagerWrite,
     SocialUtilsManager,
     SocialDataManager,
-    NostrWebSocketManager
+    NostrWebSocketManager,
+    NostrRestAPIManager
 } from './managers';
 
 export {

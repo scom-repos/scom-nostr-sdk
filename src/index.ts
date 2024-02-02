@@ -35,11 +35,13 @@ export {
     ISocialDataManagerConfig,
     INostrFetchEventsResponse,
     NostrEventManagerRead,
+    NostrEventManagerReadV2,
     NostrEventManagerWrite,
     ISocialEventManagerRead,
     ISocialEventManagerWrite,
     SocialUtilsManager,
     SocialDataManager,
     NostrWebSocketManager,
+    NostrRestAPIManager,
     MqttManager
 } from './utils/index'

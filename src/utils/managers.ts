@@ -97,11 +97,11 @@ interface ISocialEventManagerRead {
     // fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
     // fetchReplies(options: IFetchRepliesOptions): Promise<INostrEvent[]>;
     // fetchFollowing(npubs: string[]): Promise<INostrEvent[]>;
-    fetchChannels(channelEventIds: string[]): Promise<INostrEvent[]>;
+    fetchEventsByIds(ids: string[]): Promise<INostrEvent[]>;
     fetchAllUserRelatedChannels(pubKey: string): Promise<INostrEvent[]>;
     fetchUserBookmarkedChannels(pubKey: string): Promise<INostrEvent[]>;
     fetchChannelMessages(channelId: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    fetchChannelInfoMessages(creatorId: string, channelId: string): Promise<INostrEvent[]>;
+    fetchChannelInfoMessages(channelId: string): Promise<INostrEvent[]>;
     fetchMessageContactsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
     resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
@@ -1244,10 +1244,9 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         return fetchEventsResponse.events;
     }
 
-    async fetchChannels(channelEventIds: string[]) {
+    async fetchEventsByIds(ids: string[]) {
         let request: any = {
-            kinds: [40, 41],
-            ids: channelEventIds
+            ids: ids
         };
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
         return fetchEventsResponse.events;
@@ -1272,21 +1271,19 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         return fetchEventsResponse.events;        
     }
 
-    async fetchChannelInfoMessages(creatorId: string, channelId: string) {
-        const decodedCreatorId = creatorId.startsWith('npub1') ? Nip19.decode(creatorId).data : creatorId;
+    async fetchChannelInfoMessages(channelId: string) {
+        const decodedChannelId = channelId.startsWith('npub1') ? Nip19.decode(channelId).data : channelId;
         let channelCreationEventReq: any = {
             kinds: [40],
-            ids: [channelId],
-            authors: [decodedCreatorId]
+            ids: [decodedChannelId],
         };
         let channelMetadataEventReq: any = {
             kinds: [41],
-            "#e": [channelId],
-            authors: [decodedCreatorId]
+            "#e": [decodedChannelId]
         };
         let messagesReq: any = {
             kinds: [42],
-            "#e": [channelId],
+            "#e": [decodedChannelId],
             limit: 20
         };
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(
@@ -1480,15 +1477,12 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
         super(manager, cachedManager, apiBaseUrl);
     }
 
-    async fetchUserProfileCacheEvents(pubKeys: string[]) {
-        const decodedPubKeys = pubKeys.map(pubKey => pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey);
-        let msg: any = {
-            pubkeys: decodedPubKeys
-        };
-        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-user-profiles', msg);
-        return fetchEventsResponse.events;
+    async WIP_fetchThreadCacheEvents(id: string, pubKey?: string) {
     }
 
+    async WIP_fetchTrendingCacheEvents(pubKey?: string) {
+    }
+    
     async fetchProfileFeedCacheEvents(pubKey: string, since: number = 0, until: number = 0) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
         let msg: any = {
@@ -1521,6 +1515,46 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
         return fetchEventsResponse.events;
     }
 
+    async WIP_fetchHomeFeedCacheEvents(pubKey?: string, since: number = 0, until: number = 0) {
+    }
+
+    async fetchUserProfileCacheEvents(pubKeys: string[]) {
+        const decodedPubKeys = pubKeys.map(pubKey => pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey);
+        let msg: any = {
+            pubkeys: decodedPubKeys
+        };
+        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-user-profiles', msg);
+        return fetchEventsResponse.events;
+    }
+
+    async fetchUserProfileDetailCacheEvents(pubKey: string) {
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        let msg: any = {
+            pubkey: decodedPubKey
+        };
+        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-user-profile-detail', msg);
+        return fetchEventsResponse.events;
+    }
+
+    async fetchContactListCacheEvents(pubKey: string, detailIncluded: boolean = true) {
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        let msg: any = {
+            pubkey: decodedPubKey,
+            detailIncluded: detailIncluded,
+        };
+        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-contact-list', msg);
+        return fetchEventsResponse.events;
+    }    
+
+    async fetchFollowersCacheEvents(pubKey: string) {
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        let msg: any = {
+            pubkey: decodedPubKey
+        };
+        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-followers', msg);
+        return fetchEventsResponse.events;
+    }  
+
     async fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>) {
         let events;
         if (pubkeyToCommunityIdsMap && Object.keys(pubkeyToCommunityIdsMap).length > 0) {
@@ -1547,6 +1581,12 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
             events = response.events;
         }
         return events;
+    }
+
+    async WIP_fetchAllUserRelatedCommunities(pubKey: string) {
+    }
+
+    async WIP_fetchUserBookmarkedCommunities(pubKey: string) {
     }
 
     async fetchCommunity(creatorId: string, communityId: string) {
@@ -1578,6 +1618,79 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
         return fetchEventsResponse.events;        
     }
 
+    async WIP_fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]) {      
+    }
+
+    async WIP_fetchAllUserRelatedChannels(pubKey: string) {
+    }
+
+    async WIP_fetchUserBookmarkedChannels(pubKey: string) {
+    }
+
+    async fetchEventsByIds(ids: string[]) {
+        let msg: any = {
+            ids
+        };
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-events', msg);
+        return fetchEventsResponse.events;
+    }
+
+    async fetchChannelMessages(channelId: string, since: number = 0, until: number = 0) {
+        const decodedChannelId = channelId.startsWith('npub1') ? Nip19.decode(channelId).data : channelId;
+        let msg: any = {
+            channelId: decodedChannelId,
+            limit: 20
+        };
+        if (until === 0) {
+            msg.since = since;
+        }
+        else {
+            msg.until = until;
+        }
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents('fetch-channel-messages', msg);
+        return fetchEventsResponse.events;        
+    }
+
+    async fetchChannelInfoMessages(channelId: string) {
+        const decodedChannelId = channelId.startsWith('npub1') ? Nip19.decode(channelId).data : channelId;
+        let msg: any = {
+            channelId: decodedChannelId,
+            limit: 20
+        };
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents('fetch-channel-info-messages', msg);
+        return fetchEventsResponse.events;         
+    }
+
+    async WIP_fetchMessageContactsCacheEvents(pubKey: string) {
+    }
+
+    async fetchDirectMessages(pubKey: string, sender: string, since: number = 0, until: number = 0) {
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        const decodedSenderPubKey = sender.startsWith('npub1') ? Nip19.decode(sender).data : sender;
+        const msg: any = {
+            receiver: decodedPubKey,
+            sender: decodedSenderPubKey,
+            limit: 20
+        }
+        if (until === 0) {
+            msg.since = since;
+        }
+        else {
+            msg.until = until;
+        }
+        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-direct-messages', msg);
+        return fetchEventsResponse.events;
+    }
+
+    async WIP_resetMessageCount(pubKey: string, sender: string, privateKey: string) {
+    }
+
+    async WIP_fetchGroupKeys(identifier: string) {
+    }
+
+    async WIP_fetchUserGroupInvitations(groupKinds: number[], pubKey: string) {
+    }
+
     async fetchCalendarEvents(start: number, end?: number, limit?: number) {
         let msg: any = {
             start: start,
@@ -1597,22 +1710,16 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
         return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
     } 
 
-    async fetchDirectMessages(pubKey: string, sender: string, since: number = 0, until: number = 0) {
-        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
-        const decodedSenderPubKey = sender.startsWith('npub1') ? Nip19.decode(sender).data : sender;
-        const msg: any = {
-            receiver: decodedPubKey,
-            sender: decodedSenderPubKey,
-            limit: 20
-        }
-        if (until === 0) {
-            msg.since = since;
-        }
-        else {
-            msg.until = until;
-        }
-        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-direct-messages', msg);
-        return fetchEventsResponse.events;
+    async WIP_fetchCalendarEventPosts(calendarEventUri: string) {    
+    }
+
+    async WIP_fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string) {
+    }
+
+    async WIP_fetchLongFormContentEvents(pubKey?: string, since: number = 0, until: number = 0) {
+    }
+
+    async WIP_fetchLikes(eventId: string) {
     }
 }
 
@@ -1769,14 +1876,13 @@ class SocialDataManager {
             }
         }
 
-        const enableV2 = false;
         if (config.cachedServer.startsWith('wss://')) {
             nostrCachedCommunicationManager = new NostrWebSocketManager(config.cachedServer);
         }
         else {
             nostrCachedCommunicationManager = new NostrRestAPIManager(config.cachedServer);
         }
-        if (enableV2) {
+        if (config.version === 2) {
             this._socialEventManagerRead = new NostrEventManagerReadV2(
                 nostrCommunicationManagers[0] as NostrRestAPIManager,
                 nostrCachedCommunicationManager as NostrRestAPIManager, 
@@ -3012,17 +3118,19 @@ class SocialDataManager {
             }
         }
 
-        const bookmarkedChannelEvents = await this._socialEventManagerRead.fetchChannels(bookmarkedChannelEventIds);
-        for (let event of bookmarkedChannelEvents) {
-            if (event.kind === 40) {
-                const channelInfo = this.extractChannelInfo(event);
-                if (!channelInfo) continue;
-                channels.push(channelInfo);
-            }
-            else if (event.kind === 41) {
-                const channelInfo = this.extractChannelInfo(event);
-                if (!channelInfo) continue;
-                channelMetadataMap[channelInfo.id] = channelInfo;
+        if (bookmarkedChannelEventIds.length > 0) {
+            const bookmarkedChannelEvents = await this._socialEventManagerRead.fetchEventsByIds(bookmarkedChannelEventIds);
+            for (let event of bookmarkedChannelEvents) {
+                if (event.kind === 40) {
+                    const channelInfo = this.extractChannelInfo(event);
+                    if (!channelInfo) continue;
+                    channels.push(channelInfo);
+                }
+                else if (event.kind === 41) {
+                    const channelInfo = this.extractChannelInfo(event);
+                    if (!channelInfo) continue;
+                    channelMetadataMap[channelInfo.id] = channelInfo;
+                }
             }
         }
 
@@ -3072,7 +3180,7 @@ class SocialDataManager {
     }
 
     async retrieveChannelEvents(creatorId: string, channelId: string) {
-        const channelEvents = await this._socialEventManagerRead.fetchChannelInfoMessages(creatorId, channelId);
+        const channelEvents = await this._socialEventManagerRead.fetchChannelInfoMessages(channelId);
         const messageEvents = channelEvents.filter(event => event.kind === 42);
         const channelCreationEvent = channelEvents.find(event => event.kind === 40);
         if (!channelCreationEvent) throw new Error('No info event found');
@@ -3746,10 +3854,12 @@ class SocialDataManager {
 
 export {
     NostrEventManagerRead,
+    NostrEventManagerReadV2,
     NostrEventManagerWrite,
     ISocialEventManagerRead,
     ISocialEventManagerWrite,
     SocialUtilsManager,
     SocialDataManager,
+    NostrRestAPIManager,
     NostrWebSocketManager
 }
