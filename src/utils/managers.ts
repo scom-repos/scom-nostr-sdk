@@ -112,7 +112,7 @@ interface ISocialEventManagerRead {
     fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent | null>;
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
     fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    fetchLikes(eventId: string): Promise<INostrEvent[]>;
+    // fetchLikes(eventId: string): Promise<INostrEvent[]>;
 }
 
 class NostrRestAPIManager implements INostrRestAPIManager {
@@ -1458,14 +1458,14 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         return fetchEventsResponse.events;
     }
 
-    async fetchLikes(eventId: string) {
-        let req: any = {
-            kinds: [7],
-            "#e": [eventId]
-        };
-        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
-        return fetchEventsResponse.events;
-    }
+    // async fetchLikes(eventId: string) {
+    //     let req: any = {
+    //         kinds: [7],
+    //         "#e": [eventId]
+    //     };
+    //     const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
+    //     return fetchEventsResponse.events;
+    // }
 }
 
 class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEventManagerRead {
@@ -1480,7 +1480,11 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
     async WIP_fetchThreadCacheEvents(id: string, pubKey?: string) {
     }
 
-    async WIP_fetchTrendingCacheEvents(pubKey?: string) {
+    async fetchTrendingCacheEvents(pubKey?: string) {
+        let msg: any = {
+        };
+        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-trending-posts', msg);
+        return fetchEventsResponse.events;
     }
     
     async fetchProfileFeedCacheEvents(pubKey: string, since: number = 0, until: number = 0) {
@@ -1618,7 +1622,20 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
         return fetchEventsResponse.events;        
     }
 
-    async WIP_fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]) {      
+    async WIP_fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]) {  
+        let msg = {
+            identifiers: []
+        }
+        for (let community of communities) {
+            const decodedCreatorId = community.creatorId.startsWith('npub1') ? Nip19.decode(community.creatorId).data : community.creatorId;
+            let request: any = {
+                pubkey: decodedCreatorId,
+                names: [community.communityId]
+            };
+            msg.identifiers.push(request);
+        }
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities-general-members', msg);
+        return fetchEventsResponse.events;    
     }
 
     async WIP_fetchAllUserRelatedChannels(pubKey: string) {
@@ -1710,16 +1727,43 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
         return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
     } 
 
-    async WIP_fetchCalendarEventPosts(calendarEventUri: string) {    
+    async fetchCalendarEventPosts(calendarEventUri: string) {    
+        let msg: any = {
+            eventUri: calendarEventUri,
+            limit: 50
+        };
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-posts', msg);
+        return fetchEventsResponse.events;
     }
 
-    async WIP_fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string) {
+    async fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string) {
+        let msg: any = {
+            eventUri: calendarEventUri
+        };
+        if (pubkey) {
+            const decodedPubKey = pubkey.startsWith('npub1') ? Nip19.decode(pubkey).data : pubkey;
+            msg.pubkey = decodedPubKey;
+        }
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-rsvps', msg);
+        return fetchEventsResponse.events;
     }
 
-    async WIP_fetchLongFormContentEvents(pubKey?: string, since: number = 0, until: number = 0) {
-    }
-
-    async WIP_fetchLikes(eventId: string) {
+    async fetchLongFormContentEvents(pubKey?: string, since: number = 0, until: number = 0) {
+        let msg: any = {
+            limit: 20
+        };
+        if (pubKey) {
+            const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+            msg.pubKey = decodedPubKey;
+        }
+        if (until === 0) {
+            msg.since = since;
+        }
+        else {
+            msg.until = until;
+        }
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-long-form-content', msg);
+        return fetchEventsResponse.events;
     }
 }
 

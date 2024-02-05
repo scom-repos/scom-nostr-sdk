@@ -1548,7 +1548,6 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent | null>;
         fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
         fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
-        fetchLikes(eventId: string): Promise<INostrEvent[]>;
     }
     class NostrRestAPIManager implements INostrRestAPIManager {
         protected _url: string;
@@ -1638,7 +1637,6 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchCalendarEventPosts(calendarEventUri: string): Promise<INostrEvent[]>;
         fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
         fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
-        fetchLikes(eventId: string): Promise<INostrEvent[]>;
     }
     class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEventManagerRead {
         protected _nostrCommunicationManager: INostrRestAPIManager;
@@ -1646,7 +1644,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         protected _apiBaseUrl: string;
         constructor(manager: INostrRestAPIManager, cachedManager: INostrRestAPIManager, apiBaseUrl: string);
         WIP_fetchThreadCacheEvents(id: string, pubKey?: string): Promise<void>;
-        WIP_fetchTrendingCacheEvents(pubKey?: string): Promise<void>;
+        fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
         fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
         fetchProfileRepliesCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
         WIP_fetchHomeFeedCacheEvents(pubKey?: string, since?: number, until?: number): Promise<void>;
@@ -1659,7 +1657,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         WIP_fetchUserBookmarkedCommunities(pubKey: string): Promise<void>;
         fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
         fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
-        WIP_fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<void>;
+        WIP_fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
         WIP_fetchAllUserRelatedChannels(pubKey: string): Promise<void>;
         WIP_fetchUserBookmarkedChannels(pubKey: string): Promise<void>;
         fetchEventsByIds(ids: string[]): Promise<INostrEvent[]>;
@@ -1672,10 +1670,9 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         WIP_fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<void>;
         fetchCalendarEvents(start: number, end?: number, limit?: number): Promise<INostrEvent[]>;
         fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent>;
-        WIP_fetchCalendarEventPosts(calendarEventUri: string): Promise<void>;
-        WIP_fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<void>;
-        WIP_fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<void>;
-        WIP_fetchLikes(eventId: string): Promise<void>;
+        fetchCalendarEventPosts(calendarEventUri: string): Promise<INostrEvent[]>;
+        fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
+        fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     }
     class SocialUtilsManager {
         static hexStringToUint8Array(hexString: string): Uint8Array;

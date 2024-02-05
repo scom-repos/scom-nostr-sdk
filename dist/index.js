@@ -5377,14 +5377,6 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
             return fetchEventsResponse.events;
         }
-        async fetchLikes(eventId) {
-            let req = {
-                kinds: [7],
-                "#e": [eventId]
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
-            return fetchEventsResponse.events;
-        }
     }
     exports.NostrEventManagerRead = NostrEventManagerRead;
     class NostrEventManagerReadV2 extends NostrEventManagerRead {
@@ -5393,7 +5385,10 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         }
         async WIP_fetchThreadCacheEvents(id, pubKey) {
         }
-        async WIP_fetchTrendingCacheEvents(pubKey) {
+        async fetchTrendingCacheEvents(pubKey) {
+            let msg = {};
+            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-trending-posts', msg);
+            return fetchEventsResponse.events;
         }
         async fetchProfileFeedCacheEvents(pubKey, since = 0, until = 0) {
             const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
@@ -5519,6 +5514,19 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             return fetchEventsResponse.events;
         }
         async WIP_fetchCommunitiesGeneralMembers(communities) {
+            let msg = {
+                identifiers: []
+            };
+            for (let community of communities) {
+                const decodedCreatorId = community.creatorId.startsWith('npub1') ? index_1.Nip19.decode(community.creatorId).data : community.creatorId;
+                let request = {
+                    pubkey: decodedCreatorId,
+                    names: [community.communityId]
+                };
+                msg.identifiers.push(request);
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities-general-members', msg);
+            return fetchEventsResponse.events;
         }
         async WIP_fetchAllUserRelatedChannels(pubKey) {
         }
@@ -5597,13 +5605,41 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-events', msg);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
         }
-        async WIP_fetchCalendarEventPosts(calendarEventUri) {
+        async fetchCalendarEventPosts(calendarEventUri) {
+            let msg = {
+                eventUri: calendarEventUri,
+                limit: 50
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-posts', msg);
+            return fetchEventsResponse.events;
         }
-        async WIP_fetchCalendarEventRSVPs(calendarEventUri, pubkey) {
+        async fetchCalendarEventRSVPs(calendarEventUri, pubkey) {
+            let msg = {
+                eventUri: calendarEventUri
+            };
+            if (pubkey) {
+                const decodedPubKey = pubkey.startsWith('npub1') ? index_1.Nip19.decode(pubkey).data : pubkey;
+                msg.pubkey = decodedPubKey;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-rsvps', msg);
+            return fetchEventsResponse.events;
         }
-        async WIP_fetchLongFormContentEvents(pubKey, since = 0, until = 0) {
-        }
-        async WIP_fetchLikes(eventId) {
+        async fetchLongFormContentEvents(pubKey, since = 0, until = 0) {
+            let msg = {
+                limit: 20
+            };
+            if (pubKey) {
+                const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
+                msg.pubKey = decodedPubKey;
+            }
+            if (until === 0) {
+                msg.since = since;
+            }
+            else {
+                msg.until = until;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-long-form-content', msg);
+            return fetchEventsResponse.events;
         }
     }
     exports.NostrEventManagerReadV2 = NostrEventManagerReadV2;
