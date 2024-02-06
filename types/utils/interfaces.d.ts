@@ -10,6 +10,7 @@ export interface INostrEvent {
 export interface INostrFetchEventsResponse {
     error?: string;
     events?: INostrEvent[];
+    data?: any;
 }
 export interface INostrSubmitResponse {
     eventId: string;

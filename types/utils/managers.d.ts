@@ -40,7 +40,7 @@ interface ISocialEventManagerRead {
     fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<INostrEvent[]>;
     fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;
-    fetchUserBookmarkedCommunities(pubKey: string): Promise<INostrEvent[]>;
+    fetchUserBookmarkedCommunities(pubKey: string, excludedCommunity?: ICommunityInfo): Promise<ICommunityBasicInfo[]>;
     fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
@@ -129,7 +129,7 @@ declare class NostrEventManagerRead implements ISocialEventManagerRead {
     fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<any>;
     fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;
-    fetchUserBookmarkedCommunities(pubKey: string): Promise<INostrEvent[]>;
+    fetchUserBookmarkedCommunities(pubKey: string, excludedCommunity?: ICommunityInfo): Promise<ICommunityBasicInfo[]>;
     fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
@@ -164,11 +164,11 @@ declare class NostrEventManagerReadV2 extends NostrEventManagerRead implements I
     fetchContactListCacheEvents(pubKey: string, detailIncluded?: boolean): Promise<INostrEvent[]>;
     fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<any>;
-    WIP_fetchAllUserRelatedCommunities(pubKey: string): Promise<void>;
-    WIP_fetchUserBookmarkedCommunities(pubKey: string): Promise<void>;
+    fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;
+    fetchUserBookmarkedCommunities(pubKey: string, excludedCommunity?: ICommunityInfo): Promise<ICommunityBasicInfo[]>;
     fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
-    WIP_fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
+    fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
     WIP_fetchAllUserRelatedChannels(pubKey: string): Promise<void>;
     WIP_fetchUserBookmarkedChannels(pubKey: string): Promise<void>;
     fetchEventsByIds(ids: string[]): Promise<INostrEvent[]>;
@@ -194,6 +194,8 @@ declare class SocialUtilsManager {
     private static pad;
     static getGMTOffset(timezone: string): string;
     static exponentialBackoffRetry<T>(fn: () => Promise<T>, retries: number, delay: number, maxDelay: number, factor: number): Promise<T>;
+    static extractBookmarkedCommunities(event: INostrEvent, excludedCommunity?: ICommunityInfo): ICommunityBasicInfo[];
+    static extractBookmarkedChannels(event: INostrEvent): string[];
 }
 declare class SocialDataManager {
     private _defaultRestAPIRelay;
@@ -295,8 +297,6 @@ declare class SocialDataManager {
     fetchCommunitiesMembers(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
     fetchCommunities(): Promise<ICommunity[]>;
     fetchMyCommunities(pubKey: string): Promise<ICommunityInfo[]>;
-    private extractBookmarkedCommunities;
-    private extractBookmarkedChannels;
     joinCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;
     leaveCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;
     private encryptGroupMessage;

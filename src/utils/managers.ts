@@ -89,7 +89,7 @@ interface ISocialEventManagerRead {
     fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<INostrEvent[]>;
     fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;
-    fetchUserBookmarkedCommunities(pubKey: string): Promise<INostrEvent[]>;
+    fetchUserBookmarkedCommunities(pubKey: string, excludedCommunity?: ICommunityInfo): Promise<ICommunityBasicInfo[]>;
     fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
@@ -1080,7 +1080,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
     async fetchAllUserRelatedCommunities(pubKey: string) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
         let requestForCreatedCommunities: any = {
-            kinds: [0, 3, 34550],
+            kinds: [34550],
             authors: [decodedPubKey]
         };
         let requestForFollowedCommunities: any = {
@@ -1097,10 +1097,34 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
             requestForFollowedCommunities,
             requestForModeratedCommunities
         );
-        return fetchEventsResponse.events;
+        let communitiesEvents: INostrEvent[] = [];
+        const pubkeyToCommunityIdsMap: Record<string, string[]> = {};
+        for (let event of fetchEventsResponse.events) {
+            if (event.kind === 34550) {
+                communitiesEvents.push(event);
+            }
+            else if (event.kind === 30001) {
+                const bookmarkedCommunities = SocialUtilsManager.extractBookmarkedCommunities(event);
+                for (let community of bookmarkedCommunities) {
+                    const pubkey = community.creatorId;
+                    const communityId = community.communityId;
+                    if (!pubkeyToCommunityIdsMap[pubkey]) {
+                        pubkeyToCommunityIdsMap[pubkey] = [];
+                    }
+                    pubkeyToCommunityIdsMap[pubkey].push(communityId);
+                }
+            }
+        }
+        if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+            const bookmarkedCommunitiesEvents = await this.fetchCommunities(pubkeyToCommunityIdsMap);
+            for (let event of bookmarkedCommunitiesEvents) {
+                communitiesEvents.push(event);
+            }
+        }
+        return communitiesEvents;
     }
 
-    async fetchUserBookmarkedCommunities(pubKey: string) {
+    async fetchUserBookmarkedCommunities(pubKey: string, excludedCommunity?: ICommunityInfo) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
         let request: any = {
             kinds: [30001],
@@ -1108,7 +1132,9 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
             authors: [decodedPubKey]
         };
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
-        return fetchEventsResponse.events;
+        const bookmarkedCommunitiesEvent = fetchEventsResponse.events.find(event => event.kind === 30001);
+        const communities: ICommunityBasicInfo[] = SocialUtilsManager.extractBookmarkedCommunities(bookmarkedCommunitiesEvent, excludedCommunity);
+        return communities;
     }
 
     async fetchCommunity(creatorId: string, communityId: string) {
@@ -1587,10 +1613,28 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
         return events;
     }
 
-    async WIP_fetchAllUserRelatedCommunities(pubKey: string) {
+    async fetchAllUserRelatedCommunities(pubKey: string) {
+        let msg: any = {
+            pubKey
+        };
+        let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-communities', msg);
+        return response.events;
     }
 
-    async WIP_fetchUserBookmarkedCommunities(pubKey: string) {
+    async fetchUserBookmarkedCommunities(pubKey: string, excludedCommunity?: ICommunityInfo) {
+        let msg: any = {
+            pubKey
+        };
+        let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-bookmarked-communities', msg);
+        let communities: ICommunityBasicInfo[] = [];
+        for (let community of response.data as ICommunityBasicInfo[]) {
+            if (excludedCommunity) {
+                const decodedPubkey = Nip19.decode(excludedCommunity.creatorId).data as string;
+                if (community.communityId === excludedCommunity.communityId && community.creatorId === decodedPubkey) continue;
+            }
+            communities.push(community);
+        }
+        return communities;
     }
 
     async fetchCommunity(creatorId: string, communityId: string) {
@@ -1622,7 +1666,7 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
         return fetchEventsResponse.events;        
     }
 
-    async WIP_fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]) {  
+    async fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]) {  
         let msg = {
             identifiers: []
         }
@@ -1891,6 +1935,29 @@ class SocialUtilsManager {
     
         // If all retries have been exhausted, throw an error
         throw new Error(`Failed after ${retries} retries`);
+    }
+
+    static extractBookmarkedCommunities(event: INostrEvent, excludedCommunity?: ICommunityInfo) {
+        const communities: ICommunityBasicInfo[] = [];
+        const communityUriArr = event?.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
+        for (let communityUri of communityUriArr) {
+            const pubkey = communityUri.split(':')[1];
+            const communityId = communityUri.split(':')[2];
+            if (excludedCommunity) {
+                const decodedPubkey = Nip19.decode(excludedCommunity.creatorId).data as string;
+                if (communityId === excludedCommunity.communityId && pubkey === decodedPubkey) continue;
+            }
+            communities.push({
+                communityId,
+                creatorId: pubkey
+            });
+        }
+        return communities;
+    }
+
+    static extractBookmarkedChannels(event: INostrEvent) {
+        const channelEventIds = event?.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
+        return channelEventIds;
     }
 }
 
@@ -2755,14 +2822,14 @@ class SocialDataManager {
         const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
         const contactListEvents = await this._socialEventManagerRead.fetchContactListCacheEvents(selfPubkey, false);
         let content = '';
-        let contactPubKeys: string[] = [];
-        const contactListEvent = contactListEvents.find(event => event.kind === 3);
+        let contactPubKeys: Set<string> = new Set();
+        let contactListEvent = contactListEvents.find(event => event.kind === 3);
         if (contactListEvent) {
             content = contactListEvent.content;
-            contactPubKeys = contactListEvent.tags.filter(tag => tag[0] === 'p')?.[1] || [];
+            contactPubKeys = new Set(contactListEvent.tags.filter(tag => tag[0] === 'p')?.map(tag => tag[1]) || []);
         }
-        contactPubKeys.push(decodedUserPubKey);
-        await this._socialEventManagerWrite.updateContactList(content, contactPubKeys, this._privateKey);
+        contactPubKeys.add(decodedUserPubKey);
+        await this._socialEventManagerWrite.updateContactList(content, Array.from(contactPubKeys), this._privateKey);
     }
 
     async unfollowUser(userPubKey: string) {
@@ -2770,17 +2837,17 @@ class SocialDataManager {
         const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
         const contactListEvents = await this._socialEventManagerRead.fetchContactListCacheEvents(selfPubkey, false);
         let content = '';
-        let contactPubKeys: string[] = [];
+        let contactPubKeys: Set<string> = new Set();
         const contactListEvent = contactListEvents.find(event => event.kind === 3);
         if (contactListEvent) {
             content = contactListEvent.content;
             for (let tag of contactListEvent.tags) {
                 if (tag[0] === 'p' && tag[1] !== decodedUserPubKey) {
-                    contactPubKeys.push(tag[1]);
+                    contactPubKeys.add(tag[1]);
                 }
             }
         }
-        await this._socialEventManagerWrite.updateContactList(content, contactPubKeys, this._privateKey);
+        await this._socialEventManagerWrite.updateContactList(content, Array.from(contactPubKeys), this._privateKey);
     }
 
     getCommunityUri(creatorId: string, communityId: string) {
@@ -2985,82 +3052,36 @@ class SocialDataManager {
 
     async fetchMyCommunities(pubKey: string) {
         let communities: ICommunityInfo[] = [];
-        const pubkeyToCommunityIdsMap: Record<string, string[]> = {};
         const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunities(pubKey);
         for (let event of events) {
             if (event.kind === 34550) {
                 const communityInfo = this.extractCommunityInfo(event);
                 communities.push(communityInfo);
             }
-            else if (event.kind === 30001) {
-                const bookmarkedCommunities = this.extractBookmarkedCommunities(event);
-                for (let community of bookmarkedCommunities) {
-                    const pubkey = community.creatorId;
-                    const communityId = community.communityId;
-                    if (!pubkeyToCommunityIdsMap[pubkey]) {
-                        pubkeyToCommunityIdsMap[pubkey] = [];
-                    }
-                    pubkeyToCommunityIdsMap[pubkey].push(communityId);
-                }
-            }
-        }
-        if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
-            const bookmarkedCommunitiesEvents = await this._socialEventManagerRead.fetchCommunities(pubkeyToCommunityIdsMap);
-            for (let event of bookmarkedCommunitiesEvents) {
-                const communityInfo = this.extractCommunityInfo(event);
-                communities.push(communityInfo);
-            }
         }
         return communities;
-    }
-
-    private extractBookmarkedCommunities(event: INostrEvent, excludedCommunity?: ICommunityInfo) {
-        const communities: ICommunityBasicInfo[] = [];
-        const communityUriArr = event?.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
-        for (let communityUri of communityUriArr) {
-            const pubkey = communityUri.split(':')[1];
-            const communityId = communityUri.split(':')[2];
-            if (excludedCommunity) {
-                const decodedPubkey = Nip19.decode(excludedCommunity.creatorId).data as string;
-                if (communityId === excludedCommunity.communityId && pubkey === decodedPubkey) continue;
-            }
-            communities.push({
-                communityId,
-                creatorId: pubkey
-            });
-        }
-        return communities;
-    }
-
-    private extractBookmarkedChannels(event: INostrEvent) {
-        const channelEventIds = event?.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
-        return channelEventIds;
     }
 
     async joinCommunity(community: ICommunityInfo, pubKey: string) {
-        const bookmarkedCommunitiesEvents = await this._socialEventManagerRead.fetchUserBookmarkedCommunities(pubKey);
-        const bookmarkedCommunitiesEvent = bookmarkedCommunitiesEvents.find(event => event.kind === 30001);
-        const communities: ICommunityBasicInfo[] = this.extractBookmarkedCommunities(bookmarkedCommunitiesEvent);
+        const communities = await this._socialEventManagerRead.fetchUserBookmarkedCommunities(pubKey);
         communities.push(community);
         await this._socialEventManagerWrite.updateUserBookmarkedCommunities(communities, this._privateKey);
         if (community.scpData?.channelEventId) {
             const bookmarkedChannelsEvents = await this._socialEventManagerRead.fetchUserBookmarkedChannels(pubKey);
             const bookmarkedChannelsEvent = bookmarkedChannelsEvents.find(event => event.kind === 30001);
-            const channelEventIds = this.extractBookmarkedChannels(bookmarkedChannelsEvent);
+            const channelEventIds = SocialUtilsManager.extractBookmarkedChannels(bookmarkedChannelsEvent);
             channelEventIds.push(community.scpData.channelEventId);
             await this._socialEventManagerWrite.updateUserBookmarkedChannels(channelEventIds, this._privateKey);
         }
     }
     
     async leaveCommunity(community: ICommunityInfo, pubKey: string) {
-        const events = await this._socialEventManagerRead.fetchUserBookmarkedCommunities(pubKey);
-        const bookmarkedEvent = events.find(event => event.kind === 30001);
-        const communities: ICommunityBasicInfo[] = this.extractBookmarkedCommunities(bookmarkedEvent, community);
+        const communities = await this._socialEventManagerRead.fetchUserBookmarkedCommunities(pubKey, community);
         await this._socialEventManagerWrite.updateUserBookmarkedCommunities(communities, this._privateKey);
         if (community.scpData?.channelEventId) {
             const bookmarkedChannelsEvents = await this._socialEventManagerRead.fetchUserBookmarkedChannels(pubKey);
             const bookmarkedChannelsEvent = bookmarkedChannelsEvents.find(event => event.kind === 30001);
-            const channelEventIds = this.extractBookmarkedChannels(bookmarkedChannelsEvent);
+            const channelEventIds = SocialUtilsManager.extractBookmarkedChannels(bookmarkedChannelsEvent);
             const index = channelEventIds.indexOf(community.scpData.channelEventId);
             if (index > -1) {
                 channelEventIds.splice(index, 1);
@@ -3152,7 +3173,7 @@ class SocialDataManager {
                 channelMetadataMap[channelInfo.id] = channelInfo;
             }
             else if (event.kind === 30001) {
-                bookmarkedChannelEventIds = this.extractBookmarkedChannels(event);
+                bookmarkedChannelEventIds = SocialUtilsManager.extractBookmarkedChannels(event);
             }
             else if (event.kind === 34550) {
                 const communityInfo = this.extractCommunityInfo(event);

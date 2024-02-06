@@ -1108,6 +1108,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     export interface INostrFetchEventsResponse {
         error?: string;
         events?: INostrEvent[];
+        data?: any;
     }
     export interface INostrSubmitResponse {
         eventId: string;
@@ -1529,7 +1530,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
         fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<INostrEvent[]>;
         fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;
-        fetchUserBookmarkedCommunities(pubKey: string): Promise<INostrEvent[]>;
+        fetchUserBookmarkedCommunities(pubKey: string, excludedCommunity?: ICommunityInfo): Promise<ICommunityBasicInfo[]>;
         fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
         fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
         fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
@@ -1618,7 +1619,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
         fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<any>;
         fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;
-        fetchUserBookmarkedCommunities(pubKey: string): Promise<INostrEvent[]>;
+        fetchUserBookmarkedCommunities(pubKey: string, excludedCommunity?: ICommunityInfo): Promise<ICommunityBasicInfo[]>;
         fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
         fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
         fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
@@ -1653,11 +1654,11 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchContactListCacheEvents(pubKey: string, detailIncluded?: boolean): Promise<INostrEvent[]>;
         fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
         fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<any>;
-        WIP_fetchAllUserRelatedCommunities(pubKey: string): Promise<void>;
-        WIP_fetchUserBookmarkedCommunities(pubKey: string): Promise<void>;
+        fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;
+        fetchUserBookmarkedCommunities(pubKey: string, excludedCommunity?: ICommunityInfo): Promise<ICommunityBasicInfo[]>;
         fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
         fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
-        WIP_fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
+        fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
         WIP_fetchAllUserRelatedChannels(pubKey: string): Promise<void>;
         WIP_fetchUserBookmarkedChannels(pubKey: string): Promise<void>;
         fetchEventsByIds(ids: string[]): Promise<INostrEvent[]>;
@@ -1687,6 +1688,8 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         delay: number, // Initial delay duration in milliseconds
         maxDelay: number, // Maximum delay duration in milliseconds
         factor: number): Promise<T>;
+        static extractBookmarkedCommunities(event: INostrEvent, excludedCommunity?: ICommunityInfo): ICommunityBasicInfo[];
+        static extractBookmarkedChannels(event: INostrEvent): string[];
     }
     class SocialDataManager {
         private _defaultRestAPIRelay;
@@ -1788,8 +1791,6 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchCommunitiesMembers(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
         fetchCommunities(): Promise<ICommunity[]>;
         fetchMyCommunities(pubKey: string): Promise<ICommunityInfo[]>;
-        private extractBookmarkedCommunities;
-        private extractBookmarkedChannels;
         joinCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;
         leaveCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;
         private encryptGroupMessage;
