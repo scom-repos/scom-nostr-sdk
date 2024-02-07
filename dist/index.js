@@ -5196,7 +5196,74 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 "#p": [decodedPubKey]
             };
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(requestForCreatedChannels, requestForJoinedChannels, requestForModeratedCommunities);
-            return fetchEventsResponse.events;
+            let channels = [];
+            let bookmarkedChannelEventIds = [];
+            const channelMetadataMap = {};
+            let channelIdToCommunityMap = {};
+            for (let event of fetchEventsResponse.events) {
+                if (event.kind === 40) {
+                    const channelInfo = SocialUtilsManager.extractChannelInfo(event);
+                    if (!channelInfo)
+                        continue;
+                    channels.push(channelInfo);
+                }
+                else if (event.kind === 41) {
+                    const channelInfo = SocialUtilsManager.extractChannelInfo(event);
+                    if (!channelInfo)
+                        continue;
+                    channelMetadataMap[channelInfo.id] = channelInfo;
+                }
+                else if (event.kind === 30001) {
+                    bookmarkedChannelEventIds = SocialUtilsManager.extractBookmarkedChannels(event);
+                }
+                else if (event.kind === 34550) {
+                    const communityInfo = SocialUtilsManager.extractCommunityInfo(event);
+                    const channelId = communityInfo.scpData?.channelEventId;
+                    if (!channelId)
+                        continue;
+                    channelIdToCommunityMap[channelId] = communityInfo;
+                }
+            }
+            if (bookmarkedChannelEventIds.length > 0) {
+                const bookmarkedChannelEvents = await this.fetchEventsByIds(bookmarkedChannelEventIds);
+                for (let event of bookmarkedChannelEvents) {
+                    if (event.kind === 40) {
+                        const channelInfo = SocialUtilsManager.extractChannelInfo(event);
+                        if (!channelInfo)
+                            continue;
+                        channels.push(channelInfo);
+                    }
+                    else if (event.kind === 41) {
+                        const channelInfo = SocialUtilsManager.extractChannelInfo(event);
+                        if (!channelInfo)
+                            continue;
+                        channelMetadataMap[channelInfo.id] = channelInfo;
+                    }
+                }
+            }
+            const pubkeyToCommunityIdsMap = {};
+            for (let channel of channels) {
+                const scpData = channel.scpData;
+                if (!scpData?.communityId)
+                    continue;
+                pubkeyToCommunityIdsMap[channel.eventData.pubkey] = pubkeyToCommunityIdsMap[channel.eventData.pubkey] || [];
+                if (!pubkeyToCommunityIdsMap[channel.eventData.pubkey].includes(scpData.communityId)) {
+                    pubkeyToCommunityIdsMap[channel.eventData.pubkey].push(scpData.communityId);
+                }
+            }
+            const communityEvents = await this.fetchCommunities(pubkeyToCommunityIdsMap);
+            for (let event of communityEvents) {
+                const communityInfo = SocialUtilsManager.extractCommunityInfo(event);
+                const channelId = communityInfo.scpData?.channelEventId;
+                if (!channelId)
+                    continue;
+                channelIdToCommunityMap[channelId] = communityInfo;
+            }
+            return {
+                channels,
+                channelMetadataMap,
+                channelIdToCommunityMap
+            };
         }
         async fetchUserBookmarkedChannels(pubKey) {
             const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
@@ -5830,6 +5897,46 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             // If all retries have been exhausted, throw an error
             throw new Error(`Failed after ${retries} retries`);
         }
+        static extractCommunityInfo(event) {
+            const communityId = event.tags.find(tag => tag[0] === 'd')?.[1];
+            const description = event.tags.find(tag => tag[0] === 'description')?.[1];
+            const rules = event.tags.find(tag => tag[0] === 'rules')?.[1];
+            const image = event.tags.find(tag => tag[0] === 'image')?.[1];
+            const creatorId = index_1.Nip19.npubEncode(event.pubkey);
+            const moderatorIds = event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'moderator').map(tag => index_1.Nip19.npubEncode(tag[1]));
+            const scpTag = event.tags.find(tag => tag[0] === 'scp');
+            let scpData;
+            let gatekeeperNpub;
+            let membershipType = interfaces_1.MembershipType.Open;
+            if (scpTag && scpTag[1] === '1') {
+                const scpDataStr = SocialUtilsManager.base64ToUtf8(scpTag[2]);
+                if (!scpDataStr.startsWith('$scp:'))
+                    return null;
+                scpData = JSON.parse(scpDataStr.substring(5));
+                if (scpData.gatekeeperPublicKey) {
+                    gatekeeperNpub = index_1.Nip19.npubEncode(scpData.gatekeeperPublicKey);
+                    membershipType = interfaces_1.MembershipType.NFTExclusive;
+                }
+                else {
+                    membershipType = interfaces_1.MembershipType.InviteOnly;
+                }
+            }
+            const communityUri = `34550:${event.pubkey}:${communityId}`;
+            let communityInfo = {
+                creatorId,
+                moderatorIds,
+                communityUri,
+                communityId,
+                description,
+                rules,
+                bannerImgUrl: image,
+                scpData,
+                eventData: event,
+                gatekeeperNpub,
+                membershipType
+            };
+            return communityInfo;
+        }
         static extractBookmarkedCommunities(event, excludedCommunity) {
             const communities = [];
             const communityUriArr = event?.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
@@ -5851,6 +5958,48 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         static extractBookmarkedChannels(event) {
             const channelEventIds = event?.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
             return channelEventIds;
+        }
+        static extractScpData(event, standardId) {
+            const scpTag = event.tags.find(tag => tag[0] === 'scp');
+            let scpData;
+            if (scpTag && scpTag[1] === standardId) {
+                const scpDataStr = SocialUtilsManager.base64ToUtf8(scpTag[2]);
+                if (!scpDataStr.startsWith('$scp:'))
+                    return null;
+                scpData = JSON.parse(scpDataStr.substring(5));
+            }
+            return scpData;
+        }
+        static parseContent(content) {
+            try {
+                return JSON.parse(content);
+            }
+            catch (err) {
+                console.log('Error parsing content', content);
+            }
+            ;
+        }
+        static extractChannelInfo(event) {
+            const content = this.parseContent(event.content);
+            let eventId;
+            if (event.kind === 40) {
+                eventId = event.id;
+            }
+            else if (event.kind === 41) {
+                eventId = event.tags.find(tag => tag[0] === 'e')?.[1];
+            }
+            if (!eventId)
+                return null;
+            let scpData = this.extractScpData(event, interfaces_1.ScpStandardId.Channel);
+            let channelInfo = {
+                id: eventId,
+                name: content.name,
+                about: content.about,
+                picture: content.picture,
+                scpData,
+                eventData: event,
+            };
+            return channelInfo;
         }
     }
     exports.SocialUtilsManager = SocialUtilsManager;
@@ -5910,53 +6059,13 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         publishToMqttTopic(topic, message) {
             this.mqttManager.publish(topic, message);
         }
-        extractCommunityInfo(event) {
-            const communityId = event.tags.find(tag => tag[0] === 'd')?.[1];
-            const description = event.tags.find(tag => tag[0] === 'description')?.[1];
-            const rules = event.tags.find(tag => tag[0] === 'rules')?.[1];
-            const image = event.tags.find(tag => tag[0] === 'image')?.[1];
-            const creatorId = index_1.Nip19.npubEncode(event.pubkey);
-            const moderatorIds = event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'moderator').map(tag => index_1.Nip19.npubEncode(tag[1]));
-            const scpTag = event.tags.find(tag => tag[0] === 'scp');
-            let scpData;
-            let gatekeeperNpub;
-            let membershipType = interfaces_1.MembershipType.Open;
-            if (scpTag && scpTag[1] === '1') {
-                const scpDataStr = SocialUtilsManager.base64ToUtf8(scpTag[2]);
-                if (!scpDataStr.startsWith('$scp:'))
-                    return null;
-                scpData = JSON.parse(scpDataStr.substring(5));
-                if (scpData.gatekeeperPublicKey) {
-                    gatekeeperNpub = index_1.Nip19.npubEncode(scpData.gatekeeperPublicKey);
-                    membershipType = interfaces_1.MembershipType.NFTExclusive;
-                }
-                else {
-                    membershipType = interfaces_1.MembershipType.InviteOnly;
-                }
-            }
-            const communityUri = `34550:${event.pubkey}:${communityId}`;
-            let communityInfo = {
-                creatorId,
-                moderatorIds,
-                communityUri,
-                communityId,
-                description,
-                rules,
-                bannerImgUrl: image,
-                scpData,
-                eventData: event,
-                gatekeeperNpub,
-                membershipType
-            };
-            return communityInfo;
-        }
         async retrieveCommunityEvents(creatorId, communityId) {
             const feedEvents = await this._socialEventManagerRead.fetchCommunityFeed(creatorId, communityId);
             const notes = feedEvents.filter(event => event.kind === 1);
             const communityEvent = feedEvents.find(event => event.kind === 34550);
             if (!communityEvent)
                 throw new Error('No info event found');
-            const communityInfo = this.extractCommunityInfo(communityEvent);
+            const communityInfo = SocialUtilsManager.extractCommunityInfo(communityEvent);
             if (!communityInfo)
                 throw new Error('No info event found');
             //FIXME: not the best way to do this
@@ -5987,20 +6096,9 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             }
             return communityUri;
         }
-        extractScpData(event, standardId) {
-            const scpTag = event.tags.find(tag => tag[0] === 'scp');
-            let scpData;
-            if (scpTag && scpTag[1] === standardId) {
-                const scpDataStr = SocialUtilsManager.base64ToUtf8(scpTag[2]);
-                if (!scpDataStr.startsWith('$scp:'))
-                    return null;
-                scpData = JSON.parse(scpDataStr.substring(5));
-            }
-            return scpData;
-        }
         async retrievePostPrivateKey(event, communityUri, communityPrivateKey) {
             let key = null;
-            let postScpData = this.extractScpData(event, interfaces_1.ScpStandardId.CommunityPost);
+            let postScpData = SocialUtilsManager.extractScpData(event, interfaces_1.ScpStandardId.CommunityPost);
             try {
                 const postPrivateKey = await SocialUtilsManager.decryptMessage(communityPrivateKey, event.pubkey, postScpData.encryptedKey);
                 const messageContentStr = await SocialUtilsManager.decryptMessage(postPrivateKey, event.pubkey, event.content);
@@ -6016,7 +6114,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         }
         async retrieveChannelMessagePrivateKey(event, channelId, communityPrivateKey) {
             let key = null;
-            let messageScpData = this.extractScpData(event, interfaces_1.ScpStandardId.ChannelMessage);
+            let messageScpData = SocialUtilsManager.extractScpData(event, interfaces_1.ScpStandardId.ChannelMessage);
             try {
                 const messagePrivateKey = await SocialUtilsManager.decryptMessage(communityPrivateKey, event.pubkey, messageScpData.encryptedKey);
                 const messageContentStr = await SocialUtilsManager.decryptMessage(messagePrivateKey, event.pubkey, event.content);
@@ -6216,7 +6314,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                         if (event.kind === 0) {
                             metadataArr.push({
                                 ...event,
-                                content: this.parseContent(event.content)
+                                content: SocialUtilsManager.parseContent(event.content)
                             });
                         }
                     }
@@ -6273,7 +6371,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 if (event.kind === 0) {
                     metadataByPubKeyMap[event.pubkey] = {
                         ...event,
-                        content: this.parseContent(event.content)
+                        content: SocialUtilsManager.parseContent(event.content)
                     };
                 }
                 else if (event.kind === 1) {
@@ -6370,16 +6468,6 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 earliest
             };
         }
-        parseContent(content) {
-            try {
-                return JSON.parse(content);
-            }
-            catch (err) {
-                console.log('Error parsing content', content);
-            }
-            ;
-        }
-        ;
         createNoteEventMappings(events, parentAuthorsInfo = false) {
             let notes = [];
             let metadataByPubKeyMap = {};
@@ -6391,11 +6479,11 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 if (event.kind === 0) {
                     metadataByPubKeyMap[event.pubkey] = {
                         ...event,
-                        content: this.parseContent(event.content)
+                        content: SocialUtilsManager.parseContent(event.content)
                     };
                 }
                 else if (event.kind === 10000107) {
-                    const noteEvent = this.parseContent(event.content);
+                    const noteEvent = SocialUtilsManager.parseContent(event.content);
                     quotedNotesMap[noteEvent.id] = {
                         eventData: noteEvent
                     };
@@ -6414,7 +6502,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 else if (event.kind === 6) {
                     if (!event.content)
                         continue;
-                    const originalNoteContent = this.parseContent(event.content);
+                    const originalNoteContent = SocialUtilsManager.parseContent(event.content);
                     notes.push({
                         eventData: originalNoteContent
                     });
@@ -6427,7 +6515,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     }
                 }
                 else if (event.kind === 10000100) {
-                    const content = this.parseContent(event.content);
+                    const content = SocialUtilsManager.parseContent(event.content);
                     noteStatsMap[content.event_id] = {
                         upvotes: content.likes,
                         replies: content.replies,
@@ -6436,7 +6524,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 }
                 else if (event.kind === 10000113) {
                     //"{\"since\":1700034697,\"until\":1700044097,\"order_by\":\"created_at\"}"
-                    const timeInfo = this.parseContent(event.content);
+                    const timeInfo = SocialUtilsManager.parseContent(event.content);
                 }
             }
             for (let note of notes) {
@@ -6457,7 +6545,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const communityEvent = communityEvents.find(event => event.kind === 34550);
             if (!communityEvent)
                 return null;
-            let communityInfo = this.extractCommunityInfo(communityEvent);
+            let communityInfo = SocialUtilsManager.extractCommunityInfo(communityEvent);
             //FIXME: not the best way to do this
             if (communityInfo.membershipType === interfaces_1.MembershipType.InviteOnly) {
                 const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(communityInfo.communityUri + ':keys');
@@ -6488,7 +6576,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 }
             }
             let communityInfo = null;
-            let scpData = this.extractScpData(focusedNote.eventData, interfaces_1.ScpStandardId.CommunityPost);
+            let scpData = SocialUtilsManager.extractScpData(focusedNote.eventData, interfaces_1.ScpStandardId.CommunityPost);
             if (scpData) {
                 const communityUri = this.retrieveCommunityUri(focusedNote.eventData, scpData);
                 if (communityUri) {
@@ -6512,7 +6600,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             let pubkeyToCommunityIdsMap = {};
             let communityInfoList = [];
             for (let note of notes) {
-                let scpData = this.extractScpData(note, interfaces_1.ScpStandardId.CommunityPost);
+                let scpData = SocialUtilsManager.extractScpData(note, interfaces_1.ScpStandardId.CommunityPost);
                 if (scpData) {
                     const communityUri = this.retrieveCommunityUri(note, scpData);
                     if (communityUri) {
@@ -6534,7 +6622,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             if (noteCommunityInfoList.length > 0) {
                 const communityEvents = await this._socialEventManagerRead.fetchCommunities(pubkeyToCommunityIdsMap);
                 for (let event of communityEvents) {
-                    let communityInfo = this.extractCommunityInfo(event);
+                    let communityInfo = SocialUtilsManager.extractCommunityInfo(event);
                     communityInfoList.push(communityInfo);
                 }
             }
@@ -6551,11 +6639,11 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 if (event.kind === 0) {
                     metadata = {
                         ...event,
-                        content: this.parseContent(event.content)
+                        content: SocialUtilsManager.parseContent(event.content)
                     };
                 }
                 else if (event.kind === 10000105) {
-                    let content = this.parseContent(event.content);
+                    let content = SocialUtilsManager.parseContent(event.content);
                     stats = {
                         notes: content.note_count,
                         replies: content.reply_count,
@@ -6603,11 +6691,11 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 if (event.kind === 0) {
                     metadataArr.push({
                         ...event,
-                        content: this.parseContent(event.content)
+                        content: SocialUtilsManager.parseContent(event.content)
                     });
                 }
                 else if (event.kind === 10000108) {
-                    followersCountMap = this.parseContent(event.content);
+                    followersCountMap = SocialUtilsManager.parseContent(event.content);
                 }
             }
             const userProfiles = [];
@@ -6625,11 +6713,11 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 if (event.kind === 0) {
                     metadataArr.push({
                         ...event,
-                        content: this.parseContent(event.content)
+                        content: SocialUtilsManager.parseContent(event.content)
                     });
                 }
                 else if (event.kind === 10000108) {
-                    followersCountMap = this.parseContent(event.content);
+                    followersCountMap = SocialUtilsManager.parseContent(event.content);
                 }
             }
             const userProfiles = [];
@@ -6794,8 +6882,9 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 publicKey: channelKeys.groupPublicKey
             };
             const updateChannelResponses = await this._socialEventManagerWrite.updateChannel(channelInfo, this._privateKey);
-            const updateChannelResponse = updateChannelResponses[0];
-            if (updateChannelResponse.eventId) {
+            //FIXME: fix this when the relay is fixed
+            const updateChannelResponse = updateChannelResponses.find(v => v.success && !!v.eventId);
+            if (updateChannelResponse?.eventId) {
                 const channelUri = `40:${updateChannelResponse.eventId}`;
                 await this._socialEventManagerWrite.updateGroupKeys(channelUri + ':keys', 40, JSON.stringify(channelKeys.encryptedGroupKeys), memberIds, this._privateKey);
             }
@@ -6839,7 +6928,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             let communities = [];
             const events = await this._socialEventManagerRead.fetchCommunities();
             for (let event of events) {
-                const communityInfo = this.extractCommunityInfo(event);
+                const communityInfo = SocialUtilsManager.extractCommunityInfo(event);
                 let community = {
                     ...communityInfo,
                     members: []
@@ -6859,7 +6948,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunities(pubKey);
             for (let event of events) {
                 if (event.kind === 34550) {
-                    const communityInfo = this.extractCommunityInfo(event);
+                    const communityInfo = SocialUtilsManager.extractCommunityInfo(event);
                     communities.push(communityInfo);
                 }
             }
@@ -6928,93 +7017,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             }
             await this._socialEventManagerWrite.submitCommunityPost(newCommunityPostInfo, this._privateKey);
         }
-        extractChannelInfo(event) {
-            const content = this.parseContent(event.content);
-            let eventId;
-            if (event.kind === 40) {
-                eventId = event.id;
-            }
-            else if (event.kind === 41) {
-                eventId = event.tags.find(tag => tag[0] === 'e')?.[1];
-            }
-            if (!eventId)
-                return null;
-            let scpData = this.extractScpData(event, interfaces_1.ScpStandardId.Channel);
-            let channelInfo = {
-                id: eventId,
-                name: content.name,
-                about: content.about,
-                picture: content.picture,
-                scpData,
-                eventData: event,
-            };
-            return channelInfo;
-        }
         async fetchAllUserRelatedChannels(pubKey) {
-            let channels = [];
-            let bookmarkedChannelEventIds = [];
-            const channelMetadataMap = {};
-            let channelIdToCommunityMap = {};
-            const events = await this._socialEventManagerRead.fetchAllUserRelatedChannels(pubKey);
-            for (let event of events) {
-                if (event.kind === 40) {
-                    const channelInfo = this.extractChannelInfo(event);
-                    if (!channelInfo)
-                        continue;
-                    channels.push(channelInfo);
-                }
-                else if (event.kind === 41) {
-                    const channelInfo = this.extractChannelInfo(event);
-                    if (!channelInfo)
-                        continue;
-                    channelMetadataMap[channelInfo.id] = channelInfo;
-                }
-                else if (event.kind === 30001) {
-                    bookmarkedChannelEventIds = SocialUtilsManager.extractBookmarkedChannels(event);
-                }
-                else if (event.kind === 34550) {
-                    const communityInfo = this.extractCommunityInfo(event);
-                    const channelId = communityInfo.scpData?.channelEventId;
-                    if (!channelId)
-                        continue;
-                    channelIdToCommunityMap[channelId] = communityInfo;
-                }
-            }
-            if (bookmarkedChannelEventIds.length > 0) {
-                const bookmarkedChannelEvents = await this._socialEventManagerRead.fetchEventsByIds(bookmarkedChannelEventIds);
-                for (let event of bookmarkedChannelEvents) {
-                    if (event.kind === 40) {
-                        const channelInfo = this.extractChannelInfo(event);
-                        if (!channelInfo)
-                            continue;
-                        channels.push(channelInfo);
-                    }
-                    else if (event.kind === 41) {
-                        const channelInfo = this.extractChannelInfo(event);
-                        if (!channelInfo)
-                            continue;
-                        channelMetadataMap[channelInfo.id] = channelInfo;
-                    }
-                }
-            }
-            const pubkeyToCommunityIdsMap = {};
-            for (let channel of channels) {
-                const scpData = channel.scpData;
-                if (!scpData?.communityId)
-                    continue;
-                pubkeyToCommunityIdsMap[channel.eventData.pubkey] = pubkeyToCommunityIdsMap[channel.eventData.pubkey] || [];
-                if (!pubkeyToCommunityIdsMap[channel.eventData.pubkey].includes(scpData.communityId)) {
-                    pubkeyToCommunityIdsMap[channel.eventData.pubkey].push(scpData.communityId);
-                }
-            }
-            const communityEvents = await this._socialEventManagerRead.fetchCommunities(pubkeyToCommunityIdsMap);
-            for (let event of communityEvents) {
-                const communityInfo = this.extractCommunityInfo(event);
-                const channelId = communityInfo.scpData?.channelEventId;
-                if (!channelId)
-                    continue;
-                channelIdToCommunityMap[channelId] = communityInfo;
-            }
+            const { channels, channelMetadataMap, channelIdToCommunityMap } = await this._socialEventManagerRead.fetchAllUserRelatedChannels(pubKey);
             let outputChannels = [];
             for (let channel of channels) {
                 const channelMetadata = channelMetadataMap[channel.id];
@@ -7049,10 +7053,10 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const channelMetadataEvent = channelEvents.find(event => event.kind === 41);
             let channelInfo;
             if (channelMetadataEvent) {
-                channelInfo = this.extractChannelInfo(channelMetadataEvent);
+                channelInfo = SocialUtilsManager.extractChannelInfo(channelMetadataEvent);
             }
             else {
-                channelInfo = this.extractChannelInfo(channelCreationEvent);
+                channelInfo = SocialUtilsManager.extractChannelInfo(channelCreationEvent);
             }
             if (!channelInfo)
                 throw new Error('No info event found');
@@ -7143,7 +7147,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 if (event.kind === 0) {
                     metadataByPubKeyMap[event.pubkey] = {
                         ...event,
-                        content: this.parseContent(event.content)
+                        content: SocialUtilsManager.parseContent(event.content)
                     };
                 }
                 else if (event.kind === 4) {
@@ -7170,7 +7174,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             let metadataByPubKeyMap = {};
             for (let event of events) {
                 if (event.kind === 10000118) {
-                    const content = this.parseContent(event.content);
+                    const content = SocialUtilsManager.parseContent(event.content);
                     Object.keys(content).forEach(pubkey => {
                         pubkeyToMessageInfoMap[pubkey] = content[pubkey];
                     });
@@ -7178,7 +7182,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 if (event.kind === 0) {
                     metadataByPubKeyMap[event.pubkey] = {
                         ...event,
-                        content: this.parseContent(event.content)
+                        content: SocialUtilsManager.parseContent(event.content)
                     };
                 }
             }
@@ -7399,7 +7403,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 if (event.kind === 0) {
                     let metaData = {
                         ...event,
-                        content: this.parseContent(event.content)
+                        content: SocialUtilsManager.parseContent(event.content)
                     };
                     let userProfile = this.constructUserProfile(metaData);
                     if (hostPubkeys.includes(event.pubkey)) {

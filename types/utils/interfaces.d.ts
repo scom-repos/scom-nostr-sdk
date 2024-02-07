@@ -315,3 +315,8 @@ export interface ILongFormContentInfo {
     publishedAt?: number;
     eventData?: INostrEvent;
 }
+export interface IAllUserRelatedChannels {
+    channels: IChannelInfo[];
+    channelMetadataMap: Record<string, IChannelInfo>;
+    channelIdToCommunityMap: Record<string, ICommunityInfo>;
+}
