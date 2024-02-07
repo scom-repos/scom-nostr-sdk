@@ -5608,7 +5608,25 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents('fetch-channel-info-messages', msg);
             return fetchEventsResponse.events;
         }
-        async WIP_fetchMessageContactsCacheEvents(pubKey) {
+        async fetchMessageContactsCacheEvents(pubKey) {
+            const senderToLastReadMap = {};
+            //FIXME: Implement a better way to get last read messages
+            if (localStorage) {
+                const lastReadsStr = localStorage.getItem('lastReads');
+                if (lastReadsStr) {
+                    const lastReads = JSON.parse(lastReadsStr);
+                    for (let sender in lastReads) {
+                        senderToLastReadMap[sender] = lastReads[sender];
+                    }
+                }
+            }
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
+            const msg = {
+                receiver: decodedPubKey,
+                senderToLastReadMap: senderToLastReadMap
+            };
+            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-direct-messages-stats', msg);
+            return fetchEventsResponse.events;
         }
         async fetchDirectMessages(pubKey, sender, since = 0, until = 0) {
             const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
@@ -5627,7 +5645,17 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-direct-messages', msg);
             return fetchEventsResponse.events;
         }
-        async WIP_resetMessageCount(pubKey, sender, privateKey) {
+        async resetMessageCount(pubKey, sender, privateKey) {
+            //FIXME: Implement a better way to set last read messages
+            if (localStorage) {
+                const lastReadsStr = localStorage.getItem('lastReads');
+                let lastReads = {};
+                if (lastReadsStr) {
+                    lastReads = JSON.parse(lastReadsStr);
+                }
+                lastReads[sender] = Math.ceil(Date.now() / 1000);
+                localStorage.setItem('lastReads', JSON.stringify(lastReads));
+            }
         }
         async WIP_fetchGroupKeys(identifier) {
         }

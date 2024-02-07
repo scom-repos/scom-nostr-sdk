@@ -642,8 +642,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         const verifiedEvent = Event.finishEvent(event, privateKey);
         const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
     }
-
-    
+  
     async sendMessage(receiver: string, encryptedMessage: string, privateKey: string) {
         const decodedPubKey = receiver.startsWith('npub1') ? Nip19.decode(receiver).data : receiver;
         let event = {
@@ -1722,7 +1721,25 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
         return fetchEventsResponse.events;         
     }
 
-    async WIP_fetchMessageContactsCacheEvents(pubKey: string) {
+    async fetchMessageContactsCacheEvents(pubKey: string) {
+        const senderToLastReadMap: Record<string, number> = {};
+        //FIXME: Implement a better way to get last read messages
+        if (localStorage) {
+            const lastReadsStr = localStorage.getItem('lastReads');
+            if (lastReadsStr) {
+                const lastReads = JSON.parse(lastReadsStr);
+                for (let sender in lastReads) {
+                    senderToLastReadMap[sender] = lastReads[sender];
+                }
+            }
+        }
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        const msg: any = {
+            receiver: decodedPubKey,
+            senderToLastReadMap: senderToLastReadMap
+        }
+        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-direct-messages-stats', msg);
+        return fetchEventsResponse.events;
     }
 
     async fetchDirectMessages(pubKey: string, sender: string, since: number = 0, until: number = 0) {
@@ -1743,7 +1760,17 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
         return fetchEventsResponse.events;
     }
 
-    async WIP_resetMessageCount(pubKey: string, sender: string, privateKey: string) {
+    async resetMessageCount(pubKey: string, sender: string, privateKey: string) {
+        //FIXME: Implement a better way to set last read messages
+        if (localStorage) {
+            const lastReadsStr = localStorage.getItem('lastReads');
+            let lastReads: Record<string, number> = {};
+            if (lastReadsStr) {
+                lastReads = JSON.parse(lastReadsStr);
+            }
+            lastReads[sender] = Math.ceil(Date.now() / 1000);
+            localStorage.setItem('lastReads', JSON.stringify(lastReads));
+        }
     }
 
     async WIP_fetchGroupKeys(identifier: string) {

@@ -174,9 +174,9 @@ declare class NostrEventManagerReadV2 extends NostrEventManagerRead implements I
     fetchEventsByIds(ids: string[]): Promise<INostrEvent[]>;
     fetchChannelMessages(channelId: string, since?: number, until?: number): Promise<INostrEvent[]>;
     fetchChannelInfoMessages(channelId: string): Promise<INostrEvent[]>;
-    WIP_fetchMessageContactsCacheEvents(pubKey: string): Promise<void>;
+    fetchMessageContactsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    WIP_resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
+    resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
     WIP_fetchGroupKeys(identifier: string): Promise<void>;
     WIP_fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<void>;
     fetchCalendarEvents(start: number, end?: number, limit?: number): Promise<INostrEvent[]>;
