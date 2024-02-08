@@ -103,7 +103,8 @@ export enum ScpStandardId {
 	Community = '1',
 	CommunityPost = '2',
 	Channel = '3',
-	ChannelMessage = '4'
+	ChannelMessage = '4',
+	GroupKeys = '5',
 }
 
 export enum MembershipType {
@@ -112,7 +113,7 @@ export enum MembershipType {
 	InviteOnly = 'InviteOnly'
 }
 
-//SCP-1
+//SCP-1 Kind 34550
 export interface ICommunityScpData {
 	chainId: number;
 	nftAddress: string;
@@ -122,6 +123,24 @@ export interface ICommunityScpData {
 	encryptedKey?: string;
 	gatekeeperPublicKey?: string;
 	channelEventId?: string;
+}
+
+//SCP-2 Kind 1
+export interface ICommunityPostScpData {
+	communityUri: string;
+	encryptedKey?: string;
+}
+
+//SCP-3 Kind 40
+export interface IChannelScpData {
+	communityUri?: string; //For community channels
+	publicKey?: string;
+}
+
+//SCP-4 Kind 42
+export interface IChannelMessageScpData {
+	channelId: string;
+	encryptedKey?: string;
 }
 
 export interface ICommunityBasicInfo {
@@ -157,12 +176,6 @@ export interface INewCommunityInfo {
 	memberIds?: string[];
 }
 
-//SCP-3
-export interface IChannelScpData {
-	communityId?: string; //For community channels
-	publicKey?: string;
-}
-
 export interface IChannelInfo {
 	id?: string;
 	name: string;
@@ -171,12 +184,6 @@ export interface IChannelInfo {
 	scpData?: IChannelScpData;
 	eventData?: INostrEvent;
 	communityInfo?: ICommunityInfo;
-}
-
-//SCP-4
-export interface IChannelMessageScpData {
-	channelId: string;
-	encryptedKey?: string;
 }
 
 export interface INewChannelMessageInfo {
@@ -198,12 +205,6 @@ export interface IRetrieveChannelMessageKeysOptions {
 export interface IConversationPath {
 	noteIds: string[];
 	authorIds: string[];
-}
-
-//SCP-2
-export interface ICommunityPostScpData {
-	communityUri: string;
-	encryptedKey?: string;
 }
 
 export interface INewCommunityPostInfo {

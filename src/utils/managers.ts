@@ -1,6 +1,6 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, CommunityRole, IAllUserRelatedChannels, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrFetchEventsResponse, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
+import { CalendarEventType, CommunityRole, IAllUserRelatedChannels, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrFetchEventsResponse, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
 import Geohash from './geohash';
 import GeoQuery from './geoquery';
 import { MqttManager } from "./mqtt";
@@ -455,10 +455,10 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             ]);
         }
         if (info.scpData) {
-            let encodedScpData = window.btoa('$scp:' + JSON.stringify(info.scpData));
+            let encodedScpData = SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
             event.tags.push([
                 "scp",
-                "3",
+                ScpStandardId.Channel,
                 encodedScpData
             ]);
         }
@@ -524,10 +524,10 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             ]);
         }
         if (info.scpData) {
-            let encodedScpData = window.btoa('$scp:' + JSON.stringify(info.scpData));
+            let encodedScpData = SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
             event.tags.push([
                 "scp",
-                "1",
+                ScpStandardId.Community,
                 encodedScpData
             ]);
         }
@@ -548,8 +548,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
     async updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[], privateKey: string) {
         let communityUriArr: string[] = [];
         for (let community of communities) {
-            const decodedCreatorId = community.creatorId.startsWith('npub1') ? Nip19.decode(community.creatorId).data as string : community.creatorId;
-            communityUriArr.push(`34550:${decodedCreatorId}:${community.communityId}`);
+            const communityUri = SocialUtilsManager.getCommunityUri(community.creatorId, community.communityId);
+            communityUriArr.push(communityUri);
         }
         let event = {
             "kind": 30001,
@@ -574,8 +574,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
 
     async submitCommunityPost(info: INewCommunityPostInfo, privateKey: string) {
         const community = info.community;
-        const decodedCreatorId = community.creatorId.startsWith('npub1') ? Nip19.decode(community.creatorId).data as string : community.creatorId;
-        const communityUri = `34550:${decodedCreatorId}:${community.communityId}`;
+        const communityUri = SocialUtilsManager.getCommunityUri(community.creatorId, community.communityId);
         let event = {
             "kind": 1,
             "created_at": Math.round(Date.now() / 1000),
@@ -583,10 +582,10 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             "tags": []
         };
         if (info.scpData) {
-            let encodedScpData = window.btoa('$scp:' + JSON.stringify(info.scpData));
+            let encodedScpData = SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
             event.tags.push([
                 "scp",
-                "2",
+                ScpStandardId.CommunityPost,
                 encodedScpData
             ]);
         }
@@ -615,10 +614,10 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             "tags": []
         };
         if (info.scpData) {
-            let encodedScpData = window.btoa('$scp:' + JSON.stringify(info.scpData));
+            let encodedScpData = SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
             event.tags.push([
                 "scp",
-                "4",
+                ScpStandardId.ChannelMessage,
                 encodedScpData
             ]);
         }
@@ -679,6 +678,10 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 [
                     "k",
                     groupKind.toString()
+                ],
+                [
+                    "scp",
+                    ScpStandardId.GroupKeys
                 ]
             ]
         };
@@ -1155,6 +1158,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
 
     async fetchCommunityFeed(creatorId: string, communityId: string) {
         const decodedCreatorId = creatorId.startsWith('npub1') ? Nip19.decode(creatorId).data : creatorId;
+        const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
         let infoMsg: any = {
             kinds: [34550],
             authors: [decodedCreatorId],
@@ -1163,7 +1167,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         let notesMsg: any = {
             // kinds: [1, 7, 9735],
             kinds: [1],
-            "#a": [`34550:${decodedCreatorId}:${communityId}`],
+            "#a": [communityUri],
             limit: 50
         };
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(infoMsg, notesMsg);
@@ -1173,8 +1177,8 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
     async fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]) {
         const communityUriArr: string[] = [];
         for (let community of communities) {
-            const decodedCreatorId = community.creatorId.startsWith('npub1') ? Nip19.decode(community.creatorId).data : community.creatorId;
-            communityUriArr.push(`34550:${decodedCreatorId}:${community.communityId}`);
+            const communityUri = SocialUtilsManager.getCommunityUri(community.creatorId, community.communityId);
+            communityUriArr.push(communityUri);
         }
         let request: any = {
             kinds: [30001],
@@ -1307,10 +1311,10 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         const pubkeyToCommunityIdsMap: Record<string, string[]> = {};
         for (let channel of channels) {
             const scpData = channel.scpData;
-            if (!scpData?.communityId) continue;
+            if (!scpData?.communityUri) continue;
             pubkeyToCommunityIdsMap[channel.eventData.pubkey] = pubkeyToCommunityIdsMap[channel.eventData.pubkey] || [];
-            if (!pubkeyToCommunityIdsMap[channel.eventData.pubkey].includes(scpData.communityId)) {
-                pubkeyToCommunityIdsMap[channel.eventData.pubkey].push(scpData.communityId);
+            if (!pubkeyToCommunityIdsMap[channel.eventData.pubkey].includes(scpData.communityUri)) {
+                pubkeyToCommunityIdsMap[channel.eventData.pubkey].push(scpData.communityUri);
             }
         }
         const communityEvents = await this.fetchCommunities(pubkeyToCommunityIdsMap);
@@ -1922,6 +1926,16 @@ class SocialUtilsManager {
         }
     }
 
+    static utf8ToBase64(utf8: string): string {
+        if (typeof window !== "undefined"){
+            return btoa(utf8);
+        }
+        else {
+            // @ts-ignore
+            return Buffer.from(utf8).toString('base64');
+        }
+    }
+
     static convertPrivateKeyToPubkey(privateKey: string) {
         if (privateKey.startsWith('0x')) privateKey = privateKey.replace('0x', '');
         let pub = Utils.padLeft(Keys.getPublicKey(privateKey), 64);
@@ -2033,6 +2047,19 @@ class SocialUtilsManager {
         throw new Error(`Failed after ${retries} retries`);
     }
 
+    static getCommunityUri(creatorId: string, communityId: string) {
+        const decodedPubkey = creatorId.startsWith('npub1') ? Nip19.decode(creatorId).data as string : creatorId;
+        return `34550:${decodedPubkey}:${communityId}`;
+    }
+
+    static getCommunityBasicInfoFromUri(communityUri: string): ICommunityBasicInfo {
+        const parts = communityUri.split(':');
+        return {
+            creatorId: parts[1],
+            communityId: parts[2]
+        }
+    }
+
     static extractCommunityInfo(event: INostrEvent) {
         const communityId = event.tags.find(tag => tag[0] === 'd')?.[1];
         const description = event.tags.find(tag => tag[0] === 'description')?.[1];
@@ -2057,8 +2084,7 @@ class SocialUtilsManager {
                 membershipType = MembershipType.InviteOnly;
             }
         }
-        const communityUri = `34550:${event.pubkey}:${communityId}`;
-        
+        const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
         let communityInfo: ICommunityInfo = {
             creatorId,
             moderatorIds,
@@ -2081,15 +2107,14 @@ class SocialUtilsManager {
         const communities: ICommunityBasicInfo[] = [];
         const communityUriArr = event?.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
         for (let communityUri of communityUriArr) {
-            const pubkey = communityUri.split(':')[1];
-            const communityId = communityUri.split(':')[2];
+            const basicInfo = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
             if (excludedCommunity) {
                 const decodedPubkey = Nip19.decode(excludedCommunity.creatorId).data as string;
-                if (communityId === excludedCommunity.communityId && pubkey === decodedPubkey) continue;
+                if (basicInfo.communityId === excludedCommunity.communityId && basicInfo.creatorId === decodedPubkey) continue;
             }
             communities.push({
-                communityId,
-                creatorId: pubkey
+                communityId: basicInfo.communityId,
+                creatorId: basicInfo.creatorId
             });
         }
         return communities;
@@ -2249,7 +2274,7 @@ class SocialDataManager {
         }
     }
 
-    retrieveCommunityUri(noteEvent: INostrEvent, scpData: any) {
+    retrieveCommunityUri(noteEvent: INostrEvent, scpData: ICommunityPostScpData) {
         let communityUri: string | null = null;
         if (scpData?.communityUri) {
             communityUri = scpData.communityUri;    
@@ -2775,8 +2800,7 @@ class SocialDataManager {
         if (scpData) {
             const communityUri = this.retrieveCommunityUri(focusedNote.eventData, scpData);
             if (communityUri) {
-                const creatorId = communityUri.split(':')[1];
-                const communityId = communityUri.split(':')[2];
+                const {creatorId, communityId} = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
                 communityInfo = await this.fetchCommunityInfo(creatorId, communityId);
             }
         }
@@ -2800,8 +2824,7 @@ class SocialDataManager {
             if (scpData) {
                 const communityUri = this.retrieveCommunityUri(note, scpData);
                 if (communityUri) {
-                    const creatorId = communityUri.split(':')[1];
-                    const communityId = communityUri.split(':')[2];
+                    const {creatorId, communityId} = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
                     pubkeyToCommunityIdsMap[creatorId] = pubkeyToCommunityIdsMap[creatorId] || [];
                     if (!pubkeyToCommunityIdsMap[creatorId].includes(communityId)) {
                         pubkeyToCommunityIdsMap[creatorId].push(communityId);
@@ -2972,11 +2995,6 @@ class SocialDataManager {
         await this._socialEventManagerWrite.updateContactList(content, Array.from(contactPubKeys), this._privateKey);
     }
 
-    getCommunityUri(creatorId: string, communityId: string) {
-        const decodedPubkey = Nip19.decode(creatorId).data as string;
-        return `34550:${decodedPubkey}:${communityId}`;
-    }
-
     async generateGroupKeys(privateKey: string, encryptionPublicKeys: string[]) {
         const groupPrivateKey = Keys.generatePrivateKey();
         const groupPublicKey = Keys.getPublicKey(groupPrivateKey);
@@ -2993,7 +3011,7 @@ class SocialDataManager {
     }
 
     async createCommunity(newInfo: INewCommunityInfo, creatorId: string) {
-        const communityUri = this.getCommunityUri(creatorId, newInfo.name);
+        const communityUri = SocialUtilsManager.getCommunityUri(creatorId, newInfo.name);
         let communityInfo: ICommunityInfo = {
             communityUri,
             communityId: newInfo.name,
@@ -3041,8 +3059,9 @@ class SocialDataManager {
         }
         if (communityInfo.scpData) {
             const updateChannelResponses = await this.updateCommunityChannel(communityInfo);
-            const updateChannelResponse = updateChannelResponses[0];
-            if (updateChannelResponse.eventId) {
+            //FIXME: fix this when the relay is fixed
+            const updateChannelResponse = updateChannelResponses.find(v => v.success && !!v.eventId);
+            if (updateChannelResponse?.eventId) {
                 communityInfo.scpData.channelEventId = updateChannelResponse.eventId;
             }   
         }
@@ -3084,7 +3103,7 @@ class SocialDataManager {
 
     async updateCommunityChannel(communityInfo: ICommunityInfo) {
         let channelScpData: IChannelScpData = {
-            communityId: communityInfo.communityId
+            communityUri: communityInfo.communityUri
         }
         let channelInfo: IChannelInfo = {
             name: communityInfo.communityId,
@@ -3122,6 +3141,11 @@ class SocialDataManager {
         return channelInfo;
     }
 
+    async updateChannel(channelInfo: IChannelInfo) {
+        const updateChannelResponses = await this._socialEventManagerWrite.updateChannel(channelInfo, this._privateKey);
+        return updateChannelResponses;
+    }
+
     async fetchCommunitiesMembers(communities: ICommunityInfo[]) {
         const communityUriToMemberIdRoleComboMap = await this.mapCommunityUriToMemberIdRoleCombo(communities);
         let pubkeys = new Set(flatMap(Object.values(communityUriToMemberIdRoleComboMap), combo => combo.map(c => c.id)));
@@ -3130,9 +3154,7 @@ class SocialDataManager {
             const userProfiles = await this.fetchUserProfiles(Array.from(pubkeys));
             if (!userProfiles) return communityUriToMembersMap;
             for (let community of communities) {
-                const decodedPubkey = Nip19.decode(community.creatorId).data as string;
-                const communityUri = `34550:${decodedPubkey}:${community.communityId}`;
-                const memberIds = communityUriToMemberIdRoleComboMap[communityUri];
+                const memberIds = communityUriToMemberIdRoleComboMap[community.communityUri];
                 if (!memberIds) continue;
                 const communityMembers: ICommunityMember[] = [];
                 for (let memberIdRoleCombo of memberIds) {
@@ -3148,7 +3170,7 @@ class SocialDataManager {
                     }
                     communityMembers.push(communityMember);
                 }
-                communityUriToMembersMap[communityUri] = communityMembers;
+                communityUriToMembersMap[community.communityUri] = communityMembers;
             }
         }
         return communityUriToMembersMap;
@@ -3167,9 +3189,7 @@ class SocialDataManager {
         }
         const communityUriToMembersMap = await this.fetchCommunitiesMembers(communities);
         for (let community of communities) {
-            const decodedPubkey = Nip19.decode(community.creatorId).data as string;
-            const communityUri = `34550:${decodedPubkey}:${community.communityId}`;
-            community.members = communityUriToMembersMap[communityUri];
+            community.members = communityUriToMembersMap[community.communityUri];
         }
         return communities;
     }
@@ -3340,8 +3360,8 @@ class SocialDataManager {
             const channelEvents = await this.retrieveChannelEvents(options.creatorId, options.channelId);
             const channelInfo = channelEvents.info;
             const messageEvents = channelEvents.messageEvents;
-            if (channelInfo.scpData.communityId) {
-                const communityInfo = await this.fetchCommunityInfo(channelInfo.eventData.pubkey, channelInfo.scpData.communityId);
+            if (channelInfo.scpData.communityUri) {
+                const communityInfo = await this.fetchCommunityInfo(channelInfo.eventData.pubkey, channelInfo.scpData.communityUri);
                 groupPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, options.privateKey);
                 if (!groupPrivateKey) return messageIdToPrivateKey;
             }
@@ -3497,8 +3517,7 @@ class SocialDataManager {
         const communityUriToMemberIdRoleComboMap: Record<string, { id: string; role: CommunityRole }[]> = {};
         const communityUriToCreatorOrModeratorIdsMap: Record<string, Set<string>> = {};
         for (let community of communities) {
-            const decodedPubkey = Nip19.decode(community.creatorId).data as string;
-            const communityUri = `34550:${decodedPubkey}:${community.communityId}`;
+            const communityUri = community.communityUri;
             communityUriToMemberIdRoleComboMap[communityUri] = [];
             communityUriToMemberIdRoleComboMap[communityUri].push({
                 id: community.creatorId,

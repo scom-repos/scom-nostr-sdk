@@ -3534,6 +3534,7 @@ define("@scom/scom-social-sdk/utils/interfaces.ts", ["require", "exports"], func
         ScpStandardId["CommunityPost"] = "2";
         ScpStandardId["Channel"] = "3";
         ScpStandardId["ChannelMessage"] = "4";
+        ScpStandardId["GroupKeys"] = "5";
     })(ScpStandardId = exports.ScpStandardId || (exports.ScpStandardId = {}));
     var MembershipType;
     (function (MembershipType) {
@@ -4443,10 +4444,10 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 ]);
             }
             if (info.scpData) {
-                let encodedScpData = window.btoa('$scp:' + JSON.stringify(info.scpData));
+                let encodedScpData = SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
                 event.tags.push([
                     "scp",
-                    "3",
+                    interfaces_1.ScpStandardId.Channel,
                     encodedScpData
                 ]);
             }
@@ -4510,10 +4511,10 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 ]);
             }
             if (info.scpData) {
-                let encodedScpData = window.btoa('$scp:' + JSON.stringify(info.scpData));
+                let encodedScpData = SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
                 event.tags.push([
                     "scp",
-                    "1",
+                    interfaces_1.ScpStandardId.Community,
                     encodedScpData
                 ]);
             }
@@ -4533,8 +4534,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         async updateUserBookmarkedCommunities(communities, privateKey) {
             let communityUriArr = [];
             for (let community of communities) {
-                const decodedCreatorId = community.creatorId.startsWith('npub1') ? index_1.Nip19.decode(community.creatorId).data : community.creatorId;
-                communityUriArr.push(`34550:${decodedCreatorId}:${community.communityId}`);
+                const communityUri = SocialUtilsManager.getCommunityUri(community.creatorId, community.communityId);
+                communityUriArr.push(communityUri);
             }
             let event = {
                 "kind": 30001,
@@ -4558,8 +4559,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         }
         async submitCommunityPost(info, privateKey) {
             const community = info.community;
-            const decodedCreatorId = community.creatorId.startsWith('npub1') ? index_1.Nip19.decode(community.creatorId).data : community.creatorId;
-            const communityUri = `34550:${decodedCreatorId}:${community.communityId}`;
+            const communityUri = SocialUtilsManager.getCommunityUri(community.creatorId, community.communityId);
             let event = {
                 "kind": 1,
                 "created_at": Math.round(Date.now() / 1000),
@@ -4567,10 +4567,10 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 "tags": []
             };
             if (info.scpData) {
-                let encodedScpData = window.btoa('$scp:' + JSON.stringify(info.scpData));
+                let encodedScpData = SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
                 event.tags.push([
                     "scp",
-                    "2",
+                    interfaces_1.ScpStandardId.CommunityPost,
                     encodedScpData
                 ]);
             }
@@ -4598,10 +4598,10 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 "tags": []
             };
             if (info.scpData) {
-                let encodedScpData = window.btoa('$scp:' + JSON.stringify(info.scpData));
+                let encodedScpData = SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
                 event.tags.push([
                     "scp",
-                    "4",
+                    interfaces_1.ScpStandardId.ChannelMessage,
                     encodedScpData
                 ]);
             }
@@ -4659,6 +4659,10 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     [
                         "k",
                         groupKind.toString()
+                    ],
+                    [
+                        "scp",
+                        interfaces_1.ScpStandardId.GroupKeys
                     ]
                 ]
             };
@@ -5106,6 +5110,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         }
         async fetchCommunityFeed(creatorId, communityId) {
             const decodedCreatorId = creatorId.startsWith('npub1') ? index_1.Nip19.decode(creatorId).data : creatorId;
+            const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
             let infoMsg = {
                 kinds: [34550],
                 authors: [decodedCreatorId],
@@ -5114,7 +5119,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             let notesMsg = {
                 // kinds: [1, 7, 9735],
                 kinds: [1],
-                "#a": [`34550:${decodedCreatorId}:${communityId}`],
+                "#a": [communityUri],
                 limit: 50
             };
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(infoMsg, notesMsg);
@@ -5123,8 +5128,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         async fetchCommunitiesGeneralMembers(communities) {
             const communityUriArr = [];
             for (let community of communities) {
-                const decodedCreatorId = community.creatorId.startsWith('npub1') ? index_1.Nip19.decode(community.creatorId).data : community.creatorId;
-                communityUriArr.push(`34550:${decodedCreatorId}:${community.communityId}`);
+                const communityUri = SocialUtilsManager.getCommunityUri(community.creatorId, community.communityId);
+                communityUriArr.push(communityUri);
             }
             let request = {
                 kinds: [30001],
@@ -5250,11 +5255,11 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const pubkeyToCommunityIdsMap = {};
             for (let channel of channels) {
                 const scpData = channel.scpData;
-                if (!scpData?.communityId)
+                if (!scpData?.communityUri)
                     continue;
                 pubkeyToCommunityIdsMap[channel.eventData.pubkey] = pubkeyToCommunityIdsMap[channel.eventData.pubkey] || [];
-                if (!pubkeyToCommunityIdsMap[channel.eventData.pubkey].includes(scpData.communityId)) {
-                    pubkeyToCommunityIdsMap[channel.eventData.pubkey].push(scpData.communityId);
+                if (!pubkeyToCommunityIdsMap[channel.eventData.pubkey].includes(scpData.communityUri)) {
+                    pubkeyToCommunityIdsMap[channel.eventData.pubkey].push(scpData.communityUri);
                 }
             }
             const communityEvents = await this.fetchCommunities(pubkeyToCommunityIdsMap);
@@ -5802,6 +5807,15 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 return Buffer.from(base64, 'base64').toString('utf8');
             }
         }
+        static utf8ToBase64(utf8) {
+            if (typeof window !== "undefined") {
+                return btoa(utf8);
+            }
+            else {
+                // @ts-ignore
+                return Buffer.from(utf8).toString('base64');
+            }
+        }
         static convertPrivateKeyToPubkey(privateKey) {
             if (privateKey.startsWith('0x'))
                 privateKey = privateKey.replace('0x', '');
@@ -5903,6 +5917,17 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             // If all retries have been exhausted, throw an error
             throw new Error(`Failed after ${retries} retries`);
         }
+        static getCommunityUri(creatorId, communityId) {
+            const decodedPubkey = creatorId.startsWith('npub1') ? index_1.Nip19.decode(creatorId).data : creatorId;
+            return `34550:${decodedPubkey}:${communityId}`;
+        }
+        static getCommunityBasicInfoFromUri(communityUri) {
+            const parts = communityUri.split(':');
+            return {
+                creatorId: parts[1],
+                communityId: parts[2]
+            };
+        }
         static extractCommunityInfo(event) {
             const communityId = event.tags.find(tag => tag[0] === 'd')?.[1];
             const description = event.tags.find(tag => tag[0] === 'description')?.[1];
@@ -5928,7 +5953,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     membershipType = interfaces_1.MembershipType.InviteOnly;
                 }
             }
-            const communityUri = `34550:${event.pubkey}:${communityId}`;
+            const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
             let communityInfo = {
                 creatorId,
                 moderatorIds,
@@ -5949,16 +5974,15 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const communities = [];
             const communityUriArr = event?.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
             for (let communityUri of communityUriArr) {
-                const pubkey = communityUri.split(':')[1];
-                const communityId = communityUri.split(':')[2];
+                const basicInfo = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
                 if (excludedCommunity) {
                     const decodedPubkey = index_1.Nip19.decode(excludedCommunity.creatorId).data;
-                    if (communityId === excludedCommunity.communityId && pubkey === decodedPubkey)
+                    if (basicInfo.communityId === excludedCommunity.communityId && basicInfo.creatorId === decodedPubkey)
                         continue;
                 }
                 communities.push({
-                    communityId,
-                    creatorId: pubkey
+                    communityId: basicInfo.communityId,
+                    creatorId: basicInfo.creatorId
                 });
             }
             return communities;
@@ -6588,8 +6612,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             if (scpData) {
                 const communityUri = this.retrieveCommunityUri(focusedNote.eventData, scpData);
                 if (communityUri) {
-                    const creatorId = communityUri.split(':')[1];
-                    const communityId = communityUri.split(':')[2];
+                    const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
                     communityInfo = await this.fetchCommunityInfo(creatorId, communityId);
                 }
             }
@@ -6612,8 +6635,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 if (scpData) {
                     const communityUri = this.retrieveCommunityUri(note, scpData);
                     if (communityUri) {
-                        const creatorId = communityUri.split(':')[1];
-                        const communityId = communityUri.split(':')[2];
+                        const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
                         pubkeyToCommunityIdsMap[creatorId] = pubkeyToCommunityIdsMap[creatorId] || [];
                         if (!pubkeyToCommunityIdsMap[creatorId].includes(communityId)) {
                             pubkeyToCommunityIdsMap[creatorId].push(communityId);
@@ -6776,10 +6798,6 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             }
             await this._socialEventManagerWrite.updateContactList(content, Array.from(contactPubKeys), this._privateKey);
         }
-        getCommunityUri(creatorId, communityId) {
-            const decodedPubkey = index_1.Nip19.decode(creatorId).data;
-            return `34550:${decodedPubkey}:${communityId}`;
-        }
         async generateGroupKeys(privateKey, encryptionPublicKeys) {
             const groupPrivateKey = index_1.Keys.generatePrivateKey();
             const groupPublicKey = index_1.Keys.getPublicKey(groupPrivateKey);
@@ -6795,7 +6813,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             };
         }
         async createCommunity(newInfo, creatorId) {
-            const communityUri = this.getCommunityUri(creatorId, newInfo.name);
+            const communityUri = SocialUtilsManager.getCommunityUri(creatorId, newInfo.name);
             let communityInfo = {
                 communityUri,
                 communityId: newInfo.name,
@@ -6836,8 +6854,9 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             }
             if (communityInfo.scpData) {
                 const updateChannelResponses = await this.updateCommunityChannel(communityInfo);
-                const updateChannelResponse = updateChannelResponses[0];
-                if (updateChannelResponse.eventId) {
+                //FIXME: fix this when the relay is fixed
+                const updateChannelResponse = updateChannelResponses.find(v => v.success && !!v.eventId);
+                if (updateChannelResponse?.eventId) {
                     communityInfo.scpData.channelEventId = updateChannelResponse.eventId;
                 }
             }
@@ -6869,7 +6888,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         }
         async updateCommunityChannel(communityInfo) {
             let channelScpData = {
-                communityId: communityInfo.communityId
+                communityUri: communityInfo.communityUri
             };
             let channelInfo = {
                 name: communityInfo.communityId,
@@ -6899,6 +6918,10 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             }
             return channelInfo;
         }
+        async updateChannel(channelInfo) {
+            const updateChannelResponses = await this._socialEventManagerWrite.updateChannel(channelInfo, this._privateKey);
+            return updateChannelResponses;
+        }
         async fetchCommunitiesMembers(communities) {
             const communityUriToMemberIdRoleComboMap = await this.mapCommunityUriToMemberIdRoleCombo(communities);
             let pubkeys = new Set(flatMap(Object.values(communityUriToMemberIdRoleComboMap), combo => combo.map(c => c.id)));
@@ -6908,9 +6931,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 if (!userProfiles)
                     return communityUriToMembersMap;
                 for (let community of communities) {
-                    const decodedPubkey = index_1.Nip19.decode(community.creatorId).data;
-                    const communityUri = `34550:${decodedPubkey}:${community.communityId}`;
-                    const memberIds = communityUriToMemberIdRoleComboMap[communityUri];
+                    const memberIds = communityUriToMemberIdRoleComboMap[community.communityUri];
                     if (!memberIds)
                         continue;
                     const communityMembers = [];
@@ -6928,7 +6949,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                         };
                         communityMembers.push(communityMember);
                     }
-                    communityUriToMembersMap[communityUri] = communityMembers;
+                    communityUriToMembersMap[community.communityUri] = communityMembers;
                 }
             }
             return communityUriToMembersMap;
@@ -6946,9 +6967,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             }
             const communityUriToMembersMap = await this.fetchCommunitiesMembers(communities);
             for (let community of communities) {
-                const decodedPubkey = index_1.Nip19.decode(community.creatorId).data;
-                const communityUri = `34550:${decodedPubkey}:${community.communityId}`;
-                community.members = communityUriToMembersMap[communityUri];
+                community.members = communityUriToMembersMap[community.communityUri];
             }
             return communities;
         }
@@ -7102,8 +7121,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 const channelEvents = await this.retrieveChannelEvents(options.creatorId, options.channelId);
                 const channelInfo = channelEvents.info;
                 const messageEvents = channelEvents.messageEvents;
-                if (channelInfo.scpData.communityId) {
-                    const communityInfo = await this.fetchCommunityInfo(channelInfo.eventData.pubkey, channelInfo.scpData.communityId);
+                if (channelInfo.scpData.communityUri) {
+                    const communityInfo = await this.fetchCommunityInfo(channelInfo.eventData.pubkey, channelInfo.scpData.communityUri);
                     groupPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, options.privateKey);
                     if (!groupPrivateKey)
                         return messageIdToPrivateKey;
@@ -7245,8 +7264,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const communityUriToMemberIdRoleComboMap = {};
             const communityUriToCreatorOrModeratorIdsMap = {};
             for (let community of communities) {
-                const decodedPubkey = index_1.Nip19.decode(community.creatorId).data;
-                const communityUri = `34550:${decodedPubkey}:${community.communityId}`;
+                const communityUri = community.communityUri;
                 communityUriToMemberIdRoleComboMap[communityUri] = [];
                 communityUriToMemberIdRoleComboMap[communityUri].push({
                     id: community.creatorId,

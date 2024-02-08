@@ -1,5 +1,5 @@
 import { Nip19, Event } from "../core/index";
-import { IAllUserRelatedChannels, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrFetchEventsResponse, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "./interfaces";
+import { IAllUserRelatedChannels, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrFetchEventsResponse, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "./interfaces";
 interface INostrCommunicationManager {
     fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
     fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
@@ -192,12 +192,15 @@ declare class NostrEventManagerReadV2 extends NostrEventManagerRead implements I
 declare class SocialUtilsManager {
     static hexStringToUint8Array(hexString: string): Uint8Array;
     static base64ToUtf8(base64: string): string;
+    static utf8ToBase64(utf8: string): string;
     static convertPrivateKeyToPubkey(privateKey: string): string;
     static encryptMessage(ourPrivateKey: string, theirPublicKey: string, text: string): Promise<string>;
     static decryptMessage(ourPrivateKey: string, theirPublicKey: string, encryptedData: string): Promise<string>;
     private static pad;
     static getGMTOffset(timezone: string): string;
     static exponentialBackoffRetry<T>(fn: () => Promise<T>, retries: number, delay: number, maxDelay: number, factor: number): Promise<T>;
+    static getCommunityUri(creatorId: string, communityId: string): string;
+    static getCommunityBasicInfoFromUri(communityUri: string): ICommunityBasicInfo;
     static extractCommunityInfo(event: INostrEvent): ICommunityInfo;
     static extractBookmarkedCommunities(event: INostrEvent, excludedCommunity?: ICommunityInfo): ICommunityBasicInfo[];
     static extractBookmarkedChannels(event: INostrEvent): string[];
@@ -224,7 +227,7 @@ declare class SocialDataManager {
         notes: INostrEvent[];
         info: ICommunityInfo;
     }>;
-    retrieveCommunityUri(noteEvent: INostrEvent, scpData: any): string;
+    retrieveCommunityUri(noteEvent: INostrEvent, scpData: ICommunityPostScpData): string;
     retrievePostPrivateKey(event: INostrEvent, communityUri: string, communityPrivateKey: string): Promise<string>;
     retrieveChannelMessagePrivateKey(event: INostrEvent, channelId: string, communityPrivateKey: string): Promise<string>;
     retrieveCommunityPrivateKey(communityInfo: ICommunityInfo, selfPrivateKey: string): Promise<string>;
@@ -289,7 +292,6 @@ declare class SocialDataManager {
     fetchUserRelayList(pubKey: string): Promise<string[]>;
     followUser(userPubKey: string): Promise<void>;
     unfollowUser(userPubKey: string): Promise<void>;
-    getCommunityUri(creatorId: string, communityId: string): string;
     generateGroupKeys(privateKey: string, encryptionPublicKeys: string[]): Promise<{
         groupPrivateKey: string;
         groupPublicKey: string;
@@ -299,6 +301,7 @@ declare class SocialDataManager {
     updateCommunity(info: ICommunityInfo): Promise<ICommunityInfo>;
     updateCommunityChannel(communityInfo: ICommunityInfo): Promise<INostrSubmitResponse[]>;
     createChannel(channelInfo: IChannelInfo, memberIds: string[]): Promise<IChannelInfo>;
+    updateChannel(channelInfo: IChannelInfo): Promise<INostrSubmitResponse[]>;
     fetchCommunitiesMembers(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
     fetchCommunities(): Promise<ICommunity[]>;
     fetchMyCommunities(pubKey: string): Promise<ICommunityInfo[]>;

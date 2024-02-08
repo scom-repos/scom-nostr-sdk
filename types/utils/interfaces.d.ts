@@ -91,7 +91,8 @@ export declare enum ScpStandardId {
     Community = "1",
     CommunityPost = "2",
     Channel = "3",
-    ChannelMessage = "4"
+    ChannelMessage = "4",
+    GroupKeys = "5"
 }
 export declare enum MembershipType {
     Open = "Open",
@@ -107,6 +108,18 @@ export interface ICommunityScpData {
     encryptedKey?: string;
     gatekeeperPublicKey?: string;
     channelEventId?: string;
+}
+export interface ICommunityPostScpData {
+    communityUri: string;
+    encryptedKey?: string;
+}
+export interface IChannelScpData {
+    communityUri?: string;
+    publicKey?: string;
+}
+export interface IChannelMessageScpData {
+    channelId: string;
+    encryptedKey?: string;
 }
 export interface ICommunityBasicInfo {
     creatorId: string;
@@ -138,10 +151,6 @@ export interface INewCommunityInfo {
     membershipType: MembershipType;
     memberIds?: string[];
 }
-export interface IChannelScpData {
-    communityId?: string;
-    publicKey?: string;
-}
 export interface IChannelInfo {
     id?: string;
     name: string;
@@ -150,10 +159,6 @@ export interface IChannelInfo {
     scpData?: IChannelScpData;
     eventData?: INostrEvent;
     communityInfo?: ICommunityInfo;
-}
-export interface IChannelMessageScpData {
-    channelId: string;
-    encryptedKey?: string;
 }
 export interface INewChannelMessageInfo {
     channelId: string;
@@ -172,10 +177,6 @@ export interface IRetrieveChannelMessageKeysOptions {
 export interface IConversationPath {
     noteIds: string[];
     authorIds: string[];
-}
-export interface ICommunityPostScpData {
-    communityUri: string;
-    encryptedKey?: string;
 }
 export interface INewCommunityPostInfo {
     community: ICommunityInfo;
