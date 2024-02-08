@@ -1544,7 +1544,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
         fetchEventsByIds(ids: string[]): Promise<INostrEvent[]>;
         fetchAllUserRelatedChannels(pubKey: string): Promise<IAllUserRelatedChannels>;
-        fetchUserBookmarkedChannels(pubKey: string): Promise<INostrEvent[]>;
+        fetchUserBookmarkedChannelEventIds(pubKey: string): Promise<string[]>;
         fetchChannelMessages(channelId: string, since?: number, until?: number): Promise<INostrEvent[]>;
         fetchChannelInfoMessages(channelId: string): Promise<INostrEvent[]>;
         fetchMessageContactsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
@@ -1636,7 +1636,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
             channelMetadataMap: Record<string, IChannelInfo>;
             channelIdToCommunityMap: Record<string, ICommunityInfo>;
         }>;
-        fetchUserBookmarkedChannels(pubKey: string): Promise<INostrEvent[]>;
+        fetchUserBookmarkedChannelEventIds(pubKey: string): Promise<string[]>;
         fetchEventsByIds(ids: string[]): Promise<INostrEvent[]>;
         fetchChannelMessages(channelId: string, since?: number, until?: number): Promise<INostrEvent[]>;
         fetchChannelInfoMessages(channelId: string): Promise<INostrEvent[]>;
@@ -1671,16 +1671,20 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
         fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
         fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
-        WIP_fetchAllUserRelatedChannels(pubKey: string): Promise<void>;
-        WIP_fetchUserBookmarkedChannels(pubKey: string): Promise<void>;
+        fetchAllUserRelatedChannels(pubKey: string): Promise<{
+            channels: IChannelInfo[];
+            channelMetadataMap: Record<string, IChannelInfo>;
+            channelIdToCommunityMap: Record<string, ICommunityInfo>;
+        }>;
+        fetchUserBookmarkedChannelEventIds(pubKey: string): Promise<any>;
         fetchEventsByIds(ids: string[]): Promise<INostrEvent[]>;
         fetchChannelMessages(channelId: string, since?: number, until?: number): Promise<INostrEvent[]>;
         fetchChannelInfoMessages(channelId: string): Promise<INostrEvent[]>;
         fetchMessageContactsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
         fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
         resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
-        WIP_fetchGroupKeys(identifier: string): Promise<void>;
-        WIP_fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<void>;
+        fetchGroupKeys(identifier: string): Promise<INostrEvent>;
+        fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
         fetchCalendarEvents(start: number, end?: number, limit?: number): Promise<INostrEvent[]>;
         fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent>;
         fetchCalendarEventPosts(calendarEventUri: string): Promise<INostrEvent[]>;
