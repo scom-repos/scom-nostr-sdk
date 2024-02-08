@@ -1568,7 +1568,14 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
         super(manager, cachedManager, apiBaseUrl);
     }
 
-    async WIP_fetchThreadCacheEvents(id: string, pubKey?: string) {
+    async fetchThreadCacheEvents(id: string, pubKey?: string) {
+        let decodedId = id.startsWith('note1') ? Nip19.decode(id).data : id;
+        let msg: any = {
+            eventId: decodedId,
+            limit: 100
+        };
+        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-thread-posts', msg);
+        return fetchEventsResponse.events;
     }
 
     async fetchTrendingCacheEvents(pubKey?: string) {

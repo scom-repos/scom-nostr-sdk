@@ -1656,7 +1656,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         protected _nostrCachedCommunicationManager: INostrRestAPIManager;
         protected _apiBaseUrl: string;
         constructor(manager: INostrRestAPIManager, cachedManager: INostrRestAPIManager, apiBaseUrl: string);
-        WIP_fetchThreadCacheEvents(id: string, pubKey?: string): Promise<void>;
+        fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
         fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
         fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
         fetchProfileRepliesCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;

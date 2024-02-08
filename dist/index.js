@@ -5473,7 +5473,14 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         constructor(manager, cachedManager, apiBaseUrl) {
             super(manager, cachedManager, apiBaseUrl);
         }
-        async WIP_fetchThreadCacheEvents(id, pubKey) {
+        async fetchThreadCacheEvents(id, pubKey) {
+            let decodedId = id.startsWith('note1') ? index_1.Nip19.decode(id).data : id;
+            let msg = {
+                eventId: decodedId,
+                limit: 100
+            };
+            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-thread-posts', msg);
+            return fetchEventsResponse.events;
         }
         async fetchTrendingCacheEvents(pubKey) {
             let msg = {};
