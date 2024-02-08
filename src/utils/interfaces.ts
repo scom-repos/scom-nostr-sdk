@@ -134,6 +134,7 @@ export interface ICommunityInfo extends ICommunityBasicInfo {
 	description?: string;
 	rules?: string;
 	bannerImgUrl?: string;
+	avatarImgUrl?: string;
 	gatekeeperNpub?: string;
 	scpData?: ICommunityScpData;
 	moderatorIds?: string[];
@@ -147,6 +148,7 @@ export interface INewCommunityInfo {
 	name: string;
 	description?: string;
 	bannerImgUrl?: string;
+	avatarImgUrl?: string;
 	moderatorIds?: string[];
 	rules?: string;
 	gatekeeperNpub?: string;

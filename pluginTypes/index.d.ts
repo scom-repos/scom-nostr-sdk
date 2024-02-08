@@ -1215,6 +1215,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         description?: string;
         rules?: string;
         bannerImgUrl?: string;
+        avatarImgUrl?: string;
         gatekeeperNpub?: string;
         scpData?: ICommunityScpData;
         moderatorIds?: string[];
@@ -1227,6 +1228,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         name: string;
         description?: string;
         bannerImgUrl?: string;
+        avatarImgUrl?: string;
         moderatorIds?: string[];
         rules?: string;
         gatekeeperNpub?: string;
