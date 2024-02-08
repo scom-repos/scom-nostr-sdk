@@ -3001,6 +3001,7 @@ class SocialDataManager {
             description: newInfo.description,
             rules: newInfo.rules,
             bannerImgUrl: newInfo.bannerImgUrl,
+            avatarImgUrl: newInfo.avatarImgUrl,
             moderatorIds: newInfo.moderatorIds,
             gatekeeperNpub: newInfo.gatekeeperNpub,
             scpData: newInfo.scpData,
