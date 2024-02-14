@@ -6478,6 +6478,17 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
             const { notes, metadataByPubKeyMap, quotedNotesMap, noteToRepostIdMap } = this.createNoteEventMappings(events);
             for (let note of notes) {
+                if (note.eventData.tags?.length) {
+                    const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
+                    if (communityUri) {
+                        const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                        note.community = {
+                            communityUri,
+                            communityId,
+                            creatorId: index_1.Nip19.npubEncode(creatorId)
+                        };
+                    }
+                }
                 const noteId = note.eventData.id;
                 const repostId = noteToRepostIdMap[noteId];
                 if (!repostId)
@@ -6594,7 +6605,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     notes.push({
                         eventData: originalNoteContent
                     });
-                    noteToRepostIdMap[originalNoteContent.id] = event.pubkey;
+                    if (originalNoteContent?.id)
+                        noteToRepostIdMap[originalNoteContent.id] = event.pubkey;
                     if (parentAuthorsInfo) {
                         const parentAuthors = event.tags.filter(tag => tag[0] === 'p')?.map(tag => tag[1]) || [];
                         if (parentAuthors.length > 0) {

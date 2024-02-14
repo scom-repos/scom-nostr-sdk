@@ -2660,6 +2660,17 @@ class SocialDataManager {
             noteToRepostIdMap
         } = this.createNoteEventMappings(events);
         for (let note of notes as INoteInfoExtended[]) {
+            if (note.eventData.tags?.length) {
+                const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
+                if (communityUri) {
+                    const {creatorId, communityId} = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                    note.community = {
+                        communityUri,
+                        communityId,
+                        creatorId: Nip19.npubEncode(creatorId)
+                    };
+                }
+            }
             const noteId = note.eventData.id;
             const repostId = noteToRepostIdMap[noteId];
             if (!repostId) continue;
@@ -2784,7 +2795,8 @@ class SocialDataManager {
                 notes.push({
                     eventData: originalNoteContent
                 });
-                noteToRepostIdMap[originalNoteContent.id] = event.pubkey;
+                if (originalNoteContent?.id)
+                    noteToRepostIdMap[originalNoteContent.id] = event.pubkey;
                 if (parentAuthorsInfo) {
                     const parentAuthors = event.tags.filter(tag => tag[0] === 'p')?.map(tag => tag[1]) || [];
                     if (parentAuthors.length > 0) {

@@ -1174,6 +1174,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     export interface INoteInfoExtended extends INoteInfo {
         parentAuthor?: IAuthor;
         repost?: IAuthor;
+        community?: Omit<INoteCommunityInfo, "eventData">;
     }
     export interface INoteCommunityInfo {
         eventData: INostrEvent;
