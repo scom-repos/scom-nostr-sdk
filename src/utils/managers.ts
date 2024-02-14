@@ -2795,7 +2795,8 @@ class SocialDataManager {
                 notes.push({
                     eventData: originalNoteContent
                 });
-                noteToRepostIdMap[originalNoteContent.id] = event.pubkey;
+                if (originalNoteContent?.id)
+                    noteToRepostIdMap[originalNoteContent.id] = event.pubkey;
                 if (parentAuthorsInfo) {
                     const parentAuthors = event.tags.filter(tag => tag[0] === 'p')?.map(tag => tag[1]) || [];
                     if (parentAuthors.length > 0) {
