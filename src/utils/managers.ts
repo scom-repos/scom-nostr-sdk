@@ -2580,6 +2580,7 @@ class SocialDataManager {
     async fetchUserProfiles(pubKeys: string[]): Promise<IUserProfile[]> {
         const fetchFromCache = true;
         let metadataArr: INostrMetadata[] = [];
+        let followersCountMap: Record<string, number> = {};
         const fetchData = async () => {
             if (fetchFromCache) {
                 const events = await this._socialEventManagerRead.fetchUserProfileCacheEvents(pubKeys);
@@ -2589,6 +2590,9 @@ class SocialDataManager {
                             ...event,
                             content: SocialUtilsManager.parseContent(event.content)
                         });
+                    }
+                    else if (event.kind === 10000108) {
+                        followersCountMap = SocialUtilsManager.parseContent(event.content);
                     }
                 }
             }
@@ -2613,21 +2617,7 @@ class SocialDataManager {
         if (metadataArr.length == 0) return null;
         const userProfiles: IUserProfile[] = [];
         for (let metadata of metadataArr) {
-            const encodedPubkey = Nip19.npubEncode(metadata.pubkey);
-            const metadataContent = metadata.content;
-            const internetIdentifier = metadataContent?.nip05?.replace('_@', '') || '';
-            let userProfile: IUserProfile = {
-                id: encodedPubkey,
-                username: metadataContent.username || metadataContent.name,
-                description: metadataContent.about,
-                avatar: metadataContent.picture,
-                pubkey: metadata.pubkey,
-                npub: encodedPubkey,
-                displayName: metadataContent.display_name || metadataContent.displayName || metadataContent.name,
-                internetIdentifier,
-                website: metadataContent.website,
-                banner: metadataContent.banner
-            }
+            let userProfile = this.constructUserProfile(metadata, followersCountMap);
             userProfiles.push(userProfile);
         }
         return userProfiles;
