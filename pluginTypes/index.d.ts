@@ -1558,6 +1558,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent | null>;
         fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
         fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
+        searchUsers(query: string): Promise<INostrEvent[]>;
     }
     class NostrRestAPIManager implements INostrRestAPIManager {
         protected _url: string;
@@ -1651,6 +1652,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchCalendarEventPosts(calendarEventUri: string): Promise<INostrEvent[]>;
         fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
         fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
+        searchUsers(query: string): Promise<INostrEvent[]>;
     }
     class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEventManagerRead {
         protected _nostrCommunicationManager: INostrRestAPIManager;
@@ -1855,6 +1857,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         sendPingRequest(pubkey: string, walletAddress: string, signature: string): Promise<any>;
         fetchUnreadMessageCounts(pubkey: string): Promise<any>;
         updateMessageLastReadReceipt(pubkey: string, walletAddress: string, signature: string, fromId: string): Promise<any>;
+        searchUsers(query: string): Promise<IUserProfile[]>;
     }
     export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager };
 }

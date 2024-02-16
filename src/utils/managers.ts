@@ -113,6 +113,7 @@ interface ISocialEventManagerRead {
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
     fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     // fetchLikes(eventId: string): Promise<INostrEvent[]>;
+    searchUsers(query: string): Promise<INostrEvent[]>;
 }
 
 class NostrRestAPIManager implements INostrRestAPIManager {
@@ -1557,6 +1558,15 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
     //     const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
     //     return fetchEventsResponse.events;
     // }
+
+    async searchUsers(query: string) {
+        const req: any = {
+            query: query,
+            limit: 10
+        };
+        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('user_search', req);
+        return fetchEventsResponse.events;
+    }
 }
 
 class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEventManagerRead {
@@ -2570,6 +2580,7 @@ class SocialDataManager {
     async fetchUserProfiles(pubKeys: string[]): Promise<IUserProfile[]> {
         const fetchFromCache = true;
         let metadataArr: INostrMetadata[] = [];
+        let followersCountMap: Record<string, number> = {};
         const fetchData = async () => {
             if (fetchFromCache) {
                 const events = await this._socialEventManagerRead.fetchUserProfileCacheEvents(pubKeys);
@@ -2579,6 +2590,9 @@ class SocialDataManager {
                             ...event,
                             content: SocialUtilsManager.parseContent(event.content)
                         });
+                    }
+                    else if (event.kind === 10000108) {
+                        followersCountMap = SocialUtilsManager.parseContent(event.content);
                     }
                 }
             }
@@ -2603,21 +2617,7 @@ class SocialDataManager {
         if (metadataArr.length == 0) return null;
         const userProfiles: IUserProfile[] = [];
         for (let metadata of metadataArr) {
-            const encodedPubkey = Nip19.npubEncode(metadata.pubkey);
-            const metadataContent = metadata.content;
-            const internetIdentifier = metadataContent?.nip05?.replace('_@', '') || '';
-            let userProfile: IUserProfile = {
-                id: encodedPubkey,
-                username: metadataContent.username || metadataContent.name,
-                description: metadataContent.about,
-                avatar: metadataContent.picture,
-                pubkey: metadata.pubkey,
-                npub: encodedPubkey,
-                displayName: metadataContent.display_name || metadataContent.displayName || metadataContent.name,
-                internetIdentifier,
-                website: metadataContent.website,
-                banner: metadataContent.banner
-            }
+            let userProfile = this.constructUserProfile(metadata, followersCountMap);
             userProfiles.push(userProfile);
         }
         return userProfiles;
@@ -4063,6 +4063,29 @@ class SocialDataManager {
         });
         let result = await response.json();
         return result;
+    }
+    
+    async searchUsers(query: string) {
+        const events = await this._socialEventManagerRead.searchUsers(query);
+        let metadataArr: INostrMetadata[] = [];
+        let followersCountMap: Record<string, number> = {};
+        for (let event of events) {
+            if (event.kind === 0) {
+                metadataArr.push({
+                    ...event,
+                    content: SocialUtilsManager.parseContent(event.content)
+                });
+            }
+            else if (event.kind === 10000108) {
+                followersCountMap = SocialUtilsManager.parseContent(event.content);
+            }
+        }
+        const userProfiles: IUserProfile[] = [];
+        for (let metadata of metadataArr) {
+            let userProfile = this.constructUserProfile(metadata, followersCountMap);
+            userProfiles.push(userProfile);
+        }
+        return userProfiles;
     }
 }
 
