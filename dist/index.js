@@ -6665,6 +6665,17 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const threadEvents = await this._socialEventManagerRead.fetchThreadCacheEvents(decodedFocusedNoteId);
             const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(threadEvents);
             for (let note of notes) {
+                if (note.eventData.tags?.length) {
+                    const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
+                    if (communityUri) {
+                        const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                        note.community = {
+                            communityUri,
+                            communityId,
+                            creatorId: index_1.Nip19.npubEncode(creatorId)
+                        };
+                    }
+                }
                 if (note.eventData.id === decodedFocusedNoteId) {
                     focusedNote = note;
                 }
