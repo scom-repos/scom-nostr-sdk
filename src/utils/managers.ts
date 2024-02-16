@@ -113,6 +113,7 @@ interface ISocialEventManagerRead {
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
     fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     // fetchLikes(eventId: string): Promise<INostrEvent[]>;
+    searchUsers(query: string): Promise<INostrEvent[]>;
 }
 
 class NostrRestAPIManager implements INostrRestAPIManager {
@@ -1557,6 +1558,15 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
     //     const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
     //     return fetchEventsResponse.events;
     // }
+
+    async searchUsers(query: string) {
+        const req: any = {
+            query: query,
+            limit: 10
+        };
+        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('user_search', req);
+        return fetchEventsResponse.events;
+    }
 }
 
 class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEventManagerRead {
@@ -4063,6 +4073,29 @@ class SocialDataManager {
         });
         let result = await response.json();
         return result;
+    }
+    
+    async searchUsers(query: string) {
+        const events = await this._socialEventManagerRead.searchUsers(query);
+        let metadataArr: INostrMetadata[] = [];
+        let followersCountMap: Record<string, number> = {};
+        for (let event of events) {
+            if (event.kind === 0) {
+                metadataArr.push({
+                    ...event,
+                    content: SocialUtilsManager.parseContent(event.content)
+                });
+            }
+            else if (event.kind === 10000108) {
+                followersCountMap = SocialUtilsManager.parseContent(event.content);
+            }
+        }
+        const userProfiles: IUserProfile[] = [];
+        for (let metadata of metadataArr) {
+            let userProfile = this.constructUserProfile(metadata, followersCountMap);
+            userProfiles.push(userProfile);
+        }
+        return userProfiles;
     }
 }
 

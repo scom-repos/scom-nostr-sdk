@@ -5467,6 +5467,14 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
             return fetchEventsResponse.events;
         }
+        async searchUsers(query) {
+            const req = {
+                query: query,
+                limit: 10
+            };
+            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('user_search', req);
+            return fetchEventsResponse.events;
+        }
     }
     exports.NostrEventManagerRead = NostrEventManagerRead;
     class NostrEventManagerReadV2 extends NostrEventManagerRead {
@@ -7801,6 +7809,28 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             });
             let result = await response.json();
             return result;
+        }
+        async searchUsers(query) {
+            const events = await this._socialEventManagerRead.searchUsers(query);
+            let metadataArr = [];
+            let followersCountMap = {};
+            for (let event of events) {
+                if (event.kind === 0) {
+                    metadataArr.push({
+                        ...event,
+                        content: SocialUtilsManager.parseContent(event.content)
+                    });
+                }
+                else if (event.kind === 10000108) {
+                    followersCountMap = SocialUtilsManager.parseContent(event.content);
+                }
+            }
+            const userProfiles = [];
+            for (let metadata of metadataArr) {
+                let userProfile = this.constructUserProfile(metadata, followersCountMap);
+                userProfiles.push(userProfile);
+            }
+            return userProfiles;
         }
     }
     exports.SocialDataManager = SocialDataManager;
