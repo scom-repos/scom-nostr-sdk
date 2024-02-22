@@ -2414,6 +2414,22 @@ class SocialDataManager {
         return communityPrivateKey;
     }
 
+    private async retrieveInviteOnlyCommunityNotePrivateKeys(creatorId: string, communityId: string) {
+        let noteIdToPrivateKey: Record<string, string> = {};
+        const communityEvents = await this.retrieveCommunityEvents(creatorId, communityId);
+        const communityInfo = communityEvents.info;
+        const notes = communityEvents.notes;    
+        let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
+        if (!communityPrivateKey) return noteIdToPrivateKey;
+        for (const note of notes) {
+            const postPrivateKey = await this.retrievePostPrivateKey(note, communityInfo.communityUri, communityPrivateKey);
+            if (postPrivateKey) {
+                noteIdToPrivateKey[note.id] = postPrivateKey;
+            }
+        }
+        return noteIdToPrivateKey;
+    }
+
     async retrieveCommunityPostKeys(options: IRetrieveCommunityPostKeysOptions) {
         let noteIdToPrivateKey: Record<string, string> = {};
         if (options.gatekeeperUrl) {
@@ -2438,17 +2454,11 @@ class SocialDataManager {
             }
         }
         else {
-            const communityEvents = await this.retrieveCommunityEvents(options.creatorId, options.communityId);
-            const communityInfo = communityEvents.info;
-            const notes = communityEvents.notes;    
-            let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
-            if (!communityPrivateKey) return noteIdToPrivateKey;
-            for (const note of notes) {
-                const postPrivateKey = await this.retrievePostPrivateKey(note, communityInfo.communityUri, communityPrivateKey);
-                if (postPrivateKey) {
-                    noteIdToPrivateKey[note.id] = postPrivateKey;
-                }
-            }
+            const inviteOnlyNoteIdToPrivateKey = await this.retrieveInviteOnlyCommunityNotePrivateKeys(options.creatorId, options.communityId);
+            noteIdToPrivateKey = {
+                ...noteIdToPrivateKey,
+                ...inviteOnlyNoteIdToPrivateKey
+            };
         }
         return noteIdToPrivateKey;
     }
@@ -2507,6 +2517,7 @@ class SocialDataManager {
             communityInfoMap[communityInfo.communityUri] = communityInfo;
         }  
         let gatekeeperNpubToNotesMap: Record<string, INoteCommunityInfo[]> = {};
+        let inviteOnlyCommunityNotesMap: Record<string, INoteCommunityInfo[]> = {};
         for (let noteCommunityInfo of noteCommunityMappings.noteCommunityInfoList) {
             const communityPrivateKey = communityPrivateKeyMap[noteCommunityInfo.communityUri];
             if (communityPrivateKey)  {
@@ -2517,8 +2528,15 @@ class SocialDataManager {
             }
             else {
                 const communityInfo = communityInfoMap[noteCommunityInfo.communityUri];
-                gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub] = gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub] || [];
-                gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub].push(noteCommunityInfo);
+                if (!communityInfo) continue;
+                if (communityInfo.membershipType === MembershipType.InviteOnly) {
+                    inviteOnlyCommunityNotesMap[communityInfo.communityUri] = inviteOnlyCommunityNotesMap[communityInfo.communityUri] || [];
+                    inviteOnlyCommunityNotesMap[communityInfo.communityUri].push(noteCommunityInfo);
+                }
+                else if (communityInfo.gatekeeperNpub) {
+                    gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub] = gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub] || [];
+                    gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub].push(noteCommunityInfo);
+                }
             }
         }
         if (Object.keys(gatekeeperNpubToNotesMap).length > 0) {
@@ -2549,6 +2567,15 @@ class SocialDataManager {
                         };
                     }
                 }
+            }
+        }
+        for (let communityUri in inviteOnlyCommunityNotesMap) {
+            for (let noteCommunityInfo of inviteOnlyCommunityNotesMap[communityUri]) {
+                const inviteOnlyNoteIdToPrivateKey = await this.retrieveInviteOnlyCommunityNotePrivateKeys(noteCommunityInfo.creatorId, noteCommunityInfo.communityId);
+                noteIdToPrivateKey = {
+                    ...noteIdToPrivateKey,
+                    ...inviteOnlyNoteIdToPrivateKey
+                };
             }
         }
         return noteIdToPrivateKey;
@@ -2881,6 +2908,8 @@ class SocialDataManager {
                 ancestorNotes.push(note);
             }
         }
+        replies = replies.sort((a, b) => a.eventData.created_at - b.eventData.created_at);
+        ancestorNotes = ancestorNotes.sort((a, b) => a.eventData.created_at - b.eventData.created_at);
         let communityInfo: ICommunityInfo | null = null;
         let scpData = SocialUtilsManager.extractScpData(focusedNote.eventData, ScpStandardId.CommunityPost);
         if (scpData) {

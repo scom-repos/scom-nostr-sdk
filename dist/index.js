@@ -6247,6 +6247,22 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             }
             return communityPrivateKey;
         }
+        async retrieveInviteOnlyCommunityNotePrivateKeys(creatorId, communityId) {
+            let noteIdToPrivateKey = {};
+            const communityEvents = await this.retrieveCommunityEvents(creatorId, communityId);
+            const communityInfo = communityEvents.info;
+            const notes = communityEvents.notes;
+            let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
+            if (!communityPrivateKey)
+                return noteIdToPrivateKey;
+            for (const note of notes) {
+                const postPrivateKey = await this.retrievePostPrivateKey(note, communityInfo.communityUri, communityPrivateKey);
+                if (postPrivateKey) {
+                    noteIdToPrivateKey[note.id] = postPrivateKey;
+                }
+            }
+            return noteIdToPrivateKey;
+        }
         async retrieveCommunityPostKeys(options) {
             let noteIdToPrivateKey = {};
             if (options.gatekeeperUrl) {
@@ -6271,18 +6287,11 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 }
             }
             else {
-                const communityEvents = await this.retrieveCommunityEvents(options.creatorId, options.communityId);
-                const communityInfo = communityEvents.info;
-                const notes = communityEvents.notes;
-                let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
-                if (!communityPrivateKey)
-                    return noteIdToPrivateKey;
-                for (const note of notes) {
-                    const postPrivateKey = await this.retrievePostPrivateKey(note, communityInfo.communityUri, communityPrivateKey);
-                    if (postPrivateKey) {
-                        noteIdToPrivateKey[note.id] = postPrivateKey;
-                    }
-                }
+                const inviteOnlyNoteIdToPrivateKey = await this.retrieveInviteOnlyCommunityNotePrivateKeys(options.creatorId, options.communityId);
+                noteIdToPrivateKey = {
+                    ...noteIdToPrivateKey,
+                    ...inviteOnlyNoteIdToPrivateKey
+                };
             }
             return noteIdToPrivateKey;
         }
@@ -6341,6 +6350,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 communityInfoMap[communityInfo.communityUri] = communityInfo;
             }
             let gatekeeperNpubToNotesMap = {};
+            let inviteOnlyCommunityNotesMap = {};
             for (let noteCommunityInfo of noteCommunityMappings.noteCommunityInfoList) {
                 const communityPrivateKey = communityPrivateKeyMap[noteCommunityInfo.communityUri];
                 if (communityPrivateKey) {
@@ -6351,8 +6361,16 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 }
                 else {
                     const communityInfo = communityInfoMap[noteCommunityInfo.communityUri];
-                    gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub] = gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub] || [];
-                    gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub].push(noteCommunityInfo);
+                    if (!communityInfo)
+                        continue;
+                    if (communityInfo.membershipType === interfaces_1.MembershipType.InviteOnly) {
+                        inviteOnlyCommunityNotesMap[communityInfo.communityUri] = inviteOnlyCommunityNotesMap[communityInfo.communityUri] || [];
+                        inviteOnlyCommunityNotesMap[communityInfo.communityUri].push(noteCommunityInfo);
+                    }
+                    else if (communityInfo.gatekeeperNpub) {
+                        gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub] = gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub] || [];
+                        gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub].push(noteCommunityInfo);
+                    }
                 }
             }
             if (Object.keys(gatekeeperNpubToNotesMap).length > 0) {
@@ -6383,6 +6401,15 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                             };
                         }
                     }
+                }
+            }
+            for (let communityUri in inviteOnlyCommunityNotesMap) {
+                for (let noteCommunityInfo of inviteOnlyCommunityNotesMap[communityUri]) {
+                    const inviteOnlyNoteIdToPrivateKey = await this.retrieveInviteOnlyCommunityNotePrivateKeys(noteCommunityInfo.creatorId, noteCommunityInfo.communityId);
+                    noteIdToPrivateKey = {
+                        ...noteIdToPrivateKey,
+                        ...inviteOnlyNoteIdToPrivateKey
+                    };
                 }
             }
             return noteIdToPrivateKey;
@@ -6692,6 +6719,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     ancestorNotes.push(note);
                 }
             }
+            replies = replies.sort((a, b) => a.eventData.created_at - b.eventData.created_at);
+            ancestorNotes = ancestorNotes.sort((a, b) => a.eventData.created_at - b.eventData.created_at);
             let communityInfo = null;
             let scpData = SocialUtilsManager.extractScpData(focusedNote.eventData, interfaces_1.ScpStandardId.CommunityPost);
             if (scpData) {
