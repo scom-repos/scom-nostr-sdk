@@ -3600,7 +3600,7 @@ class SocialDataManager {
                 creatorId,
                 username: channel.name,
                 displayName: channel.name,
-                avatar: channel.picture,
+                avatar: channel.picture || channel.communityInfo?.avatarImgUrl,
                 banner: '',
                 latestAt: 0,
                 cnt: 0,

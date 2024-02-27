@@ -7348,7 +7348,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     creatorId,
                     username: channel.name,
                     displayName: channel.name,
-                    avatar: channel.picture,
+                    avatar: channel.picture || channel.communityInfo?.avatarImgUrl,
                     banner: '',
                     latestAt: 0,
                     cnt: 0,
