@@ -6427,10 +6427,12 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const metadata = await this._socialEventManagerRead.fetchUserProfileCacheEvents([...npubs, ...uniqueKeys]);
             const metadataByPubKeyMap = metadata.reduce((acc, cur) => {
                 const content = JSON.parse(cur.content);
-                acc[cur.pubkey] = {
-                    ...cur,
-                    content
-                };
+                if (cur.pubkey) {
+                    acc[cur.pubkey] = {
+                        ...cur,
+                        content
+                    };
+                }
                 return acc;
             }, {});
             return metadataByPubKeyMap;

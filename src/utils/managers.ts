@@ -2595,10 +2595,12 @@ class SocialDataManager {
     
         const metadataByPubKeyMap: Record<string, INostrMetadata> = metadata.reduce((acc, cur) => {
             const content = JSON.parse(cur.content);
-            acc[cur.pubkey] = {
-                ...cur,
-                content
-            };
+            if (cur.pubkey) {
+                acc[cur.pubkey] = {
+                    ...cur,
+                    content
+                };
+            }
             return acc;
         }, {});
         return metadataByPubKeyMap;
