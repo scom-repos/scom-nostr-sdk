@@ -2595,10 +2595,12 @@ class SocialDataManager {
     
         const metadataByPubKeyMap: Record<string, INostrMetadata> = metadata.reduce((acc, cur) => {
             const content = JSON.parse(cur.content);
-            acc[cur.pubkey] = {
-                ...cur,
-                content
-            };
+            if (cur.pubkey) {
+                acc[cur.pubkey] = {
+                    ...cur,
+                    content
+                };
+            }
             return acc;
         }, {});
         return metadataByPubKeyMap;
@@ -3600,7 +3602,7 @@ class SocialDataManager {
                 creatorId,
                 username: channel.name,
                 displayName: channel.name,
-                avatar: channel.picture,
+                avatar: channel.picture || channel.communityInfo?.avatarImgUrl,
                 banner: '',
                 latestAt: 0,
                 cnt: 0,
