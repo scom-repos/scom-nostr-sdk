@@ -2707,7 +2707,7 @@ class SocialDataManager {
             if (!metadata) continue;
             const metadataContent = metadata.content;
             const encodedPubkey = Nip19.npubEncode(metadata.pubkey);
-            const internetIdentifier = metadataContent.nip05?.replace('_@', '') || '';
+            const internetIdentifier = typeof metadataContent.nip05 === 'string' ? metadataContent.nip05?.replace('_@', '') || '' : '';
             note.repost = {
                 id: encodedPubkey,
                 username: '',
@@ -2743,7 +2743,7 @@ class SocialDataManager {
             if (!metadata) continue;
             const metadataContent = metadata.content;
             const encodedPubkey = Nip19.npubEncode(metadata.pubkey);
-            const internetIdentifier = metadataContent.nip05?.replace('_@', '') || '';
+            const internetIdentifier = typeof metadataContent.nip05 === 'string' ? metadataContent.nip05?.replace('_@', '') || '' : '';
             note.parentAuthor = {
                 id: encodedPubkey,
                 username: '',
@@ -3005,7 +3005,7 @@ class SocialDataManager {
         const followersCount = followersCountMap?.[metadata.pubkey] || 0;
         const encodedPubkey = Nip19.npubEncode(metadata.pubkey);
         const metadataContent = metadata.content;
-        const internetIdentifier = metadataContent.nip05?.replace('_@', '') || '';
+        const internetIdentifier = typeof metadataContent.nip05 === 'string' ? metadataContent.nip05?.replace('_@', '') || '' : '';
         let userProfile: IUserProfile = {
             id: encodedPubkey,
             username: metadataContent.username || metadataContent.name,
