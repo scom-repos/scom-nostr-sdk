@@ -6533,7 +6533,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     continue;
                 const metadataContent = metadata.content;
                 const encodedPubkey = index_1.Nip19.npubEncode(metadata.pubkey);
-                const internetIdentifier = metadataContent.nip05?.replace('_@', '') || '';
+                const internetIdentifier = typeof metadataContent.nip05 === 'string' ? metadataContent.nip05?.replace('_@', '') || '' : '';
                 note.repost = {
                     id: encodedPubkey,
                     username: '',
@@ -6565,7 +6565,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     continue;
                 const metadataContent = metadata.content;
                 const encodedPubkey = index_1.Nip19.npubEncode(metadata.pubkey);
-                const internetIdentifier = metadataContent.nip05?.replace('_@', '') || '';
+                const internetIdentifier = typeof metadataContent.nip05 === 'string' ? metadataContent.nip05?.replace('_@', '') || '' : '';
                 note.parentAuthor = {
                     id: encodedPubkey,
                     username: '',
@@ -6812,7 +6812,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const followersCount = followersCountMap?.[metadata.pubkey] || 0;
             const encodedPubkey = index_1.Nip19.npubEncode(metadata.pubkey);
             const metadataContent = metadata.content;
-            const internetIdentifier = metadataContent.nip05?.replace('_@', '') || '';
+            const internetIdentifier = typeof metadataContent.nip05 === 'string' ? metadataContent.nip05?.replace('_@', '') || '' : '';
             let userProfile = {
                 id: encodedPubkey,
                 username: metadataContent.username || metadataContent.name,
