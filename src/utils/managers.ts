@@ -1467,33 +1467,34 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
 
     async fetchCalendarEvents(start: number, end?: number, limit?: number) {
         let req: any;
-        if (this._apiBaseUrl) {
-            let queriesObj: any = {
-                start: start.toString()
-            };
-            if (end) {
-                queriesObj.end = end.toString();
-            }
-            let queries = new URLSearchParams(queriesObj).toString();
-            const apiUrl = `${this._apiBaseUrl}/calendar-events?${queries}`;
-            const apiResponse = await fetch(apiUrl);
-            const apiResult = await apiResponse.json();
-            let calendarEventIds: string[] = [];
-            if (apiResult.success) {
-                const calendarEvents = apiResult.data.calendarEvents;
-                calendarEventIds = calendarEvents.map(calendarEvent => calendarEvent.eventId);
-            }
-            req = {
-                kinds: [31922, 31923],
-                ids: calendarEventIds
-            };
-        }
-        else {
+        // FixME: Remove line comments when events are indexed
+        // if (this._apiBaseUrl) {
+        //     let queriesObj: any = {
+        //         start: start.toString()
+        //     };
+        //     if (end) {
+        //         queriesObj.end = end.toString();
+        //     }
+        //     let queries = new URLSearchParams(queriesObj).toString();
+        //     const apiUrl = `${this._apiBaseUrl}/calendar-events?${queries}`;
+        //     const apiResponse = await fetch(apiUrl);
+        //     const apiResult = await apiResponse.json();
+        //     let calendarEventIds: string[] = [];
+        //     if (apiResult.success) {
+        //         const calendarEvents = apiResult.data.calendarEvents;
+        //         calendarEventIds = calendarEvents.map(calendarEvent => calendarEvent.eventId);
+        //     }
+        //     req = {
+        //         kinds: [31922, 31923],
+        //         ids: calendarEventIds
+        //     };
+        // }
+        // else {
             req = {
                 kinds: [31922, 31923],
                 limit: limit || 10
             }; 
-        }
+        // }
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
         return fetchEventsResponse.events;
     }
