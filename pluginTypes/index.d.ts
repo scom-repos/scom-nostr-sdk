@@ -1536,6 +1536,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
         fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
         fetchContactListCacheEvents(pubKey: string, detailIncluded?: boolean): Promise<INostrEvent[]>;
+        fetchUserRelays(pubKey: string): Promise<INostrEvent[]>;
         fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
         fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<INostrEvent[]>;
         fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;
@@ -1626,6 +1627,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
         fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
         fetchContactListCacheEvents(pubKey: string, detailIncluded?: boolean): Promise<INostrEvent[]>;
+        fetchUserRelays(pubKey: any): Promise<INostrEvent[]>;
         fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
         fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<any>;
         fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;

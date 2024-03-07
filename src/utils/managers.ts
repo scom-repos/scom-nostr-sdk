@@ -86,6 +86,7 @@ interface ISocialEventManagerRead {
     fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
     fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchContactListCacheEvents(pubKey: string, detailIncluded?: boolean): Promise<INostrEvent[]>;
+    fetchUserRelays(pubKey: string): Promise<INostrEvent[]>;
     fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<INostrEvent[]>;
     fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;
@@ -1048,6 +1049,15 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('contact_list', msg);
         return fetchEventsResponse.events;
     }    
+
+    async fetchUserRelays(pubKey) {
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        let msg: any = {
+            pubkey: decodedPubKey
+        };
+        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('get_user_relays', msg);
+        return fetchEventsResponse.events;
+    }
 
     async fetchFollowersCacheEvents(pubKey: string) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
@@ -3072,11 +3082,10 @@ class SocialDataManager {
 
     async fetchUserRelayList(pubKey: string) {
         let relayList: string[] = [];
-        const relaysEvents = await this._socialEventManagerRead.fetchContactListCacheEvents(pubKey, false);
-        const relaysEvent = relaysEvents.find(event => event.kind === 3);
+        const relaysEvents = await this._socialEventManagerRead.fetchUserRelays(pubKey);
+        const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
         if (!relaysEvent) return relayList;
-        let content = relaysEvent.content ? JSON.parse(relaysEvent.content) : {};
-        relayList = Object.keys(content);
+        relayList = relaysEvent.tags.filter(tag => tag[0] === 'r')?.map(tag => tag[1]) || [];
         return relayList;
     }
 
