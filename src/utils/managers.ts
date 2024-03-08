@@ -1,6 +1,6 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, CommunityRole, IAllUserRelatedChannels, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrFetchEventsResponse, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
+import { CalendarEventType, CommunityRole, IAllUserRelatedChannels, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrFetchEventsResponse, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
 import Geohash from './geohash';
 import GeoQuery from './geoquery';
 import { MqttManager } from "./mqtt";
@@ -75,6 +75,7 @@ interface ISocialEventManagerWrite {
     submitLongFormContentEvents(info: ILongFormContentInfo, privateKey: string): Promise<void>;
     submitLike(tags: string[][], privateKey: string): Promise<void>;
     submitRepost(content: string, tags: string[][], privateKey: string): Promise<void>;
+    updateRelayList(relays: Record<string, IRelayConfig>, privateKey: string): Promise<void>;
 }
 
 interface ISocialEventManagerRead {
@@ -925,6 +926,27 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             "content": content,
             "tags": tags
         };
+        const verifiedEvent = Event.finishEvent(event, privateKey);
+        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+    }
+
+    async updateRelayList(relays: Record<string, IRelayConfig>, privateKey: string) {
+        let event = {
+            "kind": 10002,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": "",
+            "tags": []
+        };
+        for (let url in relays) {
+            const { read, write } = relays[url];
+            if(!read && !write) continue;
+            const tag = [
+                "r",
+                url
+            ];
+            if (!read || !write) tag.push(read ? 'read' : 'write');
+            event.tags.push(tag)
+        }
         const verifiedEvent = Event.finishEvent(event, privateKey);
         const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
     }
@@ -4127,6 +4149,48 @@ class SocialDataManager {
             userProfiles.push(userProfile);
         }
         return userProfiles;
+    }
+
+    async addRelay(url: string) {
+        const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
+        const relaysEvents = await this._socialEventManagerRead.fetchUserRelays(selfPubkey);
+        const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
+        let relays: Record<string, IRelayConfig> = { [url]: { write: true, read: true } };
+        if (relaysEvent) {
+            for (let tag of relaysEvent.tags) {
+                if (tag[0] !== 'r') continue;
+                let config: IRelayConfig = { read: true, write: true };
+                if (tag[2] === 'write') {
+                    config.read = false;
+                }
+                if (tag[2] === 'read') {
+                    config.write = false;
+                }
+                relays[tag[1]] = config;
+            }
+        }
+        await this._socialEventManagerWrite.updateRelayList(relays, this._privateKey);
+    }
+
+    async removeRelay(url: string) {
+        const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
+        const relaysEvents = await this._socialEventManagerRead.fetchUserRelays(selfPubkey);
+        const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
+        let relays: Record<string, IRelayConfig> = {};
+        if (relaysEvent) {
+            for (let tag of relaysEvent.tags) {
+                if (tag[0] !== 'r' || tag[1] === url) continue;
+                let config: IRelayConfig = { read: true, write: true };
+                if (tag[2] === 'write') {
+                    config.read = false;
+                }
+                if (tag[2] === 'read') {
+                    config.write = false;
+                }
+                relays[tag[1]] = config;
+            }
+        }
+        await this._socialEventManagerWrite.updateRelayList(relays, this._privateKey);
     }
 }
 

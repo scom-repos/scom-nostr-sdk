@@ -1422,6 +1422,10 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         channelMetadataMap: Record<string, IChannelInfo>;
         channelIdToCommunityMap: Record<string, ICommunityInfo>;
     }
+    export interface IRelayConfig {
+        read: boolean;
+        write: boolean;
+    }
 }
 /// <amd-module name="@scom/scom-social-sdk/utils/geohash.ts" />
 declare module "@scom/scom-social-sdk/utils/geohash.ts" {
@@ -1498,7 +1502,7 @@ declare module "@scom/scom-social-sdk/utils/mqtt.ts" {
 /// <amd-module name="@scom/scom-social-sdk/utils/managers.ts" />
 declare module "@scom/scom-social-sdk/utils/managers.ts" {
     import { Nip19, Event } from "@scom/scom-social-sdk/core/index.ts";
-    import { IAllUserRelatedChannels, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrFetchEventsResponse, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    import { IAllUserRelatedChannels, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrFetchEventsResponse, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
     interface INostrCommunicationManager {
         fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
         fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
@@ -1526,6 +1530,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         submitLongFormContentEvents(info: ILongFormContentInfo, privateKey: string): Promise<void>;
         submitLike(tags: string[][], privateKey: string): Promise<void>;
         submitRepost(content: string, tags: string[][], privateKey: string): Promise<void>;
+        updateRelayList(relays: Record<string, IRelayConfig>, privateKey: string): Promise<void>;
     }
     interface ISocialEventManagerRead {
         fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
@@ -1613,6 +1618,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         submitLongFormContentEvents(info: ILongFormContentInfo, privateKey: string): Promise<void>;
         submitLike(tags: string[][], privateKey: string): Promise<void>;
         submitRepost(content: string, tags: string[][], privateKey: string): Promise<void>;
+        updateRelayList(relays: Record<string, IRelayConfig>, privateKey: string): Promise<void>;
     }
     class NostrEventManagerRead implements ISocialEventManagerRead {
         protected _nostrCommunicationManager: INostrCommunicationManager;
@@ -1861,6 +1867,8 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchUnreadMessageCounts(pubkey: string): Promise<any>;
         updateMessageLastReadReceipt(pubkey: string, walletAddress: string, signature: string, fromId: string): Promise<any>;
         searchUsers(query: string): Promise<IUserProfile[]>;
+        addRelay(url: string): Promise<void>;
+        removeRelay(url: string): Promise<void>;
     }
     export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager };
 }

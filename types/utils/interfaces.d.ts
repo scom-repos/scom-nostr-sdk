@@ -324,3 +324,7 @@ export interface IAllUserRelatedChannels {
     channelMetadataMap: Record<string, IChannelInfo>;
     channelIdToCommunityMap: Record<string, ICommunityInfo>;
 }
+export interface IRelayConfig {
+    read: boolean;
+    write: boolean;
+}

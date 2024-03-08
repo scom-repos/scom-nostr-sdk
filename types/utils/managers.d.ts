@@ -1,5 +1,5 @@
 import { Nip19, Event } from "../core/index";
-import { IAllUserRelatedChannels, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrFetchEventsResponse, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "./interfaces";
+import { IAllUserRelatedChannels, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrFetchEventsResponse, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "./interfaces";
 interface INostrCommunicationManager {
     fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
     fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
@@ -27,6 +27,7 @@ interface ISocialEventManagerWrite {
     submitLongFormContentEvents(info: ILongFormContentInfo, privateKey: string): Promise<void>;
     submitLike(tags: string[][], privateKey: string): Promise<void>;
     submitRepost(content: string, tags: string[][], privateKey: string): Promise<void>;
+    updateRelayList(relays: Record<string, IRelayConfig>, privateKey: string): Promise<void>;
 }
 interface ISocialEventManagerRead {
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
@@ -114,6 +115,7 @@ declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
     submitLongFormContentEvents(info: ILongFormContentInfo, privateKey: string): Promise<void>;
     submitLike(tags: string[][], privateKey: string): Promise<void>;
     submitRepost(content: string, tags: string[][], privateKey: string): Promise<void>;
+    updateRelayList(relays: Record<string, IRelayConfig>, privateKey: string): Promise<void>;
 }
 declare class NostrEventManagerRead implements ISocialEventManagerRead {
     protected _nostrCommunicationManager: INostrCommunicationManager;
@@ -358,5 +360,7 @@ declare class SocialDataManager {
     fetchUnreadMessageCounts(pubkey: string): Promise<any>;
     updateMessageLastReadReceipt(pubkey: string, walletAddress: string, signature: string, fromId: string): Promise<any>;
     searchUsers(query: string): Promise<IUserProfile[]>;
+    addRelay(url: string): Promise<void>;
+    removeRelay(url: string): Promise<void>;
 }
 export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager };
