@@ -4192,6 +4192,30 @@ class SocialDataManager {
         }
         await this._socialEventManagerWrite.updateRelayList(relays, this._privateKey);
     }
+
+    async updateRelays(add: string[], remove: string[]) {
+        const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
+        const relaysEvents = await this._socialEventManagerRead.fetchUserRelays(selfPubkey);
+        const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
+        let relays: Record<string, IRelayConfig> = {};
+        for (let relay of add) {
+            relays[relay] = { read: true, write: true };
+        }
+        if (relaysEvent) {
+            for (let tag of relaysEvent.tags) {
+                if (tag[0] !== 'r' || remove.includes(tag[1])) continue;
+                let config: IRelayConfig = { read: true, write: true };
+                if (tag[2] === 'write') {
+                    config.read = false;
+                }
+                if (tag[2] === 'read') {
+                    config.write = false;
+                }
+                relays[tag[1]] = config;
+            }
+        }
+        await this._socialEventManagerWrite.updateRelayList(relays, this._privateKey);
+    }
 }
 
 export {

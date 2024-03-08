@@ -362,5 +362,6 @@ declare class SocialDataManager {
     searchUsers(query: string): Promise<IUserProfile[]>;
     addRelay(url: string): Promise<void>;
     removeRelay(url: string): Promise<void>;
+    updateRelays(add: string[], remove: string[]): Promise<void>;
 }
 export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager };
