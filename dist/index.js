@@ -4901,6 +4901,28 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const verifiedEvent = index_1.Event.finishEvent(event, privateKey);
             const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
+        async updateRelayList(relays, privateKey) {
+            let event = {
+                "kind": 10002,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": "",
+                "tags": []
+            };
+            for (let url in relays) {
+                const { read, write } = relays[url];
+                if (!read && !write)
+                    continue;
+                const tag = [
+                    "r",
+                    url
+                ];
+                if (!read || !write)
+                    tag.push(read ? 'read' : 'write');
+                event.tags.push(tag);
+            }
+            const verifiedEvent = index_1.Event.finishEvent(event, privateKey);
+            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        }
     }
     exports.NostrEventManagerWrite = NostrEventManagerWrite;
     class NostrEventManagerRead {
@@ -5007,6 +5029,14 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 pubkey: decodedPubKey
             };
             const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('contact_list', msg);
+            return fetchEventsResponse.events;
+        }
+        async fetchUserRelays(pubKey) {
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_1.Nip19.decode(pubKey).data : pubKey;
+            let msg = {
+                pubkey: decodedPubKey
+            };
+            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('get_user_relays', msg);
             return fetchEventsResponse.events;
         }
         async fetchFollowersCacheEvents(pubKey) {
@@ -6876,12 +6906,11 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         }
         async fetchUserRelayList(pubKey) {
             let relayList = [];
-            const relaysEvents = await this._socialEventManagerRead.fetchContactListCacheEvents(pubKey, false);
-            const relaysEvent = relaysEvents.find(event => event.kind === 3);
+            const relaysEvents = await this._socialEventManagerRead.fetchUserRelays(pubKey);
+            const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
             if (!relaysEvent)
                 return relayList;
-            let content = relaysEvent.content ? JSON.parse(relaysEvent.content) : {};
-            relayList = Object.keys(content);
+            relayList = relaysEvent.tags.filter(tag => tag[0] === 'r')?.map(tag => tag[1]) || [];
             return relayList;
         }
         async followUser(userPubKey) {
@@ -7861,6 +7890,48 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 userProfiles.push(userProfile);
             }
             return userProfiles;
+        }
+        async addRelay(url) {
+            const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
+            const relaysEvents = await this._socialEventManagerRead.fetchUserRelays(selfPubkey);
+            const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
+            let relays = { [url]: { write: true, read: true } };
+            if (relaysEvent) {
+                for (let tag of relaysEvent.tags) {
+                    if (tag[0] !== 'r')
+                        continue;
+                    let config = { read: true, write: true };
+                    if (tag[2] === 'write') {
+                        config.read = false;
+                    }
+                    if (tag[2] === 'read') {
+                        config.write = false;
+                    }
+                    relays[tag[1]] = config;
+                }
+            }
+            await this._socialEventManagerWrite.updateRelayList(relays, this._privateKey);
+        }
+        async removeRelay(url) {
+            const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
+            const relaysEvents = await this._socialEventManagerRead.fetchUserRelays(selfPubkey);
+            const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
+            let relays = {};
+            if (relaysEvent) {
+                for (let tag of relaysEvent.tags) {
+                    if (tag[0] !== 'r' || tag[1] === url)
+                        continue;
+                    let config = { read: true, write: true };
+                    if (tag[2] === 'write') {
+                        config.read = false;
+                    }
+                    if (tag[2] === 'read') {
+                        config.write = false;
+                    }
+                    relays[tag[1]] = config;
+                }
+            }
+            await this._socialEventManagerWrite.updateRelayList(relays, this._privateKey);
         }
     }
     exports.SocialDataManager = SocialDataManager;
