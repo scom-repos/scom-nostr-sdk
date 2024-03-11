@@ -57,6 +57,7 @@ interface INostrRestAPIManager extends INostrCommunicationManager {
 }
 
 interface ISocialEventManagerWrite {
+    nostrCommunicationManagers: INostrCommunicationManager[];
     updateContactList(content: string, contactPubKeys: string[], privateKey: string): Promise<void>;
     postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
     deleteEvents(eventIds: string[], privateKey: string): Promise<INostrSubmitResponse[]>;
@@ -79,6 +80,7 @@ interface ISocialEventManagerWrite {
 }
 
 interface ISocialEventManagerRead {
+    nostrCommunicationManager: INostrCommunicationManager | INostrRestAPIManager;
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
     fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
     fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
@@ -345,6 +347,10 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
     constructor(managers: INostrCommunicationManager[], apiBaseUrl: string) {
         this._nostrCommunicationManagers = managers;
         this._apiBaseUrl = apiBaseUrl;
+    }
+
+    set nostrCommunicationManagers(managers: INostrCommunicationManager[]) {
+        this._nostrCommunicationManagers = managers;
     }
 
     private calculateConversationPathTags(conversationPath: IConversationPath) {
@@ -961,6 +967,10 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         this._nostrCommunicationManager = manager;
         this._nostrCachedCommunicationManager = cachedManager;
         this._apiBaseUrl = apiBaseUrl;
+    }
+
+    set nostrCommunicationManager(manager: INostrCommunicationManager) {
+        this._nostrCommunicationManager = manager;
     }
 
     async fetchThreadCacheEvents(id: string, pubKey?: string) {
@@ -1609,6 +1619,10 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
 
     constructor(manager: INostrRestAPIManager, cachedManager: INostrRestAPIManager, apiBaseUrl: string) {
         super(manager, cachedManager, apiBaseUrl);
+    }
+
+    set nostrCommunicationManager(manager: INostrRestAPIManager) {
+        this._nostrCommunicationManager = manager;
     }
 
     async fetchThreadCacheEvents(id: string, pubKey?: string) {
@@ -2345,6 +2359,27 @@ class SocialDataManager {
 
     get socialEventManagerWrite() {
         return this._socialEventManagerWrite;
+    }
+
+    set relays(value: string[]) {
+        this._setRelays(value);
+    }
+    
+    private _setRelays(relays: string[]) {
+        let nostrCommunicationManagers: INostrCommunicationManager[] = [];
+        for (let relay of relays) {
+            if (relay.startsWith('wss://')) {
+                nostrCommunicationManagers.push(new NostrWebSocketManager(relay));
+            }
+            else {
+                nostrCommunicationManagers.push(new NostrRestAPIManager(relay));
+                if (!this._defaultRestAPIRelay) {
+                    this._defaultRestAPIRelay = relay;
+                }
+            }
+        }
+        this._socialEventManagerRead.nostrCommunicationManager = nostrCommunicationManagers[0];
+        this._socialEventManagerWrite.nostrCommunicationManagers = nostrCommunicationManagers;
     }
 
     subscribeToMqttTopics(topics: string[]) {
@@ -4193,7 +4228,7 @@ class SocialDataManager {
         await this._socialEventManagerWrite.updateRelayList(relays, this._privateKey);
     }
 
-    async updateRelays(add: string[], remove: string[]) {
+    async updateRelays(add: string[], remove: string[], defaultRelays: string[]) {
         const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
         const relaysEvents = await this._socialEventManagerRead.fetchUserRelays(selfPubkey);
         const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
@@ -4214,6 +4249,8 @@ class SocialDataManager {
                 relays[tag[1]] = config;
             }
         }
+        let relayUrls = Object.keys(relays);
+        this.relays = relayUrls.length > 0 ? relayUrls : defaultRelays;
         await this._socialEventManagerWrite.updateRelayList(relays, this._privateKey);
     }
 }

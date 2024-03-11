@@ -1512,6 +1512,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         fetchEventsFromAPI(endpoint: string, msg: any): Promise<INostrFetchEventsResponse>;
     }
     interface ISocialEventManagerWrite {
+        nostrCommunicationManagers: INostrCommunicationManager[];
         updateContactList(content: string, contactPubKeys: string[], privateKey: string): Promise<void>;
         postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
         deleteEvents(eventIds: string[], privateKey: string): Promise<INostrSubmitResponse[]>;
@@ -1533,6 +1534,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         updateRelayList(relays: Record<string, IRelayConfig>, privateKey: string): Promise<void>;
     }
     interface ISocialEventManagerRead {
+        nostrCommunicationManager: INostrCommunicationManager | INostrRestAPIManager;
         fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
         fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
         fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
@@ -1599,6 +1601,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         private _nostrCommunicationManagers;
         private _apiBaseUrl;
         constructor(managers: INostrCommunicationManager[], apiBaseUrl: string);
+        set nostrCommunicationManagers(managers: INostrCommunicationManager[]);
         private calculateConversationPathTags;
         updateContactList(content: string, contactPubKeys: string[], privateKey: string): Promise<void>;
         postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
@@ -1625,6 +1628,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         protected _nostrCachedCommunicationManager: INostrCommunicationManager;
         protected _apiBaseUrl: string;
         constructor(manager: INostrCommunicationManager, cachedManager: INostrCommunicationManager, apiBaseUrl: string);
+        set nostrCommunicationManager(manager: INostrCommunicationManager);
         fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
         fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
         fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
@@ -1667,6 +1671,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         protected _nostrCachedCommunicationManager: INostrRestAPIManager;
         protected _apiBaseUrl: string;
         constructor(manager: INostrRestAPIManager, cachedManager: INostrRestAPIManager, apiBaseUrl: string);
+        set nostrCommunicationManager(manager: INostrRestAPIManager);
         fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
         fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
         fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
@@ -1737,6 +1742,8 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         set privateKey(privateKey: string);
         get socialEventManagerRead(): ISocialEventManagerRead;
         get socialEventManagerWrite(): ISocialEventManagerWrite;
+        set relays(value: string[]);
+        private _setRelays;
         subscribeToMqttTopics(topics: string[]): void;
         unsubscribeFromMqttTopics(topics: string[]): void;
         publishToMqttTopic(topic: string, message: string): void;
@@ -1869,7 +1876,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         searchUsers(query: string): Promise<IUserProfile[]>;
         addRelay(url: string): Promise<void>;
         removeRelay(url: string): Promise<void>;
-        updateRelays(add: string[], remove: string[]): Promise<void>;
+        updateRelays(add: string[], remove: string[], defaultRelays: string[]): Promise<void>;
     }
     export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager };
 }

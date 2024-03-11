@@ -4337,6 +4337,9 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             this._nostrCommunicationManagers = managers;
             this._apiBaseUrl = apiBaseUrl;
         }
+        set nostrCommunicationManagers(managers) {
+            this._nostrCommunicationManagers = managers;
+        }
         calculateConversationPathTags(conversationPath) {
             let tags = [];
             for (let i = 0; i < conversationPath.noteIds.length; i++) {
@@ -4931,6 +4934,9 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             this._nostrCachedCommunicationManager = cachedManager;
             this._apiBaseUrl = apiBaseUrl;
         }
+        set nostrCommunicationManager(manager) {
+            this._nostrCommunicationManager = manager;
+        }
         async fetchThreadCacheEvents(id, pubKey) {
             let decodedId = id.startsWith('note1') ? index_1.Nip19.decode(id).data : id;
             let msg = {
@@ -5519,6 +5525,9 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
     class NostrEventManagerReadV2 extends NostrEventManagerRead {
         constructor(manager, cachedManager, apiBaseUrl) {
             super(manager, cachedManager, apiBaseUrl);
+        }
+        set nostrCommunicationManager(manager) {
+            this._nostrCommunicationManager = manager;
         }
         async fetchThreadCacheEvents(id, pubKey) {
             let decodedId = id.startsWith('note1') ? index_1.Nip19.decode(id).data : id;
@@ -6184,6 +6193,25 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         }
         get socialEventManagerWrite() {
             return this._socialEventManagerWrite;
+        }
+        set relays(value) {
+            this._setRelays(value);
+        }
+        _setRelays(relays) {
+            let nostrCommunicationManagers = [];
+            for (let relay of relays) {
+                if (relay.startsWith('wss://')) {
+                    nostrCommunicationManagers.push(new NostrWebSocketManager(relay));
+                }
+                else {
+                    nostrCommunicationManagers.push(new NostrRestAPIManager(relay));
+                    if (!this._defaultRestAPIRelay) {
+                        this._defaultRestAPIRelay = relay;
+                    }
+                }
+            }
+            this._socialEventManagerRead.nostrCommunicationManager = nostrCommunicationManagers[0];
+            this._socialEventManagerWrite.nostrCommunicationManagers = nostrCommunicationManagers;
         }
         subscribeToMqttTopics(topics) {
             this.mqttManager.subscribe(topics);
@@ -7933,7 +7961,7 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             }
             await this._socialEventManagerWrite.updateRelayList(relays, this._privateKey);
         }
-        async updateRelays(add, remove) {
+        async updateRelays(add, remove, defaultRelays) {
             const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
             const relaysEvents = await this._socialEventManagerRead.fetchUserRelays(selfPubkey);
             const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
@@ -7955,6 +7983,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                     relays[tag[1]] = config;
                 }
             }
+            let relayUrls = Object.keys(relays);
+            this.relays = relayUrls.length > 0 ? relayUrls : defaultRelays;
             await this._socialEventManagerWrite.updateRelayList(relays, this._privateKey);
         }
     }
