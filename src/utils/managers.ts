@@ -4,6 +4,7 @@ import { CalendarEventType, CommunityRole, IAllUserRelatedChannels, ICalendarEve
 import Geohash from './geohash';
 import GeoQuery from './geoquery';
 import { MqttManager } from "./mqtt";
+import { LightningWalletManager } from "./lightningWallet";
 
 interface IFetchNotesOptions {
     authors?: string[];
@@ -257,6 +258,7 @@ class NostrWebSocketManager implements INostrCommunicationManager {
 
                 this.ws.addEventListener('close', () => {
                     console.log('Disconnected from server');
+                    resolve({ ws: null, error: 'Disconnected from server' });
                 });
 
                 this.ws.addEventListener('error', (error) => {
@@ -302,6 +304,11 @@ class NostrWebSocketManager implements INostrCommunicationManager {
             }
             else if (ws) {
                 ws.send(JSON.stringify(["REQ", requestId, ...requests]));
+            }
+            else {
+                resolve({
+                    error: 'Error establishing connection'
+                });
             }
         });
     }
@@ -2290,6 +2297,7 @@ class SocialUtilsManager {
 }
 
 class SocialDataManager {
+    private _relays: string[];
     private _defaultRestAPIRelay: string;
     private _apiBaseUrl: string;
     private _ipLocationServiceBaseUrl: string;
@@ -2297,12 +2305,14 @@ class SocialDataManager {
     private _socialEventManagerWrite: ISocialEventManagerWrite;
     private _privateKey: string;
     private mqttManager: MqttManager;
+    private lightningWalletManager: LightningWalletManager;
 
     constructor(config: ISocialDataManagerConfig) {
         this._apiBaseUrl = config.apiBaseUrl;
         this._ipLocationServiceBaseUrl = config.ipLocationServiceBaseUrl;
         let nostrCommunicationManagers: INostrCommunicationManager[] = [];
         let nostrCachedCommunicationManager: INostrCommunicationManager;
+        this._relays = config.relays;
         for (let relay of config.relays) {
             if (relay.startsWith('wss://')) {
                 nostrCommunicationManagers.push(new NostrWebSocketManager(relay));
@@ -2347,10 +2357,12 @@ class SocialDataManager {
                 messageCallback: config.mqttMessageCallback
             });
         }
+        this.lightningWalletManager = new LightningWalletManager();
     }
 
     set privateKey(privateKey: string) {
         this._privateKey = privateKey;
+        this.lightningWalletManager.privateKey = privateKey;
     }
 
     get socialEventManagerRead() {
@@ -4252,6 +4264,21 @@ class SocialDataManager {
         let relayUrls = Object.keys(relays);
         this.relays = relayUrls.length > 0 ? relayUrls : defaultRelays;
         await this._socialEventManagerWrite.updateRelayList(relays, this._privateKey);
+    }
+
+    async makeInvoice(amount: string, defaultMemo: string) {
+        const response = await this.lightningWalletManager.makeInvoice(amount, defaultMemo);
+        return response as any;
+    }
+
+    async sendPayment(paymentRequest: string) {
+        const response = await this.lightningWalletManager.sendPayment(paymentRequest);
+        return response as any;
+    }
+
+    async zap(pubkey: string, lud16: string, amount: string, noteId: string) {
+        const response = await this.lightningWalletManager.zap(pubkey, lud16, Number(amount), '', this._relays, noteId);
+        return response as any;
     }
 }
 

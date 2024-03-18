@@ -9,7 +9,8 @@
         "@ijstech/eth-contract": "^0.1.25",
         "@ijstech/eth-wallet": "^0.1.84",
         "ws": "8.16.0",
-        "mqtt": "5.3.5"
+        "mqtt": "5.3.5",
+        "@ijstech/ln-wallet": "https://github.com/ijstech/ln-wallet.git"
     },
     "devDependencies": {
         "@ijstech/compiler": "^0.1.35",

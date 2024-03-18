@@ -1499,6 +1499,38 @@ declare module "@scom/scom-social-sdk/utils/mqtt.ts" {
     }
     export { MqttManager };
 }
+/// <amd-module name="@scom/scom-social-sdk/utils/lightningWallet.ts" />
+declare module "@scom/scom-social-sdk/utils/lightningWallet.ts" {
+    import { Event } from "@scom/scom-social-sdk/core/index.ts";
+    type LNURLResponse = {
+        status: "OK";
+    } | {
+        status: "ERROR";
+        reason: string;
+    };
+    export type LnurlStep3Response = LNURLResponse & {
+        callback: string;
+        minSendable: number;
+        maxSendable: number;
+        nostrPubkey: string;
+        allowsNostr: boolean;
+        commentAllowed: number;
+    };
+    export type LnurlStep6Response = LNURLResponse & {
+        pr: string;
+        routes: string[];
+    };
+    export class LightningWalletManager {
+        private _privateKey;
+        private webln;
+        constructor();
+        set privateKey(privateKey: string);
+        makeInvoice(amount: string, defaultMemo: string): Promise<any>;
+        sendPayment(paymentRequest: string): Promise<any>;
+        createNip57Event(comment: string, relays: string[], amount: number, lnurl: string, recipient: string, eventId?: string): Event.Event;
+        zap(recipient: string, lnAddress: string, amount: number, comment: string, relays: string[], eventId?: string): Promise<any>;
+    }
+}
 /// <amd-module name="@scom/scom-social-sdk/utils/managers.ts" />
 declare module "@scom/scom-social-sdk/utils/managers.ts" {
     import { Nip19, Event } from "@scom/scom-social-sdk/core/index.ts";
@@ -1731,6 +1763,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         static extractChannelInfo(event: INostrEvent): IChannelInfo;
     }
     class SocialDataManager {
+        private _relays;
         private _defaultRestAPIRelay;
         private _apiBaseUrl;
         private _ipLocationServiceBaseUrl;
@@ -1738,6 +1771,7 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         private _socialEventManagerWrite;
         private _privateKey;
         private mqttManager;
+        private lightningWalletManager;
         constructor(config: ISocialDataManagerConfig);
         set privateKey(privateKey: string);
         get socialEventManagerRead(): ISocialEventManagerRead;
@@ -1877,6 +1911,9 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         addRelay(url: string): Promise<void>;
         removeRelay(url: string): Promise<void>;
         updateRelays(add: string[], remove: string[], defaultRelays: string[]): Promise<void>;
+        makeInvoice(amount: string, defaultMemo: string): Promise<any>;
+        sendPayment(paymentRequest: string): Promise<any>;
+        zap(pubkey: string, lud16: string, amount: string, noteId: string): Promise<any>;
     }
     export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager };
 }

@@ -224,6 +224,7 @@ declare class SocialUtilsManager {
     static extractChannelInfo(event: INostrEvent): IChannelInfo;
 }
 declare class SocialDataManager {
+    private _relays;
     private _defaultRestAPIRelay;
     private _apiBaseUrl;
     private _ipLocationServiceBaseUrl;
@@ -231,6 +232,7 @@ declare class SocialDataManager {
     private _socialEventManagerWrite;
     private _privateKey;
     private mqttManager;
+    private lightningWalletManager;
     constructor(config: ISocialDataManagerConfig);
     set privateKey(privateKey: string);
     get socialEventManagerRead(): ISocialEventManagerRead;
@@ -370,5 +372,8 @@ declare class SocialDataManager {
     addRelay(url: string): Promise<void>;
     removeRelay(url: string): Promise<void>;
     updateRelays(add: string[], remove: string[], defaultRelays: string[]): Promise<void>;
+    makeInvoice(amount: string, defaultMemo: string): Promise<any>;
+    sendPayment(paymentRequest: string): Promise<any>;
+    zap(pubkey: string, lud16: string, amount: string, noteId: string): Promise<any>;
 }
 export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager };
