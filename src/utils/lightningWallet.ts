@@ -72,6 +72,7 @@ export class LightningWalletManager {
         let [name, domain] = lnAddress.split('@');
         lnurl = `https://${domain}/.well-known/lnurlp/${name}`;
 
+        const millisats = Math.round(amount * 1000);
         let lud06Res1: LnurlStep3Response = await (await fetch(lnurl)).json();
 
         // if (lud06Res1.status != "OK") {
@@ -83,15 +84,15 @@ export class LightningWalletManager {
         if (!lud06Res1.callback) {
             throw new Error("missing callback");
         }
-        // if (amount < lud06Res1.minSendable || amount > lud06Res1.maxSendable) {
+        // if (millisats < lud06Res1.minSendable || millisats > lud06Res1.maxSendable) {
         //     throw new Error("amount out of range");
         // }
         if (lud06Res1.commentAllowed && lud06Res1.commentAllowed < comment.length) {
             throw new Error("comment too long");
         }
 
-        let nip57 = this.createNip57Event(comment, relays, amount, lnurl, recipient, eventId)
-        let lnurl2 = `${lud06Res1.callback}?amount=${amount}&nostr=${encodeURI(JSON.stringify(nip57))}`;
+        let nip57 = this.createNip57Event(comment, relays, millisats, lnurl, recipient, eventId)
+        let lnurl2 = `${lud06Res1.callback}?amount=${millisats}&nostr=${encodeURI(JSON.stringify(nip57))}`;
 
         let lud06Res2: LnurlStep6Response;
         try {
