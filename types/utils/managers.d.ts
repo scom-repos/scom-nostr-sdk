@@ -372,8 +372,10 @@ declare class SocialDataManager {
     addRelay(url: string): Promise<void>;
     removeRelay(url: string): Promise<void>;
     updateRelays(add: string[], remove: string[], defaultRelays: string[]): Promise<void>;
-    makeInvoice(amount: string, defaultMemo: string): Promise<any>;
-    sendPayment(paymentRequest: string): Promise<any>;
+    makeInvoice(lud16: string, amount: string, comment: string): Promise<string>;
+    sendPayment(paymentRequest: string): Promise<string>;
     zap(pubkey: string, lud16: string, amount: string, noteId: string): Promise<any>;
+    getLightningBalance(): Promise<any>;
+    getBitcoinPrice(): Promise<any>;
 }
 export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager };

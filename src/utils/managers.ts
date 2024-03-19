@@ -3098,7 +3098,8 @@ class SocialDataManager {
             website: metadataContent.website,
             banner: metadataContent.banner,
             followers: followersCount,
-            metadata
+            lud16: metadataContent.lud16,
+            metadata,
         }
         return userProfile;
     }
@@ -4266,19 +4267,32 @@ class SocialDataManager {
         await this._socialEventManagerWrite.updateRelayList(relays, this._privateKey);
     }
 
-    async makeInvoice(amount: string, defaultMemo: string) {
-        const response = await this.lightningWalletManager.makeInvoice(amount, defaultMemo);
-        return response as any;
+    async makeInvoice(lud16: string, amount: string, comment: string) {
+        const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
+        const response = await this.lightningWalletManager.makeInvoice(pubkey, lud16, Number(amount), comment, this._relays);
+        return response;
     }
 
     async sendPayment(paymentRequest: string) {
         const response = await this.lightningWalletManager.sendPayment(paymentRequest);
-        return response as any;
+        return response;
     }
 
     async zap(pubkey: string, lud16: string, amount: string, noteId: string) {
         const response = await this.lightningWalletManager.zap(pubkey, lud16, Number(amount), '', this._relays, noteId);
         return response as any;
+    }
+
+    async getLightningBalance() {
+        const response = await this.lightningWalletManager.getBalance();
+        return response;
+    }
+
+    async getBitcoinPrice() {
+        const response = await fetch('https://api.coinpaprika.com/v1/tickers/btc-bitcoin')
+        const result = await response.json();
+        const price = result.quotes.USD.price;
+        return price;
     }
 }
 

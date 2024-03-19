@@ -4106,25 +4106,38 @@ define("@scom/scom-social-sdk/utils/lightningWallet.ts", ["require", "exports", 
         set privateKey(privateKey) {
             this._privateKey = privateKey;
         }
-        async makeInvoice(amount, defaultMemo) {
-            const response = await this.webln.makeInvoice({
-                amount,
-                defaultMemo
-            });
-            return response;
+        async makeInvoice(recipient, lnAddress, amount, comment, relays, eventId) {
+            if (!lnAddress) {
+                return null;
+            }
+            const zapEndpoint = await this.getZapEndpoint(lnAddress);
+            if (!zapEndpoint) {
+                throw new Error("no zap endpoint");
+            }
+            const millisats = Math.round(amount * 1000);
+            let nip57 = this.createNip57Event(comment, relays, millisats, recipient, eventId);
+            let lnurl2 = `${zapEndpoint}?amount=${millisats}&nostr=${encodeURI(JSON.stringify(nip57))}`;
+            let lud06Res2;
+            try {
+                let r = await fetch(lnurl2);
+                lud06Res2 = await r.json();
+            }
+            catch (e) {
+                throw e;
+            }
+            return lud06Res2.pr;
         }
         async sendPayment(paymentRequest) {
             const response = await this.webln.sendPayment(paymentRequest);
-            return response;
+            return response.preimage;
         }
-        createNip57Event(comment, relays, amount, lnurl, recipient, eventId /*event?:Nostr.Event.Event*/) {
+        createNip57Event(comment, relays, amount, recipient, eventId) {
             let nip57 = {
                 kind: 9734,
                 content: comment,
                 tags: [
                     ["relays"].concat(relays),
                     ["amount", amount.toString()],
-                    // ["lnurl", Bech32.bech32.encode("lnurl", Bech32.bech32.toWords(new TextEncoder().encode(lnurl)))],
                     ["p", recipient]
                 ],
                 created_at: Math.round(Date.now() / 1000),
@@ -4138,48 +4151,48 @@ define("@scom/scom-social-sdk/utils/lightningWallet.ts", ["require", "exports", 
             nip57 = index_1.Event.finishEvent(nip57, this._privateKey);
             return nip57;
         }
-        async zap(recipient, lnAddress, amount, comment = '', relays, eventId) {
-            if (!lnAddress) {
-                return null;
-            }
-            let response;
+        async getZapEndpoint(lnAddress) {
             let lnurl;
             let [name, domain] = lnAddress.split('@');
             lnurl = `https://${domain}/.well-known/lnurlp/${name}`;
-            const millisats = Math.round(amount * 1000);
             let lud06Res1 = await (await fetch(lnurl)).json();
             // if (lud06Res1.status != "OK") {
             //     throw new Error("status no OK");
             // }
-            if (!lud06Res1.allowsNostr) {
-                throw new Error("nostr not allowed");
-            }
-            if (!lud06Res1.callback) {
-                throw new Error("missing callback");
-            }
+            // if (!lud06Res1.allowsNostr) {
+            //     throw new Error("nostr not allowed");
+            // }
+            // if (!lud06Res1.callback) {
+            //     throw new Error("missing callback");
+            // }
             // if (millisats < lud06Res1.minSendable || millisats > lud06Res1.maxSendable) {
             //     throw new Error("amount out of range");
             // }
-            if (lud06Res1.commentAllowed && lud06Res1.commentAllowed < comment.length) {
-                throw new Error("comment too long");
+            // if (lud06Res1.commentAllowed && lud06Res1.commentAllowed < comment.length) {
+            //     throw new Error("comment too long");
+            // }
+            if (lud06Res1.allowsNostr && lud06Res1.nostrPubkey) {
+                return lud06Res1.callback;
             }
-            let nip57 = this.createNip57Event(comment, relays, millisats, lnurl, recipient, eventId);
-            let lnurl2 = `${lud06Res1.callback}?amount=${millisats}&nostr=${encodeURI(JSON.stringify(nip57))}`;
-            let lud06Res2;
+            return null;
+        }
+        async zap(recipient, lnAddress, amount, comment, relays, eventId) {
+            let paymentRequest = await this.makeInvoice(recipient, lnAddress, amount, comment, relays, eventId);
+            if (!paymentRequest) {
+                throw new Error("no payment request");
+            }
+            let response;
             try {
-                let r = await fetch(lnurl2);
-                lud06Res2 = await r.json();
-            }
-            catch (e) {
-                throw e;
-            }
-            try {
-                response = await this.webln.sendPayment(lud06Res2.pr);
+                response = await this.webln.sendPayment(paymentRequest);
             }
             catch (e) {
                 throw e;
             }
             return response;
+        }
+        async getBalance() {
+            const balance = this.webln.getBalance();
+            return balance;
         }
     }
     exports.LightningWalletManager = LightningWalletManager;
@@ -6982,7 +6995,8 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
                 website: metadataContent.website,
                 banner: metadataContent.banner,
                 followers: followersCount,
-                metadata
+                lud16: metadataContent.lud16,
+                metadata,
             };
             return userProfile;
         }
@@ -8085,8 +8099,9 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             this.relays = relayUrls.length > 0 ? relayUrls : defaultRelays;
             await this._socialEventManagerWrite.updateRelayList(relays, this._privateKey);
         }
-        async makeInvoice(amount, defaultMemo) {
-            const response = await this.lightningWalletManager.makeInvoice(amount, defaultMemo);
+        async makeInvoice(lud16, amount, comment) {
+            const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
+            const response = await this.lightningWalletManager.makeInvoice(pubkey, lud16, Number(amount), comment, this._relays);
             return response;
         }
         async sendPayment(paymentRequest) {
@@ -8096,6 +8111,16 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
         async zap(pubkey, lud16, amount, noteId) {
             const response = await this.lightningWalletManager.zap(pubkey, lud16, Number(amount), '', this._relays, noteId);
             return response;
+        }
+        async getLightningBalance() {
+            const response = await this.lightningWalletManager.getBalance();
+            return response;
+        }
+        async getBitcoinPrice() {
+            const response = await fetch('https://api.coinpaprika.com/v1/tickers/btc-bitcoin');
+            const result = await response.json();
+            const price = result.quotes.USD.price;
+            return price;
         }
     }
     exports.SocialDataManager = SocialDataManager;

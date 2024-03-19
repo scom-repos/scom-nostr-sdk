@@ -1148,6 +1148,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         banner?: string;
         internetIdentifier: string;
         followers?: number;
+        lud16?: string;
         metadata?: INostrMetadata;
     }
     export interface IUserActivityStats {
@@ -1501,7 +1502,6 @@ declare module "@scom/scom-social-sdk/utils/mqtt.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk/utils/lightningWallet.ts" />
 declare module "@scom/scom-social-sdk/utils/lightningWallet.ts" {
-    import { Event } from "@scom/scom-social-sdk/core/index.ts";
     type LNURLResponse = {
         status: "OK";
     } | {
@@ -1525,10 +1525,12 @@ declare module "@scom/scom-social-sdk/utils/lightningWallet.ts" {
         private webln;
         constructor();
         set privateKey(privateKey: string);
-        makeInvoice(amount: string, defaultMemo: string): Promise<any>;
-        sendPayment(paymentRequest: string): Promise<any>;
-        createNip57Event(comment: string, relays: string[], amount: number, lnurl: string, recipient: string, eventId?: string): Event.Event;
+        makeInvoice(recipient: string, lnAddress: string, amount: number, comment: string, relays: string[], eventId?: string): Promise<string>;
+        sendPayment(paymentRequest: string): Promise<string>;
+        private createNip57Event;
+        private getZapEndpoint;
         zap(recipient: string, lnAddress: string, amount: number, comment: string, relays: string[], eventId?: string): Promise<any>;
+        getBalance(): Promise<any>;
     }
 }
 /// <amd-module name="@scom/scom-social-sdk/utils/managers.ts" />
@@ -1911,9 +1913,11 @@ declare module "@scom/scom-social-sdk/utils/managers.ts" {
         addRelay(url: string): Promise<void>;
         removeRelay(url: string): Promise<void>;
         updateRelays(add: string[], remove: string[], defaultRelays: string[]): Promise<void>;
-        makeInvoice(amount: string, defaultMemo: string): Promise<any>;
-        sendPayment(paymentRequest: string): Promise<any>;
+        makeInvoice(lud16: string, amount: string, comment: string): Promise<string>;
+        sendPayment(paymentRequest: string): Promise<string>;
         zap(pubkey: string, lud16: string, amount: string, noteId: string): Promise<any>;
+        getLightningBalance(): Promise<any>;
+        getBitcoinPrice(): Promise<any>;
     }
     export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager };
 }

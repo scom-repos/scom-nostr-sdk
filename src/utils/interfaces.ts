@@ -55,6 +55,7 @@ export interface IUserProfile {
 	banner?: string;
 	internetIdentifier: string;
 	followers?: number;
+	lud16?: string;
 	metadata?: INostrMetadata;
 }
 

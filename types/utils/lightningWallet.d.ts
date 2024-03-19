@@ -1,4 +1,3 @@
-import { Event } from "../core/index";
 type LNURLResponse = {
     status: "OK";
 } | {
@@ -22,9 +21,11 @@ export declare class LightningWalletManager {
     private webln;
     constructor();
     set privateKey(privateKey: string);
-    makeInvoice(amount: string, defaultMemo: string): Promise<any>;
-    sendPayment(paymentRequest: string): Promise<any>;
-    createNip57Event(comment: string, relays: string[], amount: number, lnurl: string, recipient: string, eventId?: string): Event.Event;
+    makeInvoice(recipient: string, lnAddress: string, amount: number, comment: string, relays: string[], eventId?: string): Promise<string>;
+    sendPayment(paymentRequest: string): Promise<string>;
+    private createNip57Event;
+    private getZapEndpoint;
     zap(recipient: string, lnAddress: string, amount: number, comment: string, relays: string[], eventId?: string): Promise<any>;
+    getBalance(): Promise<any>;
 }
 export {};
