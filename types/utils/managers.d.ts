@@ -1,5 +1,5 @@
 import { Nip19, Event } from "../core/index";
-import { IAllUserRelatedChannels, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrFetchEventsResponse, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "./interfaces";
+import { IAllUserRelatedChannels, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrFetchEventsResponse, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, IPaymentActivity, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "./interfaces";
 interface INostrCommunicationManager {
     fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
     fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
@@ -29,6 +29,8 @@ interface ISocialEventManagerWrite {
     submitLike(tags: string[][], privateKey: string): Promise<void>;
     submitRepost(content: string, tags: string[][], privateKey: string): Promise<void>;
     updateRelayList(relays: Record<string, IRelayConfig>, privateKey: string): Promise<void>;
+    createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, privateKey: string): Promise<void>;
+    createPaymentReceiptEvent(requestEventId: string, recipient: string, preimage: string, comment: string, privateKey: string): Promise<void>;
 }
 interface ISocialEventManagerRead {
     nostrCommunicationManager: INostrCommunicationManager | INostrRestAPIManager;
@@ -64,6 +66,9 @@ interface ISocialEventManagerRead {
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
     fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     searchUsers(query: string): Promise<INostrEvent[]>;
+    fetchPaymentRequestEvent(paymentRequest: string): Promise<INostrEvent>;
+    fetchPaymentActivitiesForRecipient(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
+    fetchPaymentActivitiesForSender(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
 }
 declare class NostrRestAPIManager implements INostrRestAPIManager {
     protected _url: string;
@@ -119,6 +124,8 @@ declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
     submitLike(tags: string[][], privateKey: string): Promise<void>;
     submitRepost(content: string, tags: string[][], privateKey: string): Promise<void>;
     updateRelayList(relays: Record<string, IRelayConfig>, privateKey: string): Promise<void>;
+    createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, privateKey: string): Promise<void>;
+    createPaymentReceiptEvent(requestEventId: string, recipient: string, preimage: string, comment: string, privateKey: string): Promise<void>;
 }
 declare class NostrEventManagerRead implements ISocialEventManagerRead {
     protected _nostrCommunicationManager: INostrCommunicationManager;
@@ -162,6 +169,9 @@ declare class NostrEventManagerRead implements ISocialEventManagerRead {
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
     fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     searchUsers(query: string): Promise<INostrEvent[]>;
+    fetchPaymentRequestEvent(paymentRequest: string): Promise<INostrEvent>;
+    fetchPaymentActivitiesForRecipient(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
+    fetchPaymentActivitiesForSender(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
 }
 declare class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEventManagerRead {
     protected _nostrCommunicationManager: INostrRestAPIManager;
@@ -372,9 +382,10 @@ declare class SocialDataManager {
     addRelay(url: string): Promise<void>;
     removeRelay(url: string): Promise<void>;
     updateRelays(add: string[], remove: string[], defaultRelays: string[]): Promise<void>;
-    makeInvoice(lud16: string, amount: string, comment: string): Promise<string>;
-    sendPayment(paymentRequest: string): Promise<string>;
+    makeInvoice(amount: string, comment: string): Promise<string>;
+    sendPayment(paymentRequest: string, comment: string): Promise<string>;
     zap(pubkey: string, lud16: string, amount: string, noteId: string): Promise<any>;
+    fetchUserPaymentActivities(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
     getLightningBalance(): Promise<any>;
     getBitcoinPrice(): Promise<any>;
 }

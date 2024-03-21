@@ -4106,7 +4106,7 @@ define("@scom/scom-social-sdk/utils/lightningWallet.ts", ["require", "exports", 
         set privateKey(privateKey) {
             this._privateKey = privateKey;
         }
-        async makeInvoice(recipient, lnAddress, amount, comment, relays, eventId) {
+        async makeZapInvoice(recipient, lnAddress, amount, comment, relays, eventId) {
             if (!lnAddress) {
                 return null;
             }
@@ -4126,6 +4126,13 @@ define("@scom/scom-social-sdk/utils/lightningWallet.ts", ["require", "exports", 
                 throw e;
             }
             return lud06Res2.pr;
+        }
+        async makeInvoice(amount, comment) {
+            const invoice = await this.webln.makeInvoice({
+                amount,
+                defaultMemo: comment
+            });
+            return invoice.paymentRequest;
         }
         async sendPayment(paymentRequest) {
             const response = await this.webln.sendPayment(paymentRequest);
@@ -4177,7 +4184,7 @@ define("@scom/scom-social-sdk/utils/lightningWallet.ts", ["require", "exports", 
             return null;
         }
         async zap(recipient, lnAddress, amount, comment, relays, eventId) {
-            let paymentRequest = await this.makeInvoice(recipient, lnAddress, amount, comment, relays, eventId);
+            let paymentRequest = await this.makeZapInvoice(recipient, lnAddress, amount, comment, relays, eventId);
             if (!paymentRequest) {
                 throw new Error("no payment request");
             }
@@ -5034,6 +5041,48 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             const verifiedEvent = index_2.Event.finishEvent(event, privateKey);
             const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
+        async createPaymentRequestEvent(paymentRequest, amount, comment, privateKey) {
+            let event = {
+                "kind": 9739,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": comment,
+                "tags": [
+                    [
+                        "r",
+                        paymentRequest
+                    ],
+                    [
+                        "amount",
+                        amount
+                    ]
+                ]
+            };
+            const verifiedEvent = index_2.Event.finishEvent(event, privateKey);
+            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        }
+        async createPaymentReceiptEvent(requestEventId, recipient, preimage, comment, privateKey) {
+            let event = {
+                "kind": 9740,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": comment,
+                "tags": [
+                    [
+                        "e",
+                        requestEventId
+                    ],
+                    [
+                        "p",
+                        recipient
+                    ],
+                    [
+                        "preimage",
+                        preimage
+                    ]
+                ]
+            };
+            const verifiedEvent = index_2.Event.finishEvent(event, privateKey);
+            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        }
     }
     exports.NostrEventManagerWrite = NostrEventManagerWrite;
     class NostrEventManagerRead {
@@ -5627,6 +5676,99 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             };
             const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('user_search', req);
             return fetchEventsResponse.events;
+        }
+        async fetchPaymentRequestEvent(paymentRequest) {
+            let req = {
+                kinds: [9739],
+                "#r": [paymentRequest]
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
+            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        }
+        async fetchPaymentActivitiesForRecipient(pubkey, since = 0, until = 0) {
+            let paymentRequestEventsReq = {
+                kinds: [9739],
+                authors: [pubkey],
+                limit: 10
+            };
+            if (until === 0) {
+                paymentRequestEventsReq.since = since;
+            }
+            else {
+                paymentRequestEventsReq.until = until;
+            }
+            const paymentRequestEvents = await this._nostrCommunicationManager.fetchEvents(paymentRequestEventsReq);
+            const requestEventIds = paymentRequestEvents.events.map(event => event.id);
+            let paymentReceiptEventsReq = {
+                kinds: [9740],
+                "#e": requestEventIds
+            };
+            const paymentReceiptEvents = await this._nostrCommunicationManager.fetchEvents(paymentReceiptEventsReq);
+            let paymentActivity = [];
+            for (let requestEvent of paymentRequestEvents.events) {
+                const paymentHash = requestEvent.tags.find(tag => tag[0] === 'r')?.[1];
+                const amount = requestEvent.tags.find(tag => tag[0] === 'amount')?.[1];
+                const receiptEvent = paymentReceiptEvents.events.find(event => event.tags.find(tag => tag[0] === 'e')?.[1] === requestEvent.id);
+                let status = 'pending';
+                let sender;
+                if (receiptEvent) {
+                    status = 'completed';
+                    sender = receiptEvent.pubkey;
+                }
+                paymentActivity.push({
+                    paymentHash,
+                    sender,
+                    recipient: pubkey,
+                    amount,
+                    status,
+                    createdAt: requestEvent.created_at
+                });
+            }
+            return paymentActivity;
+        }
+        async fetchPaymentActivitiesForSender(pubkey, since = 0, until = 0) {
+            let paymentReceiptEventsReq = {
+                kinds: [9740],
+                authors: [pubkey],
+                limit: 10
+            };
+            if (until === 0) {
+                paymentReceiptEventsReq.since = since;
+            }
+            else {
+                paymentReceiptEventsReq.until = until;
+            }
+            const paymentReceiptEvents = await this._nostrCommunicationManager.fetchEvents(paymentReceiptEventsReq);
+            let requestEventIds = [];
+            for (let event of paymentReceiptEvents.events) {
+                const requestEventId = event.tags.find(tag => tag[0] === 'e')?.[1];
+                if (requestEventId) {
+                    requestEventIds.push(requestEventId);
+                }
+            }
+            let paymentRequestEventsReq = {
+                kinds: [9739],
+                ids: requestEventIds
+            };
+            const paymentRequestEvents = await this._nostrCommunicationManager.fetchEvents(paymentRequestEventsReq);
+            let paymentActivity = [];
+            for (let receiptEvent of paymentReceiptEvents.events) {
+                const requestEventId = receiptEvent.tags.find(tag => tag[0] === 'e')?.[1];
+                const requestEvent = paymentRequestEvents.events.find(event => event.id === requestEventId);
+                if (requestEvent) {
+                    const paymentHash = requestEvent.tags.find(tag => tag[0] === 'r')?.[1];
+                    const amount = requestEvent.tags.find(tag => tag[0] === 'amount')?.[1];
+                    paymentActivity.push({
+                        paymentHash,
+                        sender: pubkey,
+                        recipient: requestEvent.pubkey,
+                        amount,
+                        status: 'completed',
+                        createdAt: receiptEvent.created_at
+                    });
+                }
+            }
+            return paymentActivity;
         }
     }
     exports.NostrEventManagerRead = NostrEventManagerRead;
@@ -8099,18 +8241,28 @@ define("@scom/scom-social-sdk/utils/managers.ts", ["require", "exports", "@ijste
             this.relays = relayUrls.length > 0 ? relayUrls : defaultRelays;
             await this._socialEventManagerWrite.updateRelayList(relays, this._privateKey);
         }
-        async makeInvoice(lud16, amount, comment) {
-            const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
-            const response = await this.lightningWalletManager.makeInvoice(pubkey, lud16, Number(amount), comment, this._relays);
-            return response;
+        async makeInvoice(amount, comment) {
+            const paymentRequest = await this.lightningWalletManager.makeInvoice(Number(amount), comment);
+            await this._socialEventManagerWrite.createPaymentRequestEvent(paymentRequest, amount, comment, this._privateKey);
+            return paymentRequest;
         }
-        async sendPayment(paymentRequest) {
-            const response = await this.lightningWalletManager.sendPayment(paymentRequest);
-            return response;
+        async sendPayment(paymentRequest, comment) {
+            const preimage = await this.lightningWalletManager.sendPayment(paymentRequest);
+            const requestEvent = await this._socialEventManagerRead.fetchPaymentRequestEvent(paymentRequest);
+            if (requestEvent) {
+                await this._socialEventManagerWrite.createPaymentReceiptEvent(requestEvent.id, requestEvent.pubkey, preimage, comment, this._privateKey);
+            }
+            return preimage;
         }
         async zap(pubkey, lud16, amount, noteId) {
             const response = await this.lightningWalletManager.zap(pubkey, lud16, Number(amount), '', this._relays, noteId);
             return response;
+        }
+        async fetchUserPaymentActivities(pubkey, since, until) {
+            const paymentActivitiesForSender = await this._socialEventManagerRead.fetchPaymentActivitiesForSender(pubkey, since, until);
+            const paymentActivitiesForRecipient = await this._socialEventManagerRead.fetchPaymentActivitiesForRecipient(pubkey, since, until);
+            const paymentActivities = [...paymentActivitiesForSender, ...paymentActivitiesForRecipient];
+            return paymentActivities.sort((a, b) => b.createdAt - a.createdAt);
         }
         async getLightningBalance() {
             const response = await this.lightningWalletManager.getBalance();

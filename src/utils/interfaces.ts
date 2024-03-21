@@ -380,3 +380,12 @@ export interface IRelayConfig {
 	read: boolean;
 	write: boolean;
 }
+
+export interface IPaymentActivity {
+	paymentHash: string;
+	sender: string;
+	recipient: string;
+	amount: string;
+	status: string;
+	createdAt: number;
+}

@@ -1,6 +1,6 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, CommunityRole, IAllUserRelatedChannels, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrFetchEventsResponse, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
+import { CalendarEventType, CommunityRole, IAllUserRelatedChannels, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrFetchEventsResponse, INostrMetadata, INostrMetadataContent, INostrSubmitResponse, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPaymentActivity, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "./interfaces";
 import Geohash from './geohash';
 import GeoQuery from './geoquery';
 import { MqttManager } from "./mqtt";
@@ -78,6 +78,8 @@ interface ISocialEventManagerWrite {
     submitLike(tags: string[][], privateKey: string): Promise<void>;
     submitRepost(content: string, tags: string[][], privateKey: string): Promise<void>;
     updateRelayList(relays: Record<string, IRelayConfig>, privateKey: string): Promise<void>;
+    createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, privateKey: string): Promise<void>;
+    createPaymentReceiptEvent(requestEventId: string, recipient: string, preimage: string, comment: string, privateKey: string): Promise<void>;
 }
 
 interface ISocialEventManagerRead {
@@ -119,6 +121,9 @@ interface ISocialEventManagerRead {
     fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     // fetchLikes(eventId: string): Promise<INostrEvent[]>;
     searchUsers(query: string): Promise<INostrEvent[]>;
+    fetchPaymentRequestEvent(paymentRequest: string): Promise<INostrEvent>;
+    fetchPaymentActivitiesForRecipient(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
+    fetchPaymentActivitiesForSender(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
 }
 
 class NostrRestAPIManager implements INostrRestAPIManager {
@@ -963,6 +968,50 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         const verifiedEvent = Event.finishEvent(event, privateKey);
         const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
     }
+
+    async createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, privateKey: string) {
+        let event = {
+            "kind": 9739,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": comment,
+            "tags": [
+                [
+                    "r",
+                    paymentRequest
+                ],
+                [
+                    "amount",
+                    amount
+                ]
+            ]
+        };
+        const verifiedEvent = Event.finishEvent(event, privateKey);
+        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+    }
+
+    async createPaymentReceiptEvent(requestEventId: string, recipient: string, preimage: string, comment: string, privateKey: string) {
+        let event = {
+            "kind": 9740,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": comment,
+            "tags": [
+                [
+                    "e",
+                    requestEventId
+                ],
+                [
+                    "p",
+                    recipient
+                ],
+                [
+                    "preimage",
+                    preimage
+                ]
+            ]
+        };
+        const verifiedEvent = Event.finishEvent(event, privateKey);
+        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+    }
 }
 
 class NostrEventManagerRead implements ISocialEventManagerRead {
@@ -1616,6 +1665,102 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         };
         const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('user_search', req);
         return fetchEventsResponse.events;
+    }
+
+    async fetchPaymentRequestEvent(paymentRequest: string) {
+        let req: any = {
+            kinds: [9739],
+            "#r": [paymentRequest]
+        };
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
+        return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+    }
+
+    async fetchPaymentActivitiesForRecipient(pubkey: string, since: number = 0, until: number = 0) {
+        let paymentRequestEventsReq: any = {
+            kinds: [9739],
+            authors: [pubkey],
+            limit: 10
+        };
+        if (until === 0) {
+            paymentRequestEventsReq.since = since;
+        }
+        else {
+            paymentRequestEventsReq.until = until;
+        }
+        const paymentRequestEvents = await this._nostrCommunicationManager.fetchEvents(paymentRequestEventsReq);
+        const requestEventIds = paymentRequestEvents.events.map(event => event.id);
+        let paymentReceiptEventsReq: any = {
+            kinds: [9740],
+            "#e": requestEventIds
+        };
+        const paymentReceiptEvents = await this._nostrCommunicationManager.fetchEvents(paymentReceiptEventsReq);
+        let paymentActivity: IPaymentActivity[] = [];
+        for (let requestEvent of paymentRequestEvents.events) {
+            const paymentHash = requestEvent.tags.find(tag => tag[0] === 'r')?.[1];
+            const amount = requestEvent.tags.find(tag => tag[0] === 'amount')?.[1];
+            const receiptEvent = paymentReceiptEvents.events.find(event => event.tags.find(tag => tag[0] === 'e')?.[1] === requestEvent.id);
+            let status = 'pending';
+            let sender: string;
+            if (receiptEvent) {
+                status = 'completed';
+                sender = receiptEvent.pubkey;
+            }
+            paymentActivity.push({
+                paymentHash,
+                sender,
+                recipient: pubkey,
+                amount,
+                status,
+                createdAt: requestEvent.created_at
+            });
+        }
+        return paymentActivity;
+    }
+
+    async fetchPaymentActivitiesForSender(pubkey: string, since: number = 0, until: number = 0) {
+        let paymentReceiptEventsReq: any = {
+            kinds: [9740],
+            authors: [pubkey],
+            limit: 10
+        };
+        if (until === 0) {
+            paymentReceiptEventsReq.since = since;
+        }
+        else {
+            paymentReceiptEventsReq.until = until;
+        }
+        const paymentReceiptEvents = await this._nostrCommunicationManager.fetchEvents(paymentReceiptEventsReq);
+        let requestEventIds: string[] = [];
+        for (let event of paymentReceiptEvents.events) {
+            const requestEventId = event.tags.find(tag => tag[0] === 'e')?.[1];
+            if (requestEventId) {
+                requestEventIds.push(requestEventId);
+            }
+        }
+        let paymentRequestEventsReq: any = {
+            kinds: [9739],
+            ids: requestEventIds
+        };
+        const paymentRequestEvents = await this._nostrCommunicationManager.fetchEvents(paymentRequestEventsReq);
+        let paymentActivity: IPaymentActivity[] = [];
+        for (let receiptEvent of paymentReceiptEvents.events) {
+            const requestEventId = receiptEvent.tags.find(tag => tag[0] === 'e')?.[1];
+            const requestEvent = paymentRequestEvents.events.find(event => event.id === requestEventId);
+            if (requestEvent) {
+                const paymentHash = requestEvent.tags.find(tag => tag[0] === 'r')?.[1];
+                const amount = requestEvent.tags.find(tag => tag[0] === 'amount')?.[1];
+                paymentActivity.push({
+                    paymentHash,
+                    sender: pubkey,
+                    recipient: requestEvent.pubkey,
+                    amount,
+                    status: 'completed',
+                    createdAt: receiptEvent.created_at
+                });
+            }
+        }
+        return paymentActivity;
     }
 }
 
@@ -4267,20 +4412,31 @@ class SocialDataManager {
         await this._socialEventManagerWrite.updateRelayList(relays, this._privateKey);
     }
 
-    async makeInvoice(lud16: string, amount: string, comment: string) {
-        const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
-        const response = await this.lightningWalletManager.makeInvoice(pubkey, lud16, Number(amount), comment, this._relays);
-        return response;
+    async makeInvoice(amount: string, comment: string) {
+        const paymentRequest = await this.lightningWalletManager.makeInvoice(Number(amount), comment);
+        await this._socialEventManagerWrite.createPaymentRequestEvent(paymentRequest, amount, comment, this._privateKey);
+        return paymentRequest;
     }
 
-    async sendPayment(paymentRequest: string) {
-        const response = await this.lightningWalletManager.sendPayment(paymentRequest);
-        return response;
+    async sendPayment(paymentRequest: string, comment: string) {
+        const preimage = await this.lightningWalletManager.sendPayment(paymentRequest);
+        const requestEvent = await this._socialEventManagerRead.fetchPaymentRequestEvent(paymentRequest);
+        if (requestEvent) {
+            await this._socialEventManagerWrite.createPaymentReceiptEvent(requestEvent.id, requestEvent.pubkey, preimage, comment, this._privateKey);
+        }
+        return preimage;
     }
 
     async zap(pubkey: string, lud16: string, amount: string, noteId: string) {
         const response = await this.lightningWalletManager.zap(pubkey, lud16, Number(amount), '', this._relays, noteId);
         return response as any;
+    }
+
+    async fetchUserPaymentActivities(pubkey: string, since?: number, until?: number) {
+        const paymentActivitiesForSender = await this._socialEventManagerRead.fetchPaymentActivitiesForSender(pubkey, since, until);
+        const paymentActivitiesForRecipient = await this._socialEventManagerRead.fetchPaymentActivitiesForRecipient(pubkey, since, until);
+        const paymentActivities = [...paymentActivitiesForSender, ...paymentActivitiesForRecipient];
+        return paymentActivities.sort((a, b) => b.createdAt - a.createdAt); 
     }
 
     async getLightningBalance() {

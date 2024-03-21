@@ -27,7 +27,7 @@ export class LightningWalletManager {
     set privateKey(privateKey: string) {
         this._privateKey = privateKey;
     }
-    async makeInvoice(recipient: string, lnAddress: string, amount: number, comment: string, relays: string[], eventId?: string) {
+    async makeZapInvoice(recipient: string, lnAddress: string, amount: number, comment: string, relays: string[], eventId?: string) {
         if (!lnAddress) {
             return null;
         }
@@ -49,6 +49,13 @@ export class LightningWalletManager {
         }
 
         return lud06Res2.pr;
+    }
+    async makeInvoice(amount: number, comment: string) {
+        const invoice = await this.webln.makeInvoice({
+            amount,
+            defaultMemo: comment
+        });
+        return invoice.paymentRequest;
     }
     async sendPayment(paymentRequest: string) {
         const response = await this.webln.sendPayment(paymentRequest)
@@ -105,7 +112,7 @@ export class LightningWalletManager {
     }
 
     async zap(recipient: string, lnAddress: string, amount: number, comment: string, relays: string[], eventId?: string) {
-        let paymentRequest = await this.makeInvoice(recipient, lnAddress, amount, comment, relays, eventId);
+        let paymentRequest = await this.makeZapInvoice(recipient, lnAddress, amount, comment, relays, eventId);
         if (!paymentRequest) {
             throw new Error("no payment request");
         }
