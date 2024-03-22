@@ -3,7 +3,7 @@
     "type": "sdk",
     "version": "0.1.19",
     "dependencies": [
-        "@ijstech/eth-wallet",
-        "@ijstech/ln-wallet"
+        "@ijstech/ln-wallet",
+        "@ijstech/eth-wallet"
     ]
 }

@@ -1,0 +1,55 @@
+import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, ILongFormContentInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityPostInfo, INostrMetadataContent, INostrSubmitResponse, IRelayConfig, IUpdateCalendarEventInfo } from "../utils/interfaces";
+import { INostrCommunicationManager } from "./communication";
+interface ISocialEventManagerWrite {
+    nostrCommunicationManagers: INostrCommunicationManager[];
+    updateContactList(content: string, contactPubKeys: string[], privateKey: string): Promise<void>;
+    postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
+    deleteEvents(eventIds: string[], privateKey: string): Promise<INostrSubmitResponse[]>;
+    updateCommunity(info: ICommunityInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
+    updateChannel(info: IChannelInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
+    updateUserBookmarkedChannels(channelEventIds: string[], privateKey: string): Promise<void>;
+    submitChannelMessage(info: INewChannelMessageInfo, privateKey: string): Promise<void>;
+    updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
+    submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
+    updateUserProfile(content: INostrMetadataContent, privateKey: string): Promise<void>;
+    sendMessage(receiver: string, encryptedMessage: string, privateKey: string): Promise<void>;
+    updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[], privateKey: string): Promise<INostrSubmitResponse[]>;
+    updateCalendarEvent(info: IUpdateCalendarEventInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
+    createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse[]>;
+    submitCalendarEventPost(info: INewCalendarEventPostInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
+    submitLongFormContentEvents(info: ILongFormContentInfo, privateKey: string): Promise<void>;
+    submitLike(tags: string[][], privateKey: string): Promise<void>;
+    submitRepost(content: string, tags: string[][], privateKey: string): Promise<void>;
+    updateRelayList(relays: Record<string, IRelayConfig>, privateKey: string): Promise<void>;
+    createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, privateKey: string): Promise<void>;
+    createPaymentReceiptEvent(requestEventId: string, recipient: string, preimage: string, comment: string, privateKey: string): Promise<void>;
+}
+declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
+    private _nostrCommunicationManagers;
+    private _apiBaseUrl;
+    constructor(managers: INostrCommunicationManager[], apiBaseUrl: string);
+    set nostrCommunicationManagers(managers: INostrCommunicationManager[]);
+    private calculateConversationPathTags;
+    updateContactList(content: string, contactPubKeys: string[], privateKey: string): Promise<void>;
+    postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
+    deleteEvents(eventIds: string[], privateKey: string): Promise<INostrSubmitResponse[]>;
+    updateChannel(info: IChannelInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
+    updateUserBookmarkedChannels(channelEventIds: string[], privateKey: string): Promise<void>;
+    updateCommunity(info: ICommunityInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
+    updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
+    submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
+    submitChannelMessage(info: INewChannelMessageInfo, privateKey: string): Promise<void>;
+    updateUserProfile(content: INostrMetadataContent, privateKey: string): Promise<void>;
+    sendMessage(receiver: string, encryptedMessage: string, privateKey: string): Promise<void>;
+    updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[], privateKey: string): Promise<INostrSubmitResponse[]>;
+    updateCalendarEvent(info: IUpdateCalendarEventInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
+    createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse[]>;
+    submitCalendarEventPost(info: INewCalendarEventPostInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
+    submitLongFormContentEvents(info: ILongFormContentInfo, privateKey: string): Promise<void>;
+    submitLike(tags: string[][], privateKey: string): Promise<void>;
+    submitRepost(content: string, tags: string[][], privateKey: string): Promise<void>;
+    updateRelayList(relays: Record<string, IRelayConfig>, privateKey: string): Promise<void>;
+    createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, privateKey: string): Promise<void>;
+    createPaymentReceiptEvent(requestEventId: string, recipient: string, preimage: string, comment: string, privateKey: string): Promise<void>;
+}
+export { NostrEventManagerWrite, ISocialEventManagerWrite };

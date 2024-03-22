@@ -35,6 +35,10 @@ export {
     ISocialDataManagerConfig,
     IPaymentActivity,
     INostrFetchEventsResponse,
+    MqttManager
+} from './utils/index'
+
+export {
     NostrEventManagerRead,
     NostrEventManagerReadV2,
     NostrEventManagerWrite,
@@ -43,6 +47,5 @@ export {
     SocialUtilsManager,
     SocialDataManager,
     NostrWebSocketManager,
-    NostrRestAPIManager,
-    MqttManager
-} from './utils/index'
+    NostrRestAPIManager
+} from './managers';

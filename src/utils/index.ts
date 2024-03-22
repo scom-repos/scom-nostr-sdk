@@ -32,17 +32,5 @@ export {
 } from "./interfaces";
 
 export {
-    NostrEventManagerRead,
-    NostrEventManagerReadV2,
-    NostrEventManagerWrite,
-    ISocialEventManagerRead,
-    ISocialEventManagerWrite,
-    SocialUtilsManager,
-    SocialDataManager,
-    NostrWebSocketManager,
-    NostrRestAPIManager
-} from './managers';
-
-export {
     MqttManager
 } from './mqtt';
