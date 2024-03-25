@@ -590,6 +590,21 @@ class SocialDataManager {
             earliest
         }
     }
+    async fetchUserFollowingFeedInfo(pubKey: string, until?: number) {
+        let events: INostrEvent[] = await this._socialEventManagerRead.fetchUserFollowingFeed(pubKey, until);
+        const earliest = this.getEarliestEventTimestamp(events.filter(v => (v.kind === 1 || v.kind === 6) && v.created_at));
+        const {
+            notes,
+            metadataByPubKeyMap,
+            quotedNotesMap
+        } = this.createNoteEventMappings(events);
+        return {
+            notes,
+            metadataByPubKeyMap,
+            quotedNotesMap,
+            earliest
+        }
+    }
     createNoteEventMappings(events: INostrEvent[], parentAuthorsInfo: boolean = false) {
         let notes: INoteInfo[] = [];
         let metadataByPubKeyMap: Record<string, INostrMetadata> = {};

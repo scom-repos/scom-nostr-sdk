@@ -1709,7 +1709,8 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         searchUsers(query: string): Promise<INostrEvent[]>;
         fetchPaymentRequestEvent(paymentRequest: string): Promise<INostrEvent>;
         fetchPaymentActivitiesForRecipient(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
-        fetchPaymentActivitiesForSender(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
+        fetchPaymentActivitiesForSender(pubKey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
+        fetchUserFollowingFeed(pubKey: string, until?: number): Promise<INostrEvent[]>;
     }
     class NostrEventManagerRead implements ISocialEventManagerRead {
         protected _nostrCommunicationManager: INostrCommunicationManager;
@@ -1756,6 +1757,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         fetchPaymentRequestEvent(paymentRequest: string): Promise<INostrEvent>;
         fetchPaymentActivitiesForRecipient(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
         fetchPaymentActivitiesForSender(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
+        fetchUserFollowingFeed(pubKey: string, until?: number): Promise<INostrEvent[]>;
     }
     class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEventManagerRead {
         protected _nostrCommunicationManager: INostrRestAPIManager;
@@ -1859,6 +1861,12 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         }>;
         private getEarliestEventTimestamp;
         fetchHomeFeedInfo(pubKey: string, since?: number, until?: number): Promise<{
+            notes: INoteInfo[];
+            metadataByPubKeyMap: Record<string, INostrMetadata>;
+            quotedNotesMap: Record<string, INoteInfo>;
+            earliest: number;
+        }>;
+        fetchUserFollowingFeedInfo(pubKey: string, until?: number): Promise<{
             notes: INoteInfo[];
             metadataByPubKeyMap: Record<string, INostrMetadata>;
             quotedNotesMap: Record<string, INoteInfo>;

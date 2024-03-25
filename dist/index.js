@@ -5944,6 +5944,20 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             }
             return paymentActivity;
         }
+        async fetchUserFollowingFeed(pubKey, until = 0) {
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
+            let msg = {
+                user_pubkey: decodedPubKey,
+                timeframe: 'latest',
+                scope: 'follows',
+                limit: 20
+            };
+            if (until > 0) {
+                msg.until = until;
+            }
+            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('explore', msg);
+            return fetchEventsResponse.events;
+        }
     }
     exports.NostrEventManagerRead = NostrEventManagerRead;
     class NostrEventManagerReadV2 extends NostrEventManagerRead {
@@ -6856,6 +6870,17 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         async fetchHomeFeedInfo(pubKey, since = 0, until) {
             let events = await this._socialEventManagerRead.fetchHomeFeedCacheEvents(pubKey, since, until);
             const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
+            const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(events);
+            return {
+                notes,
+                metadataByPubKeyMap,
+                quotedNotesMap,
+                earliest
+            };
+        }
+        async fetchUserFollowingFeedInfo(pubKey, until) {
+            let events = await this._socialEventManagerRead.fetchUserFollowingFeed(pubKey, until);
+            const earliest = this.getEarliestEventTimestamp(events.filter(v => (v.kind === 1 || v.kind === 6) && v.created_at));
             const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(events);
             return {
                 notes,

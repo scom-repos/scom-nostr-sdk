@@ -37,7 +37,8 @@ interface ISocialEventManagerRead {
     searchUsers(query: string): Promise<INostrEvent[]>;
     fetchPaymentRequestEvent(paymentRequest: string): Promise<INostrEvent>;
     fetchPaymentActivitiesForRecipient(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
-    fetchPaymentActivitiesForSender(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
+    fetchPaymentActivitiesForSender(pubKey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
+    fetchUserFollowingFeed(pubKey: string, until?: number): Promise<INostrEvent[]>;
 }
 declare class NostrEventManagerRead implements ISocialEventManagerRead {
     protected _nostrCommunicationManager: INostrCommunicationManager;
@@ -84,6 +85,7 @@ declare class NostrEventManagerRead implements ISocialEventManagerRead {
     fetchPaymentRequestEvent(paymentRequest: string): Promise<INostrEvent>;
     fetchPaymentActivitiesForRecipient(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
     fetchPaymentActivitiesForSender(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
+    fetchUserFollowingFeed(pubKey: string, until?: number): Promise<INostrEvent[]>;
 }
 declare class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEventManagerRead {
     protected _nostrCommunicationManager: INostrRestAPIManager;

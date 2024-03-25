@@ -44,7 +44,8 @@ interface ISocialEventManagerRead {
     searchUsers(query: string): Promise<INostrEvent[]>;
     fetchPaymentRequestEvent(paymentRequest: string): Promise<INostrEvent>;
     fetchPaymentActivitiesForRecipient(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
-    fetchPaymentActivitiesForSender(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
+    fetchPaymentActivitiesForSender(pubKey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
+    fetchUserFollowingFeed(pubKey: string, until?: number): Promise<INostrEvent[]>;
 }
 
 class NostrEventManagerRead implements ISocialEventManagerRead {
@@ -794,6 +795,21 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
             }
         }
         return paymentActivity;
+    }
+
+    async fetchUserFollowingFeed(pubKey: string, until: number = 0) {
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        let msg: any = {
+            user_pubkey: decodedPubKey,
+            timeframe: 'latest',
+            scope: 'follows',
+            limit: 20
+        };
+        if (until > 0) {
+            msg.until = until;
+        }
+        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('explore', msg);
+        return fetchEventsResponse.events;
     }
 }
 
