@@ -60,6 +60,12 @@ declare class SocialDataManager {
         quotedNotesMap: Record<string, INoteInfo>;
         earliest: number;
     }>;
+    fetchUserFollowingFeedInfo(pubKey: string, until?: number): Promise<{
+        notes: INoteInfo[];
+        metadataByPubKeyMap: Record<string, INostrMetadata>;
+        quotedNotesMap: Record<string, INoteInfo>;
+        earliest: number;
+    }>;
     createNoteEventMappings(events: INostrEvent[], parentAuthorsInfo?: boolean): {
         notes: INoteInfo[];
         metadataByPubKeyMap: Record<string, INostrMetadata>;
