@@ -592,7 +592,7 @@ class SocialDataManager {
     }
     async fetchUserFollowingFeedInfo(pubKey: string, until?: number) {
         let events: INostrEvent[] = await this._socialEventManagerRead.fetchUserFollowingFeed(pubKey, until);
-        const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
+        const earliest = this.getEarliestEventTimestamp(events.filter(v => (v.kind === 1 || v.kind === 6) && v.created_at));
         const {
             notes,
             metadataByPubKeyMap,

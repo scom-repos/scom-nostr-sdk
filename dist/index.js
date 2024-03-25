@@ -6880,7 +6880,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async fetchUserFollowingFeedInfo(pubKey, until) {
             let events = await this._socialEventManagerRead.fetchUserFollowingFeed(pubKey, until);
-            const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
+            const earliest = this.getEarliestEventTimestamp(events.filter(v => (v.kind === 1 || v.kind === 6) && v.created_at));
             const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(events);
             return {
                 notes,
