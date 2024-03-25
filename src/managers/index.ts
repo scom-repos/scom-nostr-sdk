@@ -10,7 +10,8 @@ import { MqttManager } from "../utils/mqtt";
 import { LightningWalletManager } from "../utils/lightningWallet";
 import { SocialUtilsManager } from "./utilsManager";
 import { ISocialEventManagerWrite, NostrEventManagerWrite } from "./eventManagerWrite";
-import { ISocialEventManagerRead, NostrEventManagerRead, NostrEventManagerReadV2 } from "./eventManagerRead";
+import { ISocialEventManagerRead, NostrEventManagerRead } from "./eventManagerRead";
+import { NostrEventManagerReadV2 } from "./eventManagerReadV2";
 
 //FIXME: remove this when compiler is fixed
 function flatMap<T, U>(array: T[], callback: (item: T) => U[]): U[] {
@@ -57,15 +58,13 @@ class SocialDataManager {
         if (config.version === 2) {
             this._socialEventManagerRead = new NostrEventManagerReadV2(
                 nostrCommunicationManagers[0] as NostrRestAPIManager,
-                nostrCachedCommunicationManager as NostrRestAPIManager, 
-                config.apiBaseUrl
+                nostrCachedCommunicationManager as NostrRestAPIManager
             );
         }
         else {
             this._socialEventManagerRead = new NostrEventManagerRead(
                 nostrCommunicationManagers[0], 
-                nostrCachedCommunicationManager, 
-                config.apiBaseUrl
+                nostrCachedCommunicationManager
             );
         }
 
@@ -445,7 +444,9 @@ class SocialDataManager {
         try {
             await SocialUtilsManager.exponentialBackoffRetry(fetchData, 5, 1000, 16000, 2);
         }
-        catch (error) { }
+        catch (error) { 
+            console.error('fetchUserProfiles', error);
+        }
         if (metadataArr.length == 0) return null;
         const userProfiles: IUserProfile[] = [];
         for (let metadata of metadataArr) {
@@ -894,6 +895,7 @@ class SocialDataManager {
         const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
         if (!relaysEvent) return relayList;
         relayList = relaysEvent.tags.filter(tag => tag[0] === 'r')?.map(tag => tag[1]) || [];
+        relayList = Array.from(new Set(relayList));
         return relayList;
     }
 

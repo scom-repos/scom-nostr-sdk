@@ -2,7 +2,8 @@ import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity,
 import { NostrRestAPIManager, NostrWebSocketManager } from "./communication";
 import { SocialUtilsManager } from "./utilsManager";
 import { ISocialEventManagerWrite, NostrEventManagerWrite } from "./eventManagerWrite";
-import { ISocialEventManagerRead, NostrEventManagerRead, NostrEventManagerReadV2 } from "./eventManagerRead";
+import { ISocialEventManagerRead, NostrEventManagerRead } from "./eventManagerRead";
+import { NostrEventManagerReadV2 } from "./eventManagerReadV2";
 declare class SocialDataManager {
     private _relays;
     private _defaultRestAPIRelay;

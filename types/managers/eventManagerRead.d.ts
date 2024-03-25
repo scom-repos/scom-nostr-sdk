@@ -43,8 +43,7 @@ interface ISocialEventManagerRead {
 declare class NostrEventManagerRead implements ISocialEventManagerRead {
     protected _nostrCommunicationManager: INostrCommunicationManager;
     protected _nostrCachedCommunicationManager: INostrCommunicationManager;
-    protected _apiBaseUrl: string;
-    constructor(manager: INostrCommunicationManager, cachedManager: INostrCommunicationManager, apiBaseUrl: string);
+    constructor(manager: INostrCommunicationManager, cachedManager: INostrCommunicationManager);
     set nostrCommunicationManager(manager: INostrCommunicationManager);
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
     fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
@@ -87,45 +86,4 @@ declare class NostrEventManagerRead implements ISocialEventManagerRead {
     fetchPaymentActivitiesForSender(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
     fetchUserFollowingFeed(pubKey: string, until?: number): Promise<INostrEvent[]>;
 }
-declare class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEventManagerRead {
-    protected _nostrCommunicationManager: INostrRestAPIManager;
-    protected _nostrCachedCommunicationManager: INostrRestAPIManager;
-    protected _apiBaseUrl: string;
-    constructor(manager: INostrRestAPIManager, cachedManager: INostrRestAPIManager, apiBaseUrl: string);
-    set nostrCommunicationManager(manager: INostrRestAPIManager);
-    fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
-    fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
-    fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    fetchProfileRepliesCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    WIP_fetchHomeFeedCacheEvents(pubKey?: string, since?: number, until?: number): Promise<void>;
-    fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
-    fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
-    fetchContactListCacheEvents(pubKey: string, detailIncluded?: boolean): Promise<INostrEvent[]>;
-    fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
-    fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<any>;
-    fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;
-    fetchUserBookmarkedCommunities(pubKey: string, excludedCommunity?: ICommunityInfo): Promise<ICommunityBasicInfo[]>;
-    fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
-    fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
-    fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
-    fetchAllUserRelatedChannels(pubKey: string): Promise<{
-        channels: IChannelInfo[];
-        channelMetadataMap: Record<string, IChannelInfo>;
-        channelIdToCommunityMap: Record<string, ICommunityInfo>;
-    }>;
-    fetchUserBookmarkedChannelEventIds(pubKey: string): Promise<any>;
-    fetchEventsByIds(ids: string[]): Promise<INostrEvent[]>;
-    fetchChannelMessages(channelId: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    fetchChannelInfoMessages(channelId: string): Promise<INostrEvent[]>;
-    fetchMessageContactsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
-    fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
-    fetchGroupKeys(identifier: string): Promise<INostrEvent>;
-    fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
-    fetchCalendarEvents(start: number, end?: number, limit?: number): Promise<INostrEvent[]>;
-    fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent>;
-    fetchCalendarEventPosts(calendarEventUri: string): Promise<INostrEvent[]>;
-    fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
-    fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
-}
-export { NostrEventManagerRead, NostrEventManagerReadV2, ISocialEventManagerRead };
+export { NostrEventManagerRead, ISocialEventManagerRead };

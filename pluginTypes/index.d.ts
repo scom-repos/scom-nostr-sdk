@@ -1715,8 +1715,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
     class NostrEventManagerRead implements ISocialEventManagerRead {
         protected _nostrCommunicationManager: INostrCommunicationManager;
         protected _nostrCachedCommunicationManager: INostrCommunicationManager;
-        protected _apiBaseUrl: string;
-        constructor(manager: INostrCommunicationManager, cachedManager: INostrCommunicationManager, apiBaseUrl: string);
+        constructor(manager: INostrCommunicationManager, cachedManager: INostrCommunicationManager);
         set nostrCommunicationManager(manager: INostrCommunicationManager);
         fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
         fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
@@ -1759,11 +1758,18 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         fetchPaymentActivitiesForSender(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
         fetchUserFollowingFeed(pubKey: string, until?: number): Promise<INostrEvent[]>;
     }
+    export { NostrEventManagerRead, ISocialEventManagerRead };
+}
+/// <amd-module name="@scom/scom-social-sdk/managers/eventManagerReadV2.ts" />
+declare module "@scom/scom-social-sdk/managers/eventManagerReadV2.ts" {
+    import { Nip19 } from "@scom/scom-social-sdk/core/index.ts";
+    import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, INostrEvent } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    import { INostrRestAPIManager } from "@scom/scom-social-sdk/managers/communication.ts";
+    import { ISocialEventManagerRead, NostrEventManagerRead } from "@scom/scom-social-sdk/managers/eventManagerRead.ts";
     class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEventManagerRead {
         protected _nostrCommunicationManager: INostrRestAPIManager;
         protected _nostrCachedCommunicationManager: INostrRestAPIManager;
-        protected _apiBaseUrl: string;
-        constructor(manager: INostrRestAPIManager, cachedManager: INostrRestAPIManager, apiBaseUrl: string);
+        constructor(manager: INostrRestAPIManager, cachedManager: INostrRestAPIManager);
         set nostrCommunicationManager(manager: INostrRestAPIManager);
         fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
         fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
@@ -1800,7 +1806,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
         fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     }
-    export { NostrEventManagerRead, NostrEventManagerReadV2, ISocialEventManagerRead };
+    export { NostrEventManagerReadV2 };
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/index.ts" />
 declare module "@scom/scom-social-sdk/managers/index.ts" {
@@ -1808,7 +1814,8 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
     import { NostrRestAPIManager, NostrWebSocketManager } from "@scom/scom-social-sdk/managers/communication.ts";
     import { SocialUtilsManager } from "@scom/scom-social-sdk/managers/utilsManager.ts";
     import { ISocialEventManagerWrite, NostrEventManagerWrite } from "@scom/scom-social-sdk/managers/eventManagerWrite.ts";
-    import { ISocialEventManagerRead, NostrEventManagerRead, NostrEventManagerReadV2 } from "@scom/scom-social-sdk/managers/eventManagerRead.ts";
+    import { ISocialEventManagerRead, NostrEventManagerRead } from "@scom/scom-social-sdk/managers/eventManagerRead.ts";
+    import { NostrEventManagerReadV2 } from "@scom/scom-social-sdk/managers/eventManagerReadV2.ts";
     class SocialDataManager {
         private _relays;
         private _defaultRestAPIRelay;
