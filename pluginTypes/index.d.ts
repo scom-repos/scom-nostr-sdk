@@ -1768,7 +1768,6 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV2.ts" {
     import { ISocialEventManagerRead, NostrEventManagerRead } from "@scom/scom-social-sdk/managers/eventManagerRead.ts";
     class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEventManagerRead {
         protected _nostrCommunicationManager: INostrRestAPIManager;
-        protected _nostrCachedCommunicationManager: INostrRestAPIManager;
         constructor(manager: INostrRestAPIManager, cachedManager: INostrRestAPIManager);
         set nostrCommunicationManager(manager: INostrRestAPIManager);
         fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
@@ -1779,6 +1778,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV2.ts" {
         fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
         fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
         fetchContactListCacheEvents(pubKey: string, detailIncluded?: boolean): Promise<INostrEvent[]>;
+        fetchUserRelays(pubKey: string): Promise<INostrEvent[]>;
         fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
         fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<any>;
         fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;
@@ -1969,7 +1969,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         submitLongFormContent(info: ILongFormContentInfo): Promise<void>;
         submitLike(postEventData: INostrEvent): Promise<void>;
         submitRepost(postEventData: INostrEvent): Promise<void>;
-        sendPingRequest(pubkey: string, walletAddress: string, signature: string): Promise<any>;
+        sendPingRequest(pubkey: string, walletAddress: string, signature: string, relayUrl?: string): Promise<any>;
         fetchUnreadMessageCounts(pubkey: string): Promise<any>;
         updateMessageLastReadReceipt(pubkey: string, walletAddress: string, signature: string, fromId: string): Promise<any>;
         searchUsers(query: string): Promise<IUserProfile[]>;

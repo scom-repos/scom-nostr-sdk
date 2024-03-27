@@ -4,7 +4,6 @@ import { INostrRestAPIManager } from "./communication";
 import { ISocialEventManagerRead, NostrEventManagerRead } from "./eventManagerRead";
 declare class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEventManagerRead {
     protected _nostrCommunicationManager: INostrRestAPIManager;
-    protected _nostrCachedCommunicationManager: INostrRestAPIManager;
     constructor(manager: INostrRestAPIManager, cachedManager: INostrRestAPIManager);
     set nostrCommunicationManager(manager: INostrRestAPIManager);
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
@@ -15,6 +14,7 @@ declare class NostrEventManagerReadV2 extends NostrEventManagerRead implements I
     fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
     fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchContactListCacheEvents(pubKey: string, detailIncluded?: boolean): Promise<INostrEvent[]>;
+    fetchUserRelays(pubKey: string): Promise<INostrEvent[]>;
     fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<any>;
     fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;

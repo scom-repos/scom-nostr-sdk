@@ -152,7 +152,7 @@ declare class SocialDataManager {
     submitLongFormContent(info: ILongFormContentInfo): Promise<void>;
     submitLike(postEventData: INostrEvent): Promise<void>;
     submitRepost(postEventData: INostrEvent): Promise<void>;
-    sendPingRequest(pubkey: string, walletAddress: string, signature: string): Promise<any>;
+    sendPingRequest(pubkey: string, walletAddress: string, signature: string, relayUrl?: string): Promise<any>;
     fetchUnreadMessageCounts(pubkey: string): Promise<any>;
     updateMessageLastReadReceipt(pubkey: string, walletAddress: string, signature: string, fromId: string): Promise<any>;
     searchUsers(query: string): Promise<IUserProfile[]>;

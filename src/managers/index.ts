@@ -1863,8 +1863,9 @@ class SocialDataManager {
         await this._socialEventManagerWrite.submitRepost(content, tags, this._privateKey);
     }
 
-    async sendPingRequest(pubkey: string, walletAddress: string, signature: string) {
-        if (!this._defaultRestAPIRelay) return null;
+    async sendPingRequest(pubkey: string, walletAddress: string, signature: string, relayUrl?: string) {
+        relayUrl = relayUrl || this._defaultRestAPIRelay;
+        if (!relayUrl) return null;
         let msg = pubkey;
         const pubkeyY = Keys.getPublicKeyY(this._privateKey);
         const data = {
@@ -1874,7 +1875,7 @@ class SocialDataManager {
             pubkeyY: pubkeyY,
             walletAddress: walletAddress
         };
-        let response = await fetch(this._defaultRestAPIRelay + '/ping', {
+        let response = await fetch(relayUrl + '/ping', {
             method: 'POST',
             headers: {
                 Accept: 'application/json',
