@@ -39,8 +39,8 @@ function convertUnixTimestampToDate(timestamp: number): string {
 }
 
 class NostrEventManagerWrite implements ISocialEventManagerWrite {
-    private _nostrCommunicationManagers: INostrCommunicationManager[] = [];
-    private _apiBaseUrl: string;
+    protected _nostrCommunicationManagers: INostrCommunicationManager[] = [];
+    protected _apiBaseUrl: string;
 
     constructor(managers: INostrCommunicationManager[], apiBaseUrl: string) {
         this._nostrCommunicationManagers = managers;
@@ -51,7 +51,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         this._nostrCommunicationManagers = managers;
     }
 
-    private calculateConversationPathTags(conversationPath: IConversationPath) {
+    protected calculateConversationPathTags(conversationPath: IConversationPath) {
         let tags: string[][] = [];
         for (let i = 0; i < conversationPath.noteIds.length; i++) {
             const noteId = conversationPath.noteIds[i];

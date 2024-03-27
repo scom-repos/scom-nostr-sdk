@@ -25,11 +25,11 @@ interface ISocialEventManagerWrite {
     createPaymentReceiptEvent(requestEventId: string, recipient: string, preimage: string, comment: string, privateKey: string): Promise<void>;
 }
 declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
-    private _nostrCommunicationManagers;
-    private _apiBaseUrl;
+    protected _nostrCommunicationManagers: INostrCommunicationManager[];
+    protected _apiBaseUrl: string;
     constructor(managers: INostrCommunicationManager[], apiBaseUrl: string);
     set nostrCommunicationManagers(managers: INostrCommunicationManager[]);
-    private calculateConversationPathTags;
+    protected calculateConversationPathTags(conversationPath: IConversationPath): string[][];
     updateContactList(content: string, contactPubKeys: string[], privateKey: string): Promise<void>;
     postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
     deleteEvents(eventIds: string[], privateKey: string): Promise<INostrSubmitResponse[]>;

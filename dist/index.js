@@ -5990,7 +5990,22 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV2.ts", ["require", "expo
             const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-profile-replies', msg);
             return fetchEventsResponse.events;
         }
-        async WIP_fetchHomeFeedCacheEvents(pubKey, since = 0, until = 0) {
+        async fetchHomeFeedCacheEvents(pubKey, since = 0, until = 0) {
+            let msg = {
+                limit: 20
+            };
+            if (until === 0) {
+                msg.since = since;
+            }
+            else {
+                msg.until = until;
+            }
+            if (pubKey) {
+                const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
+                msg.pubKey = decodedPubKey;
+            }
+            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-home-feed', msg);
+            return fetchEventsResponse.events;
         }
         async fetchUserProfileCacheEvents(pubKeys) {
             const decodedPubKeys = pubKeys.map(pubKey => pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey);
@@ -6329,6 +6344,21 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV2.ts", ["require", "expo
             }
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-long-form-content', msg);
             return fetchEventsResponse.events;
+        }
+        async searchUsers(query) {
+            return [];
+        }
+        async fetchPaymentRequestEvent(paymentRequest) {
+            return null;
+        }
+        async fetchPaymentActivitiesForRecipient(pubkey, since = 0, until = 0) {
+            return [];
+        }
+        async fetchPaymentActivitiesForSender(pubkey, since = 0, until = 0) {
+            return [];
+        }
+        async fetchUserFollowingFeed(pubKey, until = 0) {
+            return [];
         }
     }
     exports.NostrEventManagerReadV2 = NostrEventManagerReadV2;

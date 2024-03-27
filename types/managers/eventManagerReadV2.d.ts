@@ -11,7 +11,7 @@ declare class NostrEventManagerReadV2 extends NostrEventManagerRead implements I
     fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
     fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
     fetchProfileRepliesCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    WIP_fetchHomeFeedCacheEvents(pubKey?: string, since?: number, until?: number): Promise<void>;
+    fetchHomeFeedCacheEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
     fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchContactListCacheEvents(pubKey: string, detailIncluded?: boolean): Promise<INostrEvent[]>;
@@ -41,5 +41,10 @@ declare class NostrEventManagerReadV2 extends NostrEventManagerRead implements I
     fetchCalendarEventPosts(calendarEventUri: string): Promise<INostrEvent[]>;
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
     fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
+    searchUsers(query: string): Promise<any[]>;
+    fetchPaymentRequestEvent(paymentRequest: string): Promise<any>;
+    fetchPaymentActivitiesForRecipient(pubkey: string, since?: number, until?: number): Promise<any[]>;
+    fetchPaymentActivitiesForSender(pubkey: string, since?: number, until?: number): Promise<any[]>;
+    fetchUserFollowingFeed(pubKey: string, until?: number): Promise<any[]>;
 }
 export { NostrEventManagerReadV2 };

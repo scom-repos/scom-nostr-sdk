@@ -1639,11 +1639,11 @@ declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
         createPaymentReceiptEvent(requestEventId: string, recipient: string, preimage: string, comment: string, privateKey: string): Promise<void>;
     }
     class NostrEventManagerWrite implements ISocialEventManagerWrite {
-        private _nostrCommunicationManagers;
-        private _apiBaseUrl;
+        protected _nostrCommunicationManagers: INostrCommunicationManager[];
+        protected _apiBaseUrl: string;
         constructor(managers: INostrCommunicationManager[], apiBaseUrl: string);
         set nostrCommunicationManagers(managers: INostrCommunicationManager[]);
-        private calculateConversationPathTags;
+        protected calculateConversationPathTags(conversationPath: IConversationPath): string[][];
         updateContactList(content: string, contactPubKeys: string[], privateKey: string): Promise<void>;
         postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
         deleteEvents(eventIds: string[], privateKey: string): Promise<INostrSubmitResponse[]>;
@@ -1775,7 +1775,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV2.ts" {
         fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
         fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
         fetchProfileRepliesCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
-        WIP_fetchHomeFeedCacheEvents(pubKey?: string, since?: number, until?: number): Promise<void>;
+        fetchHomeFeedCacheEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
         fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
         fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
         fetchContactListCacheEvents(pubKey: string, detailIncluded?: boolean): Promise<INostrEvent[]>;
@@ -1805,6 +1805,11 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV2.ts" {
         fetchCalendarEventPosts(calendarEventUri: string): Promise<INostrEvent[]>;
         fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
         fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
+        searchUsers(query: string): Promise<any[]>;
+        fetchPaymentRequestEvent(paymentRequest: string): Promise<any>;
+        fetchPaymentActivitiesForRecipient(pubkey: string, since?: number, until?: number): Promise<any[]>;
+        fetchPaymentActivitiesForSender(pubkey: string, since?: number, until?: number): Promise<any[]>;
+        fetchUserFollowingFeed(pubKey: string, until?: number): Promise<any[]>;
     }
     export { NostrEventManagerReadV2 };
 }

@@ -65,7 +65,22 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
         return fetchEventsResponse.events;
     }
 
-    async WIP_fetchHomeFeedCacheEvents(pubKey?: string, since: number = 0, until: number = 0) {
+    async fetchHomeFeedCacheEvents(pubKey?: string, since: number = 0, until: number = 0) {
+        let msg: any = {
+            limit: 20
+        };
+        if (until === 0) {
+            msg.since = since;
+        }
+        else {
+            msg.until = until;
+        }
+        if (pubKey) {
+            const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+            msg.pubKey = decodedPubKey;
+        }
+        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchEventsFromAPI('fetch-home-feed', msg);
+        return fetchEventsResponse.events;
     }
 
     async fetchUserProfileCacheEvents(pubKeys: string[]) {
@@ -429,6 +444,26 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
         }
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-long-form-content', msg);
         return fetchEventsResponse.events;
+    }
+
+    async searchUsers(query: string) {
+        return [];
+    }
+
+    async fetchPaymentRequestEvent(paymentRequest: string) {
+        return null;
+    }
+
+    async fetchPaymentActivitiesForRecipient(pubkey: string, since: number = 0, until: number = 0) {
+        return [];
+    }
+
+    async fetchPaymentActivitiesForSender(pubkey: string, since: number = 0, until: number = 0) {
+        return [];
+    }
+
+    async fetchUserFollowingFeed(pubKey: string, until: number = 0) {
+        return [];
     }
 }
 
