@@ -7,8 +7,8 @@ import { ISocialEventManagerRead, NostrEventManagerRead } from "./eventManagerRe
 class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEventManagerRead {
     protected _nostrCommunicationManager: INostrRestAPIManager;
 
-    constructor(manager: INostrRestAPIManager, cachedManager: INostrRestAPIManager) {
-        super(manager, cachedManager);
+    constructor(manager: INostrRestAPIManager) {
+        super(manager);
     }
 
     set nostrCommunicationManager(manager: INostrRestAPIManager) {

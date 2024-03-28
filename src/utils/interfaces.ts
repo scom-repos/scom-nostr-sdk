@@ -350,8 +350,9 @@ export interface ILocationCoordinates {
 
 export interface ISocialDataManagerConfig {
 	version?: 1 | 2;
-	relays: string[];
-	cachedServer: string;
+	writeRelays: string[];
+	readRelay: string;
+	publicIndexingRelay: string;
 	apiBaseUrl: string;
 	ipLocationServiceBaseUrl?: string;
 	ipLocationServiceApiKey?: string;

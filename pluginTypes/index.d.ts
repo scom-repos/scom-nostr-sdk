@@ -1400,8 +1400,9 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     }
     export interface ISocialDataManagerConfig {
         version?: 1 | 2;
-        relays: string[];
-        cachedServer: string;
+        writeRelays: string[];
+        readRelay: string;
+        publicIndexingRelay: string;
         apiBaseUrl: string;
         ipLocationServiceBaseUrl?: string;
         ipLocationServiceApiKey?: string;
@@ -1714,8 +1715,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
     }
     class NostrEventManagerRead implements ISocialEventManagerRead {
         protected _nostrCommunicationManager: INostrCommunicationManager;
-        protected _nostrCachedCommunicationManager: INostrCommunicationManager;
-        constructor(manager: INostrCommunicationManager, cachedManager: INostrCommunicationManager);
+        constructor(manager: INostrCommunicationManager);
         set nostrCommunicationManager(manager: INostrCommunicationManager);
         fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
         fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
@@ -1768,7 +1768,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV2.ts" {
     import { ISocialEventManagerRead, NostrEventManagerRead } from "@scom/scom-social-sdk/managers/eventManagerRead.ts";
     class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEventManagerRead {
         protected _nostrCommunicationManager: INostrRestAPIManager;
-        constructor(manager: INostrRestAPIManager, cachedManager: INostrRestAPIManager);
+        constructor(manager: INostrRestAPIManager);
         set nostrCommunicationManager(manager: INostrRestAPIManager);
         fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
         fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
@@ -1822,8 +1822,8 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
     import { ISocialEventManagerRead, NostrEventManagerRead } from "@scom/scom-social-sdk/managers/eventManagerRead.ts";
     import { NostrEventManagerReadV2 } from "@scom/scom-social-sdk/managers/eventManagerReadV2.ts";
     class SocialDataManager {
-        private _relays;
-        private _defaultRestAPIRelay;
+        private _writeRelays;
+        private _publicIndexingRelay;
         private _apiBaseUrl;
         private _ipLocationServiceBaseUrl;
         private _socialEventManagerRead;
@@ -1975,13 +1975,14 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         searchUsers(query: string): Promise<IUserProfile[]>;
         addRelay(url: string): Promise<void>;
         removeRelay(url: string): Promise<void>;
-        updateRelays(add: string[], remove: string[], defaultRelays: string[]): Promise<void>;
+        updateRelays(add: string[], remove: string[], defaultRelays: string[]): Promise<string[]>;
         makeInvoice(amount: string, comment: string): Promise<string>;
         sendPayment(paymentRequest: string, comment: string): Promise<string>;
         zap(pubkey: string, lud16: string, amount: string, noteId: string): Promise<any>;
         fetchUserPaymentActivities(pubkey: string, since?: number, until?: number): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").IPaymentActivity[]>;
         getLightningBalance(): Promise<any>;
         getBitcoinPrice(): Promise<any>;
+        fetchUserPrivateRelay(pubkey: string): Promise<any>;
     }
     export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager };
 }

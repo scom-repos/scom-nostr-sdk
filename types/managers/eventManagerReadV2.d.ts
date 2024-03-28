@@ -4,7 +4,7 @@ import { INostrRestAPIManager } from "./communication";
 import { ISocialEventManagerRead, NostrEventManagerRead } from "./eventManagerRead";
 declare class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEventManagerRead {
     protected _nostrCommunicationManager: INostrRestAPIManager;
-    constructor(manager: INostrRestAPIManager, cachedManager: INostrRestAPIManager);
+    constructor(manager: INostrRestAPIManager);
     set nostrCommunicationManager(manager: INostrRestAPIManager);
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
     fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;

@@ -50,11 +50,9 @@ interface ISocialEventManagerRead {
 
 class NostrEventManagerRead implements ISocialEventManagerRead {
     protected _nostrCommunicationManager: INostrCommunicationManager;
-    protected _nostrCachedCommunicationManager: INostrCommunicationManager;
 
-    constructor(manager: INostrCommunicationManager, cachedManager: INostrCommunicationManager) {
+    constructor(manager: INostrCommunicationManager) {
         this._nostrCommunicationManager = manager;
-        this._nostrCachedCommunicationManager = cachedManager;
     }
 
     set nostrCommunicationManager(manager: INostrCommunicationManager) {
@@ -71,7 +69,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
             const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
             msg.user_pubkey = decodedPubKey;
         }
-        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('thread_view', msg);
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('thread_view', msg);
         return fetchEventsResponse.events;
     }
 
@@ -82,7 +80,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
             const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
             msg.user_pubkey = decodedPubKey;
         }
-        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('explore_global_trending_24h', msg);
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('explore_global_trending_24h', msg);
         return fetchEventsResponse.events;
     }
 
@@ -100,7 +98,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         else {
             msg.until = until;
         }
-        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('feed', msg);
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('feed', msg);
         return fetchEventsResponse.events;
     }
 
@@ -118,7 +116,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         else {
             msg.until = until;
         }
-        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('feed', msg);
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('feed', msg);
         return fetchEventsResponse.events;
     }
 
@@ -137,7 +135,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
             const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
             msg.user_pubkey = decodedPubKey;
         }
-        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('feed', msg);
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('feed', msg);
         return fetchEventsResponse.events;
     }
 
@@ -146,7 +144,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         let msg: any = {
             pubkeys: decodedPubKeys
         };
-        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('user_infos', msg);
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_infos', msg);
         return fetchEventsResponse.events;
     }
 
@@ -156,7 +154,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
             pubkey: decodedPubKey,
             user_pubkey: decodedPubKey
         };
-        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('user_profile', msg);
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_profile', msg);
         return fetchEventsResponse.events;
     }
 
@@ -166,7 +164,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
             extended_response: detailIncluded,
             pubkey: decodedPubKey
         };
-        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('contact_list', msg);
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('contact_list', msg);
         return fetchEventsResponse.events;
     }    
 
@@ -175,7 +173,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         let msg: any = {
             pubkey: decodedPubKey
         };
-        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('get_user_relays', msg);
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('get_user_relays', msg);
         return fetchEventsResponse.events;
     }
 
@@ -184,7 +182,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         let msg: any = {
             pubkey: decodedPubKey
         };
-        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('user_followers', msg);
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_followers', msg);
         return fetchEventsResponse.events;
     }  
 
@@ -522,12 +520,12 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
             user_pubkey: decodedPubKey,
             relation: 'follows'
         };
-        const followsEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('get_directmsg_contacts', msg);
+        const followsEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('get_directmsg_contacts', msg);
         msg = {
             user_pubkey: decodedPubKey,
             relation: 'other'
         };
-        const otherEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('get_directmsg_contacts', msg);
+        const otherEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('get_directmsg_contacts', msg);
         return [...followsEventsResponse.events, ...otherEventsResponse.events];
     }
 
@@ -545,7 +543,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         else {
             req.until = until;
         }
-        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('get_directmsgs', req);
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('get_directmsgs', req);
         return fetchEventsResponse.events;
     }
 
@@ -571,7 +569,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
             event_from_user: event,
             sender: decodedSenderPubKey
         };
-        await this._nostrCachedCommunicationManager.fetchCachedEvents('reset_directmsg_count', msg);
+        await this._nostrCommunicationManager.fetchCachedEvents('reset_directmsg_count', msg);
     }
 
     async fetchGroupKeys(identifier: string) {
@@ -670,7 +668,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
             query: query,
             limit: 10
         };
-        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('user_search', req);
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_search', req);
         return fetchEventsResponse.events;
     }
 
@@ -781,7 +779,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         if (until > 0) {
             msg.until = until;
         }
-        const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('explore', msg);
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('explore', msg);
         return fetchEventsResponse.events;
     }
 }

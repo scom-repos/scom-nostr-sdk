@@ -21,8 +21,8 @@ function flatMap<T, U>(array: T[], callback: (item: T) => U[]): U[] {
 }
 
 class SocialDataManager {
-    private _relays: string[];
-    private _defaultRestAPIRelay: string;
+    private _writeRelays: string[];
+    private _publicIndexingRelay: string;
     private _apiBaseUrl: string;
     private _ipLocationServiceBaseUrl: string;
     private _socialEventManagerRead: ISocialEventManagerRead;
@@ -35,36 +35,25 @@ class SocialDataManager {
         this._apiBaseUrl = config.apiBaseUrl;
         this._ipLocationServiceBaseUrl = config.ipLocationServiceBaseUrl;
         let nostrCommunicationManagers: INostrCommunicationManager[] = [];
-        let nostrCachedCommunicationManager: INostrCommunicationManager;
-        this._relays = config.relays;
-        for (let relay of config.relays) {
+        this._publicIndexingRelay = config.publicIndexingRelay;
+        this._writeRelays = config.writeRelays;
+        for (let relay of config.writeRelays) {
             if (relay.startsWith('wss://')) {
                 nostrCommunicationManagers.push(new NostrWebSocketManager(relay));
             }
             else {
                 nostrCommunicationManagers.push(new NostrRestAPIManager(relay));
-                if (!this._defaultRestAPIRelay) {
-                    this._defaultRestAPIRelay = relay;
-                }
             }
         }
-
-        if (config.cachedServer.startsWith('wss://')) {
-            nostrCachedCommunicationManager = new NostrWebSocketManager(config.cachedServer);
-        }
-        else {
-            nostrCachedCommunicationManager = new NostrRestAPIManager(config.cachedServer);
-        }
+        let nostrReadRelayManager = new NostrRestAPIManager(config.readRelay);
         if (config.version === 2) {
             this._socialEventManagerRead = new NostrEventManagerReadV2(
-                nostrCommunicationManagers[0] as NostrRestAPIManager,
-                nostrCachedCommunicationManager as NostrRestAPIManager
+                nostrReadRelayManager as NostrRestAPIManager
             );
         }
         else {
             this._socialEventManagerRead = new NostrEventManagerRead(
-                nostrCommunicationManagers[0], 
-                nostrCachedCommunicationManager
+                nostrReadRelayManager
             );
         }
 
@@ -100,6 +89,7 @@ class SocialDataManager {
     }
     
     private _setRelays(relays: string[]) {
+        this._writeRelays = relays;
         let nostrCommunicationManagers: INostrCommunicationManager[] = [];
         for (let relay of relays) {
             if (relay.startsWith('wss://')) {
@@ -107,12 +97,8 @@ class SocialDataManager {
             }
             else {
                 nostrCommunicationManagers.push(new NostrRestAPIManager(relay));
-                if (!this._defaultRestAPIRelay) {
-                    this._defaultRestAPIRelay = relay;
-                }
             }
         }
-        this._socialEventManagerRead.nostrCommunicationManager = nostrCommunicationManagers[0];
         this._socialEventManagerWrite.nostrCommunicationManagers = nostrCommunicationManagers;
     }
 
@@ -1864,7 +1850,7 @@ class SocialDataManager {
     }
 
     async sendPingRequest(pubkey: string, walletAddress: string, signature: string, relayUrl?: string) {
-        relayUrl = relayUrl || this._defaultRestAPIRelay;
+        relayUrl = relayUrl || this._publicIndexingRelay;
         if (!relayUrl) return null;
         let msg = pubkey;
         const pubkeyY = Keys.getPublicKeyY(this._privateKey);
@@ -1888,15 +1874,15 @@ class SocialDataManager {
     }
 
     async fetchUnreadMessageCounts(pubkey: string) {
-        if (!this._defaultRestAPIRelay) return null;
-        let url = this._defaultRestAPIRelay + '/unread-message-counts?pubkey=' + pubkey;
+        if (!this._publicIndexingRelay) return null;
+        let url = this._publicIndexingRelay + '/unread-message-counts?pubkey=' + pubkey;
         const response = await fetch(url);
         const result = await response.json();
         return result;
     }
 
     async updateMessageLastReadReceipt(pubkey: string, walletAddress: string, signature: string, fromId: string) {
-        if (!this._defaultRestAPIRelay) return null;
+        if (!this._publicIndexingRelay) return null;
         let msg = pubkey;
         const data = {
             fromId: fromId,
@@ -1905,7 +1891,7 @@ class SocialDataManager {
             pubkey: pubkey,
             walletAddress: walletAddress
         };
-        let response = await fetch(this._defaultRestAPIRelay + '/update-message-last-read-receipt', {
+        let response = await fetch(this._publicIndexingRelay + '/update-message-last-read-receipt', {
             method: 'POST',
             headers: {
                 Accept: 'application/json',
@@ -1986,9 +1972,9 @@ class SocialDataManager {
         const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
         const relaysEvents = await this._socialEventManagerRead.fetchUserRelays(selfPubkey);
         const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
-        let relays: Record<string, IRelayConfig> = {};
+        let relaysMap: Record<string, IRelayConfig> = {};
         for (let relay of add) {
-            relays[relay] = { read: true, write: true };
+            relaysMap[relay] = { read: true, write: true };
         }
         if (relaysEvent) {
             for (let tag of relaysEvent.tags) {
@@ -2000,12 +1986,13 @@ class SocialDataManager {
                 if (tag[2] === 'read') {
                     config.write = false;
                 }
-                relays[tag[1]] = config;
+                relaysMap[tag[1]] = config;
             }
         }
-        let relayUrls = Object.keys(relays);
-        this.relays = relayUrls.length > 0 ? relayUrls : defaultRelays;
-        await this._socialEventManagerWrite.updateRelayList(relays, this._privateKey);
+        let relayUrls = Object.keys(relaysMap);
+        // this.relays = relayUrls.length > 0 ? relayUrls : defaultRelays;
+        await this._socialEventManagerWrite.updateRelayList(relaysMap, this._privateKey);
+        return relayUrls;
     }
 
     async makeInvoice(amount: string, comment: string) {
@@ -2024,7 +2011,7 @@ class SocialDataManager {
     }
 
     async zap(pubkey: string, lud16: string, amount: string, noteId: string) {
-        const response = await this.lightningWalletManager.zap(pubkey, lud16, Number(amount), '', this._relays, noteId);
+        const response = await this.lightningWalletManager.zap(pubkey, lud16, Number(amount), '', this._writeRelays, noteId);
         return response as any;
     }
 
@@ -2045,6 +2032,13 @@ class SocialDataManager {
         const result = await response.json();
         const price = result.quotes.USD.price;
         return price;
+    }
+
+    async fetchUserPrivateRelay(pubkey: string) {
+        const url = `${this._publicIndexingRelay}/private-relay?pubkey=${pubkey}`;
+        const response = await fetch(url);
+        const result = await response.json();
+        return result.data.relay;
     }
 }
 

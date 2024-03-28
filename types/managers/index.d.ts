@@ -5,8 +5,8 @@ import { ISocialEventManagerWrite, NostrEventManagerWrite } from "./eventManager
 import { ISocialEventManagerRead, NostrEventManagerRead } from "./eventManagerRead";
 import { NostrEventManagerReadV2 } from "./eventManagerReadV2";
 declare class SocialDataManager {
-    private _relays;
-    private _defaultRestAPIRelay;
+    private _writeRelays;
+    private _publicIndexingRelay;
     private _apiBaseUrl;
     private _ipLocationServiceBaseUrl;
     private _socialEventManagerRead;
@@ -158,12 +158,13 @@ declare class SocialDataManager {
     searchUsers(query: string): Promise<IUserProfile[]>;
     addRelay(url: string): Promise<void>;
     removeRelay(url: string): Promise<void>;
-    updateRelays(add: string[], remove: string[], defaultRelays: string[]): Promise<void>;
+    updateRelays(add: string[], remove: string[], defaultRelays: string[]): Promise<string[]>;
     makeInvoice(amount: string, comment: string): Promise<string>;
     sendPayment(paymentRequest: string, comment: string): Promise<string>;
     zap(pubkey: string, lud16: string, amount: string, noteId: string): Promise<any>;
     fetchUserPaymentActivities(pubkey: string, since?: number, until?: number): Promise<import("../utils/interfaces").IPaymentActivity[]>;
     getLightningBalance(): Promise<any>;
     getBitcoinPrice(): Promise<any>;
+    fetchUserPrivateRelay(pubkey: string): Promise<any>;
 }
 export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager };

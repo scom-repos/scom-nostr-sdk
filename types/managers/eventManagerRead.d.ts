@@ -42,8 +42,7 @@ interface ISocialEventManagerRead {
 }
 declare class NostrEventManagerRead implements ISocialEventManagerRead {
     protected _nostrCommunicationManager: INostrCommunicationManager;
-    protected _nostrCachedCommunicationManager: INostrCommunicationManager;
-    constructor(manager: INostrCommunicationManager, cachedManager: INostrCommunicationManager);
+    constructor(manager: INostrCommunicationManager);
     set nostrCommunicationManager(manager: INostrCommunicationManager);
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
     fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;

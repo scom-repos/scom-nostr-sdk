@@ -5260,9 +5260,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.NostrEventManagerRead = void 0;
     class NostrEventManagerRead {
-        constructor(manager, cachedManager) {
+        constructor(manager) {
             this._nostrCommunicationManager = manager;
-            this._nostrCachedCommunicationManager = cachedManager;
         }
         set nostrCommunicationManager(manager) {
             this._nostrCommunicationManager = manager;
@@ -5277,7 +5276,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
                 const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
                 msg.user_pubkey = decodedPubKey;
             }
-            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('thread_view', msg);
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('thread_view', msg);
             return fetchEventsResponse.events;
         }
         async fetchTrendingCacheEvents(pubKey) {
@@ -5286,7 +5285,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
                 const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
                 msg.user_pubkey = decodedPubKey;
             }
-            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('explore_global_trending_24h', msg);
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('explore_global_trending_24h', msg);
             return fetchEventsResponse.events;
         }
         async fetchProfileFeedCacheEvents(pubKey, since = 0, until = 0) {
@@ -5303,7 +5302,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             else {
                 msg.until = until;
             }
-            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('feed', msg);
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('feed', msg);
             return fetchEventsResponse.events;
         }
         async fetchProfileRepliesCacheEvents(pubKey, since = 0, until = 0) {
@@ -5320,7 +5319,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             else {
                 msg.until = until;
             }
-            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('feed', msg);
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('feed', msg);
             return fetchEventsResponse.events;
         }
         async fetchHomeFeedCacheEvents(pubKey, since = 0, until = 0) {
@@ -5338,7 +5337,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
                 const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
                 msg.user_pubkey = decodedPubKey;
             }
-            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('feed', msg);
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('feed', msg);
             return fetchEventsResponse.events;
         }
         async fetchUserProfileCacheEvents(pubKeys) {
@@ -5346,7 +5345,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             let msg = {
                 pubkeys: decodedPubKeys
             };
-            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('user_infos', msg);
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_infos', msg);
             return fetchEventsResponse.events;
         }
         async fetchUserProfileDetailCacheEvents(pubKey) {
@@ -5355,7 +5354,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
                 pubkey: decodedPubKey,
                 user_pubkey: decodedPubKey
             };
-            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('user_profile', msg);
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_profile', msg);
             return fetchEventsResponse.events;
         }
         async fetchContactListCacheEvents(pubKey, detailIncluded = true) {
@@ -5364,7 +5363,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
                 extended_response: detailIncluded,
                 pubkey: decodedPubKey
             };
-            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('contact_list', msg);
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('contact_list', msg);
             return fetchEventsResponse.events;
         }
         async fetchUserRelays(pubKey) {
@@ -5372,7 +5371,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             let msg = {
                 pubkey: decodedPubKey
             };
-            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('get_user_relays', msg);
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('get_user_relays', msg);
             return fetchEventsResponse.events;
         }
         async fetchFollowersCacheEvents(pubKey) {
@@ -5380,7 +5379,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             let msg = {
                 pubkey: decodedPubKey
             };
-            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('user_followers', msg);
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_followers', msg);
             return fetchEventsResponse.events;
         }
         async fetchCommunities(pubkeyToCommunityIdsMap) {
@@ -5685,12 +5684,12 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
                 user_pubkey: decodedPubKey,
                 relation: 'follows'
             };
-            const followsEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('get_directmsg_contacts', msg);
+            const followsEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('get_directmsg_contacts', msg);
             msg = {
                 user_pubkey: decodedPubKey,
                 relation: 'other'
             };
-            const otherEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('get_directmsg_contacts', msg);
+            const otherEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('get_directmsg_contacts', msg);
             return [...followsEventsResponse.events, ...otherEventsResponse.events];
         }
         async fetchDirectMessages(pubKey, sender, since = 0, until = 0) {
@@ -5707,7 +5706,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             else {
                 req.until = until;
             }
-            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('get_directmsgs', req);
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('get_directmsgs', req);
             return fetchEventsResponse.events;
         }
         async resetMessageCount(pubKey, sender, privateKey) {
@@ -5732,7 +5731,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
                 event_from_user: event,
                 sender: decodedSenderPubKey
             };
-            await this._nostrCachedCommunicationManager.fetchCachedEvents('reset_directmsg_count', msg);
+            await this._nostrCommunicationManager.fetchCachedEvents('reset_directmsg_count', msg);
         }
         async fetchGroupKeys(identifier) {
             let req = {
@@ -5822,7 +5821,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
                 query: query,
                 limit: 10
             };
-            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('user_search', req);
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_search', req);
             return fetchEventsResponse.events;
         }
         async fetchPaymentRequestEvent(paymentRequest) {
@@ -5929,7 +5928,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             if (until > 0) {
                 msg.until = until;
             }
-            const fetchEventsResponse = await this._nostrCachedCommunicationManager.fetchCachedEvents('explore', msg);
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('explore', msg);
             return fetchEventsResponse.events;
         }
     }
@@ -5940,8 +5939,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV2.ts", ["require", "expo
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.NostrEventManagerReadV2 = void 0;
     class NostrEventManagerReadV2 extends eventManagerRead_1.NostrEventManagerRead {
-        constructor(manager, cachedManager) {
-            super(manager, cachedManager);
+        constructor(manager) {
+            super(manager);
         }
         set nostrCommunicationManager(manager) {
             this._nostrCommunicationManager = manager;
@@ -6384,30 +6383,22 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             this._apiBaseUrl = config.apiBaseUrl;
             this._ipLocationServiceBaseUrl = config.ipLocationServiceBaseUrl;
             let nostrCommunicationManagers = [];
-            let nostrCachedCommunicationManager;
-            this._relays = config.relays;
-            for (let relay of config.relays) {
+            this._publicIndexingRelay = config.publicIndexingRelay;
+            this._writeRelays = config.writeRelays;
+            for (let relay of config.writeRelays) {
                 if (relay.startsWith('wss://')) {
                     nostrCommunicationManagers.push(new communication_1.NostrWebSocketManager(relay));
                 }
                 else {
                     nostrCommunicationManagers.push(new communication_1.NostrRestAPIManager(relay));
-                    if (!this._defaultRestAPIRelay) {
-                        this._defaultRestAPIRelay = relay;
-                    }
                 }
             }
-            if (config.cachedServer.startsWith('wss://')) {
-                nostrCachedCommunicationManager = new communication_1.NostrWebSocketManager(config.cachedServer);
-            }
-            else {
-                nostrCachedCommunicationManager = new communication_1.NostrRestAPIManager(config.cachedServer);
-            }
+            let nostrReadRelayManager = new communication_1.NostrRestAPIManager(config.readRelay);
             if (config.version === 2) {
-                this._socialEventManagerRead = new eventManagerReadV2_1.NostrEventManagerReadV2(nostrCommunicationManagers[0], nostrCachedCommunicationManager);
+                this._socialEventManagerRead = new eventManagerReadV2_1.NostrEventManagerReadV2(nostrReadRelayManager);
             }
             else {
-                this._socialEventManagerRead = new eventManagerRead_2.NostrEventManagerRead(nostrCommunicationManagers[0], nostrCachedCommunicationManager);
+                this._socialEventManagerRead = new eventManagerRead_2.NostrEventManagerRead(nostrReadRelayManager);
             }
             this._socialEventManagerWrite = new eventManagerWrite_1.NostrEventManagerWrite(nostrCommunicationManagers, config.apiBaseUrl);
             if (config.mqttBrokerUrl) {
@@ -6433,6 +6424,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             this._setRelays(value);
         }
         _setRelays(relays) {
+            this._writeRelays = relays;
             let nostrCommunicationManagers = [];
             for (let relay of relays) {
                 if (relay.startsWith('wss://')) {
@@ -6440,12 +6432,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 }
                 else {
                     nostrCommunicationManagers.push(new communication_1.NostrRestAPIManager(relay));
-                    if (!this._defaultRestAPIRelay) {
-                        this._defaultRestAPIRelay = relay;
-                    }
                 }
             }
-            this._socialEventManagerRead.nostrCommunicationManager = nostrCommunicationManagers[0];
             this._socialEventManagerWrite.nostrCommunicationManagers = nostrCommunicationManagers;
         }
         subscribeToMqttTopics(topics) {
@@ -8095,7 +8083,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             await this._socialEventManagerWrite.submitRepost(content, tags, this._privateKey);
         }
         async sendPingRequest(pubkey, walletAddress, signature, relayUrl) {
-            relayUrl = relayUrl || this._defaultRestAPIRelay;
+            relayUrl = relayUrl || this._publicIndexingRelay;
             if (!relayUrl)
                 return null;
             let msg = pubkey;
@@ -8119,15 +8107,15 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             return result;
         }
         async fetchUnreadMessageCounts(pubkey) {
-            if (!this._defaultRestAPIRelay)
+            if (!this._publicIndexingRelay)
                 return null;
-            let url = this._defaultRestAPIRelay + '/unread-message-counts?pubkey=' + pubkey;
+            let url = this._publicIndexingRelay + '/unread-message-counts?pubkey=' + pubkey;
             const response = await fetch(url);
             const result = await response.json();
             return result;
         }
         async updateMessageLastReadReceipt(pubkey, walletAddress, signature, fromId) {
-            if (!this._defaultRestAPIRelay)
+            if (!this._publicIndexingRelay)
                 return null;
             let msg = pubkey;
             const data = {
@@ -8137,7 +8125,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 pubkey: pubkey,
                 walletAddress: walletAddress
             };
-            let response = await fetch(this._defaultRestAPIRelay + '/update-message-last-read-receipt', {
+            let response = await fetch(this._publicIndexingRelay + '/update-message-last-read-receipt', {
                 method: 'POST',
                 headers: {
                     Accept: 'application/json',
@@ -8216,9 +8204,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             const selfPubkey = utilsManager_4.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
             const relaysEvents = await this._socialEventManagerRead.fetchUserRelays(selfPubkey);
             const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
-            let relays = {};
+            let relaysMap = {};
             for (let relay of add) {
-                relays[relay] = { read: true, write: true };
+                relaysMap[relay] = { read: true, write: true };
             }
             if (relaysEvent) {
                 for (let tag of relaysEvent.tags) {
@@ -8231,12 +8219,13 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     if (tag[2] === 'read') {
                         config.write = false;
                     }
-                    relays[tag[1]] = config;
+                    relaysMap[tag[1]] = config;
                 }
             }
-            let relayUrls = Object.keys(relays);
-            this.relays = relayUrls.length > 0 ? relayUrls : defaultRelays;
-            await this._socialEventManagerWrite.updateRelayList(relays, this._privateKey);
+            let relayUrls = Object.keys(relaysMap);
+            // this.relays = relayUrls.length > 0 ? relayUrls : defaultRelays;
+            await this._socialEventManagerWrite.updateRelayList(relaysMap, this._privateKey);
+            return relayUrls;
         }
         async makeInvoice(amount, comment) {
             const paymentRequest = await this.lightningWalletManager.makeInvoice(Number(amount), comment);
@@ -8252,7 +8241,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             return preimage;
         }
         async zap(pubkey, lud16, amount, noteId) {
-            const response = await this.lightningWalletManager.zap(pubkey, lud16, Number(amount), '', this._relays, noteId);
+            const response = await this.lightningWalletManager.zap(pubkey, lud16, Number(amount), '', this._writeRelays, noteId);
             return response;
         }
         async fetchUserPaymentActivities(pubkey, since, until) {
@@ -8270,6 +8259,12 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             const result = await response.json();
             const price = result.quotes.USD.price;
             return price;
+        }
+        async fetchUserPrivateRelay(pubkey) {
+            const url = `${this._publicIndexingRelay}/private-relay?pubkey=${pubkey}`;
+            const response = await fetch(url);
+            const result = await response.json();
+            return result.data.relay;
         }
     }
     exports.SocialDataManager = SocialDataManager;
