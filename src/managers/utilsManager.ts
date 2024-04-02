@@ -1,6 +1,7 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
 import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, INostrEvent, MembershipType, ScpStandardId } from "../utils/interfaces";
+import { Signer } from "@scom/scom-signer";
 
 class SocialUtilsManager {
     static hexStringToUint8Array(hexString: string): Uint8Array {
@@ -257,6 +258,19 @@ class SocialUtilsManager {
         }
 
         return channelInfo;
+    }
+
+    static augmentWithAuthInfo(obj: Record<string, any>, privateKey: string) {
+        if (!privateKey) return obj;
+        const pubkey = Keys.getPublicKey(privateKey);
+        let signature = Signer.getSignature({pubkey: pubkey}, privateKey, {pubkey: 'string'});
+        return {
+            ...obj,
+            auth: {
+                pubkey,
+                signature
+            }
+        }
     }
 }
 

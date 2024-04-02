@@ -3,6 +3,7 @@ import { IAllUserRelatedChannels, IChannelInfo, ICommunityBasicInfo, ICommunityI
 import { INostrCommunicationManager, INostrRestAPIManager } from "./communication";
 interface ISocialEventManagerRead {
     nostrCommunicationManager: INostrCommunicationManager | INostrRestAPIManager;
+    privateKey: string;
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
     fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
     fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
@@ -26,7 +27,7 @@ interface ISocialEventManagerRead {
     fetchChannelInfoMessages(channelId: string): Promise<INostrEvent[]>;
     fetchMessageContactsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
+    resetMessageCount(pubKey: string, sender: string): Promise<void>;
     fetchGroupKeys(identifier: string): Promise<INostrEvent>;
     fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
     fetchCalendarEventPosts(calendarEventUri: string): Promise<INostrEvent[]>;
@@ -42,8 +43,10 @@ interface ISocialEventManagerRead {
 }
 declare class NostrEventManagerRead implements ISocialEventManagerRead {
     protected _nostrCommunicationManager: INostrCommunicationManager;
+    protected _privateKey: string;
     constructor(manager: INostrCommunicationManager);
     set nostrCommunicationManager(manager: INostrCommunicationManager);
+    set privateKey(privateKey: string);
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
     fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
     fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
@@ -71,7 +74,7 @@ declare class NostrEventManagerRead implements ISocialEventManagerRead {
     fetchChannelInfoMessages(channelId: string): Promise<INostrEvent[]>;
     fetchMessageContactsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
+    resetMessageCount(pubKey: string, sender: string): Promise<void>;
     fetchGroupKeys(identifier: string): Promise<INostrEvent>;
     fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
     fetchCalendarEvents(start: number, end?: number, limit?: number): Promise<INostrEvent[]>;

@@ -6,6 +6,7 @@ declare class NostrEventManagerReadV2 extends NostrEventManagerRead implements I
     protected _nostrCommunicationManager: INostrRestAPIManager;
     constructor(manager: INostrRestAPIManager);
     set nostrCommunicationManager(manager: INostrRestAPIManager);
+    protected augmentWithAuthInfo(obj: Record<string, any>): Record<string, any>;
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
     fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
     fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
@@ -33,7 +34,7 @@ declare class NostrEventManagerReadV2 extends NostrEventManagerRead implements I
     fetchChannelInfoMessages(channelId: string): Promise<INostrEvent[]>;
     fetchMessageContactsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
+    resetMessageCount(pubKey: string, sender: string): Promise<void>;
     fetchGroupKeys(identifier: string): Promise<INostrEvent>;
     fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
     fetchCalendarEvents(start: number, end?: number, limit?: number): Promise<INostrEvent[]>;

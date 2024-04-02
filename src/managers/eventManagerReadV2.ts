@@ -15,29 +15,33 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
         this._nostrCommunicationManager = manager;
     }
 
+    protected augmentWithAuthInfo(obj: Record<string, any>) {
+        return SocialUtilsManager.augmentWithAuthInfo(obj, this._privateKey);
+    }
+
     async fetchThreadCacheEvents(id: string, pubKey?: string) {
         let decodedId = id.startsWith('note1') ? Nip19.decode(id).data : id;
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             eventId: decodedId,
             limit: 100
-        };
+        });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-thread-posts', msg);
         return fetchEventsResponse.events;
     }
 
     async fetchTrendingCacheEvents(pubKey?: string) {
-        let msg: any = {
-        };
+        let msg = this.augmentWithAuthInfo({
+        });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-trending-posts', msg);
         return fetchEventsResponse.events;
     }
     
     async fetchProfileFeedCacheEvents(pubKey: string, since: number = 0, until: number = 0) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             limit: 20,
             pubkey: decodedPubKey
-        };
+        });
         if (until === 0) {
             msg.since = since;
         }
@@ -50,10 +54,10 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
 
     async fetchProfileRepliesCacheEvents(pubKey: string, since: number = 0, until: number = 0) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             limit: 20,
             pubkey: decodedPubKey
-        };
+        });
         if (until === 0) {
             msg.since = since;
         }
@@ -65,9 +69,9 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
     }
 
     async fetchHomeFeedCacheEvents(pubKey?: string, since: number = 0, until: number = 0) {
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             limit: 20
-        };
+        });
         if (until === 0) {
             msg.since = since;
         }
@@ -84,9 +88,9 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
 
     async fetchUserProfileCacheEvents(pubKeys: string[]) {
         const decodedPubKeys = pubKeys.map(pubKey => pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey);
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             pubkeys: decodedPubKeys
-        };
+        });
         console.log('fetchUserProfileCacheEvents', msg);
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-profiles', msg);
         return fetchEventsResponse.events;
@@ -94,37 +98,37 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
 
     async fetchUserProfileDetailCacheEvents(pubKey: string) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             pubkey: decodedPubKey
-        };
+        });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-profile-detail', msg);
         return fetchEventsResponse.events;
     }
 
     async fetchContactListCacheEvents(pubKey: string, detailIncluded: boolean = true) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             pubkey: decodedPubKey,
             detailIncluded: detailIncluded,
-        };
+        });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-contact-list', msg);
         return fetchEventsResponse.events;
     }    
 
     async fetchUserRelays(pubKey: string) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             pubkey: decodedPubKey
-        };
+        });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-relays', msg);
         return fetchEventsResponse.events;
     }
 
     async fetchFollowersCacheEvents(pubKey: string) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             pubkey: decodedPubKey
-        };
+        });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-followers', msg);
         return fetchEventsResponse.events;
     }  
@@ -132,9 +136,9 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
     async fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>) {
         let events;
         if (pubkeyToCommunityIdsMap && Object.keys(pubkeyToCommunityIdsMap).length > 0) {
-            let msg = {
+            let msg = this.augmentWithAuthInfo({
                 identifiers: []
-            }
+            });
             for (let pubkey in pubkeyToCommunityIdsMap) {
                 const decodedPubKey = pubkey.startsWith('npub1') ? Nip19.decode(pubkey).data : pubkey;
                 const communityIds = pubkeyToCommunityIdsMap[pubkey];
@@ -148,9 +152,9 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
             events = response.events;
         }   
         else {
-            let msg: any = {
+            let msg = this.augmentWithAuthInfo({
                 limit: 50
-            };
+            });
             let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities', msg);
             events = response.events;
         }
@@ -158,17 +162,17 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
     }
 
     async fetchAllUserRelatedCommunities(pubKey: string) {
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             pubKey
-        };
+        });
         let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-communities', msg);
         return response.events;
     }
 
     async fetchUserBookmarkedCommunities(pubKey: string, excludedCommunity?: ICommunityInfo) {
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             pubKey
-        };
+        });
         let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-bookmarked-communities', msg);
         let communities: ICommunityBasicInfo[] = [];
         for (let community of response.data as ICommunityBasicInfo[]) {
@@ -183,21 +187,21 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
 
     async fetchCommunity(creatorId: string, communityId: string) {
         const decodedCreatorId = creatorId.startsWith('npub1') ? Nip19.decode(creatorId).data : creatorId;
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             identifiers: [
                 {
                     pubkey: decodedCreatorId,
                     names: [communityId]
                 }
             ]
-        };
+        });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities', msg);
         return fetchEventsResponse.events;        
     }
 
     async fetchCommunityFeed(creatorId: string, communityId: string) {
         const decodedCreatorId = creatorId.startsWith('npub1') ? Nip19.decode(creatorId).data : creatorId;
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             identifiers: [
                 {
                     pubkey: decodedCreatorId,
@@ -205,15 +209,15 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
                 }
             ],
             limit: 50
-        };
+        });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-feed', msg);
         return fetchEventsResponse.events;        
     }
 
     async fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]) {  
-        let msg = {
+        let msg = this.augmentWithAuthInfo({
             identifiers: []
-        }
+        });
         for (let community of communities) {
             const decodedCreatorId = community.creatorId.startsWith('npub1') ? Nip19.decode(community.creatorId).data : community.creatorId;
             let request: any = {
@@ -227,9 +231,9 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
     }
 
     async fetchAllUserRelatedChannels(pubKey: string) {
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             pubKey
-        };
+        });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-related-channels', msg);
         let channels: IChannelInfo[] = [];
         const channelMetadataMap: Record<string, IChannelInfo> = {};
@@ -275,27 +279,27 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
     }
 
     async fetchUserBookmarkedChannelEventIds(pubKey: string) {
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             pubKey
-        };
+        });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-bookmarked-channel-event-ids', msg);
         return fetchEventsResponse.data;
     }
 
     async fetchEventsByIds(ids: string[]) {
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             ids
-        };
+        });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-events', msg);
         return fetchEventsResponse.events;
     }
 
     async fetchChannelMessages(channelId: string, since: number = 0, until: number = 0) {
         const decodedChannelId = channelId.startsWith('npub1') ? Nip19.decode(channelId).data : channelId;
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             channelId: decodedChannelId,
             limit: 20
-        };
+        });
         if (until === 0) {
             msg.since = since;
         }
@@ -308,10 +312,10 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
 
     async fetchChannelInfoMessages(channelId: string) {
         const decodedChannelId = channelId.startsWith('npub1') ? Nip19.decode(channelId).data : channelId;
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             channelId: decodedChannelId,
             limit: 20
-        };
+        });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-channel-info-messages', msg);
         return fetchEventsResponse.events;         
     }
@@ -329,10 +333,10 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
             }
         }
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
-        const msg: any = {
+        const msg = this.augmentWithAuthInfo({
             receiver: decodedPubKey,
             senderToLastReadMap: senderToLastReadMap
-        }
+        });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-direct-messages-stats', msg);
         return fetchEventsResponse.events;
     }
@@ -340,11 +344,11 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
     async fetchDirectMessages(pubKey: string, sender: string, since: number = 0, until: number = 0) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
         const decodedSenderPubKey = sender.startsWith('npub1') ? Nip19.decode(sender).data : sender;
-        const msg: any = {
+        const msg = this.augmentWithAuthInfo({
             receiver: decodedPubKey,
             sender: decodedSenderPubKey,
             limit: 20
-        }
+        });
         if (until === 0) {
             msg.since = since;
         }
@@ -355,7 +359,7 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
         return fetchEventsResponse.events;
     }
 
-    async resetMessageCount(pubKey: string, sender: string, privateKey: string) {
+    async resetMessageCount(pubKey: string, sender: string) {
         //FIXME: Implement a better way to set last read messages
         if (localStorage) {
             const lastReadsStr = localStorage.getItem('lastReads');
@@ -369,56 +373,56 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
     }
 
     async fetchGroupKeys(identifier: string) {
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             identifier
-        };
+        });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-application-specific', msg);
         return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
     }
 
     async fetchUserGroupInvitations(groupKinds: number[], pubKey: string) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data as string : pubKey;
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             pubKey: decodedPubKey,
             groupKinds: groupKinds
-        };
+        });
         const fetchEventsResponse =  await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-group-invitations', msg);
         let events = fetchEventsResponse.events?.filter(event => event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'invitee').map(tag => tag[1]).includes(decodedPubKey));
         return events;
     }
 
     async fetchCalendarEvents(start: number, end?: number, limit?: number) {
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             start: start,
             end: end,
             limit: limit || 10
-        };
+        });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-events', msg);
         return fetchEventsResponse.events;  
     }
 
     async fetchCalendarEvent(address: Nip19.AddressPointer) {
         const key = `${address.kind}:${address.pubkey}:${address.identifier}`;
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             key
-        };
+        });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-events', msg);
         return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
     } 
 
     async fetchCalendarEventPosts(calendarEventUri: string) {    
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             eventUri: calendarEventUri,
             limit: 50
-        };
+        });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-posts', msg);
         return fetchEventsResponse.events;
     }
 
     async fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string) {
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             eventUri: calendarEventUri
-        };
+        });
         if (pubkey) {
             const decodedPubKey = pubkey.startsWith('npub1') ? Nip19.decode(pubkey).data : pubkey;
             msg.pubkey = decodedPubKey;
@@ -428,9 +432,9 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
     }
 
     async fetchLongFormContentEvents(pubKey?: string, since: number = 0, until: number = 0) {
-        let msg: any = {
+        let msg = this.augmentWithAuthInfo({
             limit: 20
-        };
+        });
         if (pubKey) {
             const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
             msg.pubKey = decodedPubKey;

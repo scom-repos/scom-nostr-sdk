@@ -4,6 +4,7 @@
     "version": "0.1.19",
     "dependencies": [
         "@ijstech/ln-wallet",
-        "@ijstech/eth-wallet"
+        "@ijstech/eth-wallet",
+        "@scom/scom-signer"
     ]
 }

@@ -73,6 +73,8 @@ class SocialDataManager {
 
     set privateKey(privateKey: string) {
         this._privateKey = privateKey;
+        this._socialEventManagerRead.privateKey = privateKey;
+        this._socialEventManagerWrite.privateKey = privateKey;
         this.lightningWalletManager.privateKey = privateKey;
     }
 
@@ -428,7 +430,8 @@ class SocialDataManager {
             // }
         };
         try {
-            await SocialUtilsManager.exponentialBackoffRetry(fetchData, 5, 1000, 16000, 2);
+            // await SocialUtilsManager.exponentialBackoffRetry(fetchData, 5, 1000, 16000, 2);
+            await fetchData();
         }
         catch (error) { 
             console.error('fetchUserProfiles', error);
@@ -443,7 +446,7 @@ class SocialDataManager {
     }
 
     async updateUserProfile(content: INostrMetadataContent) {
-        await this._socialEventManagerWrite.updateUserProfile(content, this._privateKey)
+        await this._socialEventManagerWrite.updateUserProfile(content)
     }
 
     async fetchTrendingNotesInfo() {
@@ -897,7 +900,7 @@ class SocialDataManager {
             contactPubKeys = new Set(contactListEvent.tags.filter(tag => tag[0] === 'p')?.map(tag => tag[1]) || []);
         }
         contactPubKeys.add(decodedUserPubKey);
-        await this._socialEventManagerWrite.updateContactList(content, Array.from(contactPubKeys), this._privateKey);
+        await this._socialEventManagerWrite.updateContactList(content, Array.from(contactPubKeys));
     }
 
     async unfollowUser(userPubKey: string) {
@@ -915,7 +918,7 @@ class SocialDataManager {
                 }
             }
         }
-        await this._socialEventManagerWrite.updateContactList(content, Array.from(contactPubKeys), this._privateKey);
+        await this._socialEventManagerWrite.updateContactList(content, Array.from(contactPubKeys));
     }
 
     async generateGroupKeys(privateKey: string, encryptionPublicKeys: string[]) {
@@ -972,8 +975,7 @@ class SocialDataManager {
                 communityUri + ':keys', 
                 34550,
                 JSON.stringify(communityKeys.encryptedGroupKeys),
-                communityInfo.memberIds,
-                this._privateKey
+                communityInfo.memberIds
             );
             communityInfo.scpData = {
                 ...communityInfo.scpData,
@@ -988,7 +990,7 @@ class SocialDataManager {
                 communityInfo.scpData.channelEventId = updateChannelResponse.eventId;
             }   
         }
-        await this._socialEventManagerWrite.updateCommunity(communityInfo, this._privateKey);
+        await this._socialEventManagerWrite.updateCommunity(communityInfo);
     
         return communityInfo;
     }
@@ -1015,12 +1017,11 @@ class SocialDataManager {
                 info.communityUri + ':keys',
                 34550,
                 JSON.stringify(encryptedGroupKeys),
-                info.memberIds,
-                this._privateKey
+                info.memberIds
             );
             console.log('updateCommunity', response);
         }
-        await this._socialEventManagerWrite.updateCommunity(info, this._privateKey);
+        await this._socialEventManagerWrite.updateCommunity(info);
         return info;
     }
 
@@ -1033,7 +1034,7 @@ class SocialDataManager {
             about: communityInfo.description,
             scpData: channelScpData
         }
-        const updateChannelResponse = await this._socialEventManagerWrite.updateChannel(channelInfo, this._privateKey);
+        const updateChannelResponse = await this._socialEventManagerWrite.updateChannel(channelInfo);
         return updateChannelResponse;
     }
 
@@ -1048,7 +1049,7 @@ class SocialDataManager {
             ...channelInfo.scpData,
             publicKey: channelKeys.groupPublicKey
         } 
-        const updateChannelResponses = await this._socialEventManagerWrite.updateChannel(channelInfo, this._privateKey);
+        const updateChannelResponses = await this._socialEventManagerWrite.updateChannel(channelInfo);
         //FIXME: fix this when the relay is fixed
         const updateChannelResponse = updateChannelResponses.find(v => v.success && !!v.eventId);
         if (updateChannelResponse?.eventId) {
@@ -1057,15 +1058,14 @@ class SocialDataManager {
                 channelUri + ':keys', 
                 40,
                 JSON.stringify(channelKeys.encryptedGroupKeys),
-                memberIds,
-                this._privateKey
+                memberIds
             );
         }
         return channelInfo;
     }
 
     async updateChannel(channelInfo: IChannelInfo) {
-        const updateChannelResponses = await this._socialEventManagerWrite.updateChannel(channelInfo, this._privateKey);
+        const updateChannelResponses = await this._socialEventManagerWrite.updateChannel(channelInfo);
         return updateChannelResponses;
     }
 
@@ -1132,24 +1132,24 @@ class SocialDataManager {
     async joinCommunity(community: ICommunityInfo, pubKey: string) {
         const communities = await this._socialEventManagerRead.fetchUserBookmarkedCommunities(pubKey);
         communities.push(community);
-        await this._socialEventManagerWrite.updateUserBookmarkedCommunities(communities, this._privateKey);
+        await this._socialEventManagerWrite.updateUserBookmarkedCommunities(communities);
         if (community.scpData?.channelEventId) {
             const channelEventIds = await this._socialEventManagerRead.fetchUserBookmarkedChannelEventIds(pubKey);
             channelEventIds.push(community.scpData.channelEventId);
-            await this._socialEventManagerWrite.updateUserBookmarkedChannels(channelEventIds, this._privateKey);
+            await this._socialEventManagerWrite.updateUserBookmarkedChannels(channelEventIds);
         }
     }
     
     async leaveCommunity(community: ICommunityInfo, pubKey: string) {
         const communities = await this._socialEventManagerRead.fetchUserBookmarkedCommunities(pubKey, community);
-        await this._socialEventManagerWrite.updateUserBookmarkedCommunities(communities, this._privateKey);
+        await this._socialEventManagerWrite.updateUserBookmarkedCommunities(communities);
         if (community.scpData?.channelEventId) {
             const channelEventIds = await this._socialEventManagerRead.fetchUserBookmarkedChannelEventIds(pubKey);
             const index = channelEventIds.indexOf(community.scpData.channelEventId);
             if (index > -1) {
                 channelEventIds.splice(index, 1);
             }
-            await this._socialEventManagerWrite.updateUserBookmarkedChannels(channelEventIds, this._privateKey);
+            await this._socialEventManagerWrite.updateUserBookmarkedChannels(channelEventIds);
         }
     }
 
@@ -1192,7 +1192,7 @@ class SocialDataManager {
                 }
             }
         }   
-        await this._socialEventManagerWrite.submitCommunityPost(newCommunityPostInfo, this._privateKey);
+        await this._socialEventManagerWrite.submitCommunityPost(newCommunityPostInfo);
     }
 
     async fetchAllUserRelatedChannels(pubKey: string) {
@@ -1331,7 +1331,7 @@ class SocialDataManager {
                 channelId: channelId
             }
         }
-        await this._socialEventManagerWrite.submitChannelMessage(newChannelMessageInfo, this._privateKey);
+        await this._socialEventManagerWrite.submitChannelMessage(newChannelMessageInfo);
     }
 
     async fetchDirectMessagesBySender(selfPubKey: string, senderPubKey: string, since?: number, until?: number) {
@@ -1359,11 +1359,11 @@ class SocialDataManager {
     async sendDirectMessage(chatId: string, message: string) {
         const decodedReceiverPubKey = Nip19.decode(chatId).data as string;
         const content = await SocialUtilsManager.encryptMessage(this._privateKey, decodedReceiverPubKey, message);
-        await this._socialEventManagerWrite.sendMessage(decodedReceiverPubKey, content, this._privateKey);
+        await this._socialEventManagerWrite.sendMessage(decodedReceiverPubKey, content);
     }
 
     async resetMessageCount(selfPubKey: string, senderPubKey: string) {
-        await this._socialEventManagerRead.resetMessageCount(selfPubKey, senderPubKey, this._privateKey);
+        await this._socialEventManagerRead.resetMessageCount(selfPubKey, senderPubKey);
     }
 
     async fetchMessageContacts(pubKey: string) {
@@ -1542,7 +1542,7 @@ class SocialDataManager {
             geohash
         }
         let naddr: string;
-        const responses = await this._socialEventManagerWrite.updateCalendarEvent(updateCalendarEventInfo, this._privateKey);
+        const responses = await this._socialEventManagerWrite.updateCalendarEvent(updateCalendarEventInfo);
         const response = responses[0];
         if (response.success) {
             const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
@@ -1639,7 +1639,7 @@ class SocialDataManager {
         if (rsvpEvents.length > 0) {
             rsvpId = rsvpEvents[0].tags.find(tag => tag[0] === 'd')?.[1];
         }
-        await this._socialEventManagerWrite.createCalendarEventRSVP(rsvpId, calendarEventUri, true, this._privateKey);
+        await this._socialEventManagerWrite.createCalendarEventRSVP(rsvpId, calendarEventUri, true);
     }
 
     async declineCalendarEvent(rsvpId: string, naddr: string) {
@@ -1650,7 +1650,7 @@ class SocialDataManager {
         if (rsvpEvents.length > 0) {
             rsvpId = rsvpEvents[0].tags.find(tag => tag[0] === 'd')?.[1];
         }
-        await this._socialEventManagerWrite.createCalendarEventRSVP(rsvpId, calendarEventUri, false, this._privateKey);
+        await this._socialEventManagerWrite.createCalendarEventRSVP(rsvpId, calendarEventUri, false);
     }
 
     async submitCalendarEventPost(naddr: string, message: string, conversationPath?: IConversationPath) {
@@ -1661,7 +1661,7 @@ class SocialDataManager {
             message,
             conversationPath
         }
-        const responses = await this._socialEventManagerWrite.submitCalendarEventPost(info, this._privateKey);
+        const responses = await this._socialEventManagerWrite.submitCalendarEventPost(info);
         const response = responses[0];
         return response.success ? response.eventId : null;
     }
@@ -1817,11 +1817,11 @@ class SocialDataManager {
     }
 
     async submitMessage(message: string, conversationPath?: IConversationPath) {
-        await this._socialEventManagerWrite.postNote(message, this._privateKey, conversationPath);
+        await this._socialEventManagerWrite.postNote(message, conversationPath);
     }
 
     async submitLongFormContent(info: ILongFormContentInfo) {
-        await this._socialEventManagerWrite.submitLongFormContentEvents(info, this._privateKey);
+        await this._socialEventManagerWrite.submitLongFormContentEvents(info);
     }
 
     async submitLike(postEventData: INostrEvent) {
@@ -1831,7 +1831,7 @@ class SocialDataManager {
         tags.push(['e', postEventData.id]);
         tags.push(['p', postEventData.pubkey]);
         tags.push(['k', postEventData.kind.toString()]);
-        await this._socialEventManagerWrite.submitLike(tags, this._privateKey);
+        await this._socialEventManagerWrite.submitLike(tags);
     }
 
     async submitRepost(postEventData: INostrEvent) {
@@ -1846,30 +1846,29 @@ class SocialDataManager {
             ]
         ]
         const content = JSON.stringify(postEventData);
-        await this._socialEventManagerWrite.submitRepost(content, tags, this._privateKey);
+        await this._socialEventManagerWrite.submitRepost(content, tags);
     }
 
-    async sendPingRequest(pubkey: string, walletAddress: string, signature: string, relayUrl?: string) {
+    async sendPingRequest(pubkey: string, relayUrl?: string) {
         relayUrl = relayUrl || this._publicIndexingRelay;
         if (!relayUrl) return null;
-        let msg = pubkey;
-        const pubkeyY = Keys.getPublicKeyY(this._privateKey);
-        const data = {
-            msg: msg,
-            signature: signature,
+        const data = SocialUtilsManager.augmentWithAuthInfo({
             pubkey: pubkey,
-            pubkeyY: pubkeyY,
-            walletAddress: walletAddress
-        };
-        let response = await fetch(relayUrl + '/ping', {
-            method: 'POST',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-        });
-        let result = await response.json();
+        }, this._privateKey);
+        let result
+        try {
+            let response = await fetch(relayUrl + '/ping', {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+            result = await response.json();
+        }
+        catch (err) {
+        }
         return result;
     }
 
@@ -1944,7 +1943,7 @@ class SocialDataManager {
                 relays[tag[1]] = config;
             }
         }
-        await this._socialEventManagerWrite.updateRelayList(relays, this._privateKey);
+        await this._socialEventManagerWrite.updateRelayList(relays);
     }
 
     async removeRelay(url: string) {
@@ -1965,7 +1964,7 @@ class SocialDataManager {
                 relays[tag[1]] = config;
             }
         }
-        await this._socialEventManagerWrite.updateRelayList(relays, this._privateKey);
+        await this._socialEventManagerWrite.updateRelayList(relays);
     }
 
     async updateRelays(add: string[], remove: string[], defaultRelays: string[]) {
@@ -1991,13 +1990,13 @@ class SocialDataManager {
         }
         let relayUrls = Object.keys(relaysMap);
         // this.relays = relayUrls.length > 0 ? relayUrls : defaultRelays;
-        await this._socialEventManagerWrite.updateRelayList(relaysMap, this._privateKey);
+        await this._socialEventManagerWrite.updateRelayList(relaysMap);
         return relayUrls;
     }
 
     async makeInvoice(amount: string, comment: string) {
         const paymentRequest = await this.lightningWalletManager.makeInvoice(Number(amount), comment);
-        await this._socialEventManagerWrite.createPaymentRequestEvent(paymentRequest, amount, comment, this._privateKey);
+        await this._socialEventManagerWrite.createPaymentRequestEvent(paymentRequest, amount, comment);
         return paymentRequest;
     }
 
@@ -2005,7 +2004,7 @@ class SocialDataManager {
         const preimage = await this.lightningWalletManager.sendPayment(paymentRequest);
         const requestEvent = await this._socialEventManagerRead.fetchPaymentRequestEvent(paymentRequest);
         if (requestEvent) {
-            await this._socialEventManagerWrite.createPaymentReceiptEvent(requestEvent.id, requestEvent.pubkey, preimage, comment, this._privateKey);
+            await this._socialEventManagerWrite.createPaymentReceiptEvent(requestEvent.id, requestEvent.pubkey, preimage, comment);
         }
         return preimage;
     }

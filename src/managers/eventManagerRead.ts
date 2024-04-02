@@ -5,6 +5,7 @@ import { SocialUtilsManager } from "./utilsManager";
 
 interface ISocialEventManagerRead {
     nostrCommunicationManager: INostrCommunicationManager | INostrRestAPIManager;
+    privateKey: string;
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
     fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
     fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
@@ -32,7 +33,7 @@ interface ISocialEventManagerRead {
     fetchChannelInfoMessages(channelId: string): Promise<INostrEvent[]>;
     fetchMessageContactsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
     fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
+    resetMessageCount(pubKey: string, sender: string): Promise<void>;
     fetchGroupKeys(identifier: string): Promise<INostrEvent>;
     fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
     fetchCalendarEventPosts(calendarEventUri: string): Promise<INostrEvent[]>;
@@ -50,6 +51,7 @@ interface ISocialEventManagerRead {
 
 class NostrEventManagerRead implements ISocialEventManagerRead {
     protected _nostrCommunicationManager: INostrCommunicationManager;
+    protected _privateKey: string;
 
     constructor(manager: INostrCommunicationManager) {
         this._nostrCommunicationManager = manager;
@@ -57,6 +59,10 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
 
     set nostrCommunicationManager(manager: INostrCommunicationManager) {
         this._nostrCommunicationManager = manager;
+    }
+
+    set privateKey(privateKey: string) {
+        this._privateKey = privateKey;
     }
 
     async fetchThreadCacheEvents(id: string, pubKey?: string) {
@@ -547,7 +553,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         return fetchEventsResponse.events;
     }
 
-    async resetMessageCount(pubKey: string, sender: string, privateKey: string) {
+    async resetMessageCount(pubKey: string, sender: string) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data as string : pubKey;
         const decodedSenderPubKey = sender.startsWith('npub1') ? Nip19.decode(sender).data : sender;
         const createAt = Math.ceil(Date.now() / 1000);
@@ -564,7 +570,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
             "pubkey": decodedPubKey
         };
         event.id = Event.getEventHash(event);
-        event.sig = Event.getSignature(event, privateKey);
+        event.sig = Event.getSignature(event, this._privateKey);
         const msg: any = {
             event_from_user: event,
             sender: decodedSenderPubKey

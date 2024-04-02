@@ -1608,6 +1608,7 @@ declare module "@scom/scom-social-sdk/managers/utilsManager.ts" {
         static extractScpData(event: INostrEvent, standardId: string): any;
         static parseContent(content: string): any;
         static extractChannelInfo(event: INostrEvent): IChannelInfo;
+        static augmentWithAuthInfo(obj: Record<string, any>, privateKey: string): Record<string, any>;
     }
     export { SocialUtilsManager };
 }
@@ -1617,55 +1618,58 @@ declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
     import { INostrCommunicationManager } from "@scom/scom-social-sdk/managers/communication.ts";
     interface ISocialEventManagerWrite {
         nostrCommunicationManagers: INostrCommunicationManager[];
-        updateContactList(content: string, contactPubKeys: string[], privateKey: string): Promise<void>;
-        postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
-        deleteEvents(eventIds: string[], privateKey: string): Promise<INostrSubmitResponse[]>;
-        updateCommunity(info: ICommunityInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
-        updateChannel(info: IChannelInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
-        updateUserBookmarkedChannels(channelEventIds: string[], privateKey: string): Promise<void>;
-        submitChannelMessage(info: INewChannelMessageInfo, privateKey: string): Promise<void>;
-        updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
-        submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
-        updateUserProfile(content: INostrMetadataContent, privateKey: string): Promise<void>;
-        sendMessage(receiver: string, encryptedMessage: string, privateKey: string): Promise<void>;
-        updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[], privateKey: string): Promise<INostrSubmitResponse[]>;
-        updateCalendarEvent(info: IUpdateCalendarEventInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
-        createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse[]>;
-        submitCalendarEventPost(info: INewCalendarEventPostInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
-        submitLongFormContentEvents(info: ILongFormContentInfo, privateKey: string): Promise<void>;
-        submitLike(tags: string[][], privateKey: string): Promise<void>;
-        submitRepost(content: string, tags: string[][], privateKey: string): Promise<void>;
-        updateRelayList(relays: Record<string, IRelayConfig>, privateKey: string): Promise<void>;
-        createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, privateKey: string): Promise<void>;
-        createPaymentReceiptEvent(requestEventId: string, recipient: string, preimage: string, comment: string, privateKey: string): Promise<void>;
+        privateKey: string;
+        updateContactList(content: string, contactPubKeys: string[]): Promise<void>;
+        postNote(content: string, conversationPath?: IConversationPath): Promise<void>;
+        deleteEvents(eventIds: string[]): Promise<INostrSubmitResponse[]>;
+        updateCommunity(info: ICommunityInfo): Promise<INostrSubmitResponse[]>;
+        updateChannel(info: IChannelInfo): Promise<INostrSubmitResponse[]>;
+        updateUserBookmarkedChannels(channelEventIds: string[]): Promise<void>;
+        submitChannelMessage(info: INewChannelMessageInfo): Promise<void>;
+        updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[]): Promise<void>;
+        submitCommunityPost(info: INewCommunityPostInfo): Promise<void>;
+        updateUserProfile(content: INostrMetadataContent): Promise<void>;
+        sendMessage(receiver: string, encryptedMessage: string): Promise<void>;
+        updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]): Promise<INostrSubmitResponse[]>;
+        updateCalendarEvent(info: IUpdateCalendarEventInfo): Promise<INostrSubmitResponse[]>;
+        createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean): Promise<INostrSubmitResponse[]>;
+        submitCalendarEventPost(info: INewCalendarEventPostInfo): Promise<INostrSubmitResponse[]>;
+        submitLongFormContentEvents(info: ILongFormContentInfo): Promise<void>;
+        submitLike(tags: string[][]): Promise<void>;
+        submitRepost(content: string, tags: string[][]): Promise<void>;
+        updateRelayList(relays: Record<string, IRelayConfig>): Promise<void>;
+        createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string): Promise<void>;
+        createPaymentReceiptEvent(requestEventId: string, recipient: string, preimage: string, comment: string): Promise<void>;
     }
     class NostrEventManagerWrite implements ISocialEventManagerWrite {
         protected _nostrCommunicationManagers: INostrCommunicationManager[];
         protected _apiBaseUrl: string;
+        protected _privateKey: string;
         constructor(managers: INostrCommunicationManager[], apiBaseUrl: string);
         set nostrCommunicationManagers(managers: INostrCommunicationManager[]);
+        set privateKey(privateKey: string);
         protected calculateConversationPathTags(conversationPath: IConversationPath): string[][];
-        updateContactList(content: string, contactPubKeys: string[], privateKey: string): Promise<void>;
-        postNote(content: string, privateKey: string, conversationPath?: IConversationPath): Promise<void>;
-        deleteEvents(eventIds: string[], privateKey: string): Promise<INostrSubmitResponse[]>;
-        updateChannel(info: IChannelInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
-        updateUserBookmarkedChannels(channelEventIds: string[], privateKey: string): Promise<void>;
-        updateCommunity(info: ICommunityInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
-        updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[], privateKey: string): Promise<void>;
-        submitCommunityPost(info: INewCommunityPostInfo, privateKey: string): Promise<void>;
-        submitChannelMessage(info: INewChannelMessageInfo, privateKey: string): Promise<void>;
-        updateUserProfile(content: INostrMetadataContent, privateKey: string): Promise<void>;
-        sendMessage(receiver: string, encryptedMessage: string, privateKey: string): Promise<void>;
-        updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[], privateKey: string): Promise<INostrSubmitResponse[]>;
-        updateCalendarEvent(info: IUpdateCalendarEventInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
-        createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean, privateKey: string): Promise<INostrSubmitResponse[]>;
-        submitCalendarEventPost(info: INewCalendarEventPostInfo, privateKey: string): Promise<INostrSubmitResponse[]>;
-        submitLongFormContentEvents(info: ILongFormContentInfo, privateKey: string): Promise<void>;
-        submitLike(tags: string[][], privateKey: string): Promise<void>;
-        submitRepost(content: string, tags: string[][], privateKey: string): Promise<void>;
-        updateRelayList(relays: Record<string, IRelayConfig>, privateKey: string): Promise<void>;
-        createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, privateKey: string): Promise<void>;
-        createPaymentReceiptEvent(requestEventId: string, recipient: string, preimage: string, comment: string, privateKey: string): Promise<void>;
+        updateContactList(content: string, contactPubKeys: string[]): Promise<void>;
+        postNote(content: string, conversationPath?: IConversationPath): Promise<void>;
+        deleteEvents(eventIds: string[]): Promise<INostrSubmitResponse[]>;
+        updateChannel(info: IChannelInfo): Promise<INostrSubmitResponse[]>;
+        updateUserBookmarkedChannels(channelEventIds: string[]): Promise<void>;
+        updateCommunity(info: ICommunityInfo): Promise<INostrSubmitResponse[]>;
+        updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[]): Promise<void>;
+        submitCommunityPost(info: INewCommunityPostInfo): Promise<void>;
+        submitChannelMessage(info: INewChannelMessageInfo): Promise<void>;
+        updateUserProfile(content: INostrMetadataContent): Promise<void>;
+        sendMessage(receiver: string, encryptedMessage: string): Promise<void>;
+        updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]): Promise<INostrSubmitResponse[]>;
+        updateCalendarEvent(info: IUpdateCalendarEventInfo): Promise<INostrSubmitResponse[]>;
+        createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean): Promise<INostrSubmitResponse[]>;
+        submitCalendarEventPost(info: INewCalendarEventPostInfo): Promise<INostrSubmitResponse[]>;
+        submitLongFormContentEvents(info: ILongFormContentInfo): Promise<void>;
+        submitLike(tags: string[][]): Promise<void>;
+        submitRepost(content: string, tags: string[][]): Promise<void>;
+        updateRelayList(relays: Record<string, IRelayConfig>): Promise<void>;
+        createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string): Promise<void>;
+        createPaymentReceiptEvent(requestEventId: string, recipient: string, preimage: string, comment: string): Promise<void>;
     }
     export { NostrEventManagerWrite, ISocialEventManagerWrite };
 }
@@ -1676,6 +1680,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
     import { INostrCommunicationManager, INostrRestAPIManager } from "@scom/scom-social-sdk/managers/communication.ts";
     interface ISocialEventManagerRead {
         nostrCommunicationManager: INostrCommunicationManager | INostrRestAPIManager;
+        privateKey: string;
         fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
         fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
         fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
@@ -1699,7 +1704,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         fetchChannelInfoMessages(channelId: string): Promise<INostrEvent[]>;
         fetchMessageContactsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
         fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
-        resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
+        resetMessageCount(pubKey: string, sender: string): Promise<void>;
         fetchGroupKeys(identifier: string): Promise<INostrEvent>;
         fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
         fetchCalendarEventPosts(calendarEventUri: string): Promise<INostrEvent[]>;
@@ -1715,8 +1720,10 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
     }
     class NostrEventManagerRead implements ISocialEventManagerRead {
         protected _nostrCommunicationManager: INostrCommunicationManager;
+        protected _privateKey: string;
         constructor(manager: INostrCommunicationManager);
         set nostrCommunicationManager(manager: INostrCommunicationManager);
+        set privateKey(privateKey: string);
         fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
         fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
         fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
@@ -1744,7 +1751,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         fetchChannelInfoMessages(channelId: string): Promise<INostrEvent[]>;
         fetchMessageContactsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
         fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
-        resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
+        resetMessageCount(pubKey: string, sender: string): Promise<void>;
         fetchGroupKeys(identifier: string): Promise<INostrEvent>;
         fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
         fetchCalendarEvents(start: number, end?: number, limit?: number): Promise<INostrEvent[]>;
@@ -1770,6 +1777,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV2.ts" {
         protected _nostrCommunicationManager: INostrRestAPIManager;
         constructor(manager: INostrRestAPIManager);
         set nostrCommunicationManager(manager: INostrRestAPIManager);
+        protected augmentWithAuthInfo(obj: Record<string, any>): Record<string, any>;
         fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
         fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
         fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
@@ -1797,7 +1805,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV2.ts" {
         fetchChannelInfoMessages(channelId: string): Promise<INostrEvent[]>;
         fetchMessageContactsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
         fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
-        resetMessageCount(pubKey: string, sender: string, privateKey: string): Promise<void>;
+        resetMessageCount(pubKey: string, sender: string): Promise<void>;
         fetchGroupKeys(identifier: string): Promise<INostrEvent>;
         fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
         fetchCalendarEvents(start: number, end?: number, limit?: number): Promise<INostrEvent[]>;
@@ -1969,7 +1977,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         submitLongFormContent(info: ILongFormContentInfo): Promise<void>;
         submitLike(postEventData: INostrEvent): Promise<void>;
         submitRepost(postEventData: INostrEvent): Promise<void>;
-        sendPingRequest(pubkey: string, walletAddress: string, signature: string, relayUrl?: string): Promise<any>;
+        sendPingRequest(pubkey: string, relayUrl?: string): Promise<any>;
         fetchUnreadMessageCounts(pubkey: string): Promise<any>;
         updateMessageLastReadReceipt(pubkey: string, walletAddress: string, signature: string, fromId: string): Promise<any>;
         searchUsers(query: string): Promise<IUserProfile[]>;
