@@ -4260,6 +4260,9 @@ define("@scom/scom-social-sdk/utils/lightningWallet.ts", ["require", "exports", 
         set privateKey(privateKey) {
             this._privateKey = privateKey;
         }
+        isAvailable() {
+            return typeof this.webln.provider !== "undefined";
+        }
         async makeZapInvoice(recipient, lnAddress, amount, comment, relays, eventId) {
             if (!lnAddress) {
                 return null;
@@ -8277,6 +8280,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         async getLightningBalance() {
             const response = await this.lightningWalletManager.getBalance();
             return response;
+        }
+        isLightningAvailable() {
+            const isAvailable = this.lightningWalletManager.isAvailable();
+            return isAvailable;
         }
         async getBitcoinPrice() {
             const response = await fetch('https://api.coinpaprika.com/v1/tickers/btc-bitcoin');

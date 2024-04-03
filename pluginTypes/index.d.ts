@@ -1574,6 +1574,7 @@ declare module "@scom/scom-social-sdk/utils/lightningWallet.ts" {
         private webln;
         constructor();
         set privateKey(privateKey: string);
+        isAvailable(): boolean;
         makeZapInvoice(recipient: string, lnAddress: string, amount: number, comment: string, relays: string[], eventId?: string): Promise<string>;
         makeInvoice(amount: number, comment: string): Promise<string>;
         sendPayment(paymentRequest: string): Promise<string>;
@@ -1989,6 +1990,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         zap(pubkey: string, lud16: string, amount: string, noteId: string): Promise<any>;
         fetchUserPaymentActivities(pubkey: string, since?: number, until?: number): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").IPaymentActivity[]>;
         getLightningBalance(): Promise<any>;
+        isLightningAvailable(): boolean;
         getBitcoinPrice(): Promise<any>;
         fetchUserPrivateRelay(pubkey: string): Promise<any>;
     }
