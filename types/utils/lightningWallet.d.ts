@@ -21,7 +21,7 @@ export declare class LightningWalletManager {
     private webln;
     constructor();
     set privateKey(privateKey: string);
-    isAvailable(): Promise<boolean>;
+    isAvailable(): boolean;
     makeZapInvoice(recipient: string, lnAddress: string, amount: number, comment: string, relays: string[], eventId?: string): Promise<string>;
     makeInvoice(amount: number, comment: string): Promise<string>;
     sendPayment(paymentRequest: string): Promise<string>;

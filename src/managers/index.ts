@@ -2026,8 +2026,8 @@ class SocialDataManager {
         return response;
     }
 
-    async isLightningAvailable() {
-        const isAvailable = await this.lightningWalletManager.isAvailable();
+    isLightningAvailable() {
+        const isAvailable = this.lightningWalletManager.isAvailable();
         return isAvailable;
     }
 

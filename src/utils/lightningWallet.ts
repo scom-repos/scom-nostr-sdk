@@ -27,7 +27,7 @@ export class LightningWalletManager {
     set privateKey(privateKey: string) {
         this._privateKey = privateKey;
     }
-    async isAvailable() {
+    isAvailable() {
         return typeof this.webln.provider !== "undefined";
     }
     async makeZapInvoice(recipient: string, lnAddress: string, amount: number, comment: string, relays: string[], eventId?: string) {

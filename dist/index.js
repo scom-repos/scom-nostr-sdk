@@ -4260,7 +4260,7 @@ define("@scom/scom-social-sdk/utils/lightningWallet.ts", ["require", "exports", 
         set privateKey(privateKey) {
             this._privateKey = privateKey;
         }
-        async isAvailable() {
+        isAvailable() {
             return typeof this.webln.provider !== "undefined";
         }
         async makeZapInvoice(recipient, lnAddress, amount, comment, relays, eventId) {
@@ -8281,8 +8281,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             const response = await this.lightningWalletManager.getBalance();
             return response;
         }
-        async isLightningAvailable() {
-            const isAvailable = await this.lightningWalletManager.isAvailable();
+        isLightningAvailable() {
+            const isAvailable = this.lightningWalletManager.isAvailable();
             return isAvailable;
         }
         async getBitcoinPrice() {

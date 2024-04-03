@@ -164,7 +164,7 @@ declare class SocialDataManager {
     zap(pubkey: string, lud16: string, amount: string, noteId: string): Promise<any>;
     fetchUserPaymentActivities(pubkey: string, since?: number, until?: number): Promise<import("../utils/interfaces").IPaymentActivity[]>;
     getLightningBalance(): Promise<any>;
-    isLightningAvailable(): Promise<boolean>;
+    isLightningAvailable(): boolean;
     getBitcoinPrice(): Promise<any>;
     fetchUserPrivateRelay(pubkey: string): Promise<any>;
 }
