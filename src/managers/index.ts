@@ -2026,6 +2026,11 @@ class SocialDataManager {
         return response;
     }
 
+    async isLightningAvailable() {
+        const isAvailable = await this.lightningWalletManager.isAvailable();
+        return isAvailable;
+    }
+
     async getBitcoinPrice() {
         const response = await fetch('https://api.coinpaprika.com/v1/tickers/btc-bitcoin')
         const result = await response.json();
