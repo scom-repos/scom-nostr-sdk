@@ -8110,10 +8110,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             const content = JSON.stringify(postEventData);
             await this._socialEventManagerWrite.submitRepost(content, tags);
         }
-        async sendPingRequest(pubkey, relayUrl) {
-            relayUrl = relayUrl || this._publicIndexingRelay;
-            if (!relayUrl)
-                return null;
+        async sendPingRequest(pubkey, relayUrl = this._publicIndexingRelay) {
             const data = utilsManager_4.SocialUtilsManager.augmentWithAuthInfo({
                 pubkey: pubkey,
             }, this._privateKey);
@@ -8128,6 +8125,34 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     body: JSON.stringify(data)
                 });
                 result = await response.json();
+            }
+            catch (err) {
+            }
+            return result;
+        }
+        async checkRelayStatus(pubkey, relayUrl = this._publicIndexingRelay) {
+            const data = utilsManager_4.SocialUtilsManager.augmentWithAuthInfo({
+                pubkey: pubkey,
+            }, this._privateKey);
+            let result;
+            try {
+                let response = await fetch(relayUrl + '/check-status', {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) {
+                    result = await response.json();
+                }
+                else if (response.status === 401) {
+                    result = {
+                        success: false,
+                        error: 'Access Denied: You do not have permission to access this relay.'
+                    };
+                }
             }
             catch (err) {
             }

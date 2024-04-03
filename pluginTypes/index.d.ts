@@ -1979,6 +1979,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         submitLike(postEventData: INostrEvent): Promise<void>;
         submitRepost(postEventData: INostrEvent): Promise<void>;
         sendPingRequest(pubkey: string, relayUrl?: string): Promise<any>;
+        checkRelayStatus(pubkey: string, relayUrl?: string): Promise<any>;
         fetchUnreadMessageCounts(pubkey: string): Promise<any>;
         updateMessageLastReadReceipt(pubkey: string, walletAddress: string, signature: string, fromId: string): Promise<any>;
         searchUsers(query: string): Promise<IUserProfile[]>;
