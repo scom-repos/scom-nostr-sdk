@@ -8322,6 +8322,54 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             const result = await response.json();
             return result.data.relay;
         }
+        async fetchApps(keyword) {
+            let url = `${this._apiBaseUrl}/apps`;
+            if (keyword !== undefined)
+                url += `?keyword=${keyword}`;
+            try {
+                const response = await fetch(url);
+                const result = await response.json();
+                return result.data.apps;
+            }
+            catch (e) {
+                console.log('e', e);
+            }
+        }
+        async fetchApp(pubkey, id) {
+            const url = `${this._apiBaseUrl}/app?id=${id}&pubkey=${pubkey}`;
+            const response = await fetch(url);
+            const result = await response.json();
+            return result.data.app;
+        }
+        async fetchInstalledApps(pubkey) {
+            const url = `${this._apiBaseUrl}/installed-apps?pubkey=${pubkey}`;
+            const response = await fetch(url);
+            const result = await response.json();
+            return result.data.installedApps;
+        }
+        async installApp(pubkey, appId, appVersionId) {
+            const url = `${this._apiBaseUrl}/install-app`;
+            const installedApps = await this.fetchInstalledApps(pubkey);
+            let newInstalledApps = {};
+            if (installedApps)
+                newInstalledApps = { ...installedApps };
+            // let decyryptedInstalledApps = this.decryptData(installedApps);
+            newInstalledApps[appId] = appVersionId;
+            // const encryptedInstallApps = await this.encryptData(JSON.stringify(newInstalledApps), pubkey);
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    pubkey,
+                    installedAppList: JSON.stringify(newInstalledApps)
+                })
+            });
+            const result = await response.json();
+            return result;
+        }
     }
     exports.SocialDataManager = SocialDataManager;
 });
