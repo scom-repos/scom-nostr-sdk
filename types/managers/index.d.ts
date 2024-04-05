@@ -153,6 +153,7 @@ declare class SocialDataManager {
     submitLike(postEventData: INostrEvent): Promise<void>;
     submitRepost(postEventData: INostrEvent): Promise<void>;
     sendPingRequest(pubkey: string, relayUrl?: string): Promise<any>;
+    checkRelayStatus(pubkey: string, relayUrl?: string): Promise<any>;
     fetchUnreadMessageCounts(pubkey: string): Promise<any>;
     updateMessageLastReadReceipt(pubkey: string, walletAddress: string, signature: string, fromId: string): Promise<any>;
     searchUsers(query: string): Promise<IUserProfile[]>;
@@ -164,6 +165,7 @@ declare class SocialDataManager {
     zap(pubkey: string, lud16: string, amount: string, noteId: string): Promise<any>;
     fetchUserPaymentActivities(pubkey: string, since?: number, until?: number): Promise<import("../utils/interfaces").IPaymentActivity[]>;
     getLightningBalance(): Promise<any>;
+    isLightningAvailable(): boolean;
     getBitcoinPrice(): Promise<any>;
     fetchUserPrivateRelay(pubkey: string): Promise<any>;
     fetchApps(keyword?: string): Promise<any>;
