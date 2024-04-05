@@ -2039,6 +2039,87 @@ class SocialDataManager {
         const result = await response.json();
         return result.data.relay;
     }
+
+    async fetchApps(keyword?: string) {
+        let url = `${this._apiBaseUrl}/apps`;
+        if(keyword !== undefined)
+            url += `?keyword=${keyword}`;
+        try {
+            const response = await fetch(url);
+            const result = await response.json();
+            return result.data.apps;
+        }
+        catch(e) {
+            console.log('e', e)
+        }
+    }
+
+    async fetchApp(pubkey: string, id: string) {
+        const url = `${this._apiBaseUrl}/app?id=${id}&pubkey=${pubkey}`;
+        const response = await fetch(url);
+        const result = await response.json();
+        return result.data.app;
+    }
+
+    async fetchInstalledApps(pubkey: string) {
+        const url = `${this._apiBaseUrl}/installed-apps?pubkey=${pubkey}`;
+        const response = await fetch(url);
+        const result = await response.json();
+        return result.data.installedApps;
+
+    }
+
+    async installApp(pubkey: string, appId: string, appVersionId: string) {
+        const url = `${this._apiBaseUrl}/install-app`;
+        const installedApps = await this.fetchInstalledApps(pubkey);
+        let newInstalledApps: any = {};
+        if(installedApps)
+            newInstalledApps = {...installedApps};
+        // let decyryptedInstalledApps = this.decryptData(installedApps);
+        newInstalledApps[appId] = appVersionId;
+        // const encryptedInstallApps = await this.encryptData(JSON.stringify(newInstalledApps), pubkey);
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                pubkey,
+                installedAppList: JSON.stringify(newInstalledApps)
+            })
+        });
+        const result = await response.json();
+        return result;
+    }
+
+    // private async encryptData(data: string, pubkey: string) {
+    //     const crypto = window.crypto;
+    //     const enc = new TextEncoder();
+    //     const dec = new TextDecoder();
+    //     const pubkeyBuffer = enc.encode(pubkey);
+    //     console.log('import public key');
+    //     console.log('publicKey', pubkey);
+    //     console.log('privateKey', this._privateKey);
+    //     const publicKey = await crypto.subtle.importKey("pkcs8", pubkeyBuffer, {name: "RSA-OAEP", hash: {name: "SHA-256"}}, true, ["encrypt"]);
+    //     console.log('publickey', publicKey);
+    //     const encodedData = enc.encode(data);
+    //     const encryptedData = await crypto.subtle.encrypt({name: "RSA-OAEP"}, publicKey, encodedData);
+    //     console.log('encryptedData', encryptedData);
+    //     const decodedEncryptedData = dec.decode(encryptedData);
+    //     return decodedEncryptedData;
+    //
+    // }
+    //
+    // private async decryptData(encryptedData: string) {
+    //     const crypto = window.crypto;
+    //     const enc = new TextEncoder();
+    //     const privateKeyBuffer = enc.encode(this._privateKey);
+    //     const privateKey = await crypto.subtle.importKey('pkcs8', privateKeyBuffer, {name: 'RSA-OAEP', hash: {name: 'SHA-256'}}, true, ["decrypt"]);
+    //     const dec = new TextDecoder();
+    //     const decryptedText = await crypto.subtle.decrypt({name: 'RSA-OAEP'}, privateKey, enc.encode(encryptedData));
+    //     return dec.decode(decryptedText);
+    // }
 }
 
 export {

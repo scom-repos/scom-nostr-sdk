@@ -166,5 +166,9 @@ declare class SocialDataManager {
     getLightningBalance(): Promise<any>;
     getBitcoinPrice(): Promise<any>;
     fetchUserPrivateRelay(pubkey: string): Promise<any>;
+    fetchApps(keyword?: string): Promise<any>;
+    fetchApp(pubkey: string, id: string): Promise<any>;
+    fetchInstalledApps(pubkey: string): Promise<any>;
+    installApp(pubkey: string, appId: string, appVersionId: string): Promise<any>;
 }
 export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager };
