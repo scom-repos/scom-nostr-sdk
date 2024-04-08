@@ -9486,7 +9486,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     messageCallback: config.mqttMessageCallback
                 });
             }
-            this.lightningWalletManager = new lightningWallet_1.LightningWalletManager();
+            if (config.enableLightningWallet) {
+                this.lightningWalletManager = new lightningWallet_1.LightningWalletManager();
+            }
         }
         async dispose() {
             if (this.mqttManager) {
@@ -9498,7 +9500,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             this._privateKey = privateKey;
             this._socialEventManagerRead.privateKey = privateKey;
             this._socialEventManagerWrite.privateKey = privateKey;
-            this.lightningWalletManager.privateKey = privateKey;
+            if (this.lightningWalletManager) {
+                this.lightningWalletManager.privateKey = privateKey;
+            }
         }
         get socialEventManagerRead() {
             return this._socialEventManagerRead;

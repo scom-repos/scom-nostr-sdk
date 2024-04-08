@@ -69,7 +69,9 @@ class SocialDataManager {
                 messageCallback: config.mqttMessageCallback
             });
         }
-        this.lightningWalletManager = new LightningWalletManager();
+        if (config.enableLightningWallet) {
+            this.lightningWalletManager = new LightningWalletManager();
+        }
     }
 
     public async dispose() {
@@ -83,7 +85,9 @@ class SocialDataManager {
         this._privateKey = privateKey;
         this._socialEventManagerRead.privateKey = privateKey;
         this._socialEventManagerWrite.privateKey = privateKey;
-        this.lightningWalletManager.privateKey = privateKey;
+        if (this.lightningWalletManager) {
+            this.lightningWalletManager.privateKey = privateKey;
+        }
     }
 
     get socialEventManagerRead() {

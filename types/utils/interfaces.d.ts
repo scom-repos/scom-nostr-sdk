@@ -311,6 +311,7 @@ export interface ISocialDataManagerConfig {
     mqttBrokerUrl?: string;
     mqttSubscriptions?: string[];
     mqttMessageCallback?: (topic: string, message: string) => void;
+    enableLightningWallet?: boolean;
 }
 export interface ILongFormContentInfo {
     id: string;

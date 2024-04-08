@@ -1409,6 +1409,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         mqttBrokerUrl?: string;
         mqttSubscriptions?: string[];
         mqttMessageCallback?: (topic: string, message: string) => void;
+        enableLightningWallet?: boolean;
     }
     export interface ILongFormContentInfo {
         id: string;
