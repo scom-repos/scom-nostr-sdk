@@ -8336,26 +8336,65 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             }
         }
         async fetchApp(pubkey, id) {
-            const url = `${this._apiBaseUrl}/app?id=${id}&pubkey=${pubkey}`;
-            const response = await fetch(url);
+            const installed = await this.fetchInstalledByPubKey(pubkey);
+            let installedVersionId = installed[id];
+            const url = `${this._apiBaseUrl}/app`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    id,
+                    pubkey,
+                    installedVersionId
+                })
+            });
             const result = await response.json();
             return result.data.app;
         }
-        async fetchInstalledApps(pubkey) {
-            const url = `${this._apiBaseUrl}/installed-apps?pubkey=${pubkey}`;
+        async fetchInstalledByPubKey(pubkey) {
+            const url = `${this._apiBaseUrl}/installed?pubkey=${pubkey}`;
             const response = await fetch(url);
+            const result = await response.json();
+            const installed = result.data.installed;
+            const decrypted = await utilsManager_4.SocialUtilsManager.decryptMessage(this._privateKey, pubkey, installed);
+            return JSON.parse(decrypted);
+        }
+        async fetchInstalledApps(pubkey) {
+            const installed = await this.fetchInstalledByPubKey(pubkey);
+            if (!installed)
+                return [];
+            // const decrypted = await SocialUtilsManager.decryptMessage(this._privateKey, pubkey, installed);
+            const url = `${this._apiBaseUrl}/installed-apps`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    pubkey,
+                    decryptedInstalled: JSON.stringify(installed)
+                })
+            });
             const result = await response.json();
             return result.data.installedApps;
         }
         async installApp(pubkey, appId, appVersionId) {
             const url = `${this._apiBaseUrl}/install-app`;
-            const installedApps = await this.fetchInstalledApps(pubkey);
+            const installedApps = await this.fetchInstalledByPubKey(pubkey);
+            // console.log('installed', installed);
+            // const decryptedInstalled = await SocialUtilsManager.decryptMessage(this._privateKey, pubkey, installed);
+            // console.log('decryptedInstalled', decryptedInstalled)
+            // const installedApps =  JSON.parse(decryptedInstalled);
+            // console.log('installedApps', installedApps);
             let newInstalledApps = {};
             if (installedApps)
                 newInstalledApps = { ...installedApps };
-            // let decyryptedInstalledApps = this.decryptData(installedApps);
             newInstalledApps[appId] = appVersionId;
-            // const encryptedInstallApps = await this.encryptData(JSON.stringify(newInstalledApps), pubkey);
+            const encryptedInstalledAppList = await utilsManager_4.SocialUtilsManager.encryptMessage(this._privateKey, pubkey, JSON.stringify(newInstalledApps));
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -8364,7 +8403,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 },
                 body: JSON.stringify({
                     pubkey,
-                    installedAppList: JSON.stringify(newInstalledApps)
+                    installedAppList: encryptedInstalledAppList
                 })
             });
             const result = await response.json();
