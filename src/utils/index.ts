@@ -34,3 +34,11 @@ export {
 export {
     MqttManager
 } from './mqtt';
+
+export {
+    encryptSharedMessage,
+    encryptWithPubKey,
+    hexStringToUint8Array,
+    decryptSharedMessage,
+    decryptWithPrivKey
+} from './crypto'

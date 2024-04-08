@@ -12,6 +12,7 @@ import { SocialUtilsManager } from "./utilsManager";
 import { ISocialEventManagerWrite, NostrEventManagerWrite } from "./eventManagerWrite";
 import { ISocialEventManagerRead, NostrEventManagerRead } from "./eventManagerRead";
 import { NostrEventManagerReadV2 } from "./eventManagerReadV2";
+import {decryptWithPrivKey, encryptWithPubKey} from "../utils/crypto";
 
 //FIXME: remove this when compiler is fixed
 function flatMap<T, U>(array: T[], callback: (item: T) => U[]): U[] {
@@ -2113,7 +2114,11 @@ class SocialDataManager {
         const response = await fetch(url);
         const result = await response.json();
         const installed = result.data.installed;
-        const decrypted = await SocialUtilsManager.decryptMessage(this._privateKey, pubkey, installed);
+        // const decrypted = await SocialUtilsManager.decryptMessage(this._privateKey, pubkey, installed);
+        if(!installed)
+            return null;
+        const decrypted = await decryptWithPrivKey(this._privateKey, installed);
+        console.log('decrypted', decrypted);
         return JSON.parse(decrypted);
     }
 
@@ -2151,7 +2156,8 @@ class SocialDataManager {
             newInstalledApps = {...installedApps};
         newInstalledApps[appId] = appVersionId;
 
-        const encryptedInstalledAppList = await SocialUtilsManager.encryptMessage(this._privateKey, pubkey, JSON.stringify(newInstalledApps));
+        // const encryptedInstalledAppList = await SocialUtilsManager.encryptMessage(this._privateKey, pubkey, JSON.stringify(newInstalledApps));
+        const encryptedInstalledAppList = await encryptWithPubKey(pubkey, JSON.stringify(newInstalledApps));
         const response = await fetch(url, {
             method: 'POST',
             headers: {
