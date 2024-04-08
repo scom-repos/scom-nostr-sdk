@@ -15,6 +15,7 @@ declare class SocialDataManager {
     private mqttManager;
     private lightningWalletManager;
     constructor(config: ISocialDataManagerConfig);
+    dispose(): Promise<void>;
     set privateKey(privateKey: string);
     get socialEventManagerRead(): ISocialEventManagerRead;
     get socialEventManagerWrite(): ISocialEventManagerWrite;

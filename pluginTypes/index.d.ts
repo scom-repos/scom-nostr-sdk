@@ -1841,6 +1841,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         private mqttManager;
         private lightningWalletManager;
         constructor(config: ISocialDataManagerConfig);
+        dispose(): Promise<void>;
         set privateKey(privateKey: string);
         get socialEventManagerRead(): ISocialEventManagerRead;
         get socialEventManagerWrite(): ISocialEventManagerWrite;

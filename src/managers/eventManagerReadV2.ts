@@ -328,7 +328,8 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
             if (lastReadsStr) {
                 const lastReads = JSON.parse(lastReadsStr);
                 for (let sender in lastReads) {
-                    senderToLastReadMap[sender] = lastReads[sender];
+                    const decodedSender = sender.startsWith('npub1') ? Nip19.decode(sender).data as string : sender;
+                    senderToLastReadMap[decodedSender] = lastReads[sender];
                 }
             }
         }

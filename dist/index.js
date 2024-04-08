@@ -6258,7 +6258,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV2.ts", ["require", "expo
                 if (lastReadsStr) {
                     const lastReads = JSON.parse(lastReadsStr);
                     for (let sender in lastReads) {
-                        senderToLastReadMap[sender] = lastReads[sender];
+                        const decodedSender = sender.startsWith('npub1') ? index_5.Nip19.decode(sender).data : sender;
+                        senderToLastReadMap[decodedSender] = lastReads[sender];
                     }
                 }
             }
@@ -6434,6 +6435,12 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 });
             }
             this.lightningWalletManager = new lightningWallet_1.LightningWalletManager();
+        }
+        async dispose() {
+            if (this.mqttManager) {
+                await this.mqttManager.disconnect();
+                this.mqttManager = null;
+            }
         }
         set privateKey(privateKey) {
             this._privateKey = privateKey;

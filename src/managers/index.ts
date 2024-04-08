@@ -71,6 +71,13 @@ class SocialDataManager {
         this.lightningWalletManager = new LightningWalletManager();
     }
 
+    public async dispose() {
+        if (this.mqttManager) {
+            await this.mqttManager.disconnect();
+            this.mqttManager = null;
+        }
+    }
+
     set privateKey(privateKey: string) {
         this._privateKey = privateKey;
         this._socialEventManagerRead.privateKey = privateKey;
