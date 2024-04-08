@@ -8337,7 +8337,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async fetchApp(pubkey, id) {
             const installed = await this.fetchInstalledByPubKey(pubkey);
-            let installedVersionId = installed[id];
+            let installedVersionId;
+            if (installed)
+                installedVersionId = installed[id];
             const url = `${this._apiBaseUrl}/app`;
             const response = await fetch(url, {
                 method: 'POST',

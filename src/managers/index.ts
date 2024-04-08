@@ -2088,7 +2088,9 @@ class SocialDataManager {
 
     async fetchApp(pubkey: string, id: string) {
         const installed = await this.fetchInstalledByPubKey(pubkey);
-        let installedVersionId = installed[id];
+        let installedVersionId;
+        if(installed)
+            installedVersionId = installed[id];
         const url = `${this._apiBaseUrl}/app`;
         const response = await fetch(url, {
             method: 'POST',
