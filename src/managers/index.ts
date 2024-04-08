@@ -2087,29 +2087,69 @@ class SocialDataManager {
     }
 
     async fetchApp(pubkey: string, id: string) {
-        const url = `${this._apiBaseUrl}/app?id=${id}&pubkey=${pubkey}`;
-        const response = await fetch(url);
+        const installed = await this.fetchInstalledByPubKey(pubkey);
+        let installedVersionId = installed[id];
+        const url = `${this._apiBaseUrl}/app`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                id,
+                pubkey,
+                installedVersionId
+            })
+        });
         const result = await response.json();
         return result.data.app;
     }
 
-    async fetchInstalledApps(pubkey: string) {
-        const url = `${this._apiBaseUrl}/installed-apps?pubkey=${pubkey}`;
+    async fetchInstalledByPubKey(pubkey: string) {
+        const url = `${this._apiBaseUrl}/installed?pubkey=${pubkey}`;
         const response = await fetch(url);
         const result = await response.json();
-        return result.data.installedApps;
+        const installed = result.data.installed;
+        const decrypted = await SocialUtilsManager.decryptMessage(this._privateKey, pubkey, installed);
+        return JSON.parse(decrypted);
+    }
 
+    async fetchInstalledApps(pubkey: string) {
+        const installed = await this.fetchInstalledByPubKey(pubkey);
+        if(!installed)
+            return [];
+        // const decrypted = await SocialUtilsManager.decryptMessage(this._privateKey, pubkey, installed);
+        const url = `${this._apiBaseUrl}/installed-apps`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                pubkey,
+                decryptedInstalled: JSON.stringify(installed)
+            })
+        });
+        const result = await response.json();
+        return result.data.installedApps;
     }
 
     async installApp(pubkey: string, appId: string, appVersionId: string) {
         const url = `${this._apiBaseUrl}/install-app`;
-        const installedApps = await this.fetchInstalledApps(pubkey);
+        const installedApps = await this.fetchInstalledByPubKey(pubkey);
+        // console.log('installed', installed);
+        // const decryptedInstalled = await SocialUtilsManager.decryptMessage(this._privateKey, pubkey, installed);
+        // console.log('decryptedInstalled', decryptedInstalled)
+        // const installedApps =  JSON.parse(decryptedInstalled);
+        // console.log('installedApps', installedApps);
         let newInstalledApps: any = {};
         if(installedApps)
             newInstalledApps = {...installedApps};
-        // let decyryptedInstalledApps = this.decryptData(installedApps);
         newInstalledApps[appId] = appVersionId;
-        // const encryptedInstallApps = await this.encryptData(JSON.stringify(newInstalledApps), pubkey);
+
+        const encryptedInstalledAppList = await SocialUtilsManager.encryptMessage(this._privateKey, pubkey, JSON.stringify(newInstalledApps));
         const response = await fetch(url, {
             method: 'POST',
             headers: {
@@ -2118,40 +2158,12 @@ class SocialDataManager {
             },
             body: JSON.stringify({
                 pubkey,
-                installedAppList: JSON.stringify(newInstalledApps)
+                installedAppList: encryptedInstalledAppList
             })
         });
         const result = await response.json();
         return result;
     }
-
-    // private async encryptData(data: string, pubkey: string) {
-    //     const crypto = window.crypto;
-    //     const enc = new TextEncoder();
-    //     const dec = new TextDecoder();
-    //     const pubkeyBuffer = enc.encode(pubkey);
-    //     console.log('import public key');
-    //     console.log('publicKey', pubkey);
-    //     console.log('privateKey', this._privateKey);
-    //     const publicKey = await crypto.subtle.importKey("pkcs8", pubkeyBuffer, {name: "RSA-OAEP", hash: {name: "SHA-256"}}, true, ["encrypt"]);
-    //     console.log('publickey', publicKey);
-    //     const encodedData = enc.encode(data);
-    //     const encryptedData = await crypto.subtle.encrypt({name: "RSA-OAEP"}, publicKey, encodedData);
-    //     console.log('encryptedData', encryptedData);
-    //     const decodedEncryptedData = dec.decode(encryptedData);
-    //     return decodedEncryptedData;
-    //
-    // }
-    //
-    // private async decryptData(encryptedData: string) {
-    //     const crypto = window.crypto;
-    //     const enc = new TextEncoder();
-    //     const privateKeyBuffer = enc.encode(this._privateKey);
-    //     const privateKey = await crypto.subtle.importKey('pkcs8', privateKeyBuffer, {name: 'RSA-OAEP', hash: {name: 'SHA-256'}}, true, ["decrypt"]);
-    //     const dec = new TextDecoder();
-    //     const decryptedText = await crypto.subtle.decrypt({name: 'RSA-OAEP'}, privateKey, enc.encode(encryptedData));
-    //     return dec.decode(decryptedText);
-    // }
 }
 
 export {
