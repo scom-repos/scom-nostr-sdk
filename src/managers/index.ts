@@ -12,7 +12,7 @@ import { SocialUtilsManager } from "./utilsManager";
 import { ISocialEventManagerWrite, NostrEventManagerWrite } from "./eventManagerWrite";
 import { ISocialEventManagerRead, NostrEventManagerRead } from "./eventManagerRead";
 import { NostrEventManagerReadV2 } from "./eventManagerReadV2";
-import {decryptWithPrivKey, encryptWithPubKey} from "../utils/crypto";
+import {Crypto} from "@scom/scom-signer";
 
 //FIXME: remove this when compiler is fixed
 function flatMap<T, U>(array: T[], callback: (item: T) => U[]): U[] {
@@ -59,7 +59,7 @@ class SocialDataManager {
         }
 
         this._socialEventManagerWrite = new NostrEventManagerWrite(
-            nostrCommunicationManagers, 
+            nostrCommunicationManagers,
             config.apiBaseUrl
         );
         if (config.mqttBrokerUrl) {
@@ -101,7 +101,7 @@ class SocialDataManager {
     set relays(value: string[]) {
         this._setRelays(value);
     }
-    
+
     private _setRelays(relays: string[]) {
         this._writeRelays = relays;
         let nostrCommunicationManagers: INostrCommunicationManager[] = [];
@@ -152,7 +152,7 @@ class SocialDataManager {
     retrieveCommunityUri(noteEvent: INostrEvent, scpData: ICommunityPostScpData) {
         let communityUri: string | null = null;
         if (scpData?.communityUri) {
-            communityUri = scpData.communityUri;    
+            communityUri = scpData.communityUri;
         }
         else {
             const replaceableTag = noteEvent.tags.find(tag => tag[0] === 'a');
@@ -176,7 +176,7 @@ class SocialDataManager {
             if (communityUri === messageContent.communityUri) {
                 key = postPrivateKey;
             }
-        } 
+        }
         catch (e) {
             // console.error(e);
         }
@@ -193,7 +193,7 @@ class SocialDataManager {
             if (channelId === messageContent.channelId) {
                 key = messagePrivateKey;
             }
-        } 
+        }
         catch (e) {
             // console.error(e);
         }
@@ -220,7 +220,7 @@ class SocialDataManager {
         let noteIdToPrivateKey: Record<string, string> = {};
         const communityEvents = await this.retrieveCommunityEvents(creatorId, communityId);
         const communityInfo = communityEvents.info;
-        const notes = communityEvents.notes;    
+        const notes = communityEvents.notes;
         let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
         if (!communityPrivateKey) return noteIdToPrivateKey;
         for (const note of notes) {
@@ -317,7 +317,7 @@ class SocialDataManager {
                 }
             }
             communityInfoMap[communityInfo.communityUri] = communityInfo;
-        }  
+        }
         let gatekeeperNpubToNotesMap: Record<string, INoteCommunityInfo[]> = {};
         let inviteOnlyCommunityNotesMap: Record<string, INoteCommunityInfo[]> = {};
         for (let noteCommunityInfo of noteCommunityMappings.noteCommunityInfoList) {
@@ -394,7 +394,7 @@ class SocialDataManager {
         const uniqueKeys = Array.from(mentionAuthorSet) as string[];
         const npubs = notes.map(note => note.pubkey).filter((value, index, self) => self.indexOf(value) === index);
         const metadata = await this._socialEventManagerRead.fetchUserProfileCacheEvents([...npubs, ...uniqueKeys]);
-    
+
         const metadataByPubKeyMap: Record<string, INostrMetadata> = metadata.reduce((acc, cur) => {
             const content = JSON.parse(cur.content);
             if (cur.pubkey) {
@@ -445,7 +445,7 @@ class SocialDataManager {
             // await SocialUtilsManager.exponentialBackoffRetry(fetchData, 5, 1000, 16000, 2);
             await fetchData();
         }
-        catch (error) { 
+        catch (error) {
             console.error('fetchUserProfiles', error);
         }
         if (metadataArr.length == 0) return null;
@@ -559,7 +559,7 @@ class SocialDataManager {
                 internetIdentifier: internetIdentifier
             };
         }
-    
+
         return {
             notes,
             metadataByPubKeyMap,
@@ -679,7 +679,7 @@ class SocialDataManager {
             noteToRepostIdMap
         }
     }
-    
+
     async fetchCommunityInfo(creatorId: string, communityId: string) {
         const communityEvents = await this._socialEventManagerRead.fetchCommunity(creatorId, communityId);
         const communityEvent = communityEvents.find(event => event.kind === 34550);
@@ -974,7 +974,7 @@ class SocialDataManager {
                 publicKey: communityKeys.groupPublicKey,
                 encryptedKey: encryptedKey,
                 gatekeeperPublicKey
-            }        
+            }
         }
         else if (communityInfo.membershipType === MembershipType.InviteOnly) {
             let encryptionPublicKeys: string[] = [];
@@ -984,7 +984,7 @@ class SocialDataManager {
             }
             const communityKeys = await this.generateGroupKeys(this._privateKey, encryptionPublicKeys);
             await this._socialEventManagerWrite.updateGroupKeys(
-                communityUri + ':keys', 
+                communityUri + ':keys',
                 34550,
                 JSON.stringify(communityKeys.encryptedGroupKeys),
                 communityInfo.memberIds
@@ -992,7 +992,7 @@ class SocialDataManager {
             communityInfo.scpData = {
                 ...communityInfo.scpData,
                 publicKey: communityKeys.groupPublicKey
-            }                 
+            }
         }
         if (communityInfo.scpData) {
             const updateChannelResponses = await this.updateCommunityChannel(communityInfo);
@@ -1000,10 +1000,10 @@ class SocialDataManager {
             const updateChannelResponse = updateChannelResponses.find(v => v.success && !!v.eventId);
             if (updateChannelResponse?.eventId) {
                 communityInfo.scpData.channelEventId = updateChannelResponse.eventId;
-            }   
+            }
         }
         await this._socialEventManagerWrite.updateCommunity(communityInfo);
-    
+
         return communityInfo;
     }
 
@@ -1060,14 +1060,14 @@ class SocialDataManager {
         channelInfo.scpData = {
             ...channelInfo.scpData,
             publicKey: channelKeys.groupPublicKey
-        } 
+        }
         const updateChannelResponses = await this._socialEventManagerWrite.updateChannel(channelInfo);
         //FIXME: fix this when the relay is fixed
         const updateChannelResponse = updateChannelResponses.find(v => v.success && !!v.eventId);
         if (updateChannelResponse?.eventId) {
             const channelUri = `40:${updateChannelResponse.eventId}`;
             await this._socialEventManagerWrite.updateGroupKeys(
-                channelUri + ':keys', 
+                channelUri + ':keys',
                 40,
                 JSON.stringify(channelKeys.encryptedGroupKeys),
                 memberIds
@@ -1110,7 +1110,7 @@ class SocialDataManager {
         }
         return communityUriToMembersMap;
     }
-    
+
     async fetchCommunities() {
         let communities: ICommunity[] = [];
         const events = await this._socialEventManagerRead.fetchCommunities();
@@ -1151,7 +1151,7 @@ class SocialDataManager {
             await this._socialEventManagerWrite.updateUserBookmarkedChannels(channelEventIds);
         }
     }
-    
+
     async leaveCommunity(community: ICommunityInfo, pubKey: string) {
         const communities = await this._socialEventManagerRead.fetchUserBookmarkedCommunities(pubKey, community);
         await this._socialEventManagerWrite.updateUserBookmarkedCommunities(communities);
@@ -1203,7 +1203,7 @@ class SocialDataManager {
                     communityUri: info.communityUri
                 }
             }
-        }   
+        }
         await this._socialEventManagerWrite.submitCommunityPost(newCommunityPostInfo);
     }
 
@@ -1211,10 +1211,10 @@ class SocialDataManager {
         const {
             channels,
             channelMetadataMap,
-            channelIdToCommunityMap  
+            channelIdToCommunityMap
         } = await this._socialEventManagerRead.fetchAllUserRelatedChannels(pubKey);
 
-        let outputChannels: IChannelInfo[] = []; 
+        let outputChannels: IChannelInfo[] = [];
         for (let channel of channels) {
             const channelMetadata = channelMetadataMap[channel.id];
             const communityInfo = channelIdToCommunityMap[channel.id];
@@ -1321,9 +1321,9 @@ class SocialDataManager {
     }
 
     async submitChannelMessage(
-        message: string, 
-        channelId: string, 
-        communityPublicKey: string, 
+        message: string,
+        channelId: string,
+        communityPublicKey: string,
         conversationPath?: IConversationPath
     ) {
         const messageContent = {
@@ -1361,13 +1361,13 @@ class SocialDataManager {
                 encryptedMessages.push(event);
             }
         }
-        return { 
-            decodedSenderPubKey, 
+        return {
+            decodedSenderPubKey,
             encryptedMessages,
-            metadataByPubKeyMap 
+            metadataByPubKeyMap
         };
     }
-    
+
     async sendDirectMessage(chatId: string, message: string) {
         const decodedReceiverPubKey = Nip19.decode(chatId).data as string;
         const content = await SocialUtilsManager.encryptMessage(this._privateKey, decodedReceiverPubKey, message);
@@ -1849,11 +1849,11 @@ class SocialDataManager {
     async submitRepost(postEventData: INostrEvent) {
         let tags: string[][] = [
             [
-                'e', 
+                'e',
                 postEventData.id
             ],
             [
-                'p', 
+                'p',
                 postEventData.pubkey
             ]
         ]
@@ -1940,7 +1940,7 @@ class SocialDataManager {
         let result = await response.json();
         return result;
     }
-    
+
     async searchUsers(query: string) {
         const events = await this._socialEventManagerRead.searchUsers(query);
         let metadataArr: INostrMetadata[] = [];
@@ -2057,7 +2057,7 @@ class SocialDataManager {
         const paymentActivitiesForSender = await this._socialEventManagerRead.fetchPaymentActivitiesForSender(pubkey, since, until);
         const paymentActivitiesForRecipient = await this._socialEventManagerRead.fetchPaymentActivitiesForRecipient(pubkey, since, until);
         const paymentActivities = [...paymentActivitiesForSender, ...paymentActivitiesForRecipient];
-        return paymentActivities.sort((a, b) => b.createdAt - a.createdAt); 
+        return paymentActivities.sort((a, b) => b.createdAt - a.createdAt);
     }
 
     async getLightningBalance() {
@@ -2128,7 +2128,7 @@ class SocialDataManager {
         // const decrypted = await SocialUtilsManager.decryptMessage(this._privateKey, pubkey, installed);
         if(!installed)
             return null;
-        const decrypted = await decryptWithPrivKey(this._privateKey, installed);
+        const decrypted = await Crypto.decryptWithPrivKey(this._privateKey, installed);
         console.log('decrypted', decrypted);
         return JSON.parse(decrypted);
     }
@@ -2168,7 +2168,7 @@ class SocialDataManager {
         newInstalledApps[appId] = appVersionId;
 
         // const encryptedInstalledAppList = await SocialUtilsManager.encryptMessage(this._privateKey, pubkey, JSON.stringify(newInstalledApps));
-        const encryptedInstalledAppList = await encryptWithPubKey(pubkey, JSON.stringify(newInstalledApps));
+        const encryptedInstalledAppList = await Crypto.encryptWithPubKey(pubkey, JSON.stringify(newInstalledApps));
         const response = await fetch(url, {
             method: 'POST',
             headers: {
