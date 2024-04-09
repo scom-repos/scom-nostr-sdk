@@ -2,7 +2,7 @@ define("@scom/scom-social-sdk/core/hashes/_assert.ts", ["require", "exports"], f
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.output = exports.exists = exports.hash = exports.bytes = exports.bool = exports.number = void 0;
-    ///<amd-module name='@scom/scom-social-sdk/core/hashes/_assert.ts'/>
+    ///<amd-module name='@scom/scom-social-sdk/core/hashes/_assert.ts'/> 
     // adopted from https://github.com/paulmillr/noble-hashes
     function number(n) {
         if (!Number.isSafeInteger(n) || n < 0)
@@ -46,7 +46,7 @@ define("@scom/scom-social-sdk/core/hashes/_assert.ts", ["require", "exports"], f
     const assert = { number, bool, bytes, hash, exists, output };
     exports.default = assert;
 });
-///<amd-module name='@scom/scom-social-sdk/core/hashes/utils.ts'/>
+///<amd-module name='@scom/scom-social-sdk/core/hashes/utils.ts'/> 
 // adopted from https://github.com/paulmillr/noble-hashes
 /*! noble-hashes - MIT License (c) 2022 Paul Miller (paulmillr.com) */
 define("@scom/scom-social-sdk/core/hashes/utils.ts", ["require", "exports"], function (require, exports) {
@@ -431,7 +431,7 @@ define("@scom/scom-social-sdk/core/curves/abstract/utils.ts", ["require", "expor
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.validateObject = exports.createHmacDrbg = exports.bitMask = exports.bitSet = exports.bitGet = exports.bitLen = exports.utf8ToBytes = exports.equalBytes = exports.concatBytes = exports.ensureBytes = exports.numberToVarBytesBE = exports.numberToBytesLE = exports.numberToBytesBE = exports.bytesToNumberLE = exports.bytesToNumberBE = exports.hexToBytes = exports.hexToNumber = exports.numberToHexUnpadded = exports.bytesToHex = void 0;
-    ///<amd-module name='@scom/scom-social-sdk/core/curves/abstract/utils.ts'/>
+    ///<amd-module name='@scom/scom-social-sdk/core/curves/abstract/utils.ts'/> 
     // adopted from https://github.com/paulmillr/noble-curves
     /*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) */
     // 100 lines of code in the file are duplicated from noble-hashes (utils).
@@ -3073,7 +3073,7 @@ define("@scom/scom-social-sdk/core/bech32.ts", ["require", "exports"], function 
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.bech32m = exports.bech32 = exports.assertNumber = void 0;
-    ///<amd-module name='@scom/scom-social-sdk/core/bech32.ts'/>
+    ///<amd-module name='@scom/scom-social-sdk/core/bech32.ts'/> 
     // adopted from https://github.com/paulmillr/scure-base
     /**
      * @__NO_SIDE_EFFECTS__
@@ -3513,7 +3513,7 @@ define("@scom/scom-social-sdk/core/index.ts", ["require", "exports", "@scom/scom
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Bech32 = exports.Nip19 = exports.Keys = exports.Event = void 0;
-    ///<amd-module name='@scom/scom-social-sdk/core/index.ts'/>
+    ///<amd-module name='@scom/scom-social-sdk/core/index.ts'/> 
     exports.Event = Event;
     exports.Keys = Keys;
     exports.Nip19 = Nip19;
@@ -3876,7 +3876,7 @@ define("@scom/scom-social-sdk/managers/communication.ts", ["require", "exports"]
     }
     exports.NostrWebSocketManager = NostrWebSocketManager;
 });
-///<amd-module name='@scom/scom-social-sdk/utils/geohash.ts'/>
+///<amd-module name='@scom/scom-social-sdk/utils/geohash.ts'/> 
 /**
  * Portions of this file are derived from [node-geohash](https://github.com/sunng87/node-geohash)
  * by Ning Sun, licensed under the MIT License.
@@ -5354,7 +5354,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             else {
                 msg.until = until;
             }
-            msg.pubkey = index_4.Nip19.decode('npub1nfgqmnxqsjsnsvc2r5djhcx4ap3egcjryhf9ppxnajskfel2dx9qq6mnsp').data; //FIXME: Account to show Nostr highlights
+            msg.pubkey = index_4.Nip19.decode('npub1nfgqmnxqsjsnsvc2r5djhcx4ap3egcjryhf9ppxnajskfel2dx9qq6mnsp').data; //FIXME: Account to show Nostr highlights 
             if (pubKey) {
                 const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
                 msg.user_pubkey = decodedPubKey;
