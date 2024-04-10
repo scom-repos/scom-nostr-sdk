@@ -6988,7 +6988,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     noteStatsMap[content.event_id] = {
                         upvotes: content.likes,
                         replies: content.replies,
-                        reposts: content.reposts
+                        reposts: content.reposts,
+                        satszapped: content.satszapped
                     };
                 }
                 else if (event.kind === 10000113) {
