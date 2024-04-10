@@ -501,26 +501,6 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         const verifiedEvent = Event.finishEvent(event, this._privateKey);
         const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         const failedResponses = responses.filter(response => !response.success); //FIXME: Handle failed responses
-        if (failedResponses.length === 0) {
-            let response = responses[0];
-            let pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
-            let eventKey = `${kind}:${pubkey}:${info.id}`;
-            let apiRequestBody: any = {
-                eventId: response.eventId,
-                eventKey,
-                start,
-                end,
-                location: info.location
-            };
-            const apiUrl = `${this._apiBaseUrl}/calendar-events`;
-            await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(apiRequestBody)
-            });
-        }
         return responses;
     }
 

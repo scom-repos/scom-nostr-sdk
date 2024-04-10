@@ -5074,26 +5074,6 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
             const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
             const failedResponses = responses.filter(response => !response.success); //FIXME: Handle failed responses
-            if (failedResponses.length === 0) {
-                let response = responses[0];
-                let pubkey = utilsManager_1.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
-                let eventKey = `${kind}:${pubkey}:${info.id}`;
-                let apiRequestBody = {
-                    eventId: response.eventId,
-                    eventKey,
-                    start,
-                    end,
-                    location: info.location
-                };
-                const apiUrl = `${this._apiBaseUrl}/calendar-events`;
-                await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(apiRequestBody)
-                });
-            }
             return responses;
         }
         async createCalendarEventRSVP(rsvpId, calendarEventUri, accepted) {
