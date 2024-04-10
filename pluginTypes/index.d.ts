@@ -1316,6 +1316,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         upvotes?: number;
         downvotes?: number;
         views?: number;
+        satszapped?: number;
     }
     export interface IMessageContactInfo {
         id: string;

@@ -252,6 +252,7 @@ export interface IPostStats {
 	upvotes?: number;
 	downvotes?: number;
 	views?: number;
+	satszapped?: number;
 }
 
 export interface IMessageContactInfo {
