@@ -9,7 +9,7 @@ interface ISocialEventManagerWrite {
     nostrCommunicationManagers: INostrCommunicationManager[];
     privateKey: string;
     updateContactList(content: string, contactPubKeys: string[]): Promise<void>;
-    postNote(content: string, conversationPath?: IConversationPath): Promise<void>;
+    postNote(content: string, conversationPath?: IConversationPath): Promise<string>;
     deleteEvents(eventIds: string[]): Promise<INostrSubmitResponse[]>;
     updateCommunity(info: ICommunityInfo): Promise<INostrSubmitResponse[]>;
     updateChannel(info: IChannelInfo): Promise<INostrSubmitResponse[]>;
@@ -114,7 +114,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
     }  
 
-    async postNote(content: string, conversationPath?: IConversationPath) {
+    async postNote(content: string, conversationPath?: IConversationPath): Promise<string> {
         let event = {
             "kind": 1,
             "created_at": Math.round(Date.now() / 1000),
@@ -125,9 +125,10 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             const conversationPathTags = this.calculateConversationPathTags(conversationPath);
             event.tags = conversationPathTags;
         }
-        console.log('postNote', event);
         const verifiedEvent = Event.finishEvent(event, this._privateKey);
         await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        const noteId = Nip19.noteEncode(verifiedEvent.id);
+        return noteId;
     }
 
     async deleteEvents(eventIds: string[]) {

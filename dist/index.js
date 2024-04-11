@@ -3728,6 +3728,7 @@ define("@scom/scom-social-sdk/managers/communication.ts", ["require", "exports"]
                     body: JSON.stringify(event)
                 });
                 const data = await response.json();
+                console.log('submitEvent response', data);
                 return data;
             }
             catch (error) {
@@ -4709,9 +4710,10 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 const conversationPathTags = this.calculateConversationPathTags(conversationPath);
                 event.tags = conversationPathTags;
             }
-            console.log('postNote', event);
             const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
             await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            const noteId = index_3.Nip19.noteEncode(verifiedEvent.id);
+            return noteId;
         }
         async deleteEvents(eventIds) {
             let event = {
@@ -8076,7 +8078,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             return data.result;
         }
         async submitMessage(message, conversationPath) {
-            await this._socialEventManagerWrite.postNote(message, conversationPath);
+            return this._socialEventManagerWrite.postNote(message, conversationPath);
         }
         async submitLongFormContent(info) {
             await this._socialEventManagerWrite.submitLongFormContentEvents(info);

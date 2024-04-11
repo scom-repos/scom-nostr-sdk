@@ -1830,7 +1830,7 @@ class SocialDataManager {
     }
 
     async submitMessage(message: string, conversationPath?: IConversationPath) {
-        await this._socialEventManagerWrite.postNote(message, conversationPath);
+        return this._socialEventManagerWrite.postNote(message, conversationPath);
     }
 
     async submitLongFormContent(info: ILongFormContentInfo) {

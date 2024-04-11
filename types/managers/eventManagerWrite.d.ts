@@ -4,7 +4,7 @@ interface ISocialEventManagerWrite {
     nostrCommunicationManagers: INostrCommunicationManager[];
     privateKey: string;
     updateContactList(content: string, contactPubKeys: string[]): Promise<void>;
-    postNote(content: string, conversationPath?: IConversationPath): Promise<void>;
+    postNote(content: string, conversationPath?: IConversationPath): Promise<string>;
     deleteEvents(eventIds: string[]): Promise<INostrSubmitResponse[]>;
     updateCommunity(info: ICommunityInfo): Promise<INostrSubmitResponse[]>;
     updateChannel(info: IChannelInfo): Promise<INostrSubmitResponse[]>;
@@ -34,7 +34,7 @@ declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
     set privateKey(privateKey: string);
     protected calculateConversationPathTags(conversationPath: IConversationPath): string[][];
     updateContactList(content: string, contactPubKeys: string[]): Promise<void>;
-    postNote(content: string, conversationPath?: IConversationPath): Promise<void>;
+    postNote(content: string, conversationPath?: IConversationPath): Promise<string>;
     deleteEvents(eventIds: string[]): Promise<INostrSubmitResponse[]>;
     updateChannel(info: IChannelInfo): Promise<INostrSubmitResponse[]>;
     updateUserBookmarkedChannels(channelEventIds: string[]): Promise<void>;
