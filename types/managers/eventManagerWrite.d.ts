@@ -13,7 +13,7 @@ interface ISocialEventManagerWrite {
     updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[]): Promise<void>;
     submitCommunityPost(info: INewCommunityPostInfo): Promise<void>;
     updateUserProfile(content: INostrMetadataContent): Promise<void>;
-    sendMessage(receiver: string, encryptedMessage: string): Promise<void>;
+    sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<void>;
     updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]): Promise<INostrSubmitResponse[]>;
     updateCalendarEvent(info: IUpdateCalendarEventInfo): Promise<INostrSubmitResponse[]>;
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean): Promise<INostrSubmitResponse[]>;
@@ -43,7 +43,7 @@ declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
     submitCommunityPost(info: INewCommunityPostInfo): Promise<void>;
     submitChannelMessage(info: INewChannelMessageInfo): Promise<void>;
     updateUserProfile(content: INostrMetadataContent): Promise<void>;
-    sendMessage(receiver: string, encryptedMessage: string): Promise<void>;
+    sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<void>;
     updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]): Promise<INostrSubmitResponse[]>;
     updateCalendarEvent(info: IUpdateCalendarEventInfo): Promise<INostrSubmitResponse[]>;
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean): Promise<INostrSubmitResponse[]>;

@@ -18,7 +18,7 @@ interface ISocialEventManagerWrite {
     updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[]): Promise<void>;
     submitCommunityPost(info: INewCommunityPostInfo): Promise<void>;
     updateUserProfile(content: INostrMetadataContent): Promise<void>;
-    sendMessage(receiver: string, encryptedMessage: string): Promise<void>;
+    sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<void>;
     updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]): Promise<INostrSubmitResponse[]>;
     updateCalendarEvent(info: IUpdateCalendarEventInfo): Promise<INostrSubmitResponse[]>;
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean): Promise<INostrSubmitResponse[]>;
@@ -362,7 +362,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
     }
   
-    async sendMessage(receiver: string, encryptedMessage: string) {
+    async sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string) {
         const decodedPubKey = receiver.startsWith('npub1') ? Nip19.decode(receiver).data : receiver;
         let event = {
             "kind": 4,
@@ -374,6 +374,9 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                     decodedPubKey as string
                 ]
             ]
+        }
+        if (replyToEventId) {
+            event.tags.push(['e', replyToEventId]);
         }
         const verifiedEvent = Event.finishEvent(event, this._privateKey);
         const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));

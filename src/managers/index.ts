@@ -1369,10 +1369,10 @@ class SocialDataManager {
         };
     }
 
-    async sendDirectMessage(chatId: string, message: string) {
+    async sendDirectMessage(chatId: string, message: string, replyToEventId?: string) {
         const decodedReceiverPubKey = Nip19.decode(chatId).data as string;
         const content = await SocialUtilsManager.encryptMessage(this._privateKey, decodedReceiverPubKey, message);
-        await this._socialEventManagerWrite.sendMessage(decodedReceiverPubKey, content);
+        await this._socialEventManagerWrite.sendMessage(decodedReceiverPubKey, content, replyToEventId);
     }
 
     async resetMessageCount(selfPubKey: string, senderPubKey: string) {
