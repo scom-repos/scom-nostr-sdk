@@ -1623,7 +1623,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
         nostrCommunicationManagers: INostrCommunicationManager[];
         privateKey: string;
         updateContactList(content: string, contactPubKeys: string[]): Promise<void>;
-        postNote(content: string, conversationPath?: IConversationPath): Promise<void>;
+        postNote(content: string, conversationPath?: IConversationPath): Promise<string>;
         deleteEvents(eventIds: string[]): Promise<INostrSubmitResponse[]>;
         updateCommunity(info: ICommunityInfo): Promise<INostrSubmitResponse[]>;
         updateChannel(info: IChannelInfo): Promise<INostrSubmitResponse[]>;
@@ -1653,7 +1653,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
         set privateKey(privateKey: string);
         protected calculateConversationPathTags(conversationPath: IConversationPath): string[][];
         updateContactList(content: string, contactPubKeys: string[]): Promise<void>;
-        postNote(content: string, conversationPath?: IConversationPath): Promise<void>;
+        postNote(content: string, conversationPath?: IConversationPath): Promise<string>;
         deleteEvents(eventIds: string[]): Promise<INostrSubmitResponse[]>;
         updateChannel(info: IChannelInfo): Promise<INostrSubmitResponse[]>;
         updateUserBookmarkedChannels(channelEventIds: string[]): Promise<void>;
@@ -1977,7 +1977,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         private fetchEventMetadataFromIPFS;
         getAccountBalance(walletAddress: string): Promise<any>;
         getNFTsByOwner(walletAddress: string): Promise<any>;
-        submitMessage(message: string, conversationPath?: IConversationPath): Promise<void>;
+        submitMessage(message: string, conversationPath?: IConversationPath): Promise<string>;
         submitLongFormContent(info: ILongFormContentInfo): Promise<void>;
         submitLike(postEventData: INostrEvent): Promise<void>;
         submitRepost(postEventData: INostrEvent): Promise<void>;

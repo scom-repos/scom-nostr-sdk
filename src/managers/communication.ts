@@ -91,6 +91,7 @@ class NostrRestAPIManager implements INostrRestAPIManager {
                 body: JSON.stringify(event)
             });
             const data = await response.json();
+            console.log('submitEvent response', data)
             return data;
         } catch (error) {
             console.error('Error submitting event:', error);
