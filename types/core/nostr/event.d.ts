@@ -52,3 +52,4 @@ export declare function validateEvent<T>(event: T): event is T & UnsignedEvent<n
 export declare function verifySignature<K extends number>(event: Event<K>): event is VerifiedEvent<K>;
 export declare function signEvent(event: UnsignedEvent<number>, key: string): string;
 export declare function getSignature(event: UnsignedEvent<number>, key: string): string;
+export declare function getPaymentRequestHash(paymentRequest: string): string;

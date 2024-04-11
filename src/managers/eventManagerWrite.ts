@@ -662,6 +662,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
     }
 
     async createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string) {
+        let hash = Event.getPaymentRequestHash(paymentRequest);
         let event = {
             "kind": 9739,
             "created_at": Math.round(Date.now() / 1000),
@@ -669,6 +670,10 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             "tags": [
                 [
                     "r",
+                    hash
+                ],
+                [
+                    "bolt11",
                     paymentRequest
                 ],
                 [

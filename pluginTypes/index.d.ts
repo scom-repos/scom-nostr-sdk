@@ -991,6 +991,7 @@ declare module "@scom/scom-social-sdk/core/nostr/event.ts" {
     export function signEvent(event: UnsignedEvent<number>, key: string): string;
     /** Calculate the signature for an event. */
     export function getSignature(event: UnsignedEvent<number>, key: string): string;
+    export function getPaymentRequestHash(paymentRequest: string): string;
 }
 /// <amd-module name="@scom/scom-social-sdk/core/bech32.ts" />
 declare module "@scom/scom-social-sdk/core/bech32.ts" {
