@@ -2949,7 +2949,7 @@ define("@scom/scom-social-sdk/core/nostr/keys.ts", ["require", "exports", "@scom
 define("@scom/scom-social-sdk/core/nostr/event.ts", ["require", "exports", "@scom/scom-social-sdk/core/curves/secp256k1.ts", "@scom/scom-social-sdk/core/hashes/sha256.ts", "@scom/scom-social-sdk/core/hashes/utils.ts", "@scom/scom-social-sdk/core/nostr/keys.ts"], function (require, exports, secp256k1_2, sha256_2, utils_12, keys_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.getSignature = exports.signEvent = exports.verifySignature = exports.validateEvent = exports.getEventHash = exports.serializeEvent = exports.finishEvent = exports.getBlankEvent = exports.Kind = exports.verifiedSymbol = exports.utf8Encoder = void 0;
+    exports.getPaymentRequestHash = exports.getSignature = exports.signEvent = exports.verifySignature = exports.validateEvent = exports.getEventHash = exports.serializeEvent = exports.finishEvent = exports.getBlankEvent = exports.Kind = exports.verifiedSymbol = exports.utf8Encoder = void 0;
     exports.utf8Encoder = new TextEncoder();
     /** Designates a verified event signature. */
     exports.verifiedSymbol = Symbol('verified');
@@ -3068,6 +3068,11 @@ define("@scom/scom-social-sdk/core/nostr/event.ts", ["require", "exports", "@sco
         return (0, utils_12.bytesToHex)(secp256k1_2.schnorr.sign(getEventHash(event), key));
     }
     exports.getSignature = getSignature;
+    function getPaymentRequestHash(paymentRequest) {
+        let eventHash = (0, sha256_2.sha256)(exports.utf8Encoder.encode(paymentRequest));
+        return (0, utils_12.bytesToHex)(eventHash);
+    }
+    exports.getPaymentRequestHash = getPaymentRequestHash;
 });
 define("@scom/scom-social-sdk/core/bech32.ts", ["require", "exports"], function (require, exports) {
     "use strict";
@@ -5212,6 +5217,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
         async createPaymentRequestEvent(paymentRequest, amount, comment) {
+            let hash = index_3.Event.getPaymentRequestHash(paymentRequest);
             let event = {
                 "kind": 9739,
                 "created_at": Math.round(Date.now() / 1000),
@@ -5219,6 +5225,10 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 "tags": [
                     [
                         "r",
+                        hash
+                    ],
+                    [
+                        "bolt11",
                         paymentRequest
                     ],
                     [
@@ -5829,9 +5839,10 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             return fetchEventsResponse.events;
         }
         async fetchPaymentRequestEvent(paymentRequest) {
+            let hash = index_4.Event.getPaymentRequestHash(paymentRequest);
             let req = {
                 kinds: [9739],
-                "#r": [paymentRequest]
+                "#r": [hash]
             };
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
@@ -5857,7 +5868,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const paymentReceiptEvents = await this._nostrCommunicationManager.fetchEvents(paymentReceiptEventsReq);
             let paymentActivity = [];
             for (let requestEvent of paymentRequestEvents.events) {
-                const paymentHash = requestEvent.tags.find(tag => tag[0] === 'r')?.[1];
+                const paymentHash = requestEvent.tags.find(tag => tag[0] === 'bolt11')?.[1] || requestEvent.tags.find(tag => tag[0] === 'r')?.[1];
                 const amount = requestEvent.tags.find(tag => tag[0] === 'amount')?.[1];
                 const receiptEvent = paymentReceiptEvents.events.find(event => event.tags.find(tag => tag[0] === 'e')?.[1] === requestEvent.id);
                 let status = 'pending';
@@ -5907,7 +5918,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
                 const requestEventId = receiptEvent.tags.find(tag => tag[0] === 'e')?.[1];
                 const requestEvent = paymentRequestEvents.events.find(event => event.id === requestEventId);
                 if (requestEvent) {
-                    const paymentHash = requestEvent.tags.find(tag => tag[0] === 'r')?.[1];
+                    const paymentHash = requestEvent.tags.find(tag => tag[0] === 'bolt11')?.[1] || requestEvent.tags.find(tag => tag[0] === 'r')?.[1];
                     const amount = requestEvent.tags.find(tag => tag[0] === 'amount')?.[1];
                     paymentActivity.push({
                         paymentHash,

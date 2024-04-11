@@ -143,3 +143,8 @@ export function signEvent(event: UnsignedEvent<number>, key: string): string {
 export function getSignature(event: UnsignedEvent<number>, key: string): string {
   return bytesToHex(schnorr.sign(getEventHash(event), key))
 }
+
+export function getPaymentRequestHash(paymentRequest: string) {
+  let eventHash = sha256(utf8Encoder.encode(paymentRequest))
+  return bytesToHex(eventHash)
+}

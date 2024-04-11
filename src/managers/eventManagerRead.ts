@@ -679,9 +679,10 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
     }
 
     async fetchPaymentRequestEvent(paymentRequest: string) {
+        let hash = Event.getPaymentRequestHash(paymentRequest);
         let req: any = {
             kinds: [9739],
-            "#r": [paymentRequest]
+            "#r": [hash]
         };
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
         return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
@@ -708,7 +709,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         const paymentReceiptEvents = await this._nostrCommunicationManager.fetchEvents(paymentReceiptEventsReq);
         let paymentActivity: IPaymentActivity[] = [];
         for (let requestEvent of paymentRequestEvents.events) {
-            const paymentHash = requestEvent.tags.find(tag => tag[0] === 'r')?.[1];
+            const paymentHash = requestEvent.tags.find(tag => tag[0] === 'bolt11')?.[1] || requestEvent.tags.find(tag => tag[0] === 'r')?.[1];
             const amount = requestEvent.tags.find(tag => tag[0] === 'amount')?.[1];
             const receiptEvent = paymentReceiptEvents.events.find(event => event.tags.find(tag => tag[0] === 'e')?.[1] === requestEvent.id);
             let status = 'pending';
@@ -759,7 +760,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
             const requestEventId = receiptEvent.tags.find(tag => tag[0] === 'e')?.[1];
             const requestEvent = paymentRequestEvents.events.find(event => event.id === requestEventId);
             if (requestEvent) {
-                const paymentHash = requestEvent.tags.find(tag => tag[0] === 'r')?.[1];
+                const paymentHash = requestEvent.tags.find(tag => tag[0] === 'bolt11')?.[1] || requestEvent.tags.find(tag => tag[0] === 'r')?.[1];
                 const amount = requestEvent.tags.find(tag => tag[0] === 'amount')?.[1];
                 paymentActivity.push({
                     paymentHash,
