@@ -1633,7 +1633,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
         updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[]): Promise<void>;
         submitCommunityPost(info: INewCommunityPostInfo): Promise<void>;
         updateUserProfile(content: INostrMetadataContent): Promise<void>;
-        sendMessage(receiver: string, encryptedMessage: string): Promise<void>;
+        sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<void>;
         updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]): Promise<INostrSubmitResponse[]>;
         updateCalendarEvent(info: IUpdateCalendarEventInfo): Promise<INostrSubmitResponse[]>;
         createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean): Promise<INostrSubmitResponse[]>;
@@ -1663,7 +1663,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
         submitCommunityPost(info: INewCommunityPostInfo): Promise<void>;
         submitChannelMessage(info: INewChannelMessageInfo): Promise<void>;
         updateUserProfile(content: INostrMetadataContent): Promise<void>;
-        sendMessage(receiver: string, encryptedMessage: string): Promise<void>;
+        sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<void>;
         updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]): Promise<INostrSubmitResponse[]>;
         updateCalendarEvent(info: IUpdateCalendarEventInfo): Promise<INostrSubmitResponse[]>;
         createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean): Promise<INostrSubmitResponse[]>;
@@ -1959,7 +1959,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
             encryptedMessages: any[];
             metadataByPubKeyMap: Record<string, INostrMetadata>;
         }>;
-        sendDirectMessage(chatId: string, message: string): Promise<void>;
+        sendDirectMessage(chatId: string, message: string, replyToEventId?: string): Promise<void>;
         resetMessageCount(selfPubKey: string, senderPubKey: string): Promise<void>;
         fetchMessageContacts(pubKey: string): Promise<IMessageContactInfo[]>;
         fetchUserGroupInvitations(pubKey: string): Promise<string[]>;

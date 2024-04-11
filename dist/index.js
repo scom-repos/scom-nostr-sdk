@@ -4943,7 +4943,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
             const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
-        async sendMessage(receiver, encryptedMessage) {
+        async sendMessage(receiver, encryptedMessage, replyToEventId) {
             const decodedPubKey = receiver.startsWith('npub1') ? index_3.Nip19.decode(receiver).data : receiver;
             let event = {
                 "kind": 4,
@@ -4956,6 +4956,9 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     ]
                 ]
             };
+            if (replyToEventId) {
+                event.tags.push(['e', replyToEventId]);
+            }
             const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
             const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
@@ -7630,10 +7633,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 metadataByPubKeyMap
             };
         }
-        async sendDirectMessage(chatId, message) {
+        async sendDirectMessage(chatId, message, replyToEventId) {
             const decodedReceiverPubKey = index_6.Nip19.decode(chatId).data;
             const content = await utilsManager_4.SocialUtilsManager.encryptMessage(this._privateKey, decodedReceiverPubKey, message);
-            await this._socialEventManagerWrite.sendMessage(decodedReceiverPubKey, content);
+            await this._socialEventManagerWrite.sendMessage(decodedReceiverPubKey, content, replyToEventId);
         }
         async resetMessageCount(selfPubKey, senderPubKey) {
             await this._socialEventManagerRead.resetMessageCount(selfPubKey, senderPubKey);
