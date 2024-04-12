@@ -1642,7 +1642,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
         submitLike(tags: string[][]): Promise<void>;
         submitRepost(content: string, tags: string[][]): Promise<void>;
         updateRelayList(relays: Record<string, IRelayConfig>): Promise<void>;
-        createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string): Promise<void>;
+        createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, isLightningInvoice?: boolean): Promise<void>;
         createPaymentReceiptEvent(requestEventId: string, recipient: string, preimage: string, comment: string): Promise<void>;
     }
     class NostrEventManagerWrite implements ISocialEventManagerWrite {
@@ -1672,7 +1672,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
         submitLike(tags: string[][]): Promise<void>;
         submitRepost(content: string, tags: string[][]): Promise<void>;
         updateRelayList(relays: Record<string, IRelayConfig>): Promise<void>;
-        createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string): Promise<void>;
+        createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, isLightningInvoice?: boolean): Promise<void>;
         createPaymentReceiptEvent(requestEventId: string, recipient: string, preimage: string, comment: string): Promise<void>;
     }
     export { NostrEventManagerWrite, ISocialEventManagerWrite };
@@ -1767,6 +1767,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         searchUsers(query: string): Promise<INostrEvent[]>;
         fetchPaymentRequestEvent(paymentRequest: string): Promise<INostrEvent>;
         fetchPaymentReceiptEvent(requestEventId: string): Promise<INostrEvent>;
+        private getPaymentHash;
         fetchPaymentActivitiesForRecipient(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
         fetchPaymentActivitiesForSender(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
         fetchUserFollowingFeed(pubKey: string, until?: number): Promise<INostrEvent[]>;
@@ -1993,6 +1994,10 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         removeRelay(url: string): Promise<void>;
         updateRelays(add: string[], remove: string[], defaultRelays: string[]): Promise<string[]>;
         makeInvoice(amount: string, comment: string): Promise<string>;
+        createPaymentRequest(chainId: number, token: any, amount: string, to: string, comment: string): Promise<string>;
+        parsePaymentRequest(paymentRequest: string): any;
+        private sendToken;
+        private isLightningInvoice;
         sendPayment(paymentRequest: string, comment: string): Promise<string>;
         zap(pubkey: string, lud16: string, amount: string, noteId: string): Promise<any>;
         fetchUserPaymentActivities(pubkey: string, since?: number, until?: number): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").IPaymentActivity[]>;

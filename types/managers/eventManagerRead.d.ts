@@ -86,6 +86,7 @@ declare class NostrEventManagerRead implements ISocialEventManagerRead {
     searchUsers(query: string): Promise<INostrEvent[]>;
     fetchPaymentRequestEvent(paymentRequest: string): Promise<INostrEvent>;
     fetchPaymentReceiptEvent(requestEventId: string): Promise<INostrEvent>;
+    private getPaymentHash;
     fetchPaymentActivitiesForRecipient(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
     fetchPaymentActivitiesForSender(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
     fetchUserFollowingFeed(pubKey: string, until?: number): Promise<INostrEvent[]>;

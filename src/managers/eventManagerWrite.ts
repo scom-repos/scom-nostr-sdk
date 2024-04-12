@@ -27,7 +27,7 @@ interface ISocialEventManagerWrite {
     submitLike(tags: string[][]): Promise<void>;
     submitRepost(content: string, tags: string[][]): Promise<void>;
     updateRelayList(relays: Record<string, IRelayConfig>): Promise<void>;
-    createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string): Promise<void>;
+    createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, isLightningInvoice?: boolean): Promise<void>;
     createPaymentReceiptEvent(requestEventId: string, recipient: string, preimage: string, comment: string): Promise<void>;
 }
 
@@ -645,7 +645,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
     }
 
-    async createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string) {
+    async createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, isLightningInvoice?: boolean) {
         let hash = Event.getPaymentRequestHash(paymentRequest);
         let event = {
             "kind": 9739,
@@ -657,7 +657,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                     hash
                 ],
                 [
-                    "bolt11",
+                    isLightningInvoice ? "bolt11" : "payreq",
                     paymentRequest
                 ],
                 [
@@ -684,12 +684,16 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                     "p",
                     recipient
                 ],
+            ]
+        };
+        if (preimage) {
+            event.tags.push(
                 [
                     "preimage",
                     preimage
                 ]
-            ]
-        };
+            );
+        }
         const verifiedEvent = Event.finishEvent(event, this._privateKey);
         const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
     }

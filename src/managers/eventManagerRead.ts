@@ -697,6 +697,14 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
         return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
     }
+    
+    private getPaymentHash(tags: string[][]) {
+        let tagsMap: Record<string, string[]> = {};
+        for (let _t of tags) {
+            tagsMap[_t[0]] = _t.slice(1);
+        }
+        return tagsMap['bolt11']?.[0] || tagsMap['payreq']?.[0] || tagsMap['r']?.[0];
+    }
 
     async fetchPaymentActivitiesForRecipient(pubkey: string, since: number = 0, until: number = 0) {
         let paymentRequestEventsReq: any = {
@@ -719,7 +727,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         const paymentReceiptEvents = await this._nostrCommunicationManager.fetchEvents(paymentReceiptEventsReq);
         let paymentActivity: IPaymentActivity[] = [];
         for (let requestEvent of paymentRequestEvents.events) {
-            const paymentHash = requestEvent.tags.find(tag => tag[0] === 'bolt11')?.[1] || requestEvent.tags.find(tag => tag[0] === 'r')?.[1];
+            const paymentHash = this.getPaymentHash(requestEvent.tags);
             const amount = requestEvent.tags.find(tag => tag[0] === 'amount')?.[1];
             const receiptEvent = paymentReceiptEvents.events.find(event => event.tags.find(tag => tag[0] === 'e')?.[1] === requestEvent.id);
             let status = 'pending';
@@ -770,7 +778,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
             const requestEventId = receiptEvent.tags.find(tag => tag[0] === 'e')?.[1];
             const requestEvent = paymentRequestEvents.events.find(event => event.id === requestEventId);
             if (requestEvent) {
-                const paymentHash = requestEvent.tags.find(tag => tag[0] === 'bolt11')?.[1] || requestEvent.tags.find(tag => tag[0] === 'r')?.[1];
+                const paymentHash = this.getPaymentHash(requestEvent.tags);
                 const amount = requestEvent.tags.find(tag => tag[0] === 'amount')?.[1];
                 paymentActivity.push({
                     paymentHash,
