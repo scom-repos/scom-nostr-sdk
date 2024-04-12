@@ -1718,6 +1718,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
         searchUsers(query: string): Promise<INostrEvent[]>;
         fetchPaymentRequestEvent(paymentRequest: string): Promise<INostrEvent>;
+        fetchPaymentReceiptEvent(requestEventId: string): Promise<INostrEvent>;
         fetchPaymentActivitiesForRecipient(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
         fetchPaymentActivitiesForSender(pubKey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
         fetchUserFollowingFeed(pubKey: string, until?: number): Promise<INostrEvent[]>;
@@ -1765,6 +1766,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
         searchUsers(query: string): Promise<INostrEvent[]>;
         fetchPaymentRequestEvent(paymentRequest: string): Promise<INostrEvent>;
+        fetchPaymentReceiptEvent(requestEventId: string): Promise<INostrEvent>;
         fetchPaymentActivitiesForRecipient(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
         fetchPaymentActivitiesForSender(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
         fetchUserFollowingFeed(pubKey: string, until?: number): Promise<INostrEvent[]>;
@@ -1994,6 +1996,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         sendPayment(paymentRequest: string, comment: string): Promise<string>;
         zap(pubkey: string, lud16: string, amount: string, noteId: string): Promise<any>;
         fetchUserPaymentActivities(pubkey: string, since?: number, until?: number): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").IPaymentActivity[]>;
+        fetchPaymentStatus(paymentRequest: string): Promise<string>;
         getLightningBalance(): Promise<any>;
         isLightningAvailable(): boolean;
         getBitcoinPrice(): Promise<any>;

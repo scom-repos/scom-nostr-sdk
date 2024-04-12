@@ -5850,6 +5850,14 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
         }
+        async fetchPaymentReceiptEvent(requestEventId) {
+            let req = {
+                kinds: [9740],
+                "#e": [requestEventId]
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
+            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        }
         async fetchPaymentActivitiesForRecipient(pubkey, since = 0, until = 0) {
             let paymentRequestEventsReq = {
                 kinds: [9739],
@@ -8309,6 +8317,18 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             const paymentActivitiesForRecipient = await this._socialEventManagerRead.fetchPaymentActivitiesForRecipient(pubkey, since, until);
             const paymentActivities = [...paymentActivitiesForSender, ...paymentActivitiesForRecipient];
             return paymentActivities.sort((a, b) => b.createdAt - a.createdAt);
+        }
+        async fetchPaymentStatus(paymentRequest) {
+            let status = 'pending';
+            const requestEvent = await this._socialEventManagerRead.fetchPaymentRequestEvent(paymentRequest);
+            if (requestEvent) {
+                const receiptEvent = await this._socialEventManagerRead.fetchPaymentReceiptEvent(requestEvent.id);
+                const selfPubkey = utilsManager_4.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
+                if (receiptEvent && receiptEvent.pubkey === selfPubkey) {
+                    status = 'completed';
+                }
+            }
+            return status;
         }
         async getLightningBalance() {
             const response = await this.lightningWalletManager.getBalance();
