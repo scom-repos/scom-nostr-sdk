@@ -5219,7 +5219,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
             const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
-        async createPaymentRequestEvent(paymentRequest, amount, comment) {
+        async createPaymentRequestEvent(paymentRequest, amount, comment, isLightningInvoice) {
             let hash = index_3.Event.getPaymentRequestHash(paymentRequest);
             let event = {
                 "kind": 9739,
@@ -5231,7 +5231,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                         hash
                     ],
                     [
-                        "bolt11",
+                        isLightningInvoice ? "bolt11" : "payreq",
                         paymentRequest
                     ],
                     [
@@ -5257,12 +5257,14 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                         "p",
                         recipient
                     ],
-                    [
-                        "preimage",
-                        preimage
-                    ]
                 ]
             };
+            if (preimage) {
+                event.tags.push([
+                    "preimage",
+                    preimage
+                ]);
+            }
             const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
             const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
@@ -5858,6 +5860,13 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
         }
+        getPaymentHash(tags) {
+            let tagsMap = {};
+            for (let _t of tags) {
+                tagsMap[_t[0]] = _t.slice(1);
+            }
+            return tagsMap['bolt11']?.[0] || tagsMap['payreq']?.[0] || tagsMap['r']?.[0];
+        }
         async fetchPaymentActivitiesForRecipient(pubkey, since = 0, until = 0) {
             let paymentRequestEventsReq = {
                 kinds: [9739],
@@ -5879,7 +5888,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const paymentReceiptEvents = await this._nostrCommunicationManager.fetchEvents(paymentReceiptEventsReq);
             let paymentActivity = [];
             for (let requestEvent of paymentRequestEvents.events) {
-                const paymentHash = requestEvent.tags.find(tag => tag[0] === 'bolt11')?.[1] || requestEvent.tags.find(tag => tag[0] === 'r')?.[1];
+                const paymentHash = this.getPaymentHash(requestEvent.tags);
                 const amount = requestEvent.tags.find(tag => tag[0] === 'amount')?.[1];
                 const receiptEvent = paymentReceiptEvents.events.find(event => event.tags.find(tag => tag[0] === 'e')?.[1] === requestEvent.id);
                 let status = 'pending';
@@ -5929,7 +5938,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
                 const requestEventId = receiptEvent.tags.find(tag => tag[0] === 'e')?.[1];
                 const requestEvent = paymentRequestEvents.events.find(event => event.id === requestEventId);
                 if (requestEvent) {
-                    const paymentHash = requestEvent.tags.find(tag => tag[0] === 'bolt11')?.[1] || requestEvent.tags.find(tag => tag[0] === 'r')?.[1];
+                    const paymentHash = this.getPaymentHash(requestEvent.tags);
                     const amount = requestEvent.tags.find(tag => tag[0] === 'amount')?.[1];
                     paymentActivity.push({
                         paymentHash,
@@ -6392,7 +6401,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV2.ts", ["require", "expo
     }
     exports.NostrEventManagerReadV2 = NostrEventManagerReadV2;
 });
-define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/managers/communication.ts", "@scom/scom-social-sdk/utils/geohash.ts", "@scom/scom-social-sdk/utils/mqtt.ts", "@scom/scom-social-sdk/utils/lightningWallet.ts", "@scom/scom-social-sdk/managers/utilsManager.ts", "@scom/scom-social-sdk/managers/eventManagerWrite.ts", "@scom/scom-social-sdk/managers/eventManagerRead.ts", "@scom/scom-social-sdk/managers/eventManagerReadV2.ts", "@scom/scom-signer"], function (require, exports, index_6, interfaces_4, communication_1, geohash_1, mqtt_2, lightningWallet_1, utilsManager_4, eventManagerWrite_1, eventManagerRead_2, eventManagerReadV2_1, scom_signer_2) {
+define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/managers/communication.ts", "@scom/scom-social-sdk/utils/geohash.ts", "@scom/scom-social-sdk/utils/mqtt.ts", "@scom/scom-social-sdk/utils/lightningWallet.ts", "@scom/scom-social-sdk/managers/utilsManager.ts", "@scom/scom-social-sdk/managers/eventManagerWrite.ts", "@scom/scom-social-sdk/managers/eventManagerRead.ts", "@scom/scom-social-sdk/managers/eventManagerReadV2.ts", "@scom/scom-signer", "@ijstech/eth-wallet"], function (require, exports, index_6, interfaces_4, communication_1, geohash_1, mqtt_2, lightningWallet_1, utilsManager_4, eventManagerWrite_1, eventManagerRead_2, eventManagerReadV2_1, scom_signer_2, eth_wallet_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.NostrWebSocketManager = exports.NostrRestAPIManager = exports.SocialDataManager = exports.SocialUtilsManager = exports.NostrEventManagerWrite = exports.NostrEventManagerReadV2 = exports.NostrEventManagerRead = void 0;
@@ -8297,11 +8306,62 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async makeInvoice(amount, comment) {
             const paymentRequest = await this.lightningWalletManager.makeInvoice(Number(amount), comment);
+            await this._socialEventManagerWrite.createPaymentRequestEvent(paymentRequest, amount, comment, true);
+            return paymentRequest;
+        }
+        async createPaymentRequest(chainId, token, amount, to, comment) {
+            const paymentRequest = btoa(JSON.stringify({
+                chainId,
+                token,
+                amount,
+                comment,
+                to,
+                createdAt: Math.round(Date.now() / 1000)
+            }));
             await this._socialEventManagerWrite.createPaymentRequestEvent(paymentRequest, amount, comment);
             return paymentRequest;
         }
+        parsePaymentRequest(paymentRequest) {
+            const decoded = atob(paymentRequest);
+            let data = JSON.parse(decoded);
+            return data;
+        }
+        async sendToken(paymentRequest) {
+            try {
+                let data = this.parsePaymentRequest(paymentRequest);
+                const wallet = eth_wallet_2.Wallet.getClientInstance();
+                await wallet.init();
+                if (data.chainId !== wallet.chainId) {
+                    await wallet.switchNetwork(data.chainId);
+                }
+                if (data.token.address) {
+                    const erc20 = new eth_wallet_2.Contracts.ERC20(wallet, data.token.address);
+                    let amount = eth_wallet_2.Utils.toDecimals(data.amount, data.token.decimals);
+                    await erc20.transfer({
+                        to: data.to,
+                        amount: amount
+                    });
+                }
+                else {
+                    await wallet.send(data.to, data.amount);
+                }
+            }
+            catch (err) {
+                throw new Error('Payment failed');
+            }
+        }
+        isLightningInvoice(value) {
+            const lnRegex = /^(lnbc|lntb|lnbcrt|lnsb|lntbs)([0-9]+(m|u|n|p))?1\S+/g;
+            return lnRegex.test(value);
+        }
         async sendPayment(paymentRequest, comment) {
-            const preimage = await this.lightningWalletManager.sendPayment(paymentRequest);
+            let preimage;
+            if (this.isLightningInvoice(paymentRequest)) {
+                preimage = await this.lightningWalletManager.sendPayment(paymentRequest);
+            }
+            else {
+                await this.sendToken(paymentRequest);
+            }
             const requestEvent = await this._socialEventManagerRead.fetchPaymentRequestEvent(paymentRequest);
             if (requestEvent) {
                 await this._socialEventManagerWrite.createPaymentReceiptEvent(requestEvent.id, requestEvent.pubkey, preimage, comment);

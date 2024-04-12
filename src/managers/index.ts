@@ -13,6 +13,7 @@ import { ISocialEventManagerWrite, NostrEventManagerWrite } from "./eventManager
 import { ISocialEventManagerRead, NostrEventManagerRead } from "./eventManagerRead";
 import { NostrEventManagerReadV2 } from "./eventManagerReadV2";
 import {Crypto} from "@scom/scom-signer";
+import { Contracts, Utils, Wallet } from "@ijstech/eth-wallet";
 
 //FIXME: remove this when compiler is fixed
 function flatMap<T, U>(array: T[], callback: (item: T) => U[]): U[] {
@@ -2036,12 +2037,64 @@ class SocialDataManager {
 
     async makeInvoice(amount: string, comment: string) {
         const paymentRequest = await this.lightningWalletManager.makeInvoice(Number(amount), comment);
+        await this._socialEventManagerWrite.createPaymentRequestEvent(paymentRequest, amount, comment, true);
+        return paymentRequest;
+    }
+
+    async createPaymentRequest(chainId: number, token: any, amount: string, to: string, comment: string) {
+        const paymentRequest = btoa(JSON.stringify({
+            chainId,
+            token,
+            amount,
+            comment,
+            to,
+            createdAt: Math.round(Date.now() / 1000)
+        }));
         await this._socialEventManagerWrite.createPaymentRequestEvent(paymentRequest, amount, comment);
         return paymentRequest;
     }
 
+    parsePaymentRequest(paymentRequest: string) {
+        const decoded = atob(paymentRequest);
+        let data = JSON.parse(decoded);
+        return data;
+    }
+
+    private async sendToken(paymentRequest: string) {
+        try {
+            let data = this.parsePaymentRequest(paymentRequest);
+            const wallet = Wallet.getClientInstance();
+            await wallet.init();
+            if (data.chainId !== wallet.chainId) {
+                await wallet.switchNetwork(data.chainId);
+            }
+            if (data.token.address) {
+                const erc20 = new Contracts.ERC20(wallet, data.token.address);
+                let amount = Utils.toDecimals(data.amount, data.token.decimals);
+                await erc20.transfer({
+                    to: data.to,
+                    amount: amount
+                });
+            } else {
+                await wallet.send(data.to, data.amount);
+            }
+        } catch (err) {
+            throw new Error('Payment failed');
+        }
+    }
+
+    private isLightningInvoice(value: string) {
+        const lnRegex = /^(lnbc|lntb|lnbcrt|lnsb|lntbs)([0-9]+(m|u|n|p))?1\S+/g;
+        return lnRegex.test(value);
+    }
+
     async sendPayment(paymentRequest: string, comment: string) {
-        const preimage = await this.lightningWalletManager.sendPayment(paymentRequest);
+        let preimage: string;
+        if (this.isLightningInvoice(paymentRequest)) {
+            preimage = await this.lightningWalletManager.sendPayment(paymentRequest);
+        } else {
+            await this.sendToken(paymentRequest);
+        }
         const requestEvent = await this._socialEventManagerRead.fetchPaymentRequestEvent(paymentRequest);
         if (requestEvent) {
             await this._socialEventManagerWrite.createPaymentReceiptEvent(requestEvent.id, requestEvent.pubkey, preimage, comment);

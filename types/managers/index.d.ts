@@ -162,6 +162,10 @@ declare class SocialDataManager {
     removeRelay(url: string): Promise<void>;
     updateRelays(add: string[], remove: string[], defaultRelays: string[]): Promise<string[]>;
     makeInvoice(amount: string, comment: string): Promise<string>;
+    createPaymentRequest(chainId: number, token: any, amount: string, to: string, comment: string): Promise<string>;
+    parsePaymentRequest(paymentRequest: string): any;
+    private sendToken;
+    private isLightningInvoice;
     sendPayment(paymentRequest: string, comment: string): Promise<string>;
     zap(pubkey: string, lud16: string, amount: string, noteId: string): Promise<any>;
     fetchUserPaymentActivities(pubkey: string, since?: number, until?: number): Promise<import("../utils/interfaces").IPaymentActivity[]>;
