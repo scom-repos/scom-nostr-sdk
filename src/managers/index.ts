@@ -2061,6 +2061,19 @@ class SocialDataManager {
         return paymentActivities.sort((a, b) => b.createdAt - a.createdAt);
     }
 
+    async fetchPaymentStatus(paymentRequest: string) {
+        let status = 'pending';
+        const requestEvent = await this._socialEventManagerRead.fetchPaymentRequestEvent(paymentRequest);
+        if (requestEvent) {
+            const receiptEvent = await this._socialEventManagerRead.fetchPaymentReceiptEvent(requestEvent.id);
+            const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
+            if (receiptEvent && receiptEvent.pubkey === selfPubkey) {
+                status = 'completed';
+            }
+        }
+        return status;
+    }
+
     async getLightningBalance() {
         const response = await this.lightningWalletManager.getBalance();
         return response;
