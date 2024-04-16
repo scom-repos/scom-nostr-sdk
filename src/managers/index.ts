@@ -13,7 +13,7 @@ import { ISocialEventManagerWrite, NostrEventManagerWrite } from "./eventManager
 import { ISocialEventManagerRead, NostrEventManagerRead } from "./eventManagerRead";
 import { NostrEventManagerReadV2 } from "./eventManagerReadV2";
 import {Crypto} from "@scom/scom-signer";
-import { Contracts, Utils, Wallet } from "@ijstech/eth-wallet";
+import { Contracts, TransactionReceipt, Utils, Wallet } from "@ijstech/eth-wallet";
 
 //FIXME: remove this when compiler is fixed
 function flatMap<T, U>(array: T[], callback: (item: T) => U[]): U[] {
@@ -2061,6 +2061,7 @@ class SocialDataManager {
     }
 
     private async sendToken(paymentRequest: string) {
+        let receipt: TransactionReceipt;
         try {
             let data = this.parsePaymentRequest(paymentRequest);
             const wallet = Wallet.getClientInstance();
@@ -2071,16 +2072,17 @@ class SocialDataManager {
             if (data.token.address) {
                 const erc20 = new Contracts.ERC20(wallet, data.token.address);
                 let amount = Utils.toDecimals(data.amount, data.token.decimals);
-                await erc20.transfer({
+                receipt = await erc20.transfer({
                     to: data.to,
                     amount: amount
                 });
             } else {
-                await wallet.send(data.to, data.amount);
+                receipt = await wallet.send(data.to, data.amount);
             }
         } catch (err) {
             throw new Error('Payment failed');
         }
+        return receipt?.transactionHash;
     }
 
     private isLightningInvoice(value: string) {
@@ -2090,16 +2092,17 @@ class SocialDataManager {
 
     async sendPayment(paymentRequest: string, comment: string) {
         let preimage: string;
+        let tx: string;
         if (this.isLightningInvoice(paymentRequest)) {
             preimage = await this.lightningWalletManager.sendPayment(paymentRequest);
         } else {
-            await this.sendToken(paymentRequest);
+            tx = await this.sendToken(paymentRequest);
         }
         const requestEvent = await this._socialEventManagerRead.fetchPaymentRequestEvent(paymentRequest);
         if (requestEvent) {
-            await this._socialEventManagerWrite.createPaymentReceiptEvent(requestEvent.id, requestEvent.pubkey, preimage, comment);
+            await this._socialEventManagerWrite.createPaymentReceiptEvent(requestEvent.id, requestEvent.pubkey, comment, preimage, tx);
         }
-        return preimage;
+        return preimage || tx;
     }
 
     async zap(pubkey: string, lud16: string, amount: string, noteId: string) {
@@ -2114,17 +2117,25 @@ class SocialDataManager {
         return paymentActivities.sort((a, b) => b.createdAt - a.createdAt);
     }
 
-    async fetchPaymentStatus(paymentRequest: string) {
-        let status = 'pending';
+    async fetchPaymentReceiptInfo(paymentRequest: string) {
+        let info: {
+            status: 'pending' | 'completed';
+            preimage?: string;
+            tx?: string;
+        } = {
+            status: 'pending'
+        };
         const requestEvent = await this._socialEventManagerRead.fetchPaymentRequestEvent(paymentRequest);
         if (requestEvent) {
             const receiptEvent = await this._socialEventManagerRead.fetchPaymentReceiptEvent(requestEvent.id);
             const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
             if (receiptEvent && receiptEvent.pubkey === selfPubkey) {
-                status = 'completed';
+                info.status = 'completed';
+                info.preimage = receiptEvent.tags.find(tag => tag[0] === 'preimage')?.[1];
+                info.tx = receiptEvent.tags.find(tag => tag[0] === 'tx')?.[1];
             }
         }
-        return status;
+        return info;
     }
 
     async getLightningBalance() {

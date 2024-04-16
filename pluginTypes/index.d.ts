@@ -1643,7 +1643,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
         submitRepost(content: string, tags: string[][]): Promise<void>;
         updateRelayList(relays: Record<string, IRelayConfig>): Promise<void>;
         createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, isLightningInvoice?: boolean): Promise<void>;
-        createPaymentReceiptEvent(requestEventId: string, recipient: string, preimage: string, comment: string): Promise<void>;
+        createPaymentReceiptEvent(requestEventId: string, recipient: string, comment: string, preimage?: string, tx?: string): Promise<void>;
     }
     class NostrEventManagerWrite implements ISocialEventManagerWrite {
         protected _nostrCommunicationManagers: INostrCommunicationManager[];
@@ -1673,7 +1673,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
         submitRepost(content: string, tags: string[][]): Promise<void>;
         updateRelayList(relays: Record<string, IRelayConfig>): Promise<void>;
         createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, isLightningInvoice?: boolean): Promise<void>;
-        createPaymentReceiptEvent(requestEventId: string, recipient: string, preimage: string, comment: string): Promise<void>;
+        createPaymentReceiptEvent(requestEventId: string, recipient: string, comment: string, preimage?: string, tx?: string): Promise<void>;
     }
     export { NostrEventManagerWrite, ISocialEventManagerWrite };
 }
@@ -2001,7 +2001,11 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         sendPayment(paymentRequest: string, comment: string): Promise<string>;
         zap(pubkey: string, lud16: string, amount: string, noteId: string): Promise<any>;
         fetchUserPaymentActivities(pubkey: string, since?: number, until?: number): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").IPaymentActivity[]>;
-        fetchPaymentStatus(paymentRequest: string): Promise<string>;
+        fetchPaymentReceiptInfo(paymentRequest: string): Promise<{
+            status: 'pending' | 'completed';
+            preimage?: string;
+            tx?: string;
+        }>;
         getLightningBalance(): Promise<any>;
         isLightningAvailable(): boolean;
         getBitcoinPrice(): Promise<any>;
