@@ -169,7 +169,11 @@ declare class SocialDataManager {
     sendPayment(paymentRequest: string, comment: string): Promise<string>;
     zap(pubkey: string, lud16: string, amount: string, noteId: string): Promise<any>;
     fetchUserPaymentActivities(pubkey: string, since?: number, until?: number): Promise<import("../utils/interfaces").IPaymentActivity[]>;
-    fetchPaymentStatus(paymentRequest: string): Promise<string>;
+    fetchPaymentReceiptInfo(paymentRequest: string): Promise<{
+        status: 'pending' | 'completed';
+        preimage?: string;
+        tx?: string;
+    }>;
     getLightningBalance(): Promise<any>;
     isLightningAvailable(): boolean;
     getBitcoinPrice(): Promise<any>;

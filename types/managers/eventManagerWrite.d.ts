@@ -23,7 +23,7 @@ interface ISocialEventManagerWrite {
     submitRepost(content: string, tags: string[][]): Promise<void>;
     updateRelayList(relays: Record<string, IRelayConfig>): Promise<void>;
     createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, isLightningInvoice?: boolean): Promise<void>;
-    createPaymentReceiptEvent(requestEventId: string, recipient: string, preimage: string, comment: string): Promise<void>;
+    createPaymentReceiptEvent(requestEventId: string, recipient: string, comment: string, preimage?: string, tx?: string): Promise<void>;
 }
 declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
     protected _nostrCommunicationManagers: INostrCommunicationManager[];
@@ -53,6 +53,6 @@ declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
     submitRepost(content: string, tags: string[][]): Promise<void>;
     updateRelayList(relays: Record<string, IRelayConfig>): Promise<void>;
     createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, isLightningInvoice?: boolean): Promise<void>;
-    createPaymentReceiptEvent(requestEventId: string, recipient: string, preimage: string, comment: string): Promise<void>;
+    createPaymentReceiptEvent(requestEventId: string, recipient: string, comment: string, preimage?: string, tx?: string): Promise<void>;
 }
 export { NostrEventManagerWrite, ISocialEventManagerWrite };

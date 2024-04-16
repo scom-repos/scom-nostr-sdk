@@ -28,7 +28,7 @@ interface ISocialEventManagerWrite {
     submitRepost(content: string, tags: string[][]): Promise<void>;
     updateRelayList(relays: Record<string, IRelayConfig>): Promise<void>;
     createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, isLightningInvoice?: boolean): Promise<void>;
-    createPaymentReceiptEvent(requestEventId: string, recipient: string, preimage: string, comment: string): Promise<void>;
+    createPaymentReceiptEvent(requestEventId: string, recipient: string, comment: string, preimage?: string, tx?: string): Promise<void>;
 }
 
 function convertUnixTimestampToDate(timestamp: number): string {
@@ -670,7 +670,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
     }
 
-    async createPaymentReceiptEvent(requestEventId: string, recipient: string, preimage: string, comment: string) {
+    async createPaymentReceiptEvent(requestEventId: string, recipient: string, comment: string, preimage?: string, tx?: string) {
         let event = {
             "kind": 9740,
             "created_at": Math.round(Date.now() / 1000),
@@ -691,6 +691,14 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 [
                     "preimage",
                     preimage
+                ]
+            );
+        }
+        if (tx) {
+            event.tags.push(
+                [
+                    "tx",
+                    tx
                 ]
             );
         }

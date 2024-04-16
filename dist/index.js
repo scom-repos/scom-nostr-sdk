@@ -5243,7 +5243,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
             const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
-        async createPaymentReceiptEvent(requestEventId, recipient, preimage, comment) {
+        async createPaymentReceiptEvent(requestEventId, recipient, comment, preimage, tx) {
             let event = {
                 "kind": 9740,
                 "created_at": Math.round(Date.now() / 1000),
@@ -5263,6 +5263,12 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 event.tags.push([
                     "preimage",
                     preimage
+                ]);
+            }
+            if (tx) {
+                event.tags.push([
+                    "tx",
+                    tx
                 ]);
             }
             const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
@@ -8327,6 +8333,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             return data;
         }
         async sendToken(paymentRequest) {
+            let receipt;
             try {
                 let data = this.parsePaymentRequest(paymentRequest);
                 const wallet = eth_wallet_2.Wallet.getClientInstance();
@@ -8337,18 +8344,19 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 if (data.token.address) {
                     const erc20 = new eth_wallet_2.Contracts.ERC20(wallet, data.token.address);
                     let amount = eth_wallet_2.Utils.toDecimals(data.amount, data.token.decimals);
-                    await erc20.transfer({
+                    receipt = await erc20.transfer({
                         to: data.to,
                         amount: amount
                     });
                 }
                 else {
-                    await wallet.send(data.to, data.amount);
+                    receipt = await wallet.send(data.to, data.amount);
                 }
             }
             catch (err) {
                 throw new Error('Payment failed');
             }
+            return receipt?.transactionHash;
         }
         isLightningInvoice(value) {
             const lnRegex = /^(lnbc|lntb|lnbcrt|lnsb|lntbs)([0-9]+(m|u|n|p))?1\S+/g;
@@ -8356,17 +8364,18 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async sendPayment(paymentRequest, comment) {
             let preimage;
+            let tx;
             if (this.isLightningInvoice(paymentRequest)) {
                 preimage = await this.lightningWalletManager.sendPayment(paymentRequest);
             }
             else {
-                await this.sendToken(paymentRequest);
+                tx = await this.sendToken(paymentRequest);
             }
             const requestEvent = await this._socialEventManagerRead.fetchPaymentRequestEvent(paymentRequest);
             if (requestEvent) {
-                await this._socialEventManagerWrite.createPaymentReceiptEvent(requestEvent.id, requestEvent.pubkey, preimage, comment);
+                await this._socialEventManagerWrite.createPaymentReceiptEvent(requestEvent.id, requestEvent.pubkey, comment, preimage, tx);
             }
-            return preimage;
+            return preimage || tx;
         }
         async zap(pubkey, lud16, amount, noteId) {
             const response = await this.lightningWalletManager.zap(pubkey, lud16, Number(amount), '', this._writeRelays, noteId);
@@ -8378,17 +8387,21 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             const paymentActivities = [...paymentActivitiesForSender, ...paymentActivitiesForRecipient];
             return paymentActivities.sort((a, b) => b.createdAt - a.createdAt);
         }
-        async fetchPaymentStatus(paymentRequest) {
-            let status = 'pending';
+        async fetchPaymentReceiptInfo(paymentRequest) {
+            let info = {
+                status: 'pending'
+            };
             const requestEvent = await this._socialEventManagerRead.fetchPaymentRequestEvent(paymentRequest);
             if (requestEvent) {
                 const receiptEvent = await this._socialEventManagerRead.fetchPaymentReceiptEvent(requestEvent.id);
                 const selfPubkey = utilsManager_4.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
                 if (receiptEvent && receiptEvent.pubkey === selfPubkey) {
-                    status = 'completed';
+                    info.status = 'completed';
+                    info.preimage = receiptEvent.tags.find(tag => tag[0] === 'preimage')?.[1];
+                    info.tx = receiptEvent.tags.find(tag => tag[0] === 'tx')?.[1];
                 }
             }
-            return status;
+            return info;
         }
         async getLightningBalance() {
             const response = await this.lightningWalletManager.getBalance();
