@@ -1163,6 +1163,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     export interface INoteInfo {
         eventData: INostrEvent;
         stats?: IPostStats;
+        actions?: INoteActions;
     }
     export interface IAuthor {
         id: string;
@@ -1318,6 +1319,12 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         downvotes?: number;
         views?: number;
         satszapped?: number;
+    }
+    export interface INoteActions {
+        liked?: boolean;
+        replied?: boolean;
+        reposted?: boolean;
+        zapped?: boolean;
     }
     export interface IMessageContactInfo {
         id: string;
@@ -1687,8 +1694,8 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         privateKey: string;
         fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
         fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
-        fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
-        fetchProfileRepliesCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
+        fetchProfileFeedCacheEvents(userPubkey: string, pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
+        fetchProfileRepliesCacheEvents(userPubkey: string, pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
         fetchHomeFeedCacheEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
         fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
         fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
@@ -1731,8 +1738,8 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         set privateKey(privateKey: string);
         fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
         fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
-        fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
-        fetchProfileRepliesCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
+        fetchProfileFeedCacheEvents(userPubkey: string, pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
+        fetchProfileRepliesCacheEvents(userPubkey: string, pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
         fetchHomeFeedCacheEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
         fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
         fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
@@ -1787,8 +1794,8 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV2.ts" {
         protected augmentWithAuthInfo(obj: Record<string, any>): Record<string, any>;
         fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
         fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
-        fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
-        fetchProfileRepliesCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
+        fetchProfileFeedCacheEvents(userPubkey: string, pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
+        fetchProfileRepliesCacheEvents(userPubkey: string, pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
         fetchHomeFeedCacheEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
         fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
         fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
@@ -1830,7 +1837,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV2.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/index.ts" />
 declare module "@scom/scom-social-sdk/managers/index.ts" {
-    import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityInfo, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityInfo, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
     import { NostrRestAPIManager, NostrWebSocketManager } from "@scom/scom-social-sdk/managers/communication.ts";
     import { SocialUtilsManager } from "@scom/scom-social-sdk/managers/utilsManager.ts";
     import { ISocialEventManagerWrite, NostrEventManagerWrite } from "@scom/scom-social-sdk/managers/eventManagerWrite.ts";
@@ -1907,6 +1914,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
             noteToParentAuthorIdMap: Record<string, string>;
             noteStatsMap: Record<string, IPostStats>;
             noteToRepostIdMap: Record<string, string>;
+            noteActionsMap: Record<string, INoteActions>;
         };
         fetchCommunityInfo(creatorId: string, communityId: string): Promise<ICommunityInfo>;
         fetchThreadNotesInfo(focusedNoteId: string): Promise<{

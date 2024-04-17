@@ -64,6 +64,7 @@ export interface IUserActivityStats {
 export interface INoteInfo {
     eventData: INostrEvent;
     stats?: IPostStats;
+    actions?: INoteActions;
 }
 export interface IAuthor {
     id: string;
@@ -219,6 +220,12 @@ export interface IPostStats {
     downvotes?: number;
     views?: number;
     satszapped?: number;
+}
+export interface INoteActions {
+    liked?: boolean;
+    replied?: boolean;
+    reposted?: boolean;
+    zapped?: boolean;
 }
 export interface IMessageContactInfo {
     id: string;
