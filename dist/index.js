@@ -7092,10 +7092,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     creatorId: 'npub1c6dhrhzkflwr2zkdmlujnujawgp2c9rsep6gscyt6mvcusnt5a3srnzmx3',
                     communityId: 'Vegan_Consciousness'
                 },
-                {
-                    creatorId: 'npub17nd4yu9anyd3004pumgrtazaacujjxwzj36thtqsxskjy0r5urgqf6950x',
-                    communityId: 'Art'
-                }
+                // {
+                //     creatorId: 'npub17nd4yu9anyd3004pumgrtazaacujjxwzj36thtqsxskjy0r5urgqf6950x',
+                //     communityId: 'Art'
+                // }
             ];
             for (let community of suggestedCommunities) {
                 const feedEvents = await this._socialEventManagerRead.fetchCommunityFeed(community.creatorId, community.communityId);
