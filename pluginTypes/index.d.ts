@@ -1707,6 +1707,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         fetchUserBookmarkedCommunities(pubKey: string, excludedCommunity?: ICommunityInfo): Promise<ICommunityBasicInfo[]>;
         fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
         fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
+        fetchCommunitiesFeed(communityUriArr: string[]): Promise<INostrEvent[]>;
         fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
         fetchEventsByIds(ids: string[]): Promise<INostrEvent[]>;
         fetchAllUserRelatedChannels(pubKey: string): Promise<IAllUserRelatedChannels>;
@@ -1751,6 +1752,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         fetchUserBookmarkedCommunities(pubKey: string, excludedCommunity?: ICommunityInfo): Promise<ICommunityBasicInfo[]>;
         fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
         fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
+        fetchCommunitiesFeed(communityUriArr: string[]): Promise<INostrEvent[]>;
         fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
         fetchAllUserRelatedChannels(pubKey: string): Promise<{
             channels: IChannelInfo[];
@@ -1917,6 +1919,14 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
             noteActionsMap: Record<string, INoteActions>;
         };
         fetchCommunityInfo(creatorId: string, communityId: string): Promise<ICommunityInfo>;
+        fetchCommunityFeedInfo(): Promise<{
+            info: ICommunityInfo;
+            notes: INostrEvent[];
+        }[]>;
+        fetchUserRelatedCommunityFeedInfo(pubKey: string): Promise<{
+            info: ICommunityInfo;
+            notes: INostrEvent[];
+        }[]>;
         fetchThreadNotesInfo(focusedNoteId: string): Promise<{
             focusedNote: INoteInfo;
             ancestorNotes: INoteInfo[];

@@ -78,6 +78,14 @@ declare class SocialDataManager {
         noteActionsMap: Record<string, INoteActions>;
     };
     fetchCommunityInfo(creatorId: string, communityId: string): Promise<ICommunityInfo>;
+    fetchCommunityFeedInfo(): Promise<{
+        info: ICommunityInfo;
+        notes: INostrEvent[];
+    }[]>;
+    fetchUserRelatedCommunityFeedInfo(pubKey: string): Promise<{
+        info: ICommunityInfo;
+        notes: INostrEvent[];
+    }[]>;
     fetchThreadNotesInfo(focusedNoteId: string): Promise<{
         focusedNote: INoteInfo;
         ancestorNotes: INoteInfo[];

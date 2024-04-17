@@ -5521,6 +5521,15 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(infoMsg, notesMsg);
             return fetchEventsResponse.events;
         }
+        async fetchCommunitiesFeed(communityUriArr) {
+            let request = {
+                kinds: [1],
+                "#a": communityUriArr,
+                limit: 50
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            return fetchEventsResponse.events;
+        }
         async fetchCommunitiesGeneralMembers(communities) {
             const communityUriArr = [];
             for (let community of communities) {
@@ -7071,6 +7080,73 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 }
             }
             return communityInfo;
+        }
+        async fetchCommunityFeedInfo() {
+            let result = [];
+            const suggestedCommunities = [
+                {
+                    creatorId: 'npub1rjc54ve4sahunm7r0kpchg58eut7ttwvevst7m2fl8dfd9w4y33q0w0qw2',
+                    communityId: 'Photography'
+                },
+                {
+                    creatorId: 'npub1c6dhrhzkflwr2zkdmlujnujawgp2c9rsep6gscyt6mvcusnt5a3srnzmx3',
+                    communityId: 'Vegan_Consciousness'
+                },
+                {
+                    creatorId: 'npub17nd4yu9anyd3004pumgrtazaacujjxwzj36thtqsxskjy0r5urgqf6950x',
+                    communityId: 'Art'
+                }
+            ];
+            for (let community of suggestedCommunities) {
+                const feedEvents = await this._socialEventManagerRead.fetchCommunityFeed(community.creatorId, community.communityId);
+                const notes = feedEvents.filter(event => event.kind === 1);
+                const communityEvent = feedEvents.find(event => event.kind === 34550);
+                if (!communityEvent)
+                    throw new Error('No info event found');
+                const communityInfo = utilsManager_4.SocialUtilsManager.extractCommunityInfo(communityEvent);
+                if (!communityInfo)
+                    throw new Error('No info event found');
+                //FIXME: not the best way to do this
+                if (communityInfo.membershipType === interfaces_4.MembershipType.InviteOnly) {
+                    const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(communityInfo.communityUri + ':keys');
+                    if (keyEvent) {
+                        communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
+                    }
+                }
+                result.push({
+                    info: communityInfo,
+                    notes
+                });
+            }
+            return result;
+        }
+        async fetchUserRelatedCommunityFeedInfo(pubKey) {
+            let communityUriArr = [];
+            let communityEventsMap = {};
+            const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunities(pubKey);
+            for (let event of events) {
+                if (event.kind === 34550) {
+                    const communityInfo = utilsManager_4.SocialUtilsManager.extractCommunityInfo(event);
+                    //FIXME: not the best way to do this
+                    if (communityInfo.membershipType === interfaces_4.MembershipType.InviteOnly) {
+                        const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(communityInfo.communityUri + ':keys');
+                        if (keyEvent) {
+                            communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
+                        }
+                    }
+                    communityUriArr.push(communityInfo.communityUri);
+                    communityEventsMap[communityInfo.communityUri] = { info: communityInfo, notes: [] };
+                }
+            }
+            if (communityUriArr.length > 0) {
+                const feedEvents = await this._socialEventManagerRead.fetchCommunitiesFeed(communityUriArr);
+                for (let event of feedEvents) {
+                    const communityUri = event.tags.find(tag => tag[0] === 'a')?.[1];
+                    if (communityEventsMap[communityUri])
+                        communityEventsMap[communityUri].notes.push(event);
+                }
+            }
+            return Object.values(communityEventsMap);
         }
         async fetchThreadNotesInfo(focusedNoteId) {
             let focusedNote;
