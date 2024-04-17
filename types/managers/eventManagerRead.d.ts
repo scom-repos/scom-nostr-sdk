@@ -6,8 +6,8 @@ interface ISocialEventManagerRead {
     privateKey: string;
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
     fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
-    fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    fetchProfileRepliesCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
+    fetchProfileFeedCacheEvents(userPubkey: string, pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
+    fetchProfileRepliesCacheEvents(userPubkey: string, pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
     fetchHomeFeedCacheEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
     fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
@@ -50,8 +50,8 @@ declare class NostrEventManagerRead implements ISocialEventManagerRead {
     set privateKey(privateKey: string);
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
     fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
-    fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    fetchProfileRepliesCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
+    fetchProfileFeedCacheEvents(userPubkey: string, pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
+    fetchProfileRepliesCacheEvents(userPubkey: string, pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
     fetchHomeFeedCacheEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
     fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;

@@ -5313,36 +5313,42 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('explore_global_trending_24h', msg);
             return fetchEventsResponse.events;
         }
-        async fetchProfileFeedCacheEvents(pubKey, since = 0, until = 0) {
+        async fetchProfileFeedCacheEvents(userPubkey, pubKey, since = 0, until = 0) {
             const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
             let msg = {
                 limit: 20,
                 notes: "authored",
-                pubkey: decodedPubKey,
-                user_pubkey: decodedPubKey
+                pubkey: decodedPubKey
             };
             if (until === 0) {
                 msg.since = since;
             }
             else {
                 msg.until = until;
+            }
+            if (userPubkey) {
+                const decodedUserPubKey = userPubkey.startsWith('npub1') ? index_4.Nip19.decode(userPubkey).data : userPubkey;
+                msg.user_pubkey = decodedUserPubKey;
             }
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('feed', msg);
             return fetchEventsResponse.events;
         }
-        async fetchProfileRepliesCacheEvents(pubKey, since = 0, until = 0) {
+        async fetchProfileRepliesCacheEvents(userPubkey, pubKey, since = 0, until = 0) {
             const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
             let msg = {
                 limit: 20,
                 notes: "replies",
-                pubkey: decodedPubKey,
-                user_pubkey: decodedPubKey
+                pubkey: decodedPubKey
             };
             if (until === 0) {
                 msg.since = since;
             }
             else {
                 msg.until = until;
+            }
+            if (userPubkey) {
+                const decodedUserPubKey = userPubkey.startsWith('npub1') ? index_4.Nip19.decode(userPubkey).data : userPubkey;
+                msg.user_pubkey = decodedUserPubKey;
             }
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('feed', msg);
             return fetchEventsResponse.events;
@@ -6003,7 +6009,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV2.ts", ["require", "expo
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-trending-posts', msg);
             return fetchEventsResponse.events;
         }
-        async fetchProfileFeedCacheEvents(pubKey, since = 0, until = 0) {
+        async fetchProfileFeedCacheEvents(userPubkey, pubKey, since = 0, until = 0) {
             const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
             let msg = this.augmentWithAuthInfo({
                 limit: 20,
@@ -6014,11 +6020,15 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV2.ts", ["require", "expo
             }
             else {
                 msg.until = until;
+            }
+            if (userPubkey) {
+                const decodedUserPubKey = userPubkey.startsWith('npub1') ? index_5.Nip19.decode(userPubkey).data : userPubkey;
+                msg.user_pubkey = decodedUserPubKey;
             }
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-profile-feed', msg);
             return fetchEventsResponse.events;
         }
-        async fetchProfileRepliesCacheEvents(pubKey, since = 0, until = 0) {
+        async fetchProfileRepliesCacheEvents(userPubkey, pubKey, since = 0, until = 0) {
             const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
             let msg = this.augmentWithAuthInfo({
                 limit: 20,
@@ -6029,6 +6039,10 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV2.ts", ["require", "expo
             }
             else {
                 msg.until = until;
+            }
+            if (userPubkey) {
+                const decodedUserPubKey = userPubkey.startsWith('npub1') ? index_5.Nip19.decode(userPubkey).data : userPubkey;
+                msg.user_pubkey = decodedUserPubKey;
             }
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-profile-replies', msg);
             return fetchEventsResponse.events;
@@ -6851,7 +6865,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             };
         }
         async fetchProfileFeedInfo(pubKey, since = 0, until) {
-            const events = await this._socialEventManagerRead.fetchProfileFeedCacheEvents(pubKey, since, until);
+            const selfPubkey = this._privateKey ? utilsManager_4.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
+            const events = await this._socialEventManagerRead.fetchProfileFeedCacheEvents(selfPubkey, pubKey, since, until);
             const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
             const { notes, metadataByPubKeyMap, quotedNotesMap, noteToRepostIdMap } = this.createNoteEventMappings(events);
             for (let note of notes) {
@@ -6894,7 +6909,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             };
         }
         async fetchProfileRepliesInfo(pubKey, since = 0, until) {
-            const events = await this._socialEventManagerRead.fetchProfileRepliesCacheEvents(pubKey, since, until);
+            const selfPubkey = this._privateKey ? utilsManager_4.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
+            const events = await this._socialEventManagerRead.fetchProfileRepliesCacheEvents(selfPubkey, pubKey, since, until);
             const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
             const { notes, metadataByPubKeyMap, quotedNotesMap, noteToParentAuthorIdMap } = this.createNoteEventMappings(events, true);
             for (let note of notes) {
@@ -6962,6 +6978,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             let noteToParentAuthorIdMap = {};
             let noteToRepostIdMap = {};
             let noteStatsMap = {};
+            let noteActionsMap = {};
             for (let event of events) {
                 if (event.kind === 0) {
                     metadataByPubKeyMap[event.pubkey] = {
@@ -7015,10 +7032,20 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     //"{\"since\":1700034697,\"until\":1700044097,\"order_by\":\"created_at\"}"
                     const timeInfo = utilsManager_4.SocialUtilsManager.parseContent(event.content);
                 }
+                else if (event.kind === 10000115) {
+                    const content = utilsManager_4.SocialUtilsManager.parseContent(event.content);
+                    noteActionsMap[content.event_id] = {
+                        liked: content.liked,
+                        replied: content.replied,
+                        reposted: content.reposted,
+                        zapped: content.zapped
+                    };
+                }
             }
             for (let note of notes) {
                 const noteId = note.eventData?.id;
                 note.stats = noteStatsMap[noteId];
+                note.actions = noteActionsMap[noteId];
             }
             return {
                 notes,
@@ -7026,7 +7053,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 quotedNotesMap,
                 noteToParentAuthorIdMap,
                 noteStatsMap,
-                noteToRepostIdMap
+                noteToRepostIdMap,
+                noteActionsMap
             };
         }
         async fetchCommunityInfo(creatorId, communityId) {
@@ -7051,7 +7079,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             let childReplyEventTagIds = [];
             //Ancestor posts -> Focused post -> Child replies
             let decodedFocusedNoteId = focusedNoteId.startsWith('note1') ? index_6.Nip19.decode(focusedNoteId).data : focusedNoteId;
-            const threadEvents = await this._socialEventManagerRead.fetchThreadCacheEvents(decodedFocusedNoteId);
+            const selfPubkey = this._privateKey ? utilsManager_4.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
+            const threadEvents = await this._socialEventManagerRead.fetchThreadCacheEvents(decodedFocusedNoteId, selfPubkey);
             const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(threadEvents);
             for (let note of notes) {
                 if (note.eventData.tags?.length) {
@@ -8394,7 +8423,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             const requestEvent = await this._socialEventManagerRead.fetchPaymentRequestEvent(paymentRequest);
             if (requestEvent) {
                 const receiptEvent = await this._socialEventManagerRead.fetchPaymentReceiptEvent(requestEvent.id);
-                const selfPubkey = utilsManager_4.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
+                const selfPubkey = this._privateKey ? utilsManager_4.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
                 if (receiptEvent && receiptEvent.pubkey === selfPubkey) {
                     info.status = 'completed';
                     info.preimage = receiptEvent.tags.find(tag => tag[0] === 'preimage')?.[1];

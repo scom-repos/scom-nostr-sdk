@@ -8,8 +8,8 @@ interface ISocialEventManagerRead {
     privateKey: string;
     fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
     fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
-    fetchProfileFeedCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    fetchProfileRepliesCacheEvents(pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
+    fetchProfileFeedCacheEvents(userPubkey: string, pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
+    fetchProfileRepliesCacheEvents(userPubkey: string, pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
     fetchHomeFeedCacheEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
     fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
     fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
@@ -91,37 +91,43 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         return fetchEventsResponse.events;
     }
 
-    async fetchProfileFeedCacheEvents(pubKey: string, since: number = 0, until: number = 0) {
+    async fetchProfileFeedCacheEvents(userPubkey: string, pubKey: string, since: number = 0, until: number = 0) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
         let msg: any = {
             limit: 20,
             notes: "authored",
-            pubkey: decodedPubKey,
-            user_pubkey: decodedPubKey
+            pubkey: decodedPubKey
         };
         if (until === 0) {
             msg.since = since;
         }
         else {
             msg.until = until;
+        }
+        if (userPubkey) {
+            const decodedUserPubKey = userPubkey.startsWith('npub1') ? Nip19.decode(userPubkey).data : userPubkey;
+            msg.user_pubkey = decodedUserPubKey;
         }
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('feed', msg);
         return fetchEventsResponse.events;
     }
 
-    async fetchProfileRepliesCacheEvents(pubKey: string, since: number = 0, until: number = 0) {
+    async fetchProfileRepliesCacheEvents(userPubkey: string, pubKey: string, since: number = 0, until: number = 0) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
         let msg: any = {
             limit: 20,
             notes: "replies",
-            pubkey: decodedPubKey,
-            user_pubkey: decodedPubKey
+            pubkey: decodedPubKey
         };
         if (until === 0) {
             msg.since = since;
         }
         else {
             msg.until = until;
+        }
+        if (userPubkey) {
+            const decodedUserPubKey = userPubkey.startsWith('npub1') ? Nip19.decode(userPubkey).data : userPubkey;
+            msg.user_pubkey = decodedUserPubKey;
         }
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('feed', msg);
         return fetchEventsResponse.events;

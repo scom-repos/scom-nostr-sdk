@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "../utils/interfaces";
+import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ScpStandardId } from "../utils/interfaces";
 import {
     INostrCommunicationManager,
     NostrRestAPIManager,
@@ -486,7 +486,8 @@ class SocialDataManager {
     }
 
     async fetchProfileFeedInfo(pubKey: string, since: number = 0, until?: number) {
-        const events = await this._socialEventManagerRead.fetchProfileFeedCacheEvents(pubKey, since, until);
+        const selfPubkey = this._privateKey ? SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
+        const events = await this._socialEventManagerRead.fetchProfileFeedCacheEvents(selfPubkey, pubKey, since, until);
         const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
         const {
             notes,
@@ -533,7 +534,8 @@ class SocialDataManager {
     }
 
     async fetchProfileRepliesInfo(pubKey: string, since: number = 0, until?: number) {
-        const events = await this._socialEventManagerRead.fetchProfileRepliesCacheEvents(pubKey, since, until);
+        const selfPubkey = this._privateKey ? SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
+        const events = await this._socialEventManagerRead.fetchProfileRepliesCacheEvents(selfPubkey, pubKey, since, until);
         const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
         const {
             notes,
@@ -615,6 +617,7 @@ class SocialDataManager {
         let noteToParentAuthorIdMap: Record<string, string> = {};
         let noteToRepostIdMap: Record<string, string> = {};
         let noteStatsMap: Record<string, IPostStats> = {};
+        let noteActionsMap: Record<string, INoteActions> = {}
         for (let event of events) {
             if (event.kind === 0) {
                 metadataByPubKeyMap[event.pubkey] = {
@@ -667,10 +670,20 @@ class SocialDataManager {
                 //"{\"since\":1700034697,\"until\":1700044097,\"order_by\":\"created_at\"}"
                 const timeInfo = SocialUtilsManager.parseContent(event.content);
             }
+            else if (event.kind === 10000115) {
+                const content = SocialUtilsManager.parseContent(event.content);
+                noteActionsMap[content.event_id] = {
+                    liked: content.liked,
+                    replied: content.replied,
+                    reposted: content.reposted,
+                    zapped: content.zapped
+                }
+            }
         }
         for (let note of notes) {
             const noteId = note.eventData?.id;
             note.stats = noteStatsMap[noteId];
+            note.actions = noteActionsMap[noteId];
         }
         return {
             notes,
@@ -678,7 +691,8 @@ class SocialDataManager {
             quotedNotesMap,
             noteToParentAuthorIdMap,
             noteStatsMap,
-            noteToRepostIdMap
+            noteToRepostIdMap,
+            noteActionsMap
         }
     }
 
@@ -704,7 +718,8 @@ class SocialDataManager {
         let childReplyEventTagIds: string[] = [];
         //Ancestor posts -> Focused post -> Child replies
         let decodedFocusedNoteId = focusedNoteId.startsWith('note1') ? Nip19.decode(focusedNoteId).data as string : focusedNoteId;
-        const threadEvents = await this._socialEventManagerRead.fetchThreadCacheEvents(decodedFocusedNoteId);
+        const selfPubkey = this._privateKey ? SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
+        const threadEvents = await this._socialEventManagerRead.fetchThreadCacheEvents(decodedFocusedNoteId, selfPubkey);
         const {
             notes,
             metadataByPubKeyMap,
@@ -2128,7 +2143,7 @@ class SocialDataManager {
         const requestEvent = await this._socialEventManagerRead.fetchPaymentRequestEvent(paymentRequest);
         if (requestEvent) {
             const receiptEvent = await this._socialEventManagerRead.fetchPaymentReceiptEvent(requestEvent.id);
-            const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
+            const selfPubkey = this._privateKey ? SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
             if (receiptEvent && receiptEvent.pubkey === selfPubkey) {
                 info.status = 'completed';
                 info.preimage = receiptEvent.tags.find(tag => tag[0] === 'preimage')?.[1];

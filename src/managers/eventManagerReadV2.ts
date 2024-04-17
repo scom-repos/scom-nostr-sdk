@@ -36,7 +36,7 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
         return fetchEventsResponse.events;
     }
     
-    async fetchProfileFeedCacheEvents(pubKey: string, since: number = 0, until: number = 0) {
+    async fetchProfileFeedCacheEvents(userPubkey: string, pubKey: string, since: number = 0, until: number = 0) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
         let msg = this.augmentWithAuthInfo({
             limit: 20,
@@ -47,12 +47,16 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
         }
         else {
             msg.until = until;
+        }
+        if (userPubkey) {
+            const decodedUserPubKey = userPubkey.startsWith('npub1') ? Nip19.decode(userPubkey).data : userPubkey;
+            msg.user_pubkey = decodedUserPubKey;
         }
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-profile-feed', msg);
         return fetchEventsResponse.events;
     }
 
-    async fetchProfileRepliesCacheEvents(pubKey: string, since: number = 0, until: number = 0) {
+    async fetchProfileRepliesCacheEvents(userPubkey: string, pubKey: string, since: number = 0, until: number = 0) {
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
         let msg = this.augmentWithAuthInfo({
             limit: 20,
@@ -63,6 +67,10 @@ class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEv
         }
         else {
             msg.until = until;
+        }
+        if (userPubkey) {
+            const decodedUserPubKey = userPubkey.startsWith('npub1') ? Nip19.decode(userPubkey).data : userPubkey;
+            msg.user_pubkey = decodedUserPubKey;
         }
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-profile-replies', msg);
         return fetchEventsResponse.events;
