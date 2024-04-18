@@ -1962,7 +1962,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         updateChannel(channelInfo: IChannelInfo): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrSubmitResponse[]>;
         fetchCommunitiesMembers(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
         fetchCommunities(): Promise<ICommunity[]>;
-        fetchMyCommunities(pubKey: string): Promise<ICommunityInfo[]>;
+        fetchMyCommunities(pubKey: string): Promise<ICommunity[]>;
         joinCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;
         leaveCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;
         private encryptGroupMessage;
