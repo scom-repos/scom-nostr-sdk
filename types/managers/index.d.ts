@@ -121,7 +121,7 @@ declare class SocialDataManager {
     updateChannel(channelInfo: IChannelInfo): Promise<import("../utils/interfaces").INostrSubmitResponse[]>;
     fetchCommunitiesMembers(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
     fetchCommunities(): Promise<ICommunity[]>;
-    fetchMyCommunities(pubKey: string): Promise<ICommunityInfo[]>;
+    fetchMyCommunities(pubKey: string): Promise<ICommunity[]>;
     joinCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;
     leaveCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;
     private encryptGroupMessage;

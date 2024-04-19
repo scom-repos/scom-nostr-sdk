@@ -7553,8 +7553,12 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             for (let event of events) {
                 if (event.kind === 34550) {
                     const communityInfo = utilsManager_4.SocialUtilsManager.extractCommunityInfo(event);
-                    communities.push(communityInfo);
+                    communities.push({ ...communityInfo, members: [] });
                 }
+            }
+            const communityUriToMembersMap = await this.fetchCommunitiesMembers(communities);
+            for (let community of communities) {
+                community.members = communityUriToMembersMap[community.communityUri];
             }
             return communities;
         }

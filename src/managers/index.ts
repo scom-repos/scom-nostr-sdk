@@ -1216,13 +1216,17 @@ class SocialDataManager {
     }
 
     async fetchMyCommunities(pubKey: string) {
-        let communities: ICommunityInfo[] = [];
+        let communities: ICommunity[] = [];
         const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunities(pubKey);
         for (let event of events) {
             if (event.kind === 34550) {
                 const communityInfo = SocialUtilsManager.extractCommunityInfo(event);
-                communities.push(communityInfo);
+                communities.push({ ...communityInfo, members: [] });
             }
+        }
+        const communityUriToMembersMap = await this.fetchCommunitiesMembers(communities);
+        for (let community of communities) {
+            community.members = communityUriToMembersMap[community.communityUri];
         }
         return communities;
     }
