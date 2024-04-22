@@ -1896,6 +1896,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
             quotedNotesMap: Record<string, INoteInfo>;
             earliest: number;
         }>;
+        fetchNotesByIds(ids: string[]): Promise<INostrEvent[]>;
         private getEarliestEventTimestamp;
         fetchHomeFeedInfo(pubKey: string, since?: number, until?: number): Promise<{
             notes: INoteInfo[];

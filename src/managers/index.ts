@@ -571,6 +571,11 @@ class SocialDataManager {
         };
     }
 
+    async fetchNotesByIds(ids: string[]) {
+        const noteEvents = await this._socialEventManagerRead.fetchEventsByIds(ids);
+        return noteEvents;
+    }
+
     private getEarliestEventTimestamp(events: INostrEvent[]) {
         if (!events || events.length === 0) {
             return 0;
