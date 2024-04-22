@@ -5,6 +5,7 @@ export {
     Bech32,
 } from './core/index'
 export {
+    IFetchNotesOptions,
     INostrMetadataContent,
     INostrEvent,
     ICommunityBasicInfo,

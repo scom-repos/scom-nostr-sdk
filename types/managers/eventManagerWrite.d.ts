@@ -27,9 +27,8 @@ interface ISocialEventManagerWrite {
 }
 declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
     protected _nostrCommunicationManagers: INostrCommunicationManager[];
-    protected _apiBaseUrl: string;
     protected _privateKey: string;
-    constructor(managers: INostrCommunicationManager[], apiBaseUrl: string);
+    constructor(managers: INostrCommunicationManager[]);
     set nostrCommunicationManagers(managers: INostrCommunicationManager[]);
     set privateKey(privateKey: string);
     protected calculateConversationPathTags(conversationPath: IConversationPath): string[][];

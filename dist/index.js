@@ -4638,10 +4638,9 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
         return `${year}-${month}-${day}`;
     }
     class NostrEventManagerWrite {
-        constructor(managers, apiBaseUrl) {
+        constructor(managers) {
             this._nostrCommunicationManagers = [];
             this._nostrCommunicationManagers = managers;
-            this._apiBaseUrl = apiBaseUrl;
         }
         set nostrCommunicationManagers(managers) {
             this._nostrCommunicationManagers = managers;
@@ -5544,18 +5543,20 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
             return fetchEventsResponse.events;
         }
-        // async fetchNotes(options: IFetchNotesOptions) {
-        //     const decodedNpubs = options.authors?.map(npub => Nip19.decode(npub).data);
-        //     let decodedIds = options.ids?.map(id => id.startsWith('note1') ? Nip19.decode(id).data : id);
-        //     let msg: any = {
-        //         kinds: [1],
-        //         limit: 20
-        //     };
-        //     if (decodedNpubs) msg.authors = decodedNpubs;
-        //     if (decodedIds) msg.ids = decodedIds;
-        //     const events = await this._nostrCommunicationManager.fetchEvents(msg);
-        //     return events;
-        // }
+        async fetchNotes(options) {
+            const decodedNpubs = options.authors?.map(npub => index_4.Nip19.decode(npub).data);
+            let decodedIds = options.ids?.map(id => id.startsWith('note1') ? index_4.Nip19.decode(id).data : id);
+            let msg = {
+                kinds: [1],
+                limit: 20
+            };
+            if (decodedNpubs)
+                msg.authors = decodedNpubs;
+            if (decodedIds)
+                msg.ids = decodedIds;
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(msg);
+            return fetchEventsResponse.events;
+        }
         // async fetchMetadata(options: IFetchMetadataOptions) {
         //     let decodedNpubs;
         //     if (options.decodedAuthors) {
@@ -6468,7 +6469,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             else {
                 this._socialEventManagerRead = new eventManagerRead_2.NostrEventManagerRead(nostrReadRelayManager);
             }
-            this._socialEventManagerWrite = new eventManagerWrite_1.NostrEventManagerWrite(nostrCommunicationManagers, config.apiBaseUrl);
+            this._socialEventManagerWrite = new eventManagerWrite_1.NostrEventManagerWrite(nostrCommunicationManagers);
             if (config.mqttBrokerUrl) {
                 this.mqttManager = new mqtt_2.MqttManager({
                     brokerUrl: config.mqttBrokerUrl,

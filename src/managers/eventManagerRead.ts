@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { IAllUserRelatedChannels, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, INostrEvent, IPaymentActivity } from "../utils/interfaces";
+import { IAllUserRelatedChannels, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IFetchNotesOptions, INostrEvent, IPaymentActivity } from "../utils/interfaces";
 import { INostrCommunicationManager, INostrRestAPIManager } from "./communication";
 import { SocialUtilsManager } from "./utilsManager";
 
@@ -23,7 +23,7 @@ interface ISocialEventManagerRead {
     fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunitiesFeed(communityUriArr: string[]): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
-    // fetchNotes(options: IFetchNotesOptions): Promise<INostrEvent[]>;
+    fetchNotes(options: IFetchNotesOptions): Promise<INostrEvent[]>;
     // fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
     // fetchReplies(options: IFetchRepliesOptions): Promise<INostrEvent[]>;
     // fetchFollowing(npubs: string[]): Promise<INostrEvent[]>;
@@ -342,18 +342,18 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         return fetchEventsResponse.events;        
     }
 
-    // async fetchNotes(options: IFetchNotesOptions) {
-    //     const decodedNpubs = options.authors?.map(npub => Nip19.decode(npub).data);
-    //     let decodedIds = options.ids?.map(id => id.startsWith('note1') ? Nip19.decode(id).data : id);
-    //     let msg: any = {
-    //         kinds: [1],
-    //         limit: 20
-    //     };
-    //     if (decodedNpubs) msg.authors = decodedNpubs;
-    //     if (decodedIds) msg.ids = decodedIds;
-    //     const events = await this._nostrCommunicationManager.fetchEvents(msg);
-    //     return events;
-    // }
+    async fetchNotes(options: IFetchNotesOptions) {
+        const decodedNpubs = options.authors?.map(npub => Nip19.decode(npub).data);
+        let decodedIds = options.ids?.map(id => id.startsWith('note1') ? Nip19.decode(id).data : id);
+        let msg: any = {
+            kinds: [1],
+            limit: 20
+        };
+        if (decodedNpubs) msg.authors = decodedNpubs;
+        if (decodedIds) msg.ids = decodedIds;
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(msg);
+        return fetchEventsResponse.events;
+    }
 
     // async fetchMetadata(options: IFetchMetadataOptions) {
     //     let decodedNpubs;

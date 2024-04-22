@@ -60,8 +60,7 @@ class SocialDataManager {
         }
 
         this._socialEventManagerWrite = new NostrEventManagerWrite(
-            nostrCommunicationManagers,
-            config.apiBaseUrl
+            nostrCommunicationManagers
         );
         if (config.mqttBrokerUrl) {
             this.mqttManager = new MqttManager({

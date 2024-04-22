@@ -1,3 +1,7 @@
+export interface IFetchNotesOptions {
+    authors?: string[];
+    ids?: string[];
+}
 export interface INostrEvent {
     id: string;
     pubkey: string;

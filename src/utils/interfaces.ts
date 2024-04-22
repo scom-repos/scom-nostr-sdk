@@ -1,3 +1,8 @@
+export interface IFetchNotesOptions {
+	authors?: string[];
+	ids?: string[];
+}
+
 export interface INostrEvent {
     id: string;  // 32-bytes lowercase hex-encoded sha256
     pubkey: string;  // 32-bytes lowercase hex-encoded public key

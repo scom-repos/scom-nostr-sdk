@@ -41,12 +41,10 @@ function convertUnixTimestampToDate(timestamp: number): string {
 
 class NostrEventManagerWrite implements ISocialEventManagerWrite {
     protected _nostrCommunicationManagers: INostrCommunicationManager[] = [];
-    protected _apiBaseUrl: string;
     protected _privateKey: string;
 
-    constructor(managers: INostrCommunicationManager[], apiBaseUrl: string) {
+    constructor(managers: INostrCommunicationManager[]) {
         this._nostrCommunicationManagers = managers;
-        this._apiBaseUrl = apiBaseUrl;
     }
 
     set nostrCommunicationManagers(managers: INostrCommunicationManager[]) {

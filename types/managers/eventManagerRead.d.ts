@@ -1,5 +1,5 @@
 import { Nip19 } from "../core/index";
-import { IAllUserRelatedChannels, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, INostrEvent, IPaymentActivity } from "../utils/interfaces";
+import { IAllUserRelatedChannels, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IFetchNotesOptions, INostrEvent, IPaymentActivity } from "../utils/interfaces";
 import { INostrCommunicationManager, INostrRestAPIManager } from "./communication";
 interface ISocialEventManagerRead {
     nostrCommunicationManager: INostrCommunicationManager | INostrRestAPIManager;
@@ -21,6 +21,7 @@ interface ISocialEventManagerRead {
     fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunitiesFeed(communityUriArr: string[]): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
+    fetchNotes(options: IFetchNotesOptions): Promise<INostrEvent[]>;
     fetchEventsByIds(ids: string[]): Promise<INostrEvent[]>;
     fetchAllUserRelatedChannels(pubKey: string): Promise<IAllUserRelatedChannels>;
     fetchUserBookmarkedChannelEventIds(pubKey: string): Promise<string[]>;
@@ -66,6 +67,7 @@ declare class NostrEventManagerRead implements ISocialEventManagerRead {
     fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunitiesFeed(communityUriArr: string[]): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
+    fetchNotes(options: IFetchNotesOptions): Promise<INostrEvent[]>;
     fetchAllUserRelatedChannels(pubKey: string): Promise<{
         channels: IChannelInfo[];
         channelMetadataMap: Record<string, IChannelInfo>;

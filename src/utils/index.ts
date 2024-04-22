@@ -1,4 +1,5 @@
 export {
+    IFetchNotesOptions,
     INostrMetadataContent,
     INostrEvent,
     ICommunityBasicInfo,
