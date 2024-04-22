@@ -6951,6 +6951,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 earliest
             };
         }
+        async fetchNotesByIds(ids) {
+            const noteEvents = await this._socialEventManagerRead.fetchEventsByIds(ids);
+            return noteEvents;
+        }
         getEarliestEventTimestamp(events) {
             if (!events || events.length === 0) {
                 return 0;
