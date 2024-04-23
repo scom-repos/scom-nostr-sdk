@@ -158,6 +158,7 @@ class SocialUtilsManager {
         const rules = event.tags.find(tag => tag[0] === 'rules')?.[1];
         const image = event.tags.find(tag => tag[0] === 'image')?.[1];
         const avatar = event.tags.find(tag => tag[0] === 'avatar')?.[1];
+        const relay = event.tags.find(tag => tag[0] === 'relay')?.[1];
         const creatorId = Nip19.npubEncode(event.pubkey);
         const moderatorIds = event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'moderator').map(tag => Nip19.npubEncode(tag[1]));
         const scpTag = event.tags.find(tag => tag[0] === 'scp');
@@ -189,7 +190,8 @@ class SocialUtilsManager {
             scpData,
             eventData: event,
             gatekeeperNpub,
-            membershipType
+            membershipType,
+            relay
         }
 
         return communityInfo;

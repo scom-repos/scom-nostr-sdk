@@ -4511,6 +4511,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             const rules = event.tags.find(tag => tag[0] === 'rules')?.[1];
             const image = event.tags.find(tag => tag[0] === 'image')?.[1];
             const avatar = event.tags.find(tag => tag[0] === 'avatar')?.[1];
+            const relay = event.tags.find(tag => tag[0] === 'relay')?.[1];
             const creatorId = index_2.Nip19.npubEncode(event.pubkey);
             const moderatorIds = event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'moderator').map(tag => index_2.Nip19.npubEncode(tag[1]));
             const scpTag = event.tags.find(tag => tag[0] === 'scp');
@@ -4543,7 +4544,8 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 scpData,
                 eventData: event,
                 gatekeeperNpub,
-                membershipType
+                membershipType,
+                relay
             };
             return communityInfo;
         }
@@ -4822,14 +4824,20 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     info.rules
                 ]);
             }
-            if (info.scpData) {
-                let encodedScpData = utilsManager_1.SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
+            if (info.relay) {
                 event.tags.push([
-                    "scp",
-                    interfaces_3.ScpStandardId.Community,
-                    encodedScpData
+                    "relay",
+                    info.relay
                 ]);
             }
+            // if (info.scpData) {
+            //     let encodedScpData = SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
+            //     event.tags.push([
+            //         "scp",
+            //         ScpStandardId.Community,
+            //         encodedScpData
+            //     ]);
+            // }
             for (let moderatorId of info.moderatorIds) {
                 const decodedModeratorId = moderatorId.startsWith('npub1') ? index_3.Nip19.decode(moderatorId).data : moderatorId;
                 event.tags.push([
@@ -6714,6 +6722,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             }
             let gatekeeperNpubToNotesMap = {};
             let inviteOnlyCommunityNotesMap = {};
+            let relayToNotesMap = {};
             for (let noteCommunityInfo of noteCommunityMappings.noteCommunityInfoList) {
                 const communityPrivateKey = communityPrivateKeyMap[noteCommunityInfo.communityUri];
                 if (communityPrivateKey) {
@@ -6733,6 +6742,37 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     else if (communityInfo.gatekeeperNpub) {
                         gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub] = gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub] || [];
                         gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub].push(noteCommunityInfo);
+                    }
+                    else if (communityInfo.relay) {
+                        relayToNotesMap[communityInfo.relay] = relayToNotesMap[communityInfo.relay] || [];
+                        relayToNotesMap[communityInfo.relay].push(noteCommunityInfo);
+                    }
+                }
+            }
+            if (Object.keys(relayToNotesMap).length > 0) {
+                for (let relay in relayToNotesMap) {
+                    const noteIds = relayToNotesMap[relay].map(v => v.eventData.id);
+                    const signature = await options.getSignature(options.pubKey);
+                    let bodyData = {
+                        noteIds: noteIds.join(','),
+                        message: options.pubKey,
+                        signature: signature
+                    };
+                    let url = `${relay}/api/communities/v0/post-keys`;
+                    let response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            Accept: 'application/json',
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(bodyData)
+                    });
+                    let result = await response.json();
+                    if (result.success) {
+                        noteIdToPrivateKey = {
+                            ...noteIdToPrivateKey,
+                            ...result.data
+                        };
                     }
                 }
             }
@@ -7404,35 +7444,41 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 bannerImgUrl: newInfo.bannerImgUrl,
                 avatarImgUrl: newInfo.avatarImgUrl,
                 moderatorIds: newInfo.moderatorIds,
-                gatekeeperNpub: newInfo.gatekeeperNpub,
+                // gatekeeperNpub: newInfo.gatekeeperNpub,
                 scpData: newInfo.scpData,
                 membershipType: newInfo.membershipType,
-                memberIds: newInfo.memberIds
+                memberIds: newInfo.memberIds,
+                relay: newInfo.relay,
             };
-            if (communityInfo.membershipType === interfaces_4.MembershipType.NFTExclusive) {
-                const gatekeeperPublicKey = index_6.Nip19.decode(communityInfo.gatekeeperNpub).data;
-                const communityKeys = await this.generateGroupKeys(this._privateKey, [gatekeeperPublicKey]);
-                const encryptedKey = communityKeys.encryptedGroupKeys[gatekeeperPublicKey];
-                communityInfo.scpData = {
-                    ...communityInfo.scpData,
-                    publicKey: communityKeys.groupPublicKey,
-                    encryptedKey: encryptedKey,
-                    gatekeeperPublicKey
-                };
-            }
-            else if (communityInfo.membershipType === interfaces_4.MembershipType.InviteOnly) {
-                let encryptionPublicKeys = [];
-                for (let memberId of communityInfo.memberIds) {
-                    const memberPublicKey = index_6.Nip19.decode(memberId).data;
-                    encryptionPublicKeys.push(memberPublicKey);
-                }
-                const communityKeys = await this.generateGroupKeys(this._privateKey, encryptionPublicKeys);
-                await this._socialEventManagerWrite.updateGroupKeys(communityUri + ':keys', 34550, JSON.stringify(communityKeys.encryptedGroupKeys), communityInfo.memberIds);
-                communityInfo.scpData = {
-                    ...communityInfo.scpData,
-                    publicKey: communityKeys.groupPublicKey
-                };
-            }
+            // if (communityInfo.membershipType === MembershipType.NFTExclusive) {
+            //     const gatekeeperPublicKey = Nip19.decode(communityInfo.gatekeeperNpub).data as string;
+            //     const communityKeys = await this.generateGroupKeys(this._privateKey, [gatekeeperPublicKey]);
+            //     const encryptedKey = communityKeys.encryptedGroupKeys[gatekeeperPublicKey];
+            //     communityInfo.scpData = {
+            //         ...communityInfo.scpData,
+            //         publicKey: communityKeys.groupPublicKey,
+            //         encryptedKey: encryptedKey,
+            //         gatekeeperPublicKey
+            //     }
+            // }
+            // else if (communityInfo.membershipType === MembershipType.InviteOnly) {
+            //     let encryptionPublicKeys: string[] = [];
+            //     for (let memberId of communityInfo.memberIds) {
+            //         const memberPublicKey = Nip19.decode(memberId).data as string;
+            //         encryptionPublicKeys.push(memberPublicKey);
+            //     }
+            //     const communityKeys = await this.generateGroupKeys(this._privateKey, encryptionPublicKeys);
+            //     await this._socialEventManagerWrite.updateGroupKeys(
+            //         communityUri + ':keys',
+            //         34550,
+            //         JSON.stringify(communityKeys.encryptedGroupKeys),
+            //         communityInfo.memberIds
+            //     );
+            //     communityInfo.scpData = {
+            //         ...communityInfo.scpData,
+            //         publicKey: communityKeys.groupPublicKey
+            //     }
+            // }
             if (communityInfo.scpData) {
                 const updateChannelResponses = await this.updateCommunityChannel(communityInfo);
                 //FIXME: fix this when the relay is fixed
@@ -7445,25 +7491,30 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             return communityInfo;
         }
         async updateCommunity(info) {
-            if (info.membershipType === interfaces_4.MembershipType.NFTExclusive) {
-                const gatekeeperPublicKey = index_6.Nip19.decode(info.gatekeeperNpub).data;
-                info.scpData.gatekeeperPublicKey = gatekeeperPublicKey;
-            }
-            else if (info.membershipType === interfaces_4.MembershipType.InviteOnly) {
-                let encryptionPublicKeys = [];
-                for (let memberId of info.memberIds) {
-                    const memberPublicKey = index_6.Nip19.decode(memberId).data;
-                    encryptionPublicKeys.push(memberPublicKey);
-                }
-                const groupPrivateKey = await this.retrieveCommunityPrivateKey(info, this._privateKey);
-                let encryptedGroupKeys = {};
-                for (let encryptionPublicKey of encryptionPublicKeys) {
-                    const encryptedGroupKey = await utilsManager_4.SocialUtilsManager.encryptMessage(this._privateKey, encryptionPublicKey, groupPrivateKey);
-                    encryptedGroupKeys[encryptionPublicKey] = encryptedGroupKey;
-                }
-                const response = await this._socialEventManagerWrite.updateGroupKeys(info.communityUri + ':keys', 34550, JSON.stringify(encryptedGroupKeys), info.memberIds);
-                console.log('updateCommunity', response);
-            }
+            // if (info.membershipType === MembershipType.NFTExclusive) {
+            //     const gatekeeperPublicKey = Nip19.decode(info.gatekeeperNpub).data as string;
+            //     info.scpData.gatekeeperPublicKey = gatekeeperPublicKey;
+            // }
+            // else if (info.membershipType === MembershipType.InviteOnly) {
+            //     let encryptionPublicKeys: string[] = [];
+            //     for (let memberId of info.memberIds) {
+            //         const memberPublicKey = Nip19.decode(memberId).data as string;
+            //         encryptionPublicKeys.push(memberPublicKey);
+            //     }
+            //     const groupPrivateKey = await this.retrieveCommunityPrivateKey(info, this._privateKey);
+            //     let encryptedGroupKeys: Record<string, string> = {};
+            //     for (let encryptionPublicKey of encryptionPublicKeys) {
+            //         const encryptedGroupKey = await SocialUtilsManager.encryptMessage(this._privateKey, encryptionPublicKey, groupPrivateKey);
+            //         encryptedGroupKeys[encryptionPublicKey] = encryptedGroupKey;
+            //     }
+            //     const response = await this._socialEventManagerWrite.updateGroupKeys(
+            //         info.communityUri + ':keys',
+            //         34550,
+            //         JSON.stringify(encryptedGroupKeys),
+            //         info.memberIds
+            //     );
+            //     console.log('updateCommunity', response);
+            // }
             await this._socialEventManagerWrite.updateCommunity(info);
             return info;
         }

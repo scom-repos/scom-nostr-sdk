@@ -320,6 +320,7 @@ class SocialDataManager {
         }
         let gatekeeperNpubToNotesMap: Record<string, INoteCommunityInfo[]> = {};
         let inviteOnlyCommunityNotesMap: Record<string, INoteCommunityInfo[]> = {};
+        let relayToNotesMap: Record<string, INoteCommunityInfo[]> = {};
         for (let noteCommunityInfo of noteCommunityMappings.noteCommunityInfoList) {
             const communityPrivateKey = communityPrivateKeyMap[noteCommunityInfo.communityUri];
             if (communityPrivateKey)  {
@@ -338,6 +339,37 @@ class SocialDataManager {
                 else if (communityInfo.gatekeeperNpub) {
                     gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub] = gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub] || [];
                     gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub].push(noteCommunityInfo);
+                }
+                else if (communityInfo.relay) {
+                    relayToNotesMap[communityInfo.relay] = relayToNotesMap[communityInfo.relay] || [];
+                    relayToNotesMap[communityInfo.relay].push(noteCommunityInfo);
+                }
+            }
+        }
+        if (Object.keys(relayToNotesMap).length > 0) {
+            for (let relay in relayToNotesMap) {
+                const noteIds = relayToNotesMap[relay].map(v => v.eventData.id);
+                const signature = await options.getSignature(options.pubKey);
+                let bodyData = {
+                    noteIds: noteIds.join(','),
+                    message: options.pubKey,
+                    signature: signature
+                };
+                let url = `${relay}/api/communities/v0/post-keys`;
+                let response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(bodyData)
+                });
+                let result = await response.json();
+                if (result.success) {
+                    noteIdToPrivateKey = {
+                        ...noteIdToPrivateKey,
+                        ...result.data
+                    };
                 }
             }
         }
@@ -1049,41 +1081,42 @@ class SocialDataManager {
             bannerImgUrl: newInfo.bannerImgUrl,
             avatarImgUrl: newInfo.avatarImgUrl,
             moderatorIds: newInfo.moderatorIds,
-            gatekeeperNpub: newInfo.gatekeeperNpub,
+            // gatekeeperNpub: newInfo.gatekeeperNpub,
             scpData: newInfo.scpData,
             membershipType: newInfo.membershipType,
-            memberIds: newInfo.memberIds
+            memberIds: newInfo.memberIds,
+            relay: newInfo.relay,
         }
 
-        if (communityInfo.membershipType === MembershipType.NFTExclusive) {
-            const gatekeeperPublicKey = Nip19.decode(communityInfo.gatekeeperNpub).data as string;
-            const communityKeys = await this.generateGroupKeys(this._privateKey, [gatekeeperPublicKey]);
-            const encryptedKey = communityKeys.encryptedGroupKeys[gatekeeperPublicKey];
-            communityInfo.scpData = {
-                ...communityInfo.scpData,
-                publicKey: communityKeys.groupPublicKey,
-                encryptedKey: encryptedKey,
-                gatekeeperPublicKey
-            }
-        }
-        else if (communityInfo.membershipType === MembershipType.InviteOnly) {
-            let encryptionPublicKeys: string[] = [];
-            for (let memberId of communityInfo.memberIds) {
-                const memberPublicKey = Nip19.decode(memberId).data as string;
-                encryptionPublicKeys.push(memberPublicKey);
-            }
-            const communityKeys = await this.generateGroupKeys(this._privateKey, encryptionPublicKeys);
-            await this._socialEventManagerWrite.updateGroupKeys(
-                communityUri + ':keys',
-                34550,
-                JSON.stringify(communityKeys.encryptedGroupKeys),
-                communityInfo.memberIds
-            );
-            communityInfo.scpData = {
-                ...communityInfo.scpData,
-                publicKey: communityKeys.groupPublicKey
-            }
-        }
+        // if (communityInfo.membershipType === MembershipType.NFTExclusive) {
+        //     const gatekeeperPublicKey = Nip19.decode(communityInfo.gatekeeperNpub).data as string;
+        //     const communityKeys = await this.generateGroupKeys(this._privateKey, [gatekeeperPublicKey]);
+        //     const encryptedKey = communityKeys.encryptedGroupKeys[gatekeeperPublicKey];
+        //     communityInfo.scpData = {
+        //         ...communityInfo.scpData,
+        //         publicKey: communityKeys.groupPublicKey,
+        //         encryptedKey: encryptedKey,
+        //         gatekeeperPublicKey
+        //     }
+        // }
+        // else if (communityInfo.membershipType === MembershipType.InviteOnly) {
+        //     let encryptionPublicKeys: string[] = [];
+        //     for (let memberId of communityInfo.memberIds) {
+        //         const memberPublicKey = Nip19.decode(memberId).data as string;
+        //         encryptionPublicKeys.push(memberPublicKey);
+        //     }
+        //     const communityKeys = await this.generateGroupKeys(this._privateKey, encryptionPublicKeys);
+        //     await this._socialEventManagerWrite.updateGroupKeys(
+        //         communityUri + ':keys',
+        //         34550,
+        //         JSON.stringify(communityKeys.encryptedGroupKeys),
+        //         communityInfo.memberIds
+        //     );
+        //     communityInfo.scpData = {
+        //         ...communityInfo.scpData,
+        //         publicKey: communityKeys.groupPublicKey
+        //     }
+        // }
         if (communityInfo.scpData) {
             const updateChannelResponses = await this.updateCommunityChannel(communityInfo);
             //FIXME: fix this when the relay is fixed
@@ -1098,31 +1131,31 @@ class SocialDataManager {
     }
 
     async updateCommunity(info: ICommunityInfo) {
-        if (info.membershipType === MembershipType.NFTExclusive) {
-            const gatekeeperPublicKey = Nip19.decode(info.gatekeeperNpub).data as string;
-            info.scpData.gatekeeperPublicKey = gatekeeperPublicKey;
-        }
-        else if (info.membershipType === MembershipType.InviteOnly) {
-            let encryptionPublicKeys: string[] = [];
-            for (let memberId of info.memberIds) {
-                const memberPublicKey = Nip19.decode(memberId).data as string;
-                encryptionPublicKeys.push(memberPublicKey);
-            }
+        // if (info.membershipType === MembershipType.NFTExclusive) {
+        //     const gatekeeperPublicKey = Nip19.decode(info.gatekeeperNpub).data as string;
+        //     info.scpData.gatekeeperPublicKey = gatekeeperPublicKey;
+        // }
+        // else if (info.membershipType === MembershipType.InviteOnly) {
+        //     let encryptionPublicKeys: string[] = [];
+        //     for (let memberId of info.memberIds) {
+        //         const memberPublicKey = Nip19.decode(memberId).data as string;
+        //         encryptionPublicKeys.push(memberPublicKey);
+        //     }
 
-            const groupPrivateKey = await this.retrieveCommunityPrivateKey(info, this._privateKey);
-            let encryptedGroupKeys: Record<string, string> = {};
-            for (let encryptionPublicKey of encryptionPublicKeys) {
-                const encryptedGroupKey = await SocialUtilsManager.encryptMessage(this._privateKey, encryptionPublicKey, groupPrivateKey);
-                encryptedGroupKeys[encryptionPublicKey] = encryptedGroupKey;
-            }
-            const response = await this._socialEventManagerWrite.updateGroupKeys(
-                info.communityUri + ':keys',
-                34550,
-                JSON.stringify(encryptedGroupKeys),
-                info.memberIds
-            );
-            console.log('updateCommunity', response);
-        }
+        //     const groupPrivateKey = await this.retrieveCommunityPrivateKey(info, this._privateKey);
+        //     let encryptedGroupKeys: Record<string, string> = {};
+        //     for (let encryptionPublicKey of encryptionPublicKeys) {
+        //         const encryptedGroupKey = await SocialUtilsManager.encryptMessage(this._privateKey, encryptionPublicKey, groupPrivateKey);
+        //         encryptedGroupKeys[encryptionPublicKey] = encryptedGroupKey;
+        //     }
+        //     const response = await this._socialEventManagerWrite.updateGroupKeys(
+        //         info.communityUri + ':keys',
+        //         34550,
+        //         JSON.stringify(encryptedGroupKeys),
+        //         info.memberIds
+        //     );
+        //     console.log('updateCommunity', response);
+        // }
         await this._socialEventManagerWrite.updateCommunity(info);
         return info;
     }

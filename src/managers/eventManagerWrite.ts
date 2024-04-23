@@ -235,14 +235,20 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 info.rules
             ]);
         }
-        if (info.scpData) {
-            let encodedScpData = SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
+        if (info.relay) {
             event.tags.push([
-                "scp",
-                ScpStandardId.Community,
-                encodedScpData
+                "relay",
+                info.relay
             ]);
         }
+        // if (info.scpData) {
+        //     let encodedScpData = SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
+        //     event.tags.push([
+        //         "scp",
+        //         ScpStandardId.Community,
+        //         encodedScpData
+        //     ]);
+        // }
         for (let moderatorId of info.moderatorIds) {
             const decodedModeratorId = moderatorId.startsWith('npub1') ? Nip19.decode(moderatorId).data as string : moderatorId;
             event.tags.push([

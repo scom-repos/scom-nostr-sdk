@@ -1244,6 +1244,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         membershipType: MembershipType;
         memberIds?: string[];
         memberKeyMap?: Record<string, string>;
+        relay?: string;
     }
     export interface INewCommunityInfo {
         name: string;
@@ -1256,6 +1257,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         scpData?: ICommunityScpData;
         membershipType: MembershipType;
         memberIds?: string[];
+        relay?: string;
     }
     export interface IChannelInfo {
         id?: string;
