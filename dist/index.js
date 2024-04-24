@@ -6536,7 +6536,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async retrieveCommunityEvents(creatorId, communityId) {
             const feedEvents = await this._socialEventManagerRead.fetchCommunityFeed(creatorId, communityId);
-            const notes = feedEvents.filter(event => event.kind === 1);
+            const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(feedEvents);
             const communityEvent = feedEvents.find(event => event.kind === 34550);
             if (!communityEvent)
                 throw new Error('No info event found');
@@ -6627,9 +6627,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             if (!communityPrivateKey)
                 return noteIdToPrivateKey;
             for (const note of notes) {
-                const postPrivateKey = await this.retrievePostPrivateKey(note, communityInfo.communityUri, communityPrivateKey);
+                const postPrivateKey = await this.retrievePostPrivateKey(note.eventData, communityInfo.communityUri, communityPrivateKey);
                 if (postPrivateKey) {
-                    noteIdToPrivateKey[note.id] = postPrivateKey;
+                    noteIdToPrivateKey[note.eventData.id] = postPrivateKey;
                 }
             }
             return noteIdToPrivateKey;

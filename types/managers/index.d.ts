@@ -25,7 +25,7 @@ declare class SocialDataManager {
     unsubscribeFromMqttTopics(topics: string[]): void;
     publishToMqttTopic(topic: string, message: string): void;
     retrieveCommunityEvents(creatorId: string, communityId: string): Promise<{
-        notes: INostrEvent[];
+        notes: INoteInfo[];
         info: ICommunityInfo;
     }>;
     retrieveCommunityUri(noteEvent: INostrEvent, scpData: ICommunityPostScpData): string;

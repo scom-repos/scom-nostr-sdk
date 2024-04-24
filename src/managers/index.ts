@@ -130,7 +130,11 @@ class SocialDataManager {
 
     async retrieveCommunityEvents(creatorId: string, communityId: string) {
         const feedEvents = await this._socialEventManagerRead.fetchCommunityFeed(creatorId, communityId);
-        const notes = feedEvents.filter(event => event.kind === 1);
+        const {
+            notes,
+            metadataByPubKeyMap,
+            quotedNotesMap
+        } = this.createNoteEventMappings(feedEvents);
         const communityEvent = feedEvents.find(event => event.kind === 34550);
         if (!communityEvent) throw new Error('No info event found');
         const communityInfo = SocialUtilsManager.extractCommunityInfo(communityEvent);
@@ -224,9 +228,9 @@ class SocialDataManager {
         let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
         if (!communityPrivateKey) return noteIdToPrivateKey;
         for (const note of notes) {
-            const postPrivateKey = await this.retrievePostPrivateKey(note, communityInfo.communityUri, communityPrivateKey);
+            const postPrivateKey = await this.retrievePostPrivateKey(note.eventData, communityInfo.communityUri, communityPrivateKey);
             if (postPrivateKey) {
-                noteIdToPrivateKey[note.id] = postPrivateKey;
+                noteIdToPrivateKey[note.eventData.id] = postPrivateKey;
             }
         }
         return noteIdToPrivateKey;
