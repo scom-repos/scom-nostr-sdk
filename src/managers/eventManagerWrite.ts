@@ -235,10 +235,10 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 info.rules
             ]);
         }
-        if (info.relay) {
+        if (info.privateRelay) {
             event.tags.push([
-                "relay",
-                info.relay
+                "private_relay",
+                info.privateRelay
             ]);
         }
         // if (info.scpData) {

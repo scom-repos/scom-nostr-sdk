@@ -145,7 +145,7 @@ export interface ICommunityInfo extends ICommunityBasicInfo {
     membershipType: MembershipType;
     memberIds?: string[];
     memberKeyMap?: Record<string, string>;
-    relay?: string;
+    privateRelay?: string;
 }
 export interface INewCommunityInfo {
     name: string;
@@ -158,7 +158,7 @@ export interface INewCommunityInfo {
     scpData?: ICommunityScpData;
     membershipType: MembershipType;
     memberIds?: string[];
-    relay?: string;
+    privateRelay?: string;
 }
 export interface IChannelInfo {
     id?: string;

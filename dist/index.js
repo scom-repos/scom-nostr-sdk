@@ -4511,7 +4511,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             const rules = event.tags.find(tag => tag[0] === 'rules')?.[1];
             const image = event.tags.find(tag => tag[0] === 'image')?.[1];
             const avatar = event.tags.find(tag => tag[0] === 'avatar')?.[1];
-            const relay = event.tags.find(tag => tag[0] === 'relay')?.[1];
+            const privateRelay = event.tags.find(tag => tag[0] === 'private_relay')?.[1];
             const creatorId = index_2.Nip19.npubEncode(event.pubkey);
             const moderatorIds = event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'moderator').map(tag => index_2.Nip19.npubEncode(tag[1]));
             const scpTag = event.tags.find(tag => tag[0] === 'scp');
@@ -4545,7 +4545,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 eventData: event,
                 gatekeeperNpub,
                 membershipType,
-                relay
+                privateRelay
             };
             return communityInfo;
         }
@@ -4824,10 +4824,10 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     info.rules
                 ]);
             }
-            if (info.relay) {
+            if (info.privateRelay) {
                 event.tags.push([
-                    "relay",
-                    info.relay
+                    "private_relay",
+                    info.privateRelay
                 ]);
             }
             // if (info.scpData) {
@@ -6743,9 +6743,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                         gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub] = gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub] || [];
                         gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub].push(noteCommunityInfo);
                     }
-                    else if (communityInfo.relay) {
-                        relayToNotesMap[communityInfo.relay] = relayToNotesMap[communityInfo.relay] || [];
-                        relayToNotesMap[communityInfo.relay].push(noteCommunityInfo);
+                    else if (communityInfo.privateRelay) {
+                        relayToNotesMap[communityInfo.privateRelay] = relayToNotesMap[communityInfo.privateRelay] || [];
+                        relayToNotesMap[communityInfo.privateRelay].push(noteCommunityInfo);
                     }
                 }
             }
@@ -7448,7 +7448,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 scpData: newInfo.scpData,
                 membershipType: newInfo.membershipType,
                 memberIds: newInfo.memberIds,
-                relay: newInfo.relay,
+                privateRelay: newInfo.privateRelay,
             };
             // if (communityInfo.membershipType === MembershipType.NFTExclusive) {
             //     const gatekeeperPublicKey = Nip19.decode(communityInfo.gatekeeperNpub).data as string;
