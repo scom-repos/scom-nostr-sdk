@@ -1,5 +1,6 @@
 import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityInfo, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "../utils/interfaces";
 import { NostrRestAPIManager, NostrWebSocketManager } from "./communication";
+import { ITweets } from "./scraperManager";
 import { SocialUtilsManager } from "./utilsManager";
 import { ISocialEventManagerWrite, NostrEventManagerWrite } from "./eventManagerWrite";
 import { ISocialEventManagerRead, NostrEventManagerRead } from "./eventManagerRead";
@@ -14,6 +15,7 @@ declare class SocialDataManager {
     private _privateKey;
     private mqttManager;
     private lightningWalletManager;
+    private scraperManager;
     constructor(config: ISocialDataManagerConfig);
     dispose(): Promise<void>;
     set privateKey(privateKey: string);
@@ -193,5 +195,7 @@ declare class SocialDataManager {
     fetchInstalledByPubKey(pubkey: string): Promise<any>;
     fetchInstalledApps(pubkey: string): Promise<any>;
     installApp(pubkey: string, appId: string, appVersionId: string): Promise<any>;
+    fetchTwitterUserIdByUsername(username: string): Promise<string>;
+    fetchTweetsByUsername(username: string, maxTweets?: number): Promise<ITweets[]>;
 }
 export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager };

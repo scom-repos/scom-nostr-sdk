@@ -8,6 +8,7 @@ import {
 import Geohash from '../utils/geohash';
 import { MqttManager } from "../utils/mqtt";
 import { LightningWalletManager } from "../utils/lightningWallet";
+import ScraperManager, {IScraperManager, ITweets} from "./scraperManager";
 import { SocialUtilsManager } from "./utilsManager";
 import { ISocialEventManagerWrite, NostrEventManagerWrite } from "./eventManagerWrite";
 import { ISocialEventManagerRead, NostrEventManagerRead } from "./eventManagerRead";
@@ -2389,6 +2390,16 @@ class SocialDataManager {
         });
         const result = await response.json();
         return result;
+    }
+
+    async fetchTwitterUserIdByUsername(username: string) {
+        const scraperManager = new ScraperManager();
+        return scraperManager.getUserIdByUserName(username);
+    }
+
+    async fetchTweetsByUsername(username: string, maxTweets?: number) {
+        const scraperManager = new ScraperManager();
+        return scraperManager.getTweetsByUserName(username, maxTweets);
     }
 }
 

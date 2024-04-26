@@ -1600,6 +1600,55 @@ declare module "@scom/scom-social-sdk/utils/lightningWallet.ts" {
         getBalance(): Promise<any>;
     }
 }
+/// <amd-module name="@scom/scom-social-sdk/managers/scraperManager.ts" />
+declare module "@scom/scom-social-sdk/managers/scraperManager.ts" {
+    interface IScraperManager {
+        getUserIdByUserName: (username: string) => Promise<string>;
+        getTweetsByUserName: (username: string) => Promise<string>;
+    }
+    interface ITweets {
+        conversationId: string;
+        id: string;
+        hashtags: any[];
+        likes: number;
+        mentions: any[];
+        name: string;
+        permanentUrl: string;
+        photos: any[];
+        replies: number;
+        retweets: number;
+        text: string;
+        thread: any[];
+        urls: [];
+        userId: string;
+        username: string;
+        videos: any[];
+        isQuoted: boolean;
+        isReply: boolean;
+        isRetweet: boolean;
+        isPin: boolean;
+        sensitiveContent: boolean;
+        timeParsed: Date;
+        timestamp: number;
+        html: string;
+        views: number;
+    }
+    class ScraperManager {
+        getUserIdByUserName(username: string): Promise<string>;
+        getTweetsByUserName(username: string, maxTweets?: number): Promise<ITweets[]>;
+        private getGuestToken;
+        private reconstructTweetHtml;
+        private parseVideo;
+        private parseMediaGroups;
+        private parseLegacyTweet;
+        private parseAndPush;
+        private parseTimelineEntryItemContentRaw;
+        private parseResult;
+        private parseTimelineTweetsV2;
+    }
+    export default ScraperManager;
+    export { ITweets, IScraperManager };
+}
 /// <amd-module name="@scom/scom-social-sdk/managers/utilsManager.ts" />
 declare module "@scom/scom-social-sdk/managers/utilsManager.ts" {
     import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, INostrEvent } from "@scom/scom-social-sdk/utils/interfaces.ts";
@@ -1848,6 +1897,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV2.ts" {
 declare module "@scom/scom-social-sdk/managers/index.ts" {
     import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityInfo, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
     import { NostrRestAPIManager, NostrWebSocketManager } from "@scom/scom-social-sdk/managers/communication.ts";
+    import { ITweets } from "@scom/scom-social-sdk/managers/scraperManager.ts";
     import { SocialUtilsManager } from "@scom/scom-social-sdk/managers/utilsManager.ts";
     import { ISocialEventManagerWrite, NostrEventManagerWrite } from "@scom/scom-social-sdk/managers/eventManagerWrite.ts";
     import { ISocialEventManagerRead, NostrEventManagerRead } from "@scom/scom-social-sdk/managers/eventManagerRead.ts";
@@ -1862,6 +1912,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         private _privateKey;
         private mqttManager;
         private lightningWalletManager;
+        private scraperManager;
         constructor(config: ISocialDataManagerConfig);
         dispose(): Promise<void>;
         set privateKey(privateKey: string);
@@ -2041,6 +2092,8 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         fetchInstalledByPubKey(pubkey: string): Promise<any>;
         fetchInstalledApps(pubkey: string): Promise<any>;
         installApp(pubkey: string, appId: string, appVersionId: string): Promise<any>;
+        fetchTwitterUserIdByUsername(username: string): Promise<string>;
+        fetchTweetsByUsername(username: string, maxTweets?: number): Promise<ITweets[]>;
     }
     export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager };
 }
