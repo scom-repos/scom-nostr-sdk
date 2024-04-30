@@ -107,6 +107,12 @@ export enum NftType {
     ERC1155	= 'ERC1155'
 }
 
+export enum TokenType {
+	ERC20 = 'ERC20',
+	ERC721	= 'ERC721',
+	ERC1155	= 'ERC1155'
+}
+
 export enum ScpStandardId {
 	Community = '1',
 	CommunityPost = '2',
@@ -116,17 +122,27 @@ export enum ScpStandardId {
 }
 
 export enum MembershipType {
-	Open= 'Open',
-	NFTExclusive = 'NFTExclusive',
-	InviteOnly = 'InviteOnly'
+	Open = 'Open',
+	Protected = 'Protected'
+}
+
+export enum ProtectedMembershipPolicyType {
+	TokenExclusive = 'TokenExclusive',
+	Whitelist = 'Whitelist'
+}
+
+export interface IProtectedMembershipPolicy {
+	type: ProtectedMembershipPolicyType;
+	chainId?: number;
+	tokenAddress?: string;
+	tokenType?: TokenType;
+	tokenId?: number;
+	tokenAmount?: string;
+	memberIds?: string[];
 }
 
 //SCP-1 Kind 34550
 export interface ICommunityScpData {
-	chainId: number;
-	nftAddress: string;
-	nftType: NftType;
-	nftId?: number;
 	publicKey?: string;
 	encryptedKey?: string;
 	gatekeeperPublicKey?: string;
@@ -162,14 +178,15 @@ export interface ICommunityInfo extends ICommunityBasicInfo {
 	rules?: string;
 	bannerImgUrl?: string;
 	avatarImgUrl?: string;
-	gatekeeperNpub?: string;
 	scpData?: ICommunityScpData;
 	moderatorIds?: string[];
 	eventData?: INostrEvent;
 	membershipType: MembershipType;
-	memberIds?: string[];
+	// memberIds?: string[];
 	memberKeyMap?: Record<string, string>;
 	privateRelay?: string;
+	gatekeeperNpub?: string;
+	policies?: IProtectedMembershipPolicy[];
 }
 
 export interface INewCommunityInfo {
@@ -179,11 +196,12 @@ export interface INewCommunityInfo {
 	avatarImgUrl?: string;
 	moderatorIds?: string[];
 	rules?: string;
-	gatekeeperNpub?: string;
 	scpData?: ICommunityScpData;
 	membershipType: MembershipType;
-	memberIds?: string[];
+	// memberIds?: string[];
 	privateRelay?: string;
+	gatekeeperNpub?: string;
+	policies?: IProtectedMembershipPolicy[];
 }
 
 export interface IChannelInfo {
@@ -242,7 +260,7 @@ export interface IRetrieveCommunityPostKeysByNoteEventsOptions {
 	notes: INostrEvent[]; 
 	pubKey: string;
 	getSignature: (message: string) => Promise<string>
-	gatekeepers: ICommunityGatekeeperInfo[];
+	// gatekeepers: ICommunityGatekeeperInfo[];
 }
 
 export interface IRetrieveCommunityThreadPostKeysOptions {

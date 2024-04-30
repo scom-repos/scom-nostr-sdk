@@ -162,19 +162,18 @@ class SocialUtilsManager {
         const creatorId = Nip19.npubEncode(event.pubkey);
         const moderatorIds = event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'moderator').map(tag => Nip19.npubEncode(tag[1]));
         const scpTag = event.tags.find(tag => tag[0] === 'scp');
+        let policies = [];
         let scpData;
         let gatekeeperNpub;
         let membershipType: MembershipType = MembershipType.Open;
         if (scpTag && scpTag[1] === '1') {
+            membershipType = MembershipType.Protected;
+            policies = JSON.parse(event.content);
             const scpDataStr = SocialUtilsManager.base64ToUtf8(scpTag[2]);
             if (!scpDataStr.startsWith('$scp:')) return null;
             scpData = JSON.parse(scpDataStr.substring(5));
             if (scpData.gatekeeperPublicKey) {
                 gatekeeperNpub = Nip19.npubEncode(scpData.gatekeeperPublicKey);
-                membershipType = MembershipType.NFTExclusive;
-            }
-            else {
-                membershipType = MembershipType.InviteOnly;
             }
         }
         const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
@@ -191,7 +190,8 @@ class SocialUtilsManager {
             eventData: event,
             gatekeeperNpub,
             membershipType,
-            privateRelay
+            privateRelay,
+            policies
         }
 
         return communityInfo;

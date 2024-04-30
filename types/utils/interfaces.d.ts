@@ -94,6 +94,11 @@ export declare enum NftType {
     ERC721 = "ERC721",
     ERC1155 = "ERC1155"
 }
+export declare enum TokenType {
+    ERC20 = "ERC20",
+    ERC721 = "ERC721",
+    ERC1155 = "ERC1155"
+}
 export declare enum ScpStandardId {
     Community = "1",
     CommunityPost = "2",
@@ -103,14 +108,22 @@ export declare enum ScpStandardId {
 }
 export declare enum MembershipType {
     Open = "Open",
-    NFTExclusive = "NFTExclusive",
-    InviteOnly = "InviteOnly"
+    Protected = "Protected"
+}
+export declare enum ProtectedMembershipPolicyType {
+    TokenExclusive = "TokenExclusive",
+    Whitelist = "Whitelist"
+}
+export interface IProtectedMembershipPolicy {
+    type: ProtectedMembershipPolicyType;
+    chainId?: number;
+    tokenAddress?: string;
+    tokenType?: TokenType;
+    tokenId?: number;
+    tokenAmount?: string;
+    memberIds?: string[];
 }
 export interface ICommunityScpData {
-    chainId: number;
-    nftAddress: string;
-    nftType: NftType;
-    nftId?: number;
     publicKey?: string;
     encryptedKey?: string;
     gatekeeperPublicKey?: string;
@@ -138,14 +151,14 @@ export interface ICommunityInfo extends ICommunityBasicInfo {
     rules?: string;
     bannerImgUrl?: string;
     avatarImgUrl?: string;
-    gatekeeperNpub?: string;
     scpData?: ICommunityScpData;
     moderatorIds?: string[];
     eventData?: INostrEvent;
     membershipType: MembershipType;
-    memberIds?: string[];
     memberKeyMap?: Record<string, string>;
     privateRelay?: string;
+    gatekeeperNpub?: string;
+    policies?: IProtectedMembershipPolicy[];
 }
 export interface INewCommunityInfo {
     name: string;
@@ -154,11 +167,11 @@ export interface INewCommunityInfo {
     avatarImgUrl?: string;
     moderatorIds?: string[];
     rules?: string;
-    gatekeeperNpub?: string;
     scpData?: ICommunityScpData;
     membershipType: MembershipType;
-    memberIds?: string[];
     privateRelay?: string;
+    gatekeeperNpub?: string;
+    policies?: IProtectedMembershipPolicy[];
 }
 export interface IChannelInfo {
     id?: string;
@@ -209,7 +222,6 @@ export interface IRetrieveCommunityPostKeysByNoteEventsOptions {
     notes: INostrEvent[];
     pubKey: string;
     getSignature: (message: string) => Promise<string>;
-    gatekeepers: ICommunityGatekeeperInfo[];
 }
 export interface IRetrieveCommunityThreadPostKeysOptions {
     communityInfo: ICommunityInfo;

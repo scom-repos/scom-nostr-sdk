@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, ILongFormContentInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityPostInfo, INostrMetadataContent, INostrSubmitResponse, IRelayConfig, IUpdateCalendarEventInfo,  ScpStandardId } from "../utils/interfaces";
+import { CalendarEventType, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, ILongFormContentInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityPostInfo, INostrMetadataContent, INostrSubmitResponse, IRelayConfig, IUpdateCalendarEventInfo,  MembershipType,  ScpStandardId } from "../utils/interfaces";
 import {
     INostrCommunicationManager
 } from "./communication";
@@ -202,10 +202,11 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
     }
 
     async updateCommunity(info: ICommunityInfo) {
+        const content = info.membershipType === MembershipType.Protected ? JSON.stringify(info.policies) : '';
         let event = {
             "kind": 34550,
             "created_at": Math.round(Date.now() / 1000),
-            "content": '',
+            "content": content,
             "tags": [
                 [
                     "d",
@@ -241,14 +242,14 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 info.privateRelay
             ]);
         }
-        // if (info.scpData) {
-        //     let encodedScpData = SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
-        //     event.tags.push([
-        //         "scp",
-        //         ScpStandardId.Community,
-        //         encodedScpData
-        //     ]);
-        // }
+        if (info.scpData) {
+            let encodedScpData = SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
+            event.tags.push([
+                "scp",
+                ScpStandardId.Community,
+                encodedScpData
+            ]);
+        }
         for (let moderatorId of info.moderatorIds) {
             const decodedModeratorId = moderatorId.startsWith('npub1') ? Nip19.decode(moderatorId).data as string : moderatorId;
             event.tags.push([
