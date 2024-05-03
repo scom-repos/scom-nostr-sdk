@@ -168,7 +168,7 @@ class SocialUtilsManager {
         let membershipType: MembershipType = MembershipType.Open;
         if (scpTag && scpTag[1] === '1') {
             membershipType = MembershipType.Protected;
-            policies = JSON.parse(event.content);
+            policies = event.content ? JSON.parse(event.content) : [];
             const scpDataStr = SocialUtilsManager.base64ToUtf8(scpTag[2]);
             if (!scpDataStr.startsWith('$scp:')) return null;
             scpData = JSON.parse(scpDataStr.substring(5));

@@ -139,13 +139,11 @@ class SocialDataManager {
         if (!communityEvent) throw new Error('No info event found');
         const communityInfo = SocialUtilsManager.extractCommunityInfo(communityEvent);
         if (!communityInfo) throw new Error('No info event found');
-        //FIXME: not the best way to do this
-        // if (communityInfo.membershipType === MembershipType.InviteOnly) {
-        //     const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(communityInfo.communityUri + ':keys');
-        //     if (keyEvent) {
-        //         communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
-        //     }
-        // }
+
+        const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(communityInfo.communityUri + ':keys');
+        if (keyEvent) {
+            communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
+        }
 
         return {
             notes,
@@ -206,21 +204,19 @@ class SocialDataManager {
 
     async retrieveCommunityPrivateKey(communityInfo: ICommunityInfo, selfPrivateKey: string) {
         let communityPrivateKey: string;
-        // if (communityInfo.membershipType === MembershipType.InviteOnly) {
-        //     const creatorPubkey = communityInfo.eventData.pubkey;
-        //     const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(selfPrivateKey);
-        //     const encryptedKey = communityInfo.memberKeyMap?.[pubkey];
-        //     if (encryptedKey) {
-        //         communityPrivateKey = await SocialUtilsManager.decryptMessage(selfPrivateKey, creatorPubkey, encryptedKey);
-        //     }
-        // }
-        // else if (communityInfo.membershipType === MembershipType.NFTExclusive) {
-        //     communityPrivateKey = await SocialUtilsManager.decryptMessage(selfPrivateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
-        // }
+        const creatorPubkey = communityInfo.eventData.pubkey;
+        const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(selfPrivateKey);
+        const encryptedKey = communityInfo.memberKeyMap?.[pubkey];
+        if (encryptedKey) {
+            communityPrivateKey = await SocialUtilsManager.decryptMessage(selfPrivateKey, creatorPubkey, encryptedKey);
+        }
+        else {
+            communityPrivateKey = await SocialUtilsManager.decryptMessage(selfPrivateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
+        }
         return communityPrivateKey;
     }
 
-    private async retrieveInviteOnlyCommunityNotePrivateKeys(creatorId: string, communityId: string) {
+    private async constructCommunityNoteIdToPrivateKeyMap(creatorId: string, communityId: string) {
         let noteIdToPrivateKey: Record<string, string> = {};
         const communityEvents = await this.retrieveCommunityEvents(creatorId, communityId);
         const communityInfo = communityEvents.info;
@@ -260,7 +256,7 @@ class SocialDataManager {
             }
         }
         else {
-            const inviteOnlyNoteIdToPrivateKey = await this.retrieveInviteOnlyCommunityNotePrivateKeys(options.creatorId, options.communityId);
+            const inviteOnlyNoteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(options.creatorId, options.communityId);
             noteIdToPrivateKey = {
                 ...noteIdToPrivateKey,
                 ...inviteOnlyNoteIdToPrivateKey
@@ -409,7 +405,7 @@ class SocialDataManager {
         // }
         // for (let communityUri in inviteOnlyCommunityNotesMap) {
         //     for (let noteCommunityInfo of inviteOnlyCommunityNotesMap[communityUri]) {
-        //         const inviteOnlyNoteIdToPrivateKey = await this.retrieveInviteOnlyCommunityNotePrivateKeys(noteCommunityInfo.creatorId, noteCommunityInfo.communityId);
+        //         const inviteOnlyNoteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(noteCommunityInfo.creatorId, noteCommunityInfo.communityId);
         //         noteIdToPrivateKey = {
         //             ...noteIdToPrivateKey,
         //             ...inviteOnlyNoteIdToPrivateKey
@@ -741,13 +737,10 @@ class SocialDataManager {
         const communityEvent = communityEvents.find(event => event.kind === 34550);
         if(!communityEvent) return null;
         let communityInfo = SocialUtilsManager.extractCommunityInfo(communityEvent);
-        //FIXME: not the best way to do this
-        // if (communityInfo.membershipType === MembershipType.InviteOnly) {
-        //     const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(communityInfo.communityUri + ':keys');
-        //     if (keyEvent) {
-        //         communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
-        //     }
-        // }
+        const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(communityInfo.communityUri + ':keys');
+        if (keyEvent) {
+            communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
+        }
         return communityInfo;
     }
 
@@ -774,13 +767,10 @@ class SocialDataManager {
             if (!communityEvent) throw new Error('No info event found');
             const communityInfo = SocialUtilsManager.extractCommunityInfo(communityEvent);
             if (!communityInfo) throw new Error('No info event found');
-            //FIXME: not the best way to do this
-            // if (communityInfo.membershipType === MembershipType.InviteOnly) {
-            //     const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(communityInfo.communityUri + ':keys');
-            //     if (keyEvent) {
-            //         communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
-            //     }
-            // }
+            const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(communityInfo.communityUri + ':keys');
+            if (keyEvent) {
+                communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
+            }
             result.push({
                 info: communityInfo,
                 notes
@@ -798,13 +788,10 @@ class SocialDataManager {
         for (let event of events) {
             if (event.kind === 34550) {
                 const communityInfo = SocialUtilsManager.extractCommunityInfo(event);
-                //FIXME: not the best way to do this
-                // if (communityInfo.membershipType === MembershipType.InviteOnly) {
-                //     const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(communityInfo.communityUri + ':keys');
-                //     if (keyEvent) {
-                //         communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
-                //     }
-                // }
+                const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(communityInfo.communityUri + ':keys');
+                if (keyEvent) {
+                    communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
+                }
                 communityUriArr.push(communityInfo.communityUri);
                 communityEventsMap[communityInfo.communityUri] = { info: communityInfo, notes: [] };
             }
@@ -1095,7 +1082,7 @@ class SocialDataManager {
         if (newInfo.membershipType === MembershipType.Protected) {
             const gatekeeperPublicKey = Nip19.decode(communityInfo.gatekeeperNpub).data as string;
             let encryptionPublicKeys = [gatekeeperPublicKey];
-            let memberIds: string[] = [];
+            let memberIds: string[] = [communityInfo.gatekeeperNpub];
             for (let policy of newInfo.policies) {
                 if (policy.type === ProtectedMembershipPolicyType.TokenExclusive) {
                 }
@@ -1113,6 +1100,7 @@ class SocialDataManager {
                 publicKey: communityKeys.groupPublicKey,
                 gatekeeperPublicKey
             }
+            memberIds = Array.from(new Set(memberIds));
             await this._socialEventManagerWrite.updateGroupKeys(
                 communityUri + ':keys',
                 34550,
@@ -1134,31 +1122,42 @@ class SocialDataManager {
     }
 
     async updateCommunity(info: ICommunityInfo) {
-        // if (info.membershipType === MembershipType.NFTExclusive) {
-        //     const gatekeeperPublicKey = Nip19.decode(info.gatekeeperNpub).data as string;
-        //     info.scpData.gatekeeperPublicKey = gatekeeperPublicKey;
-        // }
-        // else if (info.membershipType === MembershipType.InviteOnly) {
-        //     let encryptionPublicKeys: string[] = [];
-        //     for (let memberId of info.memberIds) {
-        //         const memberPublicKey = Nip19.decode(memberId).data as string;
-        //         encryptionPublicKeys.push(memberPublicKey);
-        //     }
-
-        //     const groupPrivateKey = await this.retrieveCommunityPrivateKey(info, this._privateKey);
-        //     let encryptedGroupKeys: Record<string, string> = {};
-        //     for (let encryptionPublicKey of encryptionPublicKeys) {
-        //         const encryptedGroupKey = await SocialUtilsManager.encryptMessage(this._privateKey, encryptionPublicKey, groupPrivateKey);
-        //         encryptedGroupKeys[encryptionPublicKey] = encryptedGroupKey;
-        //     }
-        //     const response = await this._socialEventManagerWrite.updateGroupKeys(
-        //         info.communityUri + ':keys',
-        //         34550,
-        //         JSON.stringify(encryptedGroupKeys),
-        //         info.memberIds
-        //     );
-        //     console.log('updateCommunity', response);
-        // }
+        if (info.membershipType === MembershipType.Protected) {
+            const gatekeeperPublicKey = Nip19.decode(info.gatekeeperNpub).data as string;
+            const creatorPubkey = Nip19.decode(info.creatorId).data as string;
+            let encryptionPublicKeys = [creatorPubkey, gatekeeperPublicKey];
+            let memberIds: string[] = [info.creatorId, info.gatekeeperNpub];
+            for (let policy of info.policies) {
+                if (policy.type === ProtectedMembershipPolicyType.TokenExclusive) {
+                }
+                else if (policy.type === ProtectedMembershipPolicyType.Whitelist) {
+                    for (let memberId of policy.memberIds) {
+                        const memberPublicKey = Nip19.decode(memberId).data as string;
+                        encryptionPublicKeys.push(memberPublicKey);
+                    }
+                    memberIds = [...memberIds, ...policy.memberIds];
+                }
+            }
+            const groupPrivateKey = await this.retrieveCommunityPrivateKey(info, this._privateKey);
+            let encryptedGroupKeys: Record<string, string> = {};
+            for (let encryptionPublicKey of encryptionPublicKeys) {
+                const encryptedGroupKey = await SocialUtilsManager.encryptMessage(this._privateKey, encryptionPublicKey, groupPrivateKey);
+                encryptedGroupKeys[encryptionPublicKey] = encryptedGroupKey;
+            }
+            // const communityKeys = await this.generateGroupKeys(this._privateKey, encryptionPublicKeys);
+            // info.scpData = {
+            //     ...info.scpData,
+            //     publicKey: communityKeys.groupPublicKey,
+            //     gatekeeperPublicKey
+            // }
+            memberIds = Array.from(new Set(memberIds));
+            const response = await this._socialEventManagerWrite.updateGroupKeys(
+                info.communityUri + ':keys',
+                34550,
+                JSON.stringify(encryptedGroupKeys),
+                memberIds
+            );
+        }
         await this._socialEventManagerWrite.updateCommunity(info);
         return info;
     }
