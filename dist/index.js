@@ -7449,11 +7449,12 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 gatekeeperNpub: newInfo.gatekeeperNpub,
                 policies: newInfo.policies,
             };
-            if (newInfo.membershipType === interfaces_4.MembershipType.Protected) {
+            if (communityInfo.membershipType === interfaces_4.MembershipType.Protected) {
                 const gatekeeperPublicKey = index_6.Nip19.decode(communityInfo.gatekeeperNpub).data;
-                let encryptionPublicKeys = [gatekeeperPublicKey];
-                let memberIds = [communityInfo.gatekeeperNpub];
-                for (let policy of newInfo.policies) {
+                const creatorPubkey = index_6.Nip19.decode(communityInfo.creatorId).data;
+                let encryptionPublicKeys = [creatorPubkey, gatekeeperPublicKey];
+                let memberIds = [communityInfo.creatorId, communityInfo.gatekeeperNpub];
+                for (let policy of communityInfo.policies) {
                     if (policy.type === interfaces_4.ProtectedMembershipPolicyType.TokenExclusive) {
                     }
                     else if (policy.type === interfaces_4.ProtectedMembershipPolicyType.Whitelist) {
@@ -8327,7 +8328,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             }
             return result;
         }
-        async checkRelayStatus(pubkey, relayUrl = this._publicIndexingRelay) {
+        async checkRelayStatus(pubkey, relayUrl) {
+            if (!relayUrl)
+                relayUrl = this._publicIndexingRelay;
             const data = utilsManager_4.SocialUtilsManager.augmentWithAuthInfo({
                 pubkey: pubkey,
             }, this._privateKey);
