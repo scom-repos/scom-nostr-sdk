@@ -1094,6 +1094,7 @@ declare module "@scom/scom-social-sdk/core/index.ts" {
     export * as Keys from "@scom/scom-social-sdk/core/nostr/keys.ts";
     export * as Nip19 from "@scom/scom-social-sdk/core/nostr/nip19.ts";
     export * as Bech32 from "@scom/scom-social-sdk/core/bech32.ts";
+    export { secp256k1, schnorr } from "@scom/scom-social-sdk/core/curves/secp256k1.ts";
 }
 /// <amd-module name="@scom/scom-social-sdk/utils/interfaces.ts" />
 declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
@@ -2073,7 +2074,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk" />
 declare module "@scom/scom-social-sdk" {
-    export { Event, Keys, Nip19, Bech32, } from "@scom/scom-social-sdk/core/index.ts";
+    export { Event, Keys, Nip19, Bech32, secp256k1, schnorr } from "@scom/scom-social-sdk/core/index.ts";
     export { IFetchNotesOptions, INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityLeaderboard, ICommunityScpData, INoteInfo, INoteInfoExtended, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, INewCommunityInfo, TokenType, MembershipType, ProtectedMembershipPolicyType, IProtectedMembershipPolicy, CommunityRole, ICommunityMember, ICommunity, CalendarEventType, ICalendarEventInfo, IUpdateCalendarEventInfo, ICalendarEventHost, ICalendarEventAttendee, ICalendarEventDetailInfo, INewCalendarEventPostInfo, ILocationCoordinates, ISocialDataManagerConfig, IPaymentActivity, INostrFetchEventsResponse, MqttManager } from "@scom/scom-social-sdk/utils/index.ts";
     export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrWebSocketManager, NostrRestAPIManager } from "@scom/scom-social-sdk/managers/index.ts";
 }

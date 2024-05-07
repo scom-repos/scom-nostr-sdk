@@ -1110,11 +1110,12 @@ class SocialDataManager {
             policies: newInfo.policies,
         }
 
-        if (newInfo.membershipType === MembershipType.Protected) {
+        if (communityInfo.membershipType === MembershipType.Protected) {
             const gatekeeperPublicKey = Nip19.decode(communityInfo.gatekeeperNpub).data as string;
-            let encryptionPublicKeys = [gatekeeperPublicKey];
-            let memberIds: string[] = [communityInfo.gatekeeperNpub];
-            for (let policy of newInfo.policies) {
+            const creatorPubkey = Nip19.decode(communityInfo.creatorId).data as string;
+            let encryptionPublicKeys = [creatorPubkey, gatekeeperPublicKey];
+            let memberIds: string[] = [communityInfo.creatorId, communityInfo.gatekeeperNpub];
+            for (let policy of communityInfo.policies) {
                 if (policy.type === ProtectedMembershipPolicyType.TokenExclusive) {
                 }
                 else if (policy.type === ProtectedMembershipPolicyType.Whitelist) {
@@ -2042,7 +2043,8 @@ class SocialDataManager {
         return result;
     }
 
-    async checkRelayStatus(pubkey: string, relayUrl: string = this._publicIndexingRelay) {
+    async checkRelayStatus(pubkey: string, relayUrl?: string) {
+        if (!relayUrl) relayUrl = this._publicIndexingRelay;
         const data = SocialUtilsManager.augmentWithAuthInfo({
             pubkey: pubkey,
         }, this._privateKey);
