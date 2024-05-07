@@ -7131,6 +7131,34 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             }
             return communityInfo;
         }
+        getRandomInt(min, max) {
+            const minCeiled = Math.ceil(min);
+            const maxFloored = Math.floor(max);
+            return Math.floor(Math.random() * (maxFloored - minCeiled + 1) + minCeiled);
+        }
+        constructLeaderboard(members, min, max) {
+            const data = members.map(m => ({
+                npub: m.id,
+                username: m.username,
+                displayName: m.name,
+                avatar: m.profileImageUrl,
+                internetIdentifier: m.internetIdentifier,
+                point: this.getRandomInt(min, max)
+            })).sort((a, b) => b.point - a.point).slice(0, 10);
+            return data;
+        }
+        async fetchCommunityLeaderboard(community) {
+            const communityUriToMembersMap = await this.fetchCommunitiesMembers([community]);
+            const members = communityUriToMembersMap[community.communityUri] || [];
+            const allTime = this.constructLeaderboard(members, 600, 999);
+            const monthly = this.constructLeaderboard(members, 200, 499);
+            const weekly = this.constructLeaderboard(members, 30, 199);
+            return {
+                allTime,
+                monthly,
+                weekly
+            };
+        }
         async fetchCommunityFeedInfo() {
             let result = [];
             const suggestedCommunities = [
