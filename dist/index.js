@@ -7152,9 +7152,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         async fetchCommunityLeaderboard(community) {
             const communityUriToMembersMap = await this.fetchCommunitiesMembers([community]);
             const members = communityUriToMembersMap[community.communityUri] || [];
-            const allTime = this.constructLeaderboard(members, 600, 999);
-            const monthly = this.constructLeaderboard(members, 200, 499);
-            const weekly = this.constructLeaderboard(members, 30, 199);
+            const allTime = this.constructLeaderboard(members, 100, 600);
+            const monthly = this.constructLeaderboard(members, 40, 99);
+            const weekly = this.constructLeaderboard(members, 1, 39);
             return {
                 allTime,
                 monthly,
