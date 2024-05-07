@@ -3514,15 +3514,17 @@ define("@scom/scom-social-sdk/core/nostr/nip19.ts", ["require", "exports", "@sco
         return (0, utils_13.concatBytes)(...entries);
     }
 });
-define("@scom/scom-social-sdk/core/index.ts", ["require", "exports", "@scom/scom-social-sdk/core/nostr/event.ts", "@scom/scom-social-sdk/core/nostr/keys.ts", "@scom/scom-social-sdk/core/nostr/nip19.ts", "@scom/scom-social-sdk/core/bech32.ts"], function (require, exports, Event, Keys, Nip19, Bech32) {
+define("@scom/scom-social-sdk/core/index.ts", ["require", "exports", "@scom/scom-social-sdk/core/nostr/event.ts", "@scom/scom-social-sdk/core/nostr/keys.ts", "@scom/scom-social-sdk/core/nostr/nip19.ts", "@scom/scom-social-sdk/core/bech32.ts", "@scom/scom-social-sdk/core/curves/secp256k1.ts"], function (require, exports, Event, Keys, Nip19, Bech32, secp256k1_3) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.Bech32 = exports.Nip19 = exports.Keys = exports.Event = void 0;
+    exports.schnorr = exports.secp256k1 = exports.Bech32 = exports.Nip19 = exports.Keys = exports.Event = void 0;
     ///<amd-module name='@scom/scom-social-sdk/core/index.ts'/> 
     exports.Event = Event;
     exports.Keys = Keys;
     exports.Nip19 = Nip19;
     exports.Bech32 = Bech32;
+    Object.defineProperty(exports, "secp256k1", { enumerable: true, get: function () { return secp256k1_3.secp256k1; } });
+    Object.defineProperty(exports, "schnorr", { enumerable: true, get: function () { return secp256k1_3.schnorr; } });
 });
 define("@scom/scom-social-sdk/utils/interfaces.ts", ["require", "exports"], function (require, exports) {
     "use strict";
@@ -8692,11 +8694,13 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
 define("@scom/scom-social-sdk", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/index.ts", "@scom/scom-social-sdk/managers/index.ts"], function (require, exports, index_7, index_8, managers_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.NostrRestAPIManager = exports.NostrWebSocketManager = exports.SocialDataManager = exports.SocialUtilsManager = exports.NostrEventManagerWrite = exports.NostrEventManagerReadV2 = exports.NostrEventManagerRead = exports.MqttManager = exports.CalendarEventType = exports.CommunityRole = exports.ProtectedMembershipPolicyType = exports.MembershipType = exports.TokenType = exports.Bech32 = exports.Nip19 = exports.Keys = exports.Event = void 0;
+    exports.NostrRestAPIManager = exports.NostrWebSocketManager = exports.SocialDataManager = exports.SocialUtilsManager = exports.NostrEventManagerWrite = exports.NostrEventManagerReadV2 = exports.NostrEventManagerRead = exports.MqttManager = exports.CalendarEventType = exports.CommunityRole = exports.ProtectedMembershipPolicyType = exports.MembershipType = exports.TokenType = exports.schnorr = exports.secp256k1 = exports.Bech32 = exports.Nip19 = exports.Keys = exports.Event = void 0;
     Object.defineProperty(exports, "Event", { enumerable: true, get: function () { return index_7.Event; } });
     Object.defineProperty(exports, "Keys", { enumerable: true, get: function () { return index_7.Keys; } });
     Object.defineProperty(exports, "Nip19", { enumerable: true, get: function () { return index_7.Nip19; } });
     Object.defineProperty(exports, "Bech32", { enumerable: true, get: function () { return index_7.Bech32; } });
+    Object.defineProperty(exports, "secp256k1", { enumerable: true, get: function () { return index_7.secp256k1; } });
+    Object.defineProperty(exports, "schnorr", { enumerable: true, get: function () { return index_7.schnorr; } });
     Object.defineProperty(exports, "TokenType", { enumerable: true, get: function () { return index_8.TokenType; } });
     Object.defineProperty(exports, "MembershipType", { enumerable: true, get: function () { return index_8.MembershipType; } });
     Object.defineProperty(exports, "ProtectedMembershipPolicyType", { enumerable: true, get: function () { return index_8.ProtectedMembershipPolicyType; } });
