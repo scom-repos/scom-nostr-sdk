@@ -160,6 +160,14 @@ export interface ICommunityInfo extends ICommunityBasicInfo {
     gatekeeperNpub?: string;
     policies?: IProtectedMembershipPolicy[];
 }
+export interface ICommunityLeaderboard {
+    npub: string;
+    username: string;
+    displayName?: string;
+    avatar?: string;
+    internetIdentifier?: string;
+    point: number;
+}
 export interface INewCommunityInfo {
     name: string;
     description?: string;

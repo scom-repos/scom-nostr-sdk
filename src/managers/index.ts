@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId } from "../utils/interfaces";
+import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId } from "../utils/interfaces";
 import {
     INostrCommunicationManager,
     NostrRestAPIManager,
@@ -742,6 +742,37 @@ class SocialDataManager {
             communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
         }
         return communityInfo;
+    }
+
+    private getRandomInt(min: number, max: number) {
+        const minCeiled = Math.ceil(min);
+        const maxFloored = Math.floor(max);
+        return Math.floor(Math.random() * (maxFloored - minCeiled + 1) + minCeiled);
+    }
+
+    private constructLeaderboard(members: ICommunityMember[], min: number, max: number) {
+        const data: ICommunityLeaderboard[] = members.map(m => ({
+            npub: m.id,
+            username: m.username,
+            displayName: m.name,
+            avatar: m.profileImageUrl,
+            internetIdentifier: m.internetIdentifier,
+            point: this.getRandomInt(min, max)
+        })).sort((a,b) => b.point - a.point).slice(0, 10);
+        return data;
+    }
+
+    async fetchCommunityLeaderboard(community: ICommunityInfo) {
+        const communityUriToMembersMap = await this.fetchCommunitiesMembers([community]);
+        const members = communityUriToMembersMap[community.communityUri] || [];
+        const allTime = this.constructLeaderboard(members, 100, 600);
+        const monthly = this.constructLeaderboard(members, 40, 99);
+        const weekly = this.constructLeaderboard(members, 1, 39);
+        return {
+            allTime,
+            monthly,
+            weekly
+        }
     }
 
     async fetchCommunityFeedInfo() {

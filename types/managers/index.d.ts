@@ -1,4 +1,4 @@
-import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityInfo, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "../utils/interfaces";
+import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "../utils/interfaces";
 import { NostrRestAPIManager, NostrWebSocketManager } from "./communication";
 import { SocialUtilsManager } from "./utilsManager";
 import { ISocialEventManagerWrite, NostrEventManagerWrite } from "./eventManagerWrite";
@@ -79,6 +79,13 @@ declare class SocialDataManager {
         noteActionsMap: Record<string, INoteActions>;
     };
     fetchCommunityInfo(creatorId: string, communityId: string): Promise<ICommunityInfo>;
+    private getRandomInt;
+    private constructLeaderboard;
+    fetchCommunityLeaderboard(community: ICommunityInfo): Promise<{
+        allTime: ICommunityLeaderboard[];
+        monthly: ICommunityLeaderboard[];
+        weekly: ICommunityLeaderboard[];
+    }>;
     fetchCommunityFeedInfo(): Promise<{
         info: ICommunityInfo;
         notes: INostrEvent[];
