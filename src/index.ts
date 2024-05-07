@@ -3,6 +3,8 @@ export {
     Keys,
     Nip19,
     Bech32,
+    secp256k1, 
+    schnorr
 } from './core/index'
 export {
     IFetchNotesOptions,
