@@ -4,6 +4,7 @@ export {
     INostrEvent,
     ICommunityBasicInfo,
     ICommunityInfo,
+    ICommunityCollectible,
     ICommunityLeaderboard,
     ICommunityScpData,
     INoteInfo,

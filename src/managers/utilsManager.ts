@@ -166,15 +166,21 @@ class SocialUtilsManager {
         let scpData;
         let gatekeeperNpub;
         let membershipType: MembershipType = MembershipType.Open;
+        let data = event.content ? JSON.parse(event.content) : {};
+        let pointSystem, collectibles;
         if (scpTag && scpTag[1] === '1') {
             membershipType = MembershipType.Protected;
-            policies = event.content ? JSON.parse(event.content) : [];
+            policies = Array.isArray(data) ? data : data.policies || [];
             const scpDataStr = SocialUtilsManager.base64ToUtf8(scpTag[2]);
             if (!scpDataStr.startsWith('$scp:')) return null;
             scpData = JSON.parse(scpDataStr.substring(5));
             if (scpData.gatekeeperPublicKey) {
                 gatekeeperNpub = Nip19.npubEncode(scpData.gatekeeperPublicKey);
             }
+        }
+        if (!Array.isArray(data)) {
+            pointSystem = data.pointSystem;
+            collectibles = data.collectibles;
         }
         const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
         let communityInfo: ICommunityInfo = {
@@ -191,7 +197,9 @@ class SocialUtilsManager {
             gatekeeperNpub,
             membershipType,
             privateRelay,
-            policies
+            policies,
+            pointSystem,
+            collectibles
         }
 
         return communityInfo;

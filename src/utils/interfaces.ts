@@ -172,6 +172,27 @@ export interface ICommunityBasicInfo {
 	communityId: string;
 }
 
+export interface ICommunityPointSystem {
+	createPost: number;
+	reply: number;
+	like: number;
+	repost: number;
+}
+
+interface ICommunityCollectibleAction {
+	mint?: boolean;
+	redeem?: boolean;
+}
+
+export interface ICommunityCollectible {
+    name: string;
+    image?: string;
+    description?: string;
+    link?: string;
+    requiredPoints: number;
+	actions?: ICommunityCollectibleAction;
+}
+
 export interface ICommunityInfo extends ICommunityBasicInfo {
 	communityUri: string;
 	description?: string;
@@ -187,6 +208,8 @@ export interface ICommunityInfo extends ICommunityBasicInfo {
 	privateRelay?: string;
 	gatekeeperNpub?: string;
 	policies?: IProtectedMembershipPolicy[];
+	pointSystem?: ICommunityPointSystem;
+	collectibles?: ICommunityCollectible[];
 }
 
 export interface ICommunityLeaderboard {
@@ -211,6 +234,8 @@ export interface INewCommunityInfo {
 	privateRelay?: string;
 	gatekeeperNpub?: string;
 	policies?: IProtectedMembershipPolicy[];
+	pointSystem?: ICommunityPointSystem;
+	collectibles?: ICommunityCollectible[];
 }
 
 export interface IChannelInfo {
