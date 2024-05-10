@@ -4533,9 +4533,11 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             let scpData;
             let gatekeeperNpub;
             let membershipType = interfaces_2.MembershipType.Open;
+            let data = event.content ? JSON.parse(event.content) : {};
+            let pointSystem, collectibles;
             if (scpTag && scpTag[1] === '1') {
                 membershipType = interfaces_2.MembershipType.Protected;
-                policies = event.content ? JSON.parse(event.content) : [];
+                policies = Array.isArray(data) ? data : data.policies || [];
                 const scpDataStr = SocialUtilsManager.base64ToUtf8(scpTag[2]);
                 if (!scpDataStr.startsWith('$scp:'))
                     return null;
@@ -4543,6 +4545,10 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 if (scpData.gatekeeperPublicKey) {
                     gatekeeperNpub = index_2.Nip19.npubEncode(scpData.gatekeeperPublicKey);
                 }
+            }
+            if (!Array.isArray(data)) {
+                pointSystem = data.pointSystem;
+                collectibles = data.collectibles;
             }
             const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
             let communityInfo = {
@@ -4559,7 +4565,9 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 gatekeeperNpub,
                 membershipType,
                 privateRelay,
-                policies
+                policies,
+                pointSystem,
+                collectibles
             };
             return communityInfo;
         }
@@ -4805,7 +4813,14 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
         async updateCommunity(info) {
-            const content = info.membershipType === interfaces_3.MembershipType.Protected ? JSON.stringify(info.policies) : '';
+            const data = {
+                pointSystem: info.pointSystem,
+                collectibles: info.collectibles
+            };
+            if (info.membershipType === interfaces_3.MembershipType.Protected)
+                data.policies = info.policies;
+            const isEmptyObject = JSON.stringify(data) === "{}";
+            const content = isEmptyObject ? "" : JSON.stringify(data);
             let event = {
                 "kind": 34550,
                 "created_at": Math.round(Date.now() / 1000),
@@ -7478,6 +7493,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 privateRelay: newInfo.privateRelay,
                 gatekeeperNpub: newInfo.gatekeeperNpub,
                 policies: newInfo.policies,
+                pointSystem: newInfo.pointSystem,
+                collectibles: newInfo.collectibles
             };
             if (communityInfo.membershipType === interfaces_4.MembershipType.Protected) {
                 const gatekeeperPublicKey = index_6.Nip19.decode(communityInfo.gatekeeperNpub).data;

@@ -202,7 +202,13 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
     }
 
     async updateCommunity(info: ICommunityInfo) {
-        const content = info.membershipType === MembershipType.Protected ? JSON.stringify(info.policies) : '';
+        const data: any = {
+            pointSystem: info.pointSystem,
+            collectibles: info.collectibles
+        }
+        if (info.membershipType === MembershipType.Protected) data.policies = info.policies;
+        const isEmptyObject = JSON.stringify(data) === "{}";
+        const content = isEmptyObject ? "" : JSON.stringify(data);
         let event = {
             "kind": 34550,
             "created_at": Math.round(Date.now() / 1000),

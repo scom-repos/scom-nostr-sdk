@@ -1108,6 +1108,8 @@ class SocialDataManager {
             privateRelay: newInfo.privateRelay,
             gatekeeperNpub: newInfo.gatekeeperNpub,
             policies: newInfo.policies,
+            pointSystem: newInfo.pointSystem,
+            collectibles: newInfo.collectibles
         }
 
         if (communityInfo.membershipType === MembershipType.Protected) {
