@@ -23,7 +23,7 @@ interface ISocialEventManagerWrite {
     updateCalendarEvent(info: IUpdateCalendarEventInfo): Promise<INostrSubmitResponse[]>;
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean): Promise<INostrSubmitResponse[]>;
     submitCalendarEventPost(info: INewCalendarEventPostInfo): Promise<INostrSubmitResponse[]>;
-    submitLongFormContentEvents(info: ILongFormContentInfo): Promise<void>;
+    submitLongFormContentEvents(info: ILongFormContentInfo): Promise<string>;
     submitLike(tags: string[][]): Promise<void>;
     submitRepost(content: string, tags: string[][]): Promise<void>;
     updateRelayList(relays: Record<string, IRelayConfig>): Promise<void>;
@@ -574,15 +574,20 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
     }
 
     async submitLongFormContentEvents(info: ILongFormContentInfo) {
+        let hashtags: string[][] = [];
+        if (info.hashtags?.length > 0) {
+            hashtags = info.hashtags.map(tag => ["t", tag]);
+        }
         let event = {
             "kind": 30023,
-            "created_at": Math.round(Date.now() / 1000),
+            "created_at": info.createdAt || Math.round(Date.now() / 1000),
             "content": info.content,
             "tags": [
                 [
                     "d",
                     info.id
-                ]
+                ],
+                ...hashtags
             ]
         };
         if (info.title) {
@@ -611,6 +616,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         }
         const verifiedEvent = Event.finishEvent(event, this._privateKey);
         const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        return verifiedEvent.id;
     }
 
     async submitLike(tags: string[][]) {

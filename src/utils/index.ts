@@ -34,7 +34,8 @@ export {
     ILocationCoordinates,
     ISocialDataManagerConfig,
     INostrFetchEventsResponse,
-    IPaymentActivity
+    IPaymentActivity,
+    ILongFormContentInfo
 } from "./interfaces";
 
 export {

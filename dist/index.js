@@ -5176,15 +5176,20 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             return responses;
         }
         async submitLongFormContentEvents(info) {
+            let hashtags = [];
+            if (info.hashtags?.length > 0) {
+                hashtags = info.hashtags.map(tag => ["t", tag]);
+            }
             let event = {
                 "kind": 30023,
-                "created_at": Math.round(Date.now() / 1000),
+                "created_at": info.createdAt || Math.round(Date.now() / 1000),
                 "content": info.content,
                 "tags": [
                     [
                         "d",
                         info.id
-                    ]
+                    ],
+                    ...hashtags
                 ]
             };
             if (info.title) {
@@ -5213,6 +5218,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             }
             const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
             const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            return verifiedEvent.id;
         }
         async submitLike(tags) {
             let event = {
@@ -8332,7 +8338,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             return this._socialEventManagerWrite.postNote(message, conversationPath);
         }
         async submitLongFormContent(info) {
-            await this._socialEventManagerWrite.submitLongFormContentEvents(info);
+            return this._socialEventManagerWrite.submitLongFormContentEvents(info);
         }
         async submitLike(postEventData) {
             let tags = postEventData.tags.filter(tag => tag.length >= 2 && (tag[0] === 'e' || tag[0] === 'p'));
