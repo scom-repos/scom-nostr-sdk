@@ -1472,6 +1472,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     export interface ILongFormContentInfo {
         id: string;
         content: string;
+        markdownContent: string;
         title?: string;
         image?: string;
         summary?: string;
