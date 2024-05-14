@@ -372,6 +372,7 @@ export interface ISocialDataManagerConfig {
 export interface ILongFormContentInfo {
     id: string;
     content: string;
+    markdownContent: string;
     title?: string;
     image?: string;
     summary?: string;

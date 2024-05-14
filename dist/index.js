@@ -5181,13 +5181,21 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 hashtags = info.hashtags.map(tag => ["t", tag]);
             }
             let event = {
-                "kind": 30023,
+                "kind": 1,
                 "created_at": info.createdAt || Math.round(Date.now() / 1000),
                 "content": info.content,
                 "tags": [
                     [
                         "d",
                         info.id
+                    ],
+                    [
+                        "c",
+                        "md"
+                    ],
+                    [
+                        "content",
+                        info.markdownContent
                     ],
                     ...hashtags
                 ]
