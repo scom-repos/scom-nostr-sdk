@@ -375,8 +375,10 @@ export interface ILongFormContentInfo {
     title?: string;
     image?: string;
     summary?: string;
+    createdAt?: number;
     publishedAt?: number;
     eventData?: INostrEvent;
+    hashtags?: string[];
 }
 export interface IAllUserRelatedChannels {
     channels: IChannelInfo[];

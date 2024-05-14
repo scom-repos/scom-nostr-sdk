@@ -43,6 +43,7 @@ export {
     ISocialDataManagerConfig,
     IPaymentActivity,
     INostrFetchEventsResponse,
+    ILongFormContentInfo,
     MqttManager
 } from './utils/index'
 

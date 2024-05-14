@@ -18,7 +18,7 @@ interface ISocialEventManagerWrite {
     updateCalendarEvent(info: IUpdateCalendarEventInfo): Promise<INostrSubmitResponse[]>;
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean): Promise<INostrSubmitResponse[]>;
     submitCalendarEventPost(info: INewCalendarEventPostInfo): Promise<INostrSubmitResponse[]>;
-    submitLongFormContentEvents(info: ILongFormContentInfo): Promise<void>;
+    submitLongFormContentEvents(info: ILongFormContentInfo): Promise<string>;
     submitLike(tags: string[][]): Promise<void>;
     submitRepost(content: string, tags: string[][]): Promise<void>;
     updateRelayList(relays: Record<string, IRelayConfig>): Promise<void>;
@@ -47,7 +47,7 @@ declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
     updateCalendarEvent(info: IUpdateCalendarEventInfo): Promise<INostrSubmitResponse[]>;
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean): Promise<INostrSubmitResponse[]>;
     submitCalendarEventPost(info: INewCalendarEventPostInfo): Promise<INostrSubmitResponse[]>;
-    submitLongFormContentEvents(info: ILongFormContentInfo): Promise<void>;
+    submitLongFormContentEvents(info: ILongFormContentInfo): Promise<string>;
     submitLike(tags: string[][]): Promise<void>;
     submitRepost(content: string, tags: string[][]): Promise<void>;
     updateRelayList(relays: Record<string, IRelayConfig>): Promise<void>;

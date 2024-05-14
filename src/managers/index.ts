@@ -1996,7 +1996,7 @@ class SocialDataManager {
     }
 
     async submitLongFormContent(info: ILongFormContentInfo) {
-        await this._socialEventManagerWrite.submitLongFormContentEvents(info);
+        return this._socialEventManagerWrite.submitLongFormContentEvents(info);
     }
 
     async submitLike(postEventData: INostrEvent) {
