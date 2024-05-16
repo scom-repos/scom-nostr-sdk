@@ -417,7 +417,7 @@ export interface ILocationCoordinates {
 }
 
 export interface ISocialDataManagerConfig {
-	version?: 1 | 2;
+	version?: 1 | 1.5 | 2;
 	writeRelays: string[];
 	readRelay: string;
 	publicIndexingRelay: string;

@@ -12,6 +12,7 @@ import { SocialUtilsManager } from "./utilsManager";
 import { ISocialEventManagerWrite, NostrEventManagerWrite } from "./eventManagerWrite";
 import { ISocialEventManagerRead, NostrEventManagerRead } from "./eventManagerRead";
 import { NostrEventManagerReadV2 } from "./eventManagerReadV2";
+import { NostrEventManagerReadV1o5 } from "./eventManagerReadV1o5";
 import {Crypto} from "@scom/scom-signer";
 import { Contracts, TransactionReceipt, Utils, Wallet } from "@ijstech/eth-wallet";
 
@@ -53,6 +54,11 @@ class SocialDataManager {
                 nostrReadRelayManager as NostrRestAPIManager
             );
         }
+        else if (config.version === 1.5) {
+            this._socialEventManagerRead = new NostrEventManagerReadV1o5(
+                nostrReadRelayManager as NostrRestAPIManager
+            );
+        }        
         else {
             this._socialEventManagerRead = new NostrEventManagerRead(
                 nostrReadRelayManager
