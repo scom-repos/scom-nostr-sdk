@@ -166,7 +166,14 @@ class SocialUtilsManager {
         let scpData;
         let gatekeeperNpub;
         let membershipType: MembershipType = MembershipType.Open;
-        let data = event.content ? JSON.parse(event.content) : {};
+        let data: any = {};
+        if (event.content) {
+            try {
+                data = JSON.parse(event.content)
+            } catch {
+                data = {};
+            }
+        }
         let pointSystem, collectibles;
         if (scpTag && scpTag[1] === '1') {
             membershipType = MembershipType.Protected;
