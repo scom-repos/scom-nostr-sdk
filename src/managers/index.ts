@@ -69,11 +69,16 @@ class SocialDataManager {
             nostrCommunicationManagers
         );
         if (config.mqttBrokerUrl) {
-            this.mqttManager = new MqttManager({
-                brokerUrl: config.mqttBrokerUrl,
-                subscriptions: config.mqttSubscriptions,
-                messageCallback: config.mqttMessageCallback
-            });
+            try {
+                this.mqttManager = new MqttManager({
+                    brokerUrl: config.mqttBrokerUrl,
+                    subscriptions: config.mqttSubscriptions,
+                    messageCallback: config.mqttMessageCallback
+                });
+            } 
+            catch (e) {
+                console.error('Failed to connect to MQTT broker', e);
+            }
         }
         if (config.enableLightningWallet) {
             this.lightningWalletManager = new LightningWalletManager();
@@ -1247,6 +1252,7 @@ class SocialDataManager {
     }
 
     async fetchCommunitiesMembers(communities: ICommunityInfo[]) {
+        if (communities.length === 0) return {};
         const communityUriToMemberIdRoleComboMap = await this.mapCommunityUriToMemberIdRoleCombo(communities);
         let pubkeys = new Set(flatMap(Object.values(communityUriToMemberIdRoleComboMap), combo => combo.map(c => c.id)));
         const communityUriToMembersMap: Record<string, ICommunityMember[]> = {};

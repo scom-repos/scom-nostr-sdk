@@ -7121,11 +7121,16 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             }
             this._socialEventManagerWrite = new eventManagerWrite_1.NostrEventManagerWrite(nostrCommunicationManagers);
             if (config.mqttBrokerUrl) {
-                this.mqttManager = new mqtt_2.MqttManager({
-                    brokerUrl: config.mqttBrokerUrl,
-                    subscriptions: config.mqttSubscriptions,
-                    messageCallback: config.mqttMessageCallback
-                });
+                try {
+                    this.mqttManager = new mqtt_2.MqttManager({
+                        brokerUrl: config.mqttBrokerUrl,
+                        subscriptions: config.mqttSubscriptions,
+                        messageCallback: config.mqttMessageCallback
+                    });
+                }
+                catch (e) {
+                    console.error('Failed to connect to MQTT broker', e);
+                }
             }
             if (config.enableLightningWallet) {
                 this.lightningWalletManager = new lightningWallet_1.LightningWalletManager();
@@ -8216,6 +8221,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             return updateChannelResponses;
         }
         async fetchCommunitiesMembers(communities) {
+            if (communities.length === 0)
+                return {};
             const communityUriToMemberIdRoleComboMap = await this.mapCommunityUriToMemberIdRoleCombo(communities);
             let pubkeys = new Set(flatMap(Object.values(communityUriToMemberIdRoleComboMap), combo => combo.map(c => c.id)));
             const communityUriToMembersMap = {};
