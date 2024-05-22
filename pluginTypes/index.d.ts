@@ -1333,6 +1333,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     export interface INewCommunityPostInfo {
         community: ICommunityInfo;
         message: string;
+        timestamp?: number;
         conversationPath?: IConversationPath;
         scpData?: ICommunityPostScpData;
     }
@@ -1690,7 +1691,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
         updateUserBookmarkedChannels(channelEventIds: string[]): Promise<void>;
         submitChannelMessage(info: INewChannelMessageInfo): Promise<void>;
         updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[]): Promise<void>;
-        submitCommunityPost(info: INewCommunityPostInfo): Promise<void>;
+        submitCommunityPost(info: INewCommunityPostInfo): Promise<INostrSubmitResponse[]>;
         updateUserProfile(content: INostrMetadataContent): Promise<void>;
         sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<void>;
         updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]): Promise<INostrSubmitResponse[]>;
@@ -1718,7 +1719,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
         updateUserBookmarkedChannels(channelEventIds: string[]): Promise<void>;
         updateCommunity(info: ICommunityInfo): Promise<INostrSubmitResponse[]>;
         updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[]): Promise<void>;
-        submitCommunityPost(info: INewCommunityPostInfo): Promise<void>;
+        submitCommunityPost(info: INewCommunityPostInfo): Promise<INostrSubmitResponse[]>;
         submitChannelMessage(info: INewChannelMessageInfo): Promise<void>;
         updateUserProfile(content: INostrMetadataContent): Promise<void>;
         sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<void>;
@@ -2087,7 +2088,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         joinCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;
         leaveCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;
         private encryptGroupMessage;
-        submitCommunityPost(message: string, info: ICommunityInfo, conversationPath?: IConversationPath): Promise<void>;
+        submitCommunityPost(message: string, info: ICommunityInfo, conversationPath?: IConversationPath, timestamp?: number): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrSubmitResponse[]>;
         fetchAllUserRelatedChannels(pubKey: string): Promise<IChannelInfo[]>;
         retrieveChannelMessages(channelId: string, since?: number, until?: number): Promise<INostrEvent[]>;
         retrieveChannelEvents(creatorId: string, channelId: string): Promise<{

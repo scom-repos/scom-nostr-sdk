@@ -11,7 +11,7 @@ interface ISocialEventManagerWrite {
     updateUserBookmarkedChannels(channelEventIds: string[]): Promise<void>;
     submitChannelMessage(info: INewChannelMessageInfo): Promise<void>;
     updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[]): Promise<void>;
-    submitCommunityPost(info: INewCommunityPostInfo): Promise<void>;
+    submitCommunityPost(info: INewCommunityPostInfo): Promise<INostrSubmitResponse[]>;
     updateUserProfile(content: INostrMetadataContent): Promise<void>;
     sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<void>;
     updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]): Promise<INostrSubmitResponse[]>;
@@ -39,7 +39,7 @@ declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
     updateUserBookmarkedChannels(channelEventIds: string[]): Promise<void>;
     updateCommunity(info: ICommunityInfo): Promise<INostrSubmitResponse[]>;
     updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[]): Promise<void>;
-    submitCommunityPost(info: INewCommunityPostInfo): Promise<void>;
+    submitCommunityPost(info: INewCommunityPostInfo): Promise<INostrSubmitResponse[]>;
     submitChannelMessage(info: INewChannelMessageInfo): Promise<void>;
     updateUserProfile(content: INostrMetadataContent): Promise<void>;
     sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<void>;

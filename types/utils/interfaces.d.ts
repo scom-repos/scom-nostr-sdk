@@ -233,6 +233,7 @@ export interface IConversationPath {
 export interface INewCommunityPostInfo {
     community: ICommunityInfo;
     message: string;
+    timestamp?: number;
     conversationPath?: IConversationPath;
     scpData?: ICommunityPostScpData;
 }
