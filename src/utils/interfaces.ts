@@ -23,6 +23,7 @@ export interface INostrSubmitResponse {
 	eventId: string;
 	success: boolean;
 	message?: string;
+	relay?: string;
 }
 
 export interface INostrMetadataContent {

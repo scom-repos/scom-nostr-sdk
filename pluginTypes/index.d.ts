@@ -1120,6 +1120,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         eventId: string;
         success: boolean;
         message?: string;
+        relay?: string;
     }
     export interface INostrMetadataContent {
         name: string;
