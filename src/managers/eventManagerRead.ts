@@ -20,7 +20,7 @@ interface ISocialEventManagerRead {
     fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;
     fetchUserBookmarkedCommunities(pubKey: string, excludedCommunity?: ICommunityInfo): Promise<ICommunityBasicInfo[]>;
     fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
-    fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
+    fetchCommunitiesMetadataFeed(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
     fetchCommunitiesFeed(communityUriArr: string[]): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
     fetchNotes(options: IFetchNotesOptions): Promise<INostrEvent[]>;
@@ -299,21 +299,25 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         return fetchEventsResponse.events;        
     }
 
-    async fetchCommunityFeed(creatorId: string, communityId: string) {
-        const decodedCreatorId = creatorId.startsWith('npub1') ? Nip19.decode(creatorId).data : creatorId;
-        const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
-        let infoMsg: any = {
-            kinds: [34550],
-            authors: [decodedCreatorId],
-            "#d": [communityId]
-        };
-        let notesMsg: any = {
-            // kinds: [1, 7, 9735],
-            kinds: [1],
-            "#a": [communityUri],
-            limit: 50
-        };
-        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(infoMsg, notesMsg);
+    async fetchCommunitiesMetadataFeed(communities: ICommunityBasicInfo[]) {
+        let requests: any[] = [];
+        for (let community of communities) {
+            const decodedCreatorId = community.creatorId.startsWith('npub1') ? Nip19.decode(community.creatorId).data : community.creatorId;
+            const communityUri = SocialUtilsManager.getCommunityUri(community.creatorId, community.communityId);
+            let infoMsg: any = {
+                kinds: [34550],
+                authors: [decodedCreatorId],
+                "#d": [community.communityId]
+            };
+            let notesMsg: any = {
+                kinds: [1],
+                "#a": [communityUri],
+                limit: 50
+            };
+            requests.push(infoMsg);
+            requests.push(notesMsg);
+        }
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(...requests);
         return fetchEventsResponse.events;        
     }
 

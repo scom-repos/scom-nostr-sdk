@@ -21,7 +21,7 @@ declare class NostrEventManagerReadV2 extends NostrEventManagerRead implements I
     fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;
     fetchUserBookmarkedCommunities(pubKey: string, excludedCommunity?: ICommunityInfo): Promise<ICommunityBasicInfo[]>;
     fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
-    fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
+    fetchCommunitiesMetadataFeed(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
     fetchAllUserRelatedChannels(pubKey: string): Promise<{
         channels: IChannelInfo[];

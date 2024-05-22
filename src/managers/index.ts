@@ -140,7 +140,12 @@ class SocialDataManager {
     }
 
     async retrieveCommunityEvents(creatorId: string, communityId: string) {
-        const feedEvents = await this._socialEventManagerRead.fetchCommunityFeed(creatorId, communityId);
+        const feedEvents = await this._socialEventManagerRead.fetchCommunitiesMetadataFeed([
+            {
+                creatorId,
+                communityId    
+            }
+        ]);
         const {
             notes,
             metadataByPubKeyMap,
@@ -802,23 +807,20 @@ class SocialDataManager {
             //     communityId: 'Art'
             // }
         ];
-        for (let community of suggestedCommunities) {
-            const feedEvents = await this._socialEventManagerRead.fetchCommunityFeed(community.creatorId, community.communityId);
-            const notes = feedEvents.filter(event => event.kind === 1);
-            const communityEvent = feedEvents.find(event => event.kind === 34550);
-            if (!communityEvent) throw new Error('No info event found');
+        const feedEvents = await this._socialEventManagerRead.fetchCommunitiesMetadataFeed(suggestedCommunities);
+        const communityEvents = feedEvents.filter(event => event.kind === 34550);
+        for (let communityEvent of communityEvents) {
             const communityInfo = SocialUtilsManager.extractCommunityInfo(communityEvent);
-            if (!communityInfo) throw new Error('No info event found');
+            if (!communityInfo) continue;
             const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(communityInfo.communityUri + ':keys');
             if (keyEvent) {
                 communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
             }
             result.push({
                 info: communityInfo,
-                notes
+                notes: feedEvents.filter(event => event.tags?.find(tag => tag[0] === 'a' && tag[1] === communityInfo.communityUri))
             });
         }
-
         return result
     }
 

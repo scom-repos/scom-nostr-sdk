@@ -217,15 +217,18 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         return fetchEventsResponse.events;        
     }
 
-    async fetchCommunityFeed(creatorId: string, communityId: string) {
-        const decodedCreatorId = creatorId.startsWith('npub1') ? Nip19.decode(creatorId).data : creatorId;
+    async fetchCommunitiesMetadataFeed(communities: ICommunityBasicInfo[]) {
+        let identifiers: any[] = [];
+        for (let community of communities) {
+            const decodedCreatorId = community.creatorId.startsWith('npub1') ? Nip19.decode(community.creatorId).data : community.creatorId;
+            let identifier: any = {
+                pubkey: decodedCreatorId,
+                names: [community.communityId]
+            };
+            identifiers.push(identifier);
+        }
         let msg = this.augmentWithAuthInfo({
-            identifiers: [
-                {
-                    pubkey: decodedCreatorId,
-                    names: [communityId]
-                }
-            ],
+            identifiers,
             limit: 50
         });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-feed', msg);

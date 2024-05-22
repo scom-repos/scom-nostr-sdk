@@ -23,7 +23,7 @@ declare class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;
     fetchUserBookmarkedCommunities(pubKey: string, excludedCommunity?: ICommunityInfo): Promise<ICommunityBasicInfo[]>;
     fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
-    fetchCommunityFeed(creatorId: string, communityId: string): Promise<INostrEvent[]>;
+    fetchCommunitiesMetadataFeed(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
     fetchCommunitiesFeed(communityUriArr: string[]): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
     fetchNotes(options: IFetchNotesOptions): Promise<INostrEvent[]>;
