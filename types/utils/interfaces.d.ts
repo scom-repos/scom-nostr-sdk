@@ -20,6 +20,7 @@ export interface INostrSubmitResponse {
     eventId: string;
     success: boolean;
     message?: string;
+    relay?: string;
 }
 export interface INostrMetadataContent {
     name: string;
@@ -233,6 +234,7 @@ export interface IConversationPath {
 export interface INewCommunityPostInfo {
     community: ICommunityInfo;
     message: string;
+    timestamp?: number;
     conversationPath?: IConversationPath;
     scpData?: ICommunityPostScpData;
 }

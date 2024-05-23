@@ -92,7 +92,10 @@ class NostrRestAPIManager implements INostrRestAPIManager {
             });
             const data = await response.json();
             console.log('submitEvent response', data)
-            return data;
+            return {
+                ...data,
+                relay: this.url
+              };
         } catch (error) {
             console.error('Error submitting event:', error);
             throw error;
@@ -232,14 +235,16 @@ class NostrWebSocketManager implements INostrCommunicationManager {
                 resolve({
                     eventId: message[1],
                     success: message[2],
-                    message: message[3]
+                    message: message[3],
+                    relay: this.url
                 });
             });
             if (error) {
                 resolve({
                     eventId: event.id,
                     success: false,
-                    message: error            
+                    message: error   ,
+                    relay: this.url         
                 });
             }
             else if (ws) {

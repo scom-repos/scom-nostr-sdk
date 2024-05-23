@@ -1353,7 +1353,7 @@ class SocialDataManager {
         }
     }
 
-    async submitCommunityPost(message: string, info: ICommunityInfo, conversationPath?: IConversationPath) {
+    async submitCommunityPost(message: string, info: ICommunityInfo, conversationPath?: IConversationPath, timestamp?: number) {
         const messageContent = {
             communityUri: info.communityUri,
             message,
@@ -1363,6 +1363,7 @@ class SocialDataManager {
             newCommunityPostInfo = {
                 community: info,
                 message,
+                timestamp,
                 conversationPath
             }
         }
@@ -1374,6 +1375,7 @@ class SocialDataManager {
             newCommunityPostInfo = {
                 community: info,
                 message: encryptedMessage,
+                timestamp,
                 conversationPath,
                 scpData: {
                     encryptedKey: encryptedGroupKey,
@@ -1381,7 +1383,8 @@ class SocialDataManager {
                 }
             }
         }
-        await this._socialEventManagerWrite.submitCommunityPost(newCommunityPostInfo);
+        const responses = await this._socialEventManagerWrite.submitCommunityPost(newCommunityPostInfo);
+        return responses;
     }
 
     async fetchAllUserRelatedChannels(pubKey: string) {
