@@ -265,6 +265,12 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 "moderator"
             ]);
         }
+        if (info.enableLeaderboard) {
+            event.tags.push([
+                "leaderboard",
+                "true"
+            ])
+        }
         const verifiedEvent = Event.finishEvent(event, this._privateKey);
         const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         return responses;

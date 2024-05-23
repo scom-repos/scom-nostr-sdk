@@ -1279,6 +1279,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         policies?: IProtectedMembershipPolicy[];
         pointSystem?: ICommunityPointSystem;
         collectibles?: ICommunityCollectible[];
+        enableLeaderboard?: boolean;
     }
     export interface ICommunityLeaderboard {
         npub: string;
@@ -1302,6 +1303,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         policies?: IProtectedMembershipPolicy[];
         pointSystem?: ICommunityPointSystem;
         collectibles?: ICommunityCollectible[];
+        enableLeaderboard?: boolean;
     }
     export interface IChannelInfo {
         id?: string;
