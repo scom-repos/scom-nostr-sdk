@@ -16,7 +16,7 @@ interface ISocialEventManagerWrite {
     updateUserBookmarkedChannels(channelEventIds: string[]): Promise<void>;
     submitChannelMessage(info: INewChannelMessageInfo): Promise<void>;
     updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[]): Promise<void>;
-    submitCommunityPost(info: INewCommunityPostInfo): Promise<void>;
+    submitCommunityPost(info: INewCommunityPostInfo): Promise<INostrSubmitResponse[]>;
     updateUserProfile(content: INostrMetadataContent): Promise<void>;
     sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<void>;
     updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]): Promise<INostrSubmitResponse[]>;
@@ -308,7 +308,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         const communityUri = SocialUtilsManager.getCommunityUri(community.creatorId, community.communityId);
         let event = {
             "kind": 1,
-            "created_at": Math.round(Date.now() / 1000),
+            "created_at": info.timestamp || Math.round(Date.now() / 1000),
             "content": info.message,
             "tags": []
         };
@@ -335,6 +335,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         console.log('submitCommunityPost', event);
         const verifiedEvent = Event.finishEvent(event, this._privateKey);
         const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        return responses;
     }
 
     async submitChannelMessage(info: INewChannelMessageInfo) {
