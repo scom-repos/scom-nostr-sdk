@@ -4534,6 +4534,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             const creatorId = index_2.Nip19.npubEncode(event.pubkey);
             const moderatorIds = event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'moderator').map(tag => index_2.Nip19.npubEncode(tag[1]));
             const scpTag = event.tags.find(tag => tag[0] === 'scp');
+            const enableLeaderboard = event.tags.some(tag => tag[0] === 'leaderboard');
             let policies = [];
             let scpData;
             let gatekeeperNpub;
@@ -4580,7 +4581,8 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 privateRelay,
                 policies,
                 pointSystem,
-                collectibles
+                collectibles,
+                enableLeaderboard
             };
             return communityInfo;
         }
@@ -4888,6 +4890,12 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     decodedModeratorId,
                     "",
                     "moderator"
+                ]);
+            }
+            if (info.enableLeaderboard) {
+                event.tags.push([
+                    "leaderboard",
+                    "true"
                 ]);
             }
             const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);

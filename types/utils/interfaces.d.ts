@@ -180,6 +180,7 @@ export interface ICommunityInfo extends ICommunityBasicInfo {
     policies?: IProtectedMembershipPolicy[];
     pointSystem?: ICommunityPointSystem;
     collectibles?: ICommunityCollectible[];
+    enableLeaderboard?: boolean;
 }
 export interface ICommunityLeaderboard {
     npub: string;
@@ -203,6 +204,7 @@ export interface INewCommunityInfo {
     policies?: IProtectedMembershipPolicy[];
     pointSystem?: ICommunityPointSystem;
     collectibles?: ICommunityCollectible[];
+    enableLeaderboard?: boolean;
 }
 export interface IChannelInfo {
     id?: string;
