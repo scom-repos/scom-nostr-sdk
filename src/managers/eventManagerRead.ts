@@ -49,6 +49,7 @@ interface ISocialEventManagerRead {
     fetchPaymentActivitiesForRecipient(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
     fetchPaymentActivitiesForSender(pubKey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
     fetchUserFollowingFeed(pubKey: string, until?: number): Promise<INostrEvent[]>;
+    fetchCommunityPinnedNotes(creatorId: string, communityId: string): Promise<INostrEvent>;
 }
 
 class NostrEventManagerRead implements ISocialEventManagerRead {
@@ -827,6 +828,16 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         }
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('explore', msg);
         return fetchEventsResponse.events;
+    }
+
+    async fetchCommunityPinnedNotes(creatorId: string, communityId: string) {
+        const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
+        let request: any = {
+            kinds: [9741],
+            "#a": [communityUri]
+        };
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+        return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
     }
 }
 

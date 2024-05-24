@@ -29,6 +29,7 @@ interface ISocialEventManagerWrite {
     updateRelayList(relays: Record<string, IRelayConfig>): Promise<void>;
     createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, isLightningInvoice?: boolean): Promise<void>;
     createPaymentReceiptEvent(requestEventId: string, recipient: string, comment: string, preimage?: string, tx?: string): Promise<void>;
+    updateCommunityPinnedNotes(creatorId: string, communityId: string, eventIds: string[]): Promise<void>;
 }
 
 function convertUnixTimestampToDate(timestamp: number): string {
@@ -734,6 +735,25 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 ]
             );
         }
+        const verifiedEvent = Event.finishEvent(event, this._privateKey);
+        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+    }
+
+    async updateCommunityPinnedNotes(creatorId: string, communityId: string, eventIds: string[]) {
+        const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
+        let tags = eventIds.map(id => ["e", id]);
+        let event = {
+            "kind": 9741,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": "",
+            "tags": [
+                [
+                    "a",
+                    communityUri
+                ],
+                ...tags
+            ]
+        };
         const verifiedEvent = Event.finishEvent(event, this._privateKey);
         const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
     }
