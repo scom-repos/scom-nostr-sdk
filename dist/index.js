@@ -5365,6 +5365,17 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
             const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
+        async updateUserPinnedNotes(eventIds) {
+            let tags = eventIds.map(id => ["e", id]);
+            let event = {
+                "kind": 10001,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": "",
+                "tags": tags
+            };
+            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
+            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        }
     }
     exports.NostrEventManagerWrite = NostrEventManagerWrite;
 });
@@ -6089,6 +6100,15 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             let request = {
                 kinds: [9741],
                 "#a": [communityUri]
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        }
+        async fetchUserPinnedNotes(pubKey) {
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
+            let request = {
+                kinds: [10001],
+                authors: [decodedPubKey]
             };
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
@@ -7131,6 +7151,15 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             let request = {
                 kinds: [9741],
                 "#a": [communityUri]
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        }
+        async fetchUserPinnedNotes(pubKey) {
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_6.Nip19.decode(pubKey).data : pubKey;
+            let request = {
+                kinds: [10001],
+                authors: [decodedPubKey]
             };
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
@@ -9427,7 +9456,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     }
                 }
             }
-            return this._socialEventManagerRead.fetchEventsByIds(noteIds);
+            if (noteIds.length > 0)
+                return this._socialEventManagerRead.fetchEventsByIds(noteIds);
+            else
+                return [];
         }
         async pinCommunityNote(creatorId, communityId, noteId) {
             const pinnedNotesEvent = await this._socialEventManagerRead.fetchCommunityPinnedNotes(creatorId, communityId);
@@ -9452,6 +9484,45 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 }
             }
             await this._socialEventManagerWrite.updateCommunityPinnedNotes(creatorId, communityId, noteIds);
+        }
+        async fetchUserPinnedNotes(pubKey) {
+            const pinnedNotesEvent = await this._socialEventManagerRead.fetchUserPinnedNotes(pubKey);
+            let noteIds = [];
+            if (pinnedNotesEvent) {
+                for (let tag of pinnedNotesEvent.tags) {
+                    if (tag[0] === 'e') {
+                        noteIds.push(tag[1]);
+                    }
+                }
+            }
+            if (noteIds.length > 0)
+                return this._socialEventManagerRead.fetchEventsByIds(noteIds);
+            else
+                return [];
+        }
+        async pinUserNote(pubKey, noteId) {
+            const pinnedNotesEvent = await this._socialEventManagerRead.fetchUserPinnedNotes(pubKey);
+            let noteIds = [noteId];
+            if (pinnedNotesEvent) {
+                for (let tag of pinnedNotesEvent.tags) {
+                    if (tag[0] === 'e' && tag[1] !== noteId) {
+                        noteIds.push(tag[1]);
+                    }
+                }
+            }
+            await this._socialEventManagerWrite.updateUserPinnedNotes(noteIds);
+        }
+        async unpinUserNote(pubKey, noteId) {
+            const pinnedNotesEvent = await this._socialEventManagerRead.fetchUserPinnedNotes(pubKey);
+            let noteIds = [];
+            if (pinnedNotesEvent) {
+                for (let tag of pinnedNotesEvent.tags) {
+                    if (tag[0] === 'e' && tag[1] !== noteId) {
+                        noteIds.push(tag[1]);
+                    }
+                }
+            }
+            await this._socialEventManagerWrite.updateUserPinnedNotes(noteIds);
         }
     }
     exports.SocialDataManager = SocialDataManager;

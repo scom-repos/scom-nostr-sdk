@@ -203,5 +203,8 @@ declare class SocialDataManager {
     fetchCommunityPinnedNotes(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     pinCommunityNote(creatorId: string, communityId: string, noteId: string): Promise<void>;
     unpinCommunityNote(creatorId: string, communityId: string, noteId: string): Promise<void>;
+    fetchUserPinnedNotes(pubKey: string): Promise<INostrEvent[]>;
+    pinUserNote(pubKey: string, noteId: string): Promise<void>;
+    unpinUserNote(pubKey: string, noteId: string): Promise<void>;
 }
 export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager };
