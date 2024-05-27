@@ -54,5 +54,6 @@ declare class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     fetchPaymentActivitiesForSender(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
     fetchUserFollowingFeed(pubKey: string, until?: number): Promise<INostrEvent[]>;
     fetchCommunityPinnedNotes(creatorId: string, communityId: string): Promise<INostrEvent>;
+    fetchUserPinnedNotes(pubKey: string): Promise<INostrEvent>;
 }
 export { NostrEventManagerReadV1o5 };

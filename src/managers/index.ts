@@ -2451,7 +2451,10 @@ class SocialDataManager {
                 }
             }
         }
-        return this._socialEventManagerRead.fetchEventsByIds(noteIds);
+        if (noteIds.length > 0)
+            return this._socialEventManagerRead.fetchEventsByIds(noteIds);
+        else
+            return [];
     }
 
     async pinCommunityNote(creatorId: string, communityId: string, noteId: string) {
@@ -2478,6 +2481,48 @@ class SocialDataManager {
             }
         }
         await this._socialEventManagerWrite.updateCommunityPinnedNotes(creatorId, communityId, noteIds);
+    }
+
+    async fetchUserPinnedNotes(pubKey: string) {
+        const pinnedNotesEvent = await this._socialEventManagerRead.fetchUserPinnedNotes(pubKey);
+        let noteIds = [];
+        if (pinnedNotesEvent) {
+            for (let tag of pinnedNotesEvent.tags) {
+                if (tag[0] === 'e') {
+                    noteIds.push(tag[1]);
+                }
+            }
+        }
+        if (noteIds.length > 0)
+            return this._socialEventManagerRead.fetchEventsByIds(noteIds);
+        else
+            return [];
+    }
+
+    async pinUserNote(pubKey: string, noteId: string) {
+        const pinnedNotesEvent = await this._socialEventManagerRead.fetchUserPinnedNotes(pubKey);
+        let noteIds = [noteId];
+        if (pinnedNotesEvent) {
+            for (let tag of pinnedNotesEvent.tags) {
+                if (tag[0] === 'e' && tag[1] !== noteId) {
+                    noteIds.push(tag[1]);
+                }
+            }
+        }
+        await this._socialEventManagerWrite.updateUserPinnedNotes(noteIds);
+    }
+
+    async unpinUserNote(pubKey: string, noteId: string) {
+        const pinnedNotesEvent = await this._socialEventManagerRead.fetchUserPinnedNotes(pubKey);
+        let noteIds = [];
+        if (pinnedNotesEvent) {
+            for (let tag of pinnedNotesEvent.tags) {
+                if (tag[0] === 'e' && tag[1] !== noteId) {
+                    noteIds.push(tag[1]);
+                }
+            }
+        }
+        await this._socialEventManagerWrite.updateUserPinnedNotes(noteIds);
     }
 }
 
