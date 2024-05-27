@@ -2440,6 +2440,45 @@ class SocialDataManager {
         const result = await response.json();
         return result;
     }
+    
+    async fetchCommunityPinnedNotes(creatorId: string, communityId: string) {
+        const pinnedNotesEvent = await this._socialEventManagerRead.fetchCommunityPinnedNotes(creatorId, communityId);
+        let noteIds = [];
+        if (pinnedNotesEvent) {
+            for (let tag of pinnedNotesEvent.tags) {
+                if (tag[0] === 'e') {
+                    noteIds.push(tag[1]);
+                }
+            }
+        }
+        return this._socialEventManagerRead.fetchEventsByIds(noteIds);
+    }
+
+    async pinCommunityNote(creatorId: string, communityId: string, noteId: string) {
+        const pinnedNotesEvent = await this._socialEventManagerRead.fetchCommunityPinnedNotes(creatorId, communityId);
+        let noteIds = [noteId];
+        if (pinnedNotesEvent) {
+            for (let tag of pinnedNotesEvent.tags) {
+                if (tag[0] === 'e' && tag[1] !== noteId) {
+                    noteIds.push(tag[1]);
+                }
+            }
+        }
+        await this._socialEventManagerWrite.updateCommunityPinnedNotes(creatorId, communityId, noteIds);
+    }
+
+    async unpinCommunityNote(creatorId: string, communityId: string, noteId: string) {
+        const pinnedNotesEvent = await this._socialEventManagerRead.fetchCommunityPinnedNotes(creatorId, communityId);
+        let noteIds = [];
+        if (pinnedNotesEvent) {
+            for (let tag of pinnedNotesEvent.tags) {
+                if (tag[0] === 'e' && tag[1] !== noteId) {
+                    noteIds.push(tag[1]);
+                }
+            }
+        }
+        await this._socialEventManagerWrite.updateCommunityPinnedNotes(creatorId, communityId, noteIds);
+    }
 }
 
 export {

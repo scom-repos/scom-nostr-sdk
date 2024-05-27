@@ -1707,6 +1707,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
         updateRelayList(relays: Record<string, IRelayConfig>): Promise<void>;
         createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, isLightningInvoice?: boolean): Promise<void>;
         createPaymentReceiptEvent(requestEventId: string, recipient: string, comment: string, preimage?: string, tx?: string): Promise<void>;
+        updateCommunityPinnedNotes(creatorId: string, communityId: string, eventIds: string[]): Promise<void>;
     }
     class NostrEventManagerWrite implements ISocialEventManagerWrite {
         protected _nostrCommunicationManagers: INostrCommunicationManager[];
@@ -1736,6 +1737,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
         updateRelayList(relays: Record<string, IRelayConfig>): Promise<void>;
         createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, isLightningInvoice?: boolean): Promise<void>;
         createPaymentReceiptEvent(requestEventId: string, recipient: string, comment: string, preimage?: string, tx?: string): Promise<void>;
+        updateCommunityPinnedNotes(creatorId: string, communityId: string, eventIds: string[]): Promise<void>;
     }
     export { NostrEventManagerWrite, ISocialEventManagerWrite };
 }
@@ -1786,6 +1788,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         fetchPaymentActivitiesForRecipient(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
         fetchPaymentActivitiesForSender(pubKey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
         fetchUserFollowingFeed(pubKey: string, until?: number): Promise<INostrEvent[]>;
+        fetchCommunityPinnedNotes(creatorId: string, communityId: string): Promise<INostrEvent>;
     }
     class NostrEventManagerRead implements ISocialEventManagerRead {
         protected _nostrCommunicationManager: INostrCommunicationManager;
@@ -1837,6 +1840,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         fetchPaymentActivitiesForRecipient(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
         fetchPaymentActivitiesForSender(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
         fetchUserFollowingFeed(pubKey: string, until?: number): Promise<INostrEvent[]>;
+        fetchCommunityPinnedNotes(creatorId: string, communityId: string): Promise<INostrEvent>;
     }
     export { NostrEventManagerRead, ISocialEventManagerRead };
 }
@@ -1951,6 +1955,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" {
         fetchPaymentActivitiesForRecipient(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
         fetchPaymentActivitiesForSender(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
         fetchUserFollowingFeed(pubKey: string, until?: number): Promise<INostrEvent[]>;
+        fetchCommunityPinnedNotes(creatorId: string, communityId: string): Promise<INostrEvent>;
     }
     export { NostrEventManagerReadV1o5 };
 }
@@ -2158,6 +2163,9 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         fetchInstalledByPubKey(pubkey: string): Promise<any>;
         fetchInstalledApps(pubkey: string): Promise<any>;
         installApp(pubkey: string, appId: string, appVersionId: string): Promise<any>;
+        fetchCommunityPinnedNotes(creatorId: string, communityId: string): Promise<INostrEvent[]>;
+        pinCommunityNote(creatorId: string, communityId: string, noteId: string): Promise<void>;
+        unpinCommunityNote(creatorId: string, communityId: string, noteId: string): Promise<void>;
     }
     export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager };
 }

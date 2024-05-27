@@ -631,6 +631,16 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('explore', msg);
         return fetchEventsResponse.events;
     }
+
+    async fetchCommunityPinnedNotes(creatorId: string, communityId: string) {
+        const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
+        let request: any = {
+            kinds: [9741],
+            "#a": [communityUri]
+        };
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+        return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+    }
 }
 
 export {
