@@ -6586,12 +6586,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             return fetchEventsResponse.events;
         }
         async fetchTrendingCacheEvents(pubKey) {
-            let msg = {};
-            if (pubKey) {
-                const decodedPubKey = pubKey.startsWith('npub1') ? index_6.Nip19.decode(pubKey).data : pubKey;
-                msg.user_pubkey = decodedPubKey;
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('explore_global_trending_24h', msg);
+            let msg = this.augmentWithAuthInfo({});
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-trending-posts', msg);
             return fetchEventsResponse.events;
         }
         async fetchProfileFeedCacheEvents(userPubkey, pubKey, since = 0, until = 0) {
@@ -8358,7 +8354,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             }
             const communityUriToMembersMap = await this.fetchCommunitiesMembers(communities);
             for (let community of communities) {
-                community.members = communityUriToMembersMap[community.communityUri];
+                if (communityUriToMembersMap[community.communityUri]) {
+                    community.members = communityUriToMembersMap[community.communityUri];
+                }
             }
             return communities;
         }

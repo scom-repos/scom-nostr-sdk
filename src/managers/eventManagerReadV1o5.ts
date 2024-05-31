@@ -35,13 +35,9 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     }
 
     async fetchTrendingCacheEvents(pubKey?: string) {
-        let msg: any = {
-        };
-        if (pubKey) {
-            const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
-            msg.user_pubkey = decodedPubKey;
-        }
-        const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('explore_global_trending_24h', msg);
+        let msg = this.augmentWithAuthInfo({
+        });
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-trending-posts', msg);
         return fetchEventsResponse.events;
     }
     

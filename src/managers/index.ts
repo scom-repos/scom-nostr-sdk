@@ -1297,7 +1297,9 @@ class SocialDataManager {
         }
         const communityUriToMembersMap = await this.fetchCommunitiesMembers(communities);
         for (let community of communities) {
-            community.members = communityUriToMembersMap[community.communityUri];
+            if (communityUriToMembersMap[community.communityUri]) {
+                community.members = communityUriToMembersMap[community.communityUri];
+            }
         }
         return communities;
     }
