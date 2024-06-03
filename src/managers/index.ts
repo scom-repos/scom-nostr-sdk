@@ -634,7 +634,7 @@ class SocialDataManager {
 
     async fetchHomeFeedInfo(pubKey: string, since: number = 0, until?: number) {
         let events: INostrEvent[] = await this._socialEventManagerRead.fetchHomeFeedCacheEvents(pubKey, since, until);
-        const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
+        const earliest = this.getEarliestEventTimestamp(events.filter(v => v.kind === 1).filter(v => v.created_at));
         const {
             notes,
             metadataByPubKeyMap,

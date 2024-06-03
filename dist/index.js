@@ -6638,12 +6638,17 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             else {
                 msg.until = until;
             }
-            msg.pubkey = index_6.Nip19.decode('npub1nfgqmnxqsjsnsvc2r5djhcx4ap3egcjryhf9ppxnajskfel2dx9qq6mnsp').data; //FIXME: Account to show Nostr highlights 
+            // msg.pubkey = Nip19.decode('npub1nfgqmnxqsjsnsvc2r5djhcx4ap3egcjryhf9ppxnajskfel2dx9qq6mnsp').data //FIXME: Account to show Nostr highlights 
+            // if (pubKey) {
+            //     const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+            //     msg.user_pubkey = decodedPubKey;
+            // }
+            // const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('feed', msg);
             if (pubKey) {
                 const decodedPubKey = pubKey.startsWith('npub1') ? index_6.Nip19.decode(pubKey).data : pubKey;
-                msg.user_pubkey = decodedPubKey;
+                msg.pubKey = decodedPubKey;
             }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('feed', msg);
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-home-feed', msg);
             return fetchEventsResponse.events;
         }
         async fetchUserProfileCacheEvents(pubKeys) {
@@ -7737,7 +7742,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async fetchHomeFeedInfo(pubKey, since = 0, until) {
             let events = await this._socialEventManagerRead.fetchHomeFeedCacheEvents(pubKey, since, until);
-            const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
+            const earliest = this.getEarliestEventTimestamp(events.filter(v => v.kind === 1).filter(v => v.created_at));
             const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(events);
             return {
                 notes,
