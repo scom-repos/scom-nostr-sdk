@@ -199,7 +199,7 @@ class NostrWebSocketManager implements INostrCommunicationManager {
                     resolve({
                         events
                     });
-                    console.log("end of stored events");
+                    // console.log("end of stored events");
                 }
             });
             if (error) {

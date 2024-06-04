@@ -3845,7 +3845,7 @@ define("@scom/scom-social-sdk/managers/communication.ts", ["require", "exports"]
                         resolve({
                             events
                         });
-                        console.log("end of stored events");
+                        // console.log("end of stored events");
                     }
                 });
                 if (error) {
