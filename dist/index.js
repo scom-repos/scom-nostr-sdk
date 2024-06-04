@@ -3747,7 +3747,6 @@ define("@scom/scom-social-sdk/managers/communication.ts", ["require", "exports"]
                     body: JSON.stringify(event)
                 });
                 const data = await response.json();
-                console.log('submitEvent response', data);
                 return {
                     ...data,
                     relay: this.url
@@ -3800,7 +3799,6 @@ define("@scom/scom-social-sdk/managers/communication.ts", ["require", "exports"]
             this.requestCallbackMap[requestId] = cb;
             return new Promise((resolve, reject) => {
                 const openListener = () => {
-                    console.log('Connected to server');
                     this.ws.removeEventListener('open', openListener);
                     resolve({ ws: this.ws, error: null });
                 };
@@ -3809,11 +3807,9 @@ define("@scom/scom-social-sdk/managers/communication.ts", ["require", "exports"]
                     this.ws.addEventListener('open', openListener);
                     this.ws.addEventListener('message', this.messageListenerBound);
                     this.ws.addEventListener('close', () => {
-                        console.log('Disconnected from server');
                         resolve({ ws: null, error: 'Disconnected from server' });
                     });
                     this.ws.addEventListener('error', (error) => {
-                        console.error('WebSocket Error:', error);
                         resolve({ ws: null, error });
                     });
                 }
@@ -3845,7 +3841,6 @@ define("@scom/scom-social-sdk/managers/communication.ts", ["require", "exports"]
                         resolve({
                             events
                         });
-                        // console.log("end of stored events");
                     }
                 });
                 if (error) {
@@ -3875,9 +3870,7 @@ define("@scom/scom-social-sdk/managers/communication.ts", ["require", "exports"]
         async submitEvent(event) {
             return new Promise(async (resolve, reject) => {
                 let msg = JSON.stringify(["EVENT", event]);
-                console.log(msg);
                 const { ws, error } = await this.establishConnection(event.id, (message) => {
-                    console.log('from server:', message);
                     resolve({
                         eventId: message[1],
                         success: message[2],

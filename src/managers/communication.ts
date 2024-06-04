@@ -91,7 +91,6 @@ class NostrRestAPIManager implements INostrRestAPIManager {
                 body: JSON.stringify(event)
             });
             const data = await response.json();
-            console.log('submitEvent response', data)
             return {
                 ...data,
                 relay: this.url
@@ -152,7 +151,6 @@ class NostrWebSocketManager implements INostrCommunicationManager {
         this.requestCallbackMap[requestId] = cb; 
         return new Promise<{ ws: any, error: any }>((resolve, reject) => {
             const openListener = () => {
-                console.log('Connected to server');
                 this.ws.removeEventListener('open', openListener);
                 resolve({ ws: this.ws, error: null });
             }
@@ -162,12 +160,10 @@ class NostrWebSocketManager implements INostrCommunicationManager {
                 this.ws.addEventListener('message', this.messageListenerBound);
 
                 this.ws.addEventListener('close', () => {
-                    console.log('Disconnected from server');
                     resolve({ ws: null, error: 'Disconnected from server' });
                 });
 
                 this.ws.addEventListener('error', (error) => {
-                    console.error('WebSocket Error:', error);
                     resolve({ ws: null, error });
                 });
             }
@@ -199,7 +195,6 @@ class NostrWebSocketManager implements INostrCommunicationManager {
                     resolve({
                         events
                     });
-                    // console.log("end of stored events");
                 }
             });
             if (error) {
@@ -229,9 +224,7 @@ class NostrWebSocketManager implements INostrCommunicationManager {
     async submitEvent(event: Event.VerifiedEvent<number>) {
         return new Promise<INostrSubmitResponse>(async (resolve, reject) => {
             let msg = JSON.stringify(["EVENT", event]);
-            console.log(msg);
             const { ws, error } = await this.establishConnection(event.id, (message) => {
-                console.log('from server:', message);
                 resolve({
                     eventId: message[1],
                     success: message[2],
