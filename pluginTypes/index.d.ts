@@ -1848,60 +1848,6 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
     }
     export { NostrEventManagerRead, ISocialEventManagerRead };
 }
-/// <amd-module name="@scom/scom-social-sdk/managers/eventManagerReadV2.ts" />
-declare module "@scom/scom-social-sdk/managers/eventManagerReadV2.ts" {
-    import { Nip19 } from "@scom/scom-social-sdk/core/index.ts";
-    import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, INostrEvent } from "@scom/scom-social-sdk/utils/interfaces.ts";
-    import { INostrRestAPIManager } from "@scom/scom-social-sdk/managers/communication.ts";
-    import { ISocialEventManagerRead, NostrEventManagerRead } from "@scom/scom-social-sdk/managers/eventManagerRead.ts";
-    class NostrEventManagerReadV2 extends NostrEventManagerRead implements ISocialEventManagerRead {
-        protected _nostrCommunicationManager: INostrRestAPIManager;
-        constructor(manager: INostrRestAPIManager);
-        set nostrCommunicationManager(manager: INostrRestAPIManager);
-        protected augmentWithAuthInfo(obj: Record<string, any>): Record<string, any>;
-        fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
-        fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
-        fetchProfileFeedCacheEvents(userPubkey: string, pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
-        fetchProfileRepliesCacheEvents(userPubkey: string, pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
-        fetchHomeFeedCacheEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
-        fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
-        fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
-        fetchContactListCacheEvents(pubKey: string, detailIncluded?: boolean): Promise<INostrEvent[]>;
-        fetchUserRelays(pubKey: string): Promise<INostrEvent[]>;
-        fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
-        fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<any>;
-        fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;
-        fetchUserBookmarkedCommunities(pubKey: string, excludedCommunity?: ICommunityInfo): Promise<ICommunityBasicInfo[]>;
-        fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
-        fetchCommunitiesMetadataFeed(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
-        fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
-        fetchAllUserRelatedChannels(pubKey: string): Promise<{
-            channels: IChannelInfo[];
-            channelMetadataMap: Record<string, IChannelInfo>;
-            channelIdToCommunityMap: Record<string, ICommunityInfo>;
-        }>;
-        fetchUserBookmarkedChannelEventIds(pubKey: string): Promise<any>;
-        fetchEventsByIds(ids: string[]): Promise<INostrEvent[]>;
-        fetchChannelMessages(channelId: string, since?: number, until?: number): Promise<INostrEvent[]>;
-        fetchChannelInfoMessages(channelId: string): Promise<INostrEvent[]>;
-        fetchMessageContactsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
-        fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
-        resetMessageCount(pubKey: string, sender: string): Promise<void>;
-        fetchGroupKeys(identifier: string): Promise<INostrEvent>;
-        fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
-        fetchCalendarEvents(start: number, end?: number, limit?: number): Promise<INostrEvent[]>;
-        fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent>;
-        fetchCalendarEventPosts(calendarEventUri: string): Promise<INostrEvent[]>;
-        fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
-        fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
-        searchUsers(query: string): Promise<any[]>;
-        fetchPaymentRequestEvent(paymentRequest: string): Promise<any>;
-        fetchPaymentActivitiesForRecipient(pubkey: string, since?: number, until?: number): Promise<any[]>;
-        fetchPaymentActivitiesForSender(pubkey: string, since?: number, until?: number): Promise<any[]>;
-        fetchUserFollowingFeed(pubKey: string, until?: number): Promise<any[]>;
-    }
-    export { NostrEventManagerReadV2 };
-}
 /// <amd-module name="@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" />
 declare module "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" {
     import { Nip19 } from "@scom/scom-social-sdk/core/index.ts";
@@ -1963,6 +1909,24 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" {
         fetchUserPinnedNotes(pubKey: string): Promise<INostrEvent>;
     }
     export { NostrEventManagerReadV1o5 };
+}
+/// <amd-module name="@scom/scom-social-sdk/managers/eventManagerReadV2.ts" />
+declare module "@scom/scom-social-sdk/managers/eventManagerReadV2.ts" {
+    import { INostrRestAPIManager } from "@scom/scom-social-sdk/managers/communication.ts";
+    import { ISocialEventManagerRead } from "@scom/scom-social-sdk/managers/eventManagerRead.ts";
+    import { NostrEventManagerReadV1o5 } from "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts";
+    class NostrEventManagerReadV2 extends NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
+        protected _nostrCommunicationManager: INostrRestAPIManager;
+        constructor(manager: INostrRestAPIManager);
+        set nostrCommunicationManager(manager: INostrRestAPIManager);
+        protected augmentWithAuthInfo(obj: Record<string, any>): Record<string, any>;
+        searchUsers(query: string): Promise<any[]>;
+        fetchPaymentRequestEvent(paymentRequest: string): Promise<any>;
+        fetchPaymentActivitiesForRecipient(pubkey: string, since?: number, until?: number): Promise<any[]>;
+        fetchPaymentActivitiesForSender(pubkey: string, since?: number, until?: number): Promise<any[]>;
+        fetchUserFollowingFeed(pubKey: string, until?: number): Promise<any[]>;
+    }
+    export { NostrEventManagerReadV2 };
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/index.ts" />
 declare module "@scom/scom-social-sdk/managers/index.ts" {
