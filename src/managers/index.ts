@@ -1640,8 +1640,8 @@ class SocialDataManager {
             communityUriToCreatorOrModeratorIdsMap[communityUri] = new Set<string>();
             communityUriToCreatorOrModeratorIdsMap[communityUri].add(community.creatorId);
             if (community.moderatorIds) {
-                if (community.moderatorIds.includes(community.creatorId)) continue;
                 for (let moderator of community.moderatorIds) {
+                    if (moderator === community.creatorId) continue;
                     communityUriToMemberIdRoleComboMap[communityUri].push({
                         id: moderator,
                         role: CommunityRole.Moderator

@@ -8249,9 +8249,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 communityUriToCreatorOrModeratorIdsMap[communityUri] = new Set();
                 communityUriToCreatorOrModeratorIdsMap[communityUri].add(community.creatorId);
                 if (community.moderatorIds) {
-                    if (community.moderatorIds.includes(community.creatorId))
-                        continue;
                     for (let moderator of community.moderatorIds) {
+                        if (moderator === community.creatorId)
+                            continue;
                         communityUriToMemberIdRoleComboMap[communityUri].push({
                             id: moderator,
                             role: interfaces_4.CommunityRole.Moderator
