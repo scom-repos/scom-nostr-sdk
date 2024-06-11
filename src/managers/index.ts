@@ -2526,6 +2526,10 @@ class SocialDataManager {
         }
         await this._socialEventManagerWrite.updateUserPinnedNotes(noteIds);
     }
+
+    async deleteEvents(eventIds: string[]) {
+        await this._socialEventManagerWrite.deleteEvents(eventIds);
+    }
 }
 
 export {

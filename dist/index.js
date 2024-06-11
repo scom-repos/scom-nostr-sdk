@@ -9105,6 +9105,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             }
             await this._socialEventManagerWrite.updateUserPinnedNotes(noteIds);
         }
+        async deleteEvents(eventIds) {
+            await this._socialEventManagerWrite.deleteEvents(eventIds);
+        }
     }
     exports.SocialDataManager = SocialDataManager;
 });

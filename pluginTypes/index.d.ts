@@ -2138,6 +2138,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         fetchUserPinnedNotes(pubKey: string): Promise<INostrEvent[]>;
         pinUserNote(pubKey: string, noteId: string): Promise<void>;
         unpinUserNote(pubKey: string, noteId: string): Promise<void>;
+        deleteEvents(eventIds: string[]): Promise<void>;
     }
     export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager };
 }
