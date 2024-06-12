@@ -2,8 +2,9 @@ import { Nip19, Event, Keys } from "../core/index";
 import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId } from "../utils/interfaces";
 import {
     INostrCommunicationManager,
+    INostrRestAPIManager,
     NostrRestAPIManager,
-    NostrWebSocketManager
+    NostrWebSocketManager,
 } from "./communication";
 import Geohash from '../utils/geohash';
 import { MqttManager } from "../utils/mqtt";
@@ -35,12 +36,12 @@ class SocialDataManager {
     private lightningWalletManager: LightningWalletManager;
 
     constructor(config: ISocialDataManagerConfig) {
-        this._apiBaseUrl = config.apiBaseUrl;
+        this._apiBaseUrl = config.apiBaseUrl || '';
         this._ipLocationServiceBaseUrl = config.ipLocationServiceBaseUrl;
         let nostrCommunicationManagers: INostrCommunicationManager[] = [];
         this._publicIndexingRelay = config.publicIndexingRelay;
-        this._writeRelays = config.writeRelays;
-        for (let relay of config.writeRelays) {
+        this._writeRelays = config.writeRelays || [];
+        for (let relay of this._writeRelays) {
             if (relay.startsWith('wss://')) {
                 nostrCommunicationManagers.push(new NostrWebSocketManager(relay));
             }
@@ -48,23 +49,27 @@ class SocialDataManager {
                 nostrCommunicationManagers.push(new NostrRestAPIManager(relay));
             }
         }
-        let nostrReadRelayManager = new NostrRestAPIManager(config.readRelay);
-        if (config.version === 2) {
-            this._socialEventManagerRead = new NostrEventManagerReadV2(
-                nostrReadRelayManager as NostrRestAPIManager
-            );
+        if (config.readManager) {
+            this._socialEventManagerRead = config.readManager;
         }
-        else if (config.version === 1.5) {
-            this._socialEventManagerRead = new NostrEventManagerReadV1o5(
-                nostrReadRelayManager as NostrRestAPIManager
-            );
-        }        
         else {
-            this._socialEventManagerRead = new NostrEventManagerRead(
-                nostrReadRelayManager
-            );
+            let nostrReadRelayManager = new NostrRestAPIManager(config.readRelay);
+            if (config.version === 2) {
+                this._socialEventManagerRead = new NostrEventManagerReadV2(
+                    nostrReadRelayManager as NostrRestAPIManager
+                );
+            }
+            else if (config.version === 1.5) {
+                this._socialEventManagerRead = new NostrEventManagerReadV1o5(
+                    nostrReadRelayManager as NostrRestAPIManager
+                );
+            }        
+            else {
+                this._socialEventManagerRead = new NostrEventManagerRead(
+                    nostrReadRelayManager
+                );
+            }
         }
-
         this._socialEventManagerWrite = new NostrEventManagerWrite(
             nostrCommunicationManagers
         );
@@ -2547,5 +2552,7 @@ export {
     SocialUtilsManager,
     SocialDataManager,
     NostrRestAPIManager,
-    NostrWebSocketManager
+    NostrWebSocketManager,
+    INostrCommunicationManager,
+    INostrRestAPIManager
 }

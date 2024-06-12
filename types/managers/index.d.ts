@@ -1,5 +1,5 @@
 import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "../utils/interfaces";
-import { NostrRestAPIManager, NostrWebSocketManager } from "./communication";
+import { INostrCommunicationManager, INostrRestAPIManager, NostrRestAPIManager, NostrWebSocketManager } from "./communication";
 import { SocialUtilsManager } from "./utilsManager";
 import { ISocialEventManagerWrite, NostrEventManagerWrite } from "./eventManagerWrite";
 import { ISocialEventManagerRead, NostrEventManagerRead } from "./eventManagerRead";
@@ -209,4 +209,4 @@ declare class SocialDataManager {
     unpinUserNote(pubKey: string, noteId: string): Promise<void>;
     deleteEvents(eventIds: string[]): Promise<void>;
 }
-export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager };
+export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager, INostrCommunicationManager, INostrRestAPIManager };

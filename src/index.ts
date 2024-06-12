@@ -56,5 +56,7 @@ export {
     SocialUtilsManager,
     SocialDataManager,
     NostrWebSocketManager,
-    NostrRestAPIManager
+    NostrRestAPIManager,
+    INostrCommunicationManager,
+    INostrRestAPIManager
 } from './managers';

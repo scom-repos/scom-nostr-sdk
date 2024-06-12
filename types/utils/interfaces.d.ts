@@ -1,3 +1,4 @@
+import { ISocialEventManagerRead } from '../managers';
 export interface IFetchNotesOptions {
     authors?: string[];
     ids?: string[];
@@ -362,10 +363,11 @@ export interface ILocationCoordinates {
 }
 export interface ISocialDataManagerConfig {
     version?: 1 | 1.5 | 2;
-    writeRelays: string[];
-    readRelay: string;
-    publicIndexingRelay: string;
-    apiBaseUrl: string;
+    writeRelays?: string[];
+    readRelay?: string;
+    readManager?: ISocialEventManagerRead;
+    publicIndexingRelay?: string;
+    apiBaseUrl?: string;
     ipLocationServiceBaseUrl?: string;
     ipLocationServiceApiKey?: string;
     mqttBrokerUrl?: string;

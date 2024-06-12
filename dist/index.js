@@ -3526,145 +3526,6 @@ define("@scom/scom-social-sdk/core/index.ts", ["require", "exports", "@scom/scom
     Object.defineProperty(exports, "secp256k1", { enumerable: true, get: function () { return secp256k1_3.secp256k1; } });
     Object.defineProperty(exports, "schnorr", { enumerable: true, get: function () { return secp256k1_3.schnorr; } });
 });
-define("@scom/scom-social-sdk/utils/interfaces.ts", ["require", "exports"], function (require, exports) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.CalendarEventType = exports.CommunityRole = exports.ProtectedMembershipPolicyType = exports.MembershipType = exports.ScpStandardId = exports.TokenType = exports.NftType = void 0;
-    var NftType;
-    (function (NftType) {
-        NftType["ERC721"] = "ERC721";
-        NftType["ERC1155"] = "ERC1155";
-    })(NftType = exports.NftType || (exports.NftType = {}));
-    var TokenType;
-    (function (TokenType) {
-        TokenType["ERC20"] = "ERC20";
-        TokenType["ERC721"] = "ERC721";
-        TokenType["ERC1155"] = "ERC1155";
-    })(TokenType = exports.TokenType || (exports.TokenType = {}));
-    var ScpStandardId;
-    (function (ScpStandardId) {
-        ScpStandardId["Community"] = "1";
-        ScpStandardId["CommunityPost"] = "2";
-        ScpStandardId["Channel"] = "3";
-        ScpStandardId["ChannelMessage"] = "4";
-        ScpStandardId["GroupKeys"] = "5";
-    })(ScpStandardId = exports.ScpStandardId || (exports.ScpStandardId = {}));
-    var MembershipType;
-    (function (MembershipType) {
-        MembershipType["Open"] = "Open";
-        MembershipType["Protected"] = "Protected";
-    })(MembershipType = exports.MembershipType || (exports.MembershipType = {}));
-    var ProtectedMembershipPolicyType;
-    (function (ProtectedMembershipPolicyType) {
-        ProtectedMembershipPolicyType["TokenExclusive"] = "TokenExclusive";
-        ProtectedMembershipPolicyType["Whitelist"] = "Whitelist";
-    })(ProtectedMembershipPolicyType = exports.ProtectedMembershipPolicyType || (exports.ProtectedMembershipPolicyType = {}));
-    var CommunityRole;
-    (function (CommunityRole) {
-        CommunityRole["Creator"] = "creator";
-        CommunityRole["Moderator"] = "moderator";
-        CommunityRole["GeneralMember"] = "generalMember";
-        CommunityRole["None"] = "none";
-    })(CommunityRole = exports.CommunityRole || (exports.CommunityRole = {}));
-    var CalendarEventType;
-    (function (CalendarEventType) {
-        CalendarEventType["DateBased"] = "dateBased";
-        CalendarEventType["TimeBased"] = "timeBased";
-    })(CalendarEventType = exports.CalendarEventType || (exports.CalendarEventType = {}));
-});
-define("@scom/scom-social-sdk/utils/mqtt.ts", ["require", "exports"], function (require, exports) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.MqttManager = void 0;
-    // import mqtt, { MqttClient } from 'mqtt';
-    function determineMqttType() {
-        if (typeof window !== "undefined") {
-            return mqtt;
-        }
-        else {
-            // @ts-ignore
-            let Mqtt = require('mqtt');
-            return Mqtt;
-        }
-        ;
-    }
-    ;
-    class MqttManager {
-        constructor(config) {
-            this.config = config;
-            this.subscriptions = [];
-            const mqtt = determineMqttType();
-            this.client = mqtt.connect(config.brokerUrl);
-            if (config.subscriptions) {
-                this.subscribe(config.subscriptions);
-            }
-            this.client.on('connect', () => {
-                if (config.connectCallback) {
-                    config.connectCallback();
-                }
-            });
-            this.client.on('message', (topic, message) => {
-                if (config.messageCallback) {
-                    config.messageCallback(topic, message.toString());
-                }
-            });
-            this.client.on('error', (error) => {
-                console.error(`MQTT Error: ${error}`);
-                if (config.errorCallback) {
-                    config.errorCallback(error);
-                }
-            });
-        }
-        subscribe(topics) {
-            if (topics?.length === 0) {
-                return;
-            }
-            this.client.subscribe(topics, (error) => {
-                if (error) {
-                    console.error(`Failed to subscribe to ${topics}: ${error}`);
-                }
-                else {
-                    this.subscriptions = this.subscriptions.concat(topics);
-                }
-            });
-        }
-        unsubscribe(topics) {
-            if (topics?.length === 0) {
-                return;
-            }
-            this.client.unsubscribe(topics, (error) => {
-                if (error) {
-                    console.error(`Failed to unsubscribe from ${topics}: ${error}`);
-                }
-                else {
-                    this.subscriptions = this.subscriptions.filter((topic) => !topics.includes(topic));
-                }
-            });
-        }
-        publish(topic, message) {
-            this.client.publish(topic, message, (error) => {
-                if (error) {
-                    console.error(`Failed to publish to ${topic}: ${error}`);
-                }
-            });
-        }
-        disconnect() {
-            this.client.end();
-        }
-    }
-    exports.MqttManager = MqttManager;
-});
-define("@scom/scom-social-sdk/utils/index.ts", ["require", "exports", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/utils/mqtt.ts"], function (require, exports, interfaces_1, mqtt_1) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.MqttManager = exports.CalendarEventType = exports.CommunityRole = exports.ProtectedMembershipPolicyType = exports.MembershipType = exports.TokenType = void 0;
-    Object.defineProperty(exports, "TokenType", { enumerable: true, get: function () { return interfaces_1.TokenType; } });
-    Object.defineProperty(exports, "MembershipType", { enumerable: true, get: function () { return interfaces_1.MembershipType; } });
-    Object.defineProperty(exports, "ProtectedMembershipPolicyType", { enumerable: true, get: function () { return interfaces_1.ProtectedMembershipPolicyType; } });
-    Object.defineProperty(exports, "CommunityRole", { enumerable: true, get: function () { return interfaces_1.CommunityRole; } });
-    Object.defineProperty(exports, "CalendarEventType", { enumerable: true, get: function () { return interfaces_1.CalendarEventType; } });
-    Object.defineProperty(exports, "MqttManager", { enumerable: true, get: function () { return mqtt_1.MqttManager; } });
-});
 define("@scom/scom-social-sdk/managers/communication.ts", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -4267,6 +4128,88 @@ define("@scom/scom-social-sdk/utils/geohash.ts", ["require", "exports"], functio
     };
     exports.default = Geohash;
 });
+define("@scom/scom-social-sdk/utils/mqtt.ts", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.MqttManager = void 0;
+    // import mqtt, { MqttClient } from 'mqtt';
+    function determineMqttType() {
+        if (typeof window !== "undefined") {
+            return mqtt;
+        }
+        else {
+            // @ts-ignore
+            let Mqtt = require('mqtt');
+            return Mqtt;
+        }
+        ;
+    }
+    ;
+    class MqttManager {
+        constructor(config) {
+            this.config = config;
+            this.subscriptions = [];
+            const mqtt = determineMqttType();
+            this.client = mqtt.connect(config.brokerUrl);
+            if (config.subscriptions) {
+                this.subscribe(config.subscriptions);
+            }
+            this.client.on('connect', () => {
+                if (config.connectCallback) {
+                    config.connectCallback();
+                }
+            });
+            this.client.on('message', (topic, message) => {
+                if (config.messageCallback) {
+                    config.messageCallback(topic, message.toString());
+                }
+            });
+            this.client.on('error', (error) => {
+                console.error(`MQTT Error: ${error}`);
+                if (config.errorCallback) {
+                    config.errorCallback(error);
+                }
+            });
+        }
+        subscribe(topics) {
+            if (topics?.length === 0) {
+                return;
+            }
+            this.client.subscribe(topics, (error) => {
+                if (error) {
+                    console.error(`Failed to subscribe to ${topics}: ${error}`);
+                }
+                else {
+                    this.subscriptions = this.subscriptions.concat(topics);
+                }
+            });
+        }
+        unsubscribe(topics) {
+            if (topics?.length === 0) {
+                return;
+            }
+            this.client.unsubscribe(topics, (error) => {
+                if (error) {
+                    console.error(`Failed to unsubscribe from ${topics}: ${error}`);
+                }
+                else {
+                    this.subscriptions = this.subscriptions.filter((topic) => !topics.includes(topic));
+                }
+            });
+        }
+        publish(topic, message) {
+            this.client.publish(topic, message, (error) => {
+                if (error) {
+                    console.error(`Failed to publish to ${topic}: ${error}`);
+                }
+            });
+        }
+        disconnect() {
+            this.client.end();
+        }
+    }
+    exports.MqttManager = MqttManager;
+});
 define("@scom/scom-social-sdk/utils/lightningWallet.ts", ["require", "exports", "@ijstech/ln-wallet", "@scom/scom-social-sdk/core/index.ts"], function (require, exports, ln_wallet_1, index_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -4379,7 +4322,7 @@ define("@scom/scom-social-sdk/utils/lightningWallet.ts", ["require", "exports", 
     }
     exports.LightningWalletManager = LightningWalletManager;
 });
-define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", "@ijstech/eth-wallet", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-signer"], function (require, exports, eth_wallet_1, index_2, interfaces_2, scom_signer_1) {
+define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", "@ijstech/eth-wallet", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-signer"], function (require, exports, eth_wallet_1, index_2, interfaces_1, scom_signer_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.SocialUtilsManager = void 0;
@@ -4531,7 +4474,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             let policies = [];
             let scpData;
             let gatekeeperNpub;
-            let membershipType = interfaces_2.MembershipType.Open;
+            let membershipType = interfaces_1.MembershipType.Open;
             let data = {};
             if (event.content) {
                 try {
@@ -4543,7 +4486,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             }
             let pointSystem, collectibles;
             if (scpTag && scpTag[1] === '1') {
-                membershipType = interfaces_2.MembershipType.Protected;
+                membershipType = interfaces_1.MembershipType.Protected;
                 policies = Array.isArray(data) ? data : data.policies || [];
                 const scpDataStr = SocialUtilsManager.base64ToUtf8(scpTag[2]);
                 if (!scpDataStr.startsWith('$scp:'))
@@ -4631,7 +4574,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             }
             if (!eventId)
                 return null;
-            let scpData = this.extractScpData(event, interfaces_2.ScpStandardId.Channel);
+            let scpData = this.extractScpData(event, interfaces_1.ScpStandardId.Channel);
             let channelInfo = {
                 id: eventId,
                 name: content.name,
@@ -4658,7 +4601,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
     }
     exports.SocialUtilsManager = SocialUtilsManager;
 });
-define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/managers/utilsManager.ts"], function (require, exports, index_3, interfaces_3, utilsManager_1) {
+define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/managers/utilsManager.ts"], function (require, exports, index_3, interfaces_2, utilsManager_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.NostrEventManagerWrite = void 0;
@@ -4791,7 +4734,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 let encodedScpData = utilsManager_1.SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
                 event.tags.push([
                     "scp",
-                    interfaces_3.ScpStandardId.Channel,
+                    interfaces_2.ScpStandardId.Channel,
                     encodedScpData
                 ]);
             }
@@ -4825,7 +4768,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 pointSystem: info.pointSystem,
                 collectibles: info.collectibles
             };
-            if (info.membershipType === interfaces_3.MembershipType.Protected)
+            if (info.membershipType === interfaces_2.MembershipType.Protected)
                 data.policies = info.policies;
             const isEmptyObject = JSON.stringify(data) === "{}";
             const content = isEmptyObject ? "" : JSON.stringify(data);
@@ -4872,7 +4815,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 let encodedScpData = utilsManager_1.SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
                 event.tags.push([
                     "scp",
-                    interfaces_3.ScpStandardId.Community,
+                    interfaces_2.ScpStandardId.Community,
                     encodedScpData
                 ]);
             }
@@ -4934,7 +4877,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 let encodedScpData = utilsManager_1.SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
                 event.tags.push([
                     "scp",
-                    interfaces_3.ScpStandardId.CommunityPost,
+                    interfaces_2.ScpStandardId.CommunityPost,
                     encodedScpData
                 ]);
             }
@@ -4966,7 +4909,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 let encodedScpData = utilsManager_1.SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
                 event.tags.push([
                     "scp",
-                    interfaces_3.ScpStandardId.ChannelMessage,
+                    interfaces_2.ScpStandardId.ChannelMessage,
                     encodedScpData
                 ]);
             }
@@ -5030,7 +4973,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     ],
                     [
                         "scp",
-                        interfaces_3.ScpStandardId.GroupKeys
+                        interfaces_2.ScpStandardId.GroupKeys
                     ]
                 ]
             };
@@ -5051,7 +4994,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             let kind;
             let start;
             let end;
-            if (info.type === interfaces_3.CalendarEventType.DateBased) {
+            if (info.type === interfaces_2.CalendarEventType.DateBased) {
                 kind = 31922;
                 start = convertUnixTimestampToDate(info.start);
             }
@@ -5093,7 +5036,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 ]);
             }
             if (info.end) {
-                if (info.type === interfaces_3.CalendarEventType.DateBased) {
+                if (info.type === interfaces_2.CalendarEventType.DateBased) {
                     end = convertUnixTimestampToDate(info.end);
                 }
                 else {
@@ -6746,7 +6689,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV2.ts", ["require", "expo
     }
     exports.NostrEventManagerReadV2 = NostrEventManagerReadV2;
 });
-define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/managers/communication.ts", "@scom/scom-social-sdk/utils/geohash.ts", "@scom/scom-social-sdk/utils/mqtt.ts", "@scom/scom-social-sdk/utils/lightningWallet.ts", "@scom/scom-social-sdk/managers/utilsManager.ts", "@scom/scom-social-sdk/managers/eventManagerWrite.ts", "@scom/scom-social-sdk/managers/eventManagerRead.ts", "@scom/scom-social-sdk/managers/eventManagerReadV2.ts", "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", "@scom/scom-signer", "@ijstech/eth-wallet"], function (require, exports, index_6, interfaces_4, communication_1, geohash_1, mqtt_2, lightningWallet_1, utilsManager_5, eventManagerWrite_1, eventManagerRead_1, eventManagerReadV2_1, eventManagerReadV1o5_2, scom_signer_2, eth_wallet_2) {
+define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/managers/communication.ts", "@scom/scom-social-sdk/utils/geohash.ts", "@scom/scom-social-sdk/utils/mqtt.ts", "@scom/scom-social-sdk/utils/lightningWallet.ts", "@scom/scom-social-sdk/managers/utilsManager.ts", "@scom/scom-social-sdk/managers/eventManagerWrite.ts", "@scom/scom-social-sdk/managers/eventManagerRead.ts", "@scom/scom-social-sdk/managers/eventManagerReadV2.ts", "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", "@scom/scom-signer", "@ijstech/eth-wallet"], function (require, exports, index_6, interfaces_3, communication_1, geohash_1, mqtt_1, lightningWallet_1, utilsManager_5, eventManagerWrite_1, eventManagerRead_1, eventManagerReadV2_1, eventManagerReadV1o5_2, scom_signer_2, eth_wallet_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.NostrWebSocketManager = exports.NostrRestAPIManager = exports.SocialDataManager = exports.SocialUtilsManager = exports.NostrEventManagerWrite = exports.NostrEventManagerReadV2 = exports.NostrEventManagerRead = void 0;
@@ -6764,12 +6707,12 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
     }
     class SocialDataManager {
         constructor(config) {
-            this._apiBaseUrl = config.apiBaseUrl;
+            this._apiBaseUrl = config.apiBaseUrl || '';
             this._ipLocationServiceBaseUrl = config.ipLocationServiceBaseUrl;
             let nostrCommunicationManagers = [];
             this._publicIndexingRelay = config.publicIndexingRelay;
-            this._writeRelays = config.writeRelays;
-            for (let relay of config.writeRelays) {
+            this._writeRelays = config.writeRelays || [];
+            for (let relay of this._writeRelays) {
                 if (relay.startsWith('wss://')) {
                     nostrCommunicationManagers.push(new communication_1.NostrWebSocketManager(relay));
                 }
@@ -6777,20 +6720,25 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     nostrCommunicationManagers.push(new communication_1.NostrRestAPIManager(relay));
                 }
             }
-            let nostrReadRelayManager = new communication_1.NostrRestAPIManager(config.readRelay);
-            if (config.version === 2) {
-                this._socialEventManagerRead = new eventManagerReadV2_1.NostrEventManagerReadV2(nostrReadRelayManager);
-            }
-            else if (config.version === 1.5) {
-                this._socialEventManagerRead = new eventManagerReadV1o5_2.NostrEventManagerReadV1o5(nostrReadRelayManager);
+            if (config.readManager) {
+                this._socialEventManagerRead = config.readManager;
             }
             else {
-                this._socialEventManagerRead = new eventManagerRead_1.NostrEventManagerRead(nostrReadRelayManager);
+                let nostrReadRelayManager = new communication_1.NostrRestAPIManager(config.readRelay);
+                if (config.version === 2) {
+                    this._socialEventManagerRead = new eventManagerReadV2_1.NostrEventManagerReadV2(nostrReadRelayManager);
+                }
+                else if (config.version === 1.5) {
+                    this._socialEventManagerRead = new eventManagerReadV1o5_2.NostrEventManagerReadV1o5(nostrReadRelayManager);
+                }
+                else {
+                    this._socialEventManagerRead = new eventManagerRead_1.NostrEventManagerRead(nostrReadRelayManager);
+                }
             }
             this._socialEventManagerWrite = new eventManagerWrite_1.NostrEventManagerWrite(nostrCommunicationManagers);
             if (config.mqttBrokerUrl) {
                 try {
-                    this.mqttManager = new mqtt_2.MqttManager({
+                    this.mqttManager = new mqtt_1.MqttManager({
                         brokerUrl: config.mqttBrokerUrl,
                         subscriptions: config.mqttSubscriptions,
                         messageCallback: config.mqttMessageCallback
@@ -6896,7 +6844,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async retrievePostPrivateKey(event, communityUri, communityPrivateKey) {
             let key = null;
-            let postScpData = utilsManager_5.SocialUtilsManager.extractScpData(event, interfaces_4.ScpStandardId.CommunityPost);
+            let postScpData = utilsManager_5.SocialUtilsManager.extractScpData(event, interfaces_3.ScpStandardId.CommunityPost);
             try {
                 const postPrivateKey = await utilsManager_5.SocialUtilsManager.decryptMessage(communityPrivateKey, event.pubkey, postScpData.encryptedKey);
                 const messageContentStr = await utilsManager_5.SocialUtilsManager.decryptMessage(postPrivateKey, event.pubkey, event.content);
@@ -6912,7 +6860,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async retrieveChannelMessagePrivateKey(event, channelId, communityPrivateKey) {
             let key = null;
-            let messageScpData = utilsManager_5.SocialUtilsManager.extractScpData(event, interfaces_4.ScpStandardId.ChannelMessage);
+            let messageScpData = utilsManager_5.SocialUtilsManager.extractScpData(event, interfaces_3.ScpStandardId.ChannelMessage);
             try {
                 const messagePrivateKey = await utilsManager_5.SocialUtilsManager.decryptMessage(communityPrivateKey, event.pubkey, messageScpData.encryptedKey);
                 const messageContentStr = await utilsManager_5.SocialUtilsManager.decryptMessage(messagePrivateKey, event.pubkey, event.content);
@@ -7565,7 +7513,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             replies = replies.sort((a, b) => b.eventData.created_at - a.eventData.created_at);
             ancestorNotes = ancestorNotes.sort((a, b) => a.eventData.created_at - b.eventData.created_at);
             let communityInfo = null;
-            let scpData = utilsManager_5.SocialUtilsManager.extractScpData(focusedNote.eventData, interfaces_4.ScpStandardId.CommunityPost);
+            let scpData = utilsManager_5.SocialUtilsManager.extractScpData(focusedNote.eventData, interfaces_3.ScpStandardId.CommunityPost);
             if (scpData) {
                 const communityUri = this.retrieveCommunityUri(focusedNote.eventData, scpData);
                 if (communityUri) {
@@ -7588,7 +7536,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             let pubkeyToCommunityIdsMap = {};
             let communityInfoList = [];
             for (let note of notes) {
-                let scpData = utilsManager_5.SocialUtilsManager.extractScpData(note, interfaces_4.ScpStandardId.CommunityPost);
+                let scpData = utilsManager_5.SocialUtilsManager.extractScpData(note, interfaces_3.ScpStandardId.CommunityPost);
                 if (scpData) {
                     const communityUri = this.retrieveCommunityUri(note, scpData);
                     if (communityUri) {
@@ -7789,15 +7737,15 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 pointSystem: newInfo.pointSystem,
                 collectibles: newInfo.collectibles
             };
-            if (communityInfo.membershipType === interfaces_4.MembershipType.Protected) {
+            if (communityInfo.membershipType === interfaces_3.MembershipType.Protected) {
                 const gatekeeperPublicKey = index_6.Nip19.decode(communityInfo.gatekeeperNpub).data;
                 const creatorPubkey = index_6.Nip19.decode(communityInfo.creatorId).data;
                 let encryptionPublicKeys = [creatorPubkey, gatekeeperPublicKey];
                 let memberIds = [communityInfo.creatorId, communityInfo.gatekeeperNpub];
                 for (let policy of communityInfo.policies) {
-                    if (policy.type === interfaces_4.ProtectedMembershipPolicyType.TokenExclusive) {
+                    if (policy.type === interfaces_3.ProtectedMembershipPolicyType.TokenExclusive) {
                     }
-                    else if (policy.type === interfaces_4.ProtectedMembershipPolicyType.Whitelist) {
+                    else if (policy.type === interfaces_3.ProtectedMembershipPolicyType.Whitelist) {
                         for (let memberId of policy.memberIds) {
                             const memberPublicKey = index_6.Nip19.decode(memberId).data;
                             encryptionPublicKeys.push(memberPublicKey);
@@ -7826,15 +7774,15 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             return communityInfo;
         }
         async updateCommunity(info) {
-            if (info.membershipType === interfaces_4.MembershipType.Protected) {
+            if (info.membershipType === interfaces_3.MembershipType.Protected) {
                 const gatekeeperPublicKey = index_6.Nip19.decode(info.gatekeeperNpub).data;
                 const creatorPubkey = index_6.Nip19.decode(info.creatorId).data;
                 let encryptionPublicKeys = [creatorPubkey, gatekeeperPublicKey];
                 let memberIds = [info.creatorId, info.gatekeeperNpub];
                 for (let policy of info.policies) {
-                    if (policy.type === interfaces_4.ProtectedMembershipPolicyType.TokenExclusive) {
+                    if (policy.type === interfaces_3.ProtectedMembershipPolicyType.TokenExclusive) {
                     }
-                    else if (policy.type === interfaces_4.ProtectedMembershipPolicyType.Whitelist) {
+                    else if (policy.type === interfaces_3.ProtectedMembershipPolicyType.Whitelist) {
                         for (let memberId of policy.memberIds) {
                             const memberPublicKey = index_6.Nip19.decode(memberId).data;
                             encryptionPublicKeys.push(memberPublicKey);
@@ -8002,7 +7950,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 message,
             };
             let newCommunityPostInfo;
-            if (info.membershipType === interfaces_4.MembershipType.Open) {
+            if (info.membershipType === interfaces_3.MembershipType.Open) {
                 newCommunityPostInfo = {
                     community: info,
                     message,
@@ -8250,7 +8198,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 communityUriToMemberIdRoleComboMap[communityUri] = [];
                 communityUriToMemberIdRoleComboMap[communityUri].push({
                     id: community.creatorId,
-                    role: interfaces_4.CommunityRole.Creator
+                    role: interfaces_3.CommunityRole.Creator
                 });
                 communityUriToCreatorOrModeratorIdsMap[communityUri] = new Set();
                 communityUriToCreatorOrModeratorIdsMap[communityUri].add(community.creatorId);
@@ -8260,7 +8208,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                             continue;
                         communityUriToMemberIdRoleComboMap[communityUri].push({
                             id: moderator,
-                            role: interfaces_4.CommunityRole.Moderator
+                            role: interfaces_3.CommunityRole.Moderator
                         });
                         communityUriToCreatorOrModeratorIdsMap[communityUri].add(moderator);
                     }
@@ -8277,7 +8225,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                         continue;
                     communityUriToMemberIdRoleComboMap[communityUri].push({
                         id: pubkey,
-                        role: interfaces_4.CommunityRole.GeneralMember
+                        role: interfaces_3.CommunityRole.GeneralMember
                     });
                 }
             }
@@ -8304,7 +8252,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             let startTime;
             let endTime;
             if (event.kind === 31922) {
-                type = interfaces_4.CalendarEventType.DateBased;
+                type = interfaces_3.CalendarEventType.DateBased;
                 const startDate = new Date(start);
                 startTime = startDate.getTime() / 1000;
                 if (end) {
@@ -8313,7 +8261,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 }
             }
             else if (event.kind === 31923) {
-                type = interfaces_4.CalendarEventType.TimeBased;
+                type = interfaces_3.CalendarEventType.TimeBased;
                 startTime = Number(start);
                 if (end) {
                     endTime = Number(end);
@@ -8359,7 +8307,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 naddr = index_6.Nip19.naddrEncode({
                     identifier: updateCalendarEventInfo.id,
                     pubkey: pubkey,
-                    kind: updateCalendarEventInfo.type === interfaces_4.CalendarEventType.DateBased ? 31922 : 31923,
+                    kind: updateCalendarEventInfo.type === interfaces_3.CalendarEventType.DateBased ? 31922 : 31923,
                     relays: []
                 });
             }
@@ -9116,6 +9064,64 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
     }
     exports.SocialDataManager = SocialDataManager;
+});
+///<amd-module name='@scom/scom-social-sdk/utils/interfaces.ts'/> 
+define("@scom/scom-social-sdk/utils/interfaces.ts", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.CalendarEventType = exports.CommunityRole = exports.ProtectedMembershipPolicyType = exports.MembershipType = exports.ScpStandardId = exports.TokenType = exports.NftType = void 0;
+    var NftType;
+    (function (NftType) {
+        NftType["ERC721"] = "ERC721";
+        NftType["ERC1155"] = "ERC1155";
+    })(NftType = exports.NftType || (exports.NftType = {}));
+    var TokenType;
+    (function (TokenType) {
+        TokenType["ERC20"] = "ERC20";
+        TokenType["ERC721"] = "ERC721";
+        TokenType["ERC1155"] = "ERC1155";
+    })(TokenType = exports.TokenType || (exports.TokenType = {}));
+    var ScpStandardId;
+    (function (ScpStandardId) {
+        ScpStandardId["Community"] = "1";
+        ScpStandardId["CommunityPost"] = "2";
+        ScpStandardId["Channel"] = "3";
+        ScpStandardId["ChannelMessage"] = "4";
+        ScpStandardId["GroupKeys"] = "5";
+    })(ScpStandardId = exports.ScpStandardId || (exports.ScpStandardId = {}));
+    var MembershipType;
+    (function (MembershipType) {
+        MembershipType["Open"] = "Open";
+        MembershipType["Protected"] = "Protected";
+    })(MembershipType = exports.MembershipType || (exports.MembershipType = {}));
+    var ProtectedMembershipPolicyType;
+    (function (ProtectedMembershipPolicyType) {
+        ProtectedMembershipPolicyType["TokenExclusive"] = "TokenExclusive";
+        ProtectedMembershipPolicyType["Whitelist"] = "Whitelist";
+    })(ProtectedMembershipPolicyType = exports.ProtectedMembershipPolicyType || (exports.ProtectedMembershipPolicyType = {}));
+    var CommunityRole;
+    (function (CommunityRole) {
+        CommunityRole["Creator"] = "creator";
+        CommunityRole["Moderator"] = "moderator";
+        CommunityRole["GeneralMember"] = "generalMember";
+        CommunityRole["None"] = "none";
+    })(CommunityRole = exports.CommunityRole || (exports.CommunityRole = {}));
+    var CalendarEventType;
+    (function (CalendarEventType) {
+        CalendarEventType["DateBased"] = "dateBased";
+        CalendarEventType["TimeBased"] = "timeBased";
+    })(CalendarEventType = exports.CalendarEventType || (exports.CalendarEventType = {}));
+});
+define("@scom/scom-social-sdk/utils/index.ts", ["require", "exports", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/utils/mqtt.ts"], function (require, exports, interfaces_4, mqtt_2) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.MqttManager = exports.CalendarEventType = exports.CommunityRole = exports.ProtectedMembershipPolicyType = exports.MembershipType = exports.TokenType = void 0;
+    Object.defineProperty(exports, "TokenType", { enumerable: true, get: function () { return interfaces_4.TokenType; } });
+    Object.defineProperty(exports, "MembershipType", { enumerable: true, get: function () { return interfaces_4.MembershipType; } });
+    Object.defineProperty(exports, "ProtectedMembershipPolicyType", { enumerable: true, get: function () { return interfaces_4.ProtectedMembershipPolicyType; } });
+    Object.defineProperty(exports, "CommunityRole", { enumerable: true, get: function () { return interfaces_4.CommunityRole; } });
+    Object.defineProperty(exports, "CalendarEventType", { enumerable: true, get: function () { return interfaces_4.CalendarEventType; } });
+    Object.defineProperty(exports, "MqttManager", { enumerable: true, get: function () { return mqtt_2.MqttManager; } });
 });
 define("@scom/scom-social-sdk", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/index.ts", "@scom/scom-social-sdk/managers/index.ts"], function (require, exports, index_7, index_8, managers_1) {
     "use strict";
