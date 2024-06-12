@@ -155,6 +155,11 @@ class SocialDataManager {
         if (!communityEvent) throw new Error('No info event found');
         const communityInfo = SocialUtilsManager.extractCommunityInfo(communityEvent);
         if (!communityInfo) throw new Error('No info event found');
+        const notesCountEvent = feedEvents.find(event => event.kind === 10000105);
+        let notesCount = notes.length;
+        if (notesCountEvent) {
+            notesCount = JSON.parse(notesCountEvent.content).note_count;
+        }
 
         const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(communityInfo.communityUri + ':keys');
         if (keyEvent) {
@@ -163,7 +168,8 @@ class SocialDataManager {
 
         return {
             notes,
-            info: communityInfo
+            info: communityInfo,
+            notesCount
         }
     }
 

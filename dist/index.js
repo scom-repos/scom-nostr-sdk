@@ -6863,13 +6863,19 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             const communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(communityEvent);
             if (!communityInfo)
                 throw new Error('No info event found');
+            const notesCountEvent = feedEvents.find(event => event.kind === 10000105);
+            let notesCount = notes.length;
+            if (notesCountEvent) {
+                notesCount = JSON.parse(notesCountEvent.content).note_count;
+            }
             const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(communityInfo.communityUri + ':keys');
             if (keyEvent) {
                 communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
             }
             return {
                 notes,
-                info: communityInfo
+                info: communityInfo,
+                notesCount
             };
         }
         retrieveCommunityUri(noteEvent, scpData) {

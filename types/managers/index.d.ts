@@ -27,6 +27,7 @@ declare class SocialDataManager {
     retrieveCommunityEvents(creatorId: string, communityId: string): Promise<{
         notes: INoteInfo[];
         info: ICommunityInfo;
+        notesCount: number;
     }>;
     retrieveCommunityUri(noteEvent: INostrEvent, scpData: ICommunityPostScpData): string;
     retrievePostPrivateKey(event: INostrEvent, communityUri: string, communityPrivateKey: string): Promise<string>;
