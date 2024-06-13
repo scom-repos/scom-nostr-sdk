@@ -19,6 +19,7 @@ interface ISocialEventManagerRead {
     fetchUserBookmarkedCommunities(pubKey: string, excludedCommunity?: ICommunityInfo): Promise<ICommunityBasicInfo[]>;
     fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunitiesMetadataFeed(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
+    fetchCommunityFeed(communityUri: string, since?: number, until?: number): Promise<INostrEvent[]>;
     fetchCommunitiesFeed(communityUriArr: string[]): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
     fetchNotes(options: IFetchNotesOptions): Promise<INostrEvent[]>;
@@ -67,6 +68,7 @@ declare class NostrEventManagerRead implements ISocialEventManagerRead {
     fetchUserBookmarkedCommunities(pubKey: string, excludedCommunity?: ICommunityInfo): Promise<ICommunityBasicInfo[]>;
     fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
     fetchCommunitiesMetadataFeed(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
+    fetchCommunityFeed(communityUri: string, since?: number, until?: number): Promise<INostrEvent[]>;
     fetchCommunitiesFeed(communityUriArr: string[]): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
     fetchNotes(options: IFetchNotesOptions): Promise<INostrEvent[]>;
