@@ -232,6 +232,22 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         return fetchEventsResponse.events || [];        
     }
 
+    async fetchCommunityFeed(communityUri: string, since?: number, until?: number) {
+        let request: any = {
+            kinds: [1],
+            "#a": [communityUri],
+            limit: 20
+        }
+        if (since != null) {
+            request.since = since;
+        }
+        if (until != null) {
+            request.until = until;
+        }
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+        return fetchEventsResponse.events;
+    }
+
     async fetchCommunitiesFeed(communityUriArr: string[]) {
         let request: any = {
             kinds: [1],

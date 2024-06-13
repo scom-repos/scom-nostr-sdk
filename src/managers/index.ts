@@ -177,6 +177,17 @@ class SocialDataManager {
             notesCount
         }
     }
+    
+    async fetchCommunityFeedInfo(creatorId: string, communityId: string, since?: number, until?: number) {
+        const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
+        const events = await this._socialEventManagerRead.fetchCommunityFeed(communityUri, since, until);
+        const {
+            notes,
+            metadataByPubKeyMap,
+            quotedNotesMap
+        } = this.createNoteEventMappings(events);
+        return notes;
+    }
 
     retrieveCommunityUri(noteEvent: INostrEvent, scpData: ICommunityPostScpData) {
         let communityUri: string | null = null;
@@ -802,7 +813,7 @@ class SocialDataManager {
         }
     }
 
-    async fetchCommunityFeedInfo() {
+    async fetchCommunitiesFeedInfo() {
         let result: { info: ICommunityInfo, notes: INostrEvent[] }[] = [];
         const suggestedCommunities = [
             {

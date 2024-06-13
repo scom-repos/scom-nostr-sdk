@@ -5555,12 +5555,27 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
                 let notesMsg = {
                     kinds: [1],
                     "#a": [communityUri],
-                    limit: 50
+                    limit: 20
                 };
                 requests.push(infoMsg);
                 requests.push(notesMsg);
             }
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(...requests);
+            return fetchEventsResponse.events;
+        }
+        async fetchCommunityFeed(communityUri, since, until) {
+            let request = {
+                kinds: [1],
+                "#a": [communityUri],
+                limit: 20
+            };
+            if (since != null) {
+                request.since = since;
+            }
+            if (until != null) {
+                request.until = until;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
             return fetchEventsResponse.events;
         }
         async fetchCommunitiesFeed(communityUriArr) {
@@ -6262,6 +6277,21 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-feed', msg);
             return fetchEventsResponse.events || [];
         }
+        async fetchCommunityFeed(communityUri, since, until) {
+            let request = {
+                kinds: [1],
+                "#a": [communityUri],
+                limit: 20
+            };
+            if (since != null) {
+                request.since = since;
+            }
+            if (until != null) {
+                request.until = until;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            return fetchEventsResponse.events;
+        }
         async fetchCommunitiesFeed(communityUriArr) {
             let request = {
                 kinds: [1],
@@ -6825,6 +6855,12 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 info: communityInfo,
                 notesCount
             };
+        }
+        async fetchCommunityFeedInfo(creatorId, communityId, since, until) {
+            const communityUri = utilsManager_5.SocialUtilsManager.getCommunityUri(creatorId, communityId);
+            const events = await this._socialEventManagerRead.fetchCommunityFeed(communityUri, since, until);
+            const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(events);
+            return notes;
         }
         retrieveCommunityUri(noteEvent, scpData) {
             let communityUri = null;
@@ -7420,7 +7456,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 weekly
             };
         }
-        async fetchCommunityFeedInfo() {
+        async fetchCommunitiesFeedInfo() {
             let result = [];
             const suggestedCommunities = [
                 {
