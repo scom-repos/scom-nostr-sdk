@@ -5851,7 +5851,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             let events = fetchEventsResponse.events?.filter(event => event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'invitee').map(tag => tag[1]).includes(decodedPubKey));
             return events;
         }
-        async fetchCalendarEvents(start, end, limit) {
+        async fetchCalendarEvents(start, end, limit, previousEventId) {
             let req = {
                 kinds: [31922, 31923],
                 limit: limit || 10
@@ -6482,11 +6482,12 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             let events = fetchEventsResponse.events?.filter(event => event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'invitee').map(tag => tag[1]).includes(decodedPubKey));
             return events;
         }
-        async fetchCalendarEvents(start, end, limit) {
+        async fetchCalendarEvents(start, end, limit, previousEventId) {
             let msg = this.augmentWithAuthInfo({
                 start: start,
                 end: end,
-                limit: limit || 10
+                limit: limit || 10,
+                previousEventId
             });
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-events', msg);
             return fetchEventsResponse.events || [];
@@ -8349,8 +8350,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             }
             return naddr;
         }
-        async retrieveCalendarEventsByDateRange(start, end, limit) {
-            const events = await this._socialEventManagerRead.fetchCalendarEvents(start, end, limit);
+        async retrieveCalendarEventsByDateRange(start, end, limit, previousEventId) {
+            const events = await this._socialEventManagerRead.fetchCalendarEvents(start, end, limit, previousEventId);
             let calendarEventInfoList = [];
             for (let event of events) {
                 let calendarEventInfo = this.extractCalendarEventInfo(event);

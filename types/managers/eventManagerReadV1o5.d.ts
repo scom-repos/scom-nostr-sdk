@@ -42,7 +42,7 @@ declare class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     resetMessageCount(pubKey: string, sender: string): Promise<void>;
     fetchGroupKeys(identifier: string): Promise<INostrEvent>;
     fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
-    fetchCalendarEvents(start: number, end?: number, limit?: number): Promise<INostrEvent[]>;
+    fetchCalendarEvents(start: number, end?: number, limit?: number, previousEventId?: string): Promise<INostrEvent[]>;
     fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent>;
     fetchCalendarEventPosts(calendarEventUri: string): Promise<INostrEvent[]>;
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;

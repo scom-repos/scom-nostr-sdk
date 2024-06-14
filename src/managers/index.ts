@@ -1772,8 +1772,8 @@ class SocialDataManager {
         return naddr;
     }
 
-    async retrieveCalendarEventsByDateRange(start: number, end?: number, limit?: number) {
-        const events = await this._socialEventManagerRead.fetchCalendarEvents(start, end, limit);
+    async retrieveCalendarEventsByDateRange(start: number, end?: number, limit?: number, previousEventId?: string) {
+        const events = await this._socialEventManagerRead.fetchCalendarEvents(start, end, limit, previousEventId);
         let calendarEventInfoList: ICalendarEventInfo[] = [];
         for (let event of events) {
             let calendarEventInfo = this.extractCalendarEventInfo(event);

@@ -39,7 +39,7 @@ interface ISocialEventManagerRead {
     fetchGroupKeys(identifier: string): Promise<INostrEvent>;
     fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
     fetchCalendarEventPosts(calendarEventUri: string): Promise<INostrEvent[]>;
-    fetchCalendarEvents(start: number, end?: number, limit?: number): Promise<INostrEvent[]>;
+    fetchCalendarEvents(start: number, end?: number, limit?: number, previousEventId?: string): Promise<INostrEvent[]>;
     fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent | null>;
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
     fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
@@ -640,7 +640,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         return events;
     }
 
-    async fetchCalendarEvents(start: number, end?: number, limit?: number) {
+    async fetchCalendarEvents(start: number, end?: number, limit?: number, previousEventId?: string) {
         let req = {
             kinds: [31922, 31923],
             limit: limit || 10

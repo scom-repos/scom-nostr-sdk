@@ -449,11 +449,12 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         return events;
     }
 
-    async fetchCalendarEvents(start: number, end?: number, limit?: number) {
+    async fetchCalendarEvents(start: number, end?: number, limit?: number, previousEventId?: string) {
         let msg = this.augmentWithAuthInfo({
             start: start,
             end: end,
-            limit: limit || 10
+            limit: limit || 10,
+            previousEventId
         });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-events', msg);
         return fetchEventsResponse.events || [];  
