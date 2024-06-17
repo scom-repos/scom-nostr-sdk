@@ -1,15 +1,5 @@
-import { Nip19, Event, Keys } from "../core/index";
-import { INostrEvent, INostrFetchEventsResponse, INostrSubmitResponse } from "../utils/interfaces";
-
-interface INostrCommunicationManager {
-    fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
-    fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
-    submitEvent(event: Event.VerifiedEvent<number>): Promise<INostrSubmitResponse>;
-}
-
-interface INostrRestAPIManager extends INostrCommunicationManager {
-    fetchEventsFromAPI(endpoint: string, msg: any): Promise<INostrFetchEventsResponse>;
-}
+import { Event } from "../core/index";
+import { INostrEvent, INostrFetchEventsResponse, INostrSubmitResponse, INostrCommunicationManager, INostrRestAPIManager } from "../utils/interfaces";
 
 function determineWebSocketType() {
 	if (typeof window !== "undefined"){

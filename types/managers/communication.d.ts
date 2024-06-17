@@ -1,13 +1,5 @@
 import { Event } from "../core/index";
-import { INostrFetchEventsResponse, INostrSubmitResponse } from "../utils/interfaces";
-interface INostrCommunicationManager {
-    fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
-    fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
-    submitEvent(event: Event.VerifiedEvent<number>): Promise<INostrSubmitResponse>;
-}
-interface INostrRestAPIManager extends INostrCommunicationManager {
-    fetchEventsFromAPI(endpoint: string, msg: any): Promise<INostrFetchEventsResponse>;
-}
+import { INostrFetchEventsResponse, INostrSubmitResponse, INostrCommunicationManager, INostrRestAPIManager } from "../utils/interfaces";
 declare class NostrRestAPIManager implements INostrRestAPIManager {
     protected _url: string;
     protected requestCallbackMap: Record<string, (response: any) => void>;
