@@ -2106,7 +2106,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         updateCalendarEvent(updateCalendarEventInfo: IUpdateCalendarEventInfo): Promise<string>;
         retrieveCalendarEventsByDateRange(start: number, end?: number, limit?: number, previousEventId?: string): Promise<{
             calendarEventInfoList: ICalendarEventInfo[];
-            startDates: any;
+            startDates: number[];
         }>;
         retrieveCalendarEvent(naddr: string): Promise<ICalendarEventDetailInfo>;
         acceptCalendarEvent(rsvpId: string, naddr: string): Promise<void>;
