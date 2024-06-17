@@ -156,7 +156,10 @@ declare class SocialDataManager {
     private mapCommunityUriToMemberIdRoleCombo;
     private extractCalendarEventInfo;
     updateCalendarEvent(updateCalendarEventInfo: IUpdateCalendarEventInfo): Promise<string>;
-    retrieveCalendarEventsByDateRange(start: number, end?: number, limit?: number, previousEventId?: string): Promise<ICalendarEventInfo[]>;
+    retrieveCalendarEventsByDateRange(start: number, end?: number, limit?: number, previousEventId?: string): Promise<{
+        calendarEventInfoList: ICalendarEventInfo[];
+        startDates: any;
+    }>;
     retrieveCalendarEvent(naddr: string): Promise<ICalendarEventDetailInfo>;
     acceptCalendarEvent(rsvpId: string, naddr: string): Promise<void>;
     declineCalendarEvent(rsvpId: string, naddr: string): Promise<void>;

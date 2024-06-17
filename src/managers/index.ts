@@ -1773,13 +1773,16 @@ class SocialDataManager {
     }
 
     async retrieveCalendarEventsByDateRange(start: number, end?: number, limit?: number, previousEventId?: string) {
-        const events = await this._socialEventManagerRead.fetchCalendarEvents(start, end, limit, previousEventId);
+        const result = await this._socialEventManagerRead.fetchCalendarEvents(start, end, limit, previousEventId);
         let calendarEventInfoList: ICalendarEventInfo[] = [];
-        for (let event of events) {
+        for (let event of result.events) {
             let calendarEventInfo = this.extractCalendarEventInfo(event);
             calendarEventInfoList.push(calendarEventInfo);
         }
-        return calendarEventInfoList;
+        return {
+            calendarEventInfoList,
+            startDates: result.data?.dates as number[]
+        };
     }
 
     async retrieveCalendarEvent(naddr: string) {

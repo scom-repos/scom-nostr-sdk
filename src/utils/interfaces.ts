@@ -474,6 +474,11 @@ export interface INostrCommunicationManager {
     fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
     submitEvent(event: Event.VerifiedEvent<number>): Promise<INostrSubmitResponse>;
 }
+export interface ISocialEventManagerReadResult {
+	error?: string;
+	events?: INostrEvent[];
+	data?: any;
+}
 export interface ISocialEventManagerRead {
     nostrCommunicationManager: INostrCommunicationManager | INostrRestAPIManager;
     privateKey: string;
@@ -510,7 +515,7 @@ export interface ISocialEventManagerRead {
     fetchGroupKeys(identifier: string): Promise<INostrEvent>;
     fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
     fetchCalendarEventPosts(calendarEventUri: string): Promise<INostrEvent[]>;
-    fetchCalendarEvents(start: number, end?: number, limit?: number, previousEventId?: string): Promise<INostrEvent[]>;
+    fetchCalendarEvents(start: number, end?: number, limit?: number, previousEventId?: string): Promise<ISocialEventManagerReadResult>;
     fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent | null>;
     fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
     fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;

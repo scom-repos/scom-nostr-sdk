@@ -5915,7 +5915,10 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
                 limit: limit || 10
             };
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
-            return fetchEventsResponse.events;
+            return {
+                events: fetchEventsResponse.events,
+                data: fetchEventsResponse.data
+            };
         }
         async fetchCalendarEvent(address) {
             let req = {
@@ -6548,7 +6551,10 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 previousEventId
             });
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-events', msg);
-            return fetchEventsResponse.events || [];
+            return {
+                events: fetchEventsResponse.events || [],
+                data: fetchEventsResponse.data
+            };
         }
         async fetchCalendarEvent(address) {
             const key = `${address.kind}:${address.pubkey}:${address.identifier}`;
@@ -8409,13 +8415,16 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             return naddr;
         }
         async retrieveCalendarEventsByDateRange(start, end, limit, previousEventId) {
-            const events = await this._socialEventManagerRead.fetchCalendarEvents(start, end, limit, previousEventId);
+            const result = await this._socialEventManagerRead.fetchCalendarEvents(start, end, limit, previousEventId);
             let calendarEventInfoList = [];
-            for (let event of events) {
+            for (let event of result.events) {
                 let calendarEventInfo = this.extractCalendarEventInfo(event);
                 calendarEventInfoList.push(calendarEventInfo);
             }
-            return calendarEventInfoList;
+            return {
+                calendarEventInfoList,
+                startDates: result.data?.dates
+            };
         }
         async retrieveCalendarEvent(naddr) {
             let address = index_6.Nip19.decode(naddr).data;

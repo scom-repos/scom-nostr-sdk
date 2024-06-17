@@ -1509,6 +1509,11 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
         submitEvent(event: Event.VerifiedEvent<number>): Promise<INostrSubmitResponse>;
     }
+    export interface ISocialEventManagerReadResult {
+        error?: string;
+        events?: INostrEvent[];
+        data?: any;
+    }
     export interface ISocialEventManagerRead {
         nostrCommunicationManager: INostrCommunicationManager | INostrRestAPIManager;
         privateKey: string;
@@ -1542,7 +1547,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         fetchGroupKeys(identifier: string): Promise<INostrEvent>;
         fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
         fetchCalendarEventPosts(calendarEventUri: string): Promise<INostrEvent[]>;
-        fetchCalendarEvents(start: number, end?: number, limit?: number, previousEventId?: string): Promise<INostrEvent[]>;
+        fetchCalendarEvents(start: number, end?: number, limit?: number, previousEventId?: string): Promise<ISocialEventManagerReadResult>;
         fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent | null>;
         fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
         fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
@@ -1835,7 +1840,10 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         resetMessageCount(pubKey: string, sender: string): Promise<void>;
         fetchGroupKeys(identifier: string): Promise<INostrEvent>;
         fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
-        fetchCalendarEvents(start: number, end?: number, limit?: number, previousEventId?: string): Promise<INostrEvent[]>;
+        fetchCalendarEvents(start: number, end?: number, limit?: number, previousEventId?: string): Promise<{
+            events: INostrEvent[];
+            data: any;
+        }>;
         fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent>;
         fetchCalendarEventPosts(calendarEventUri: string): Promise<INostrEvent[]>;
         fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
@@ -1898,7 +1906,10 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" {
         resetMessageCount(pubKey: string, sender: string): Promise<void>;
         fetchGroupKeys(identifier: string): Promise<INostrEvent>;
         fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
-        fetchCalendarEvents(start: number, end?: number, limit?: number, previousEventId?: string): Promise<INostrEvent[]>;
+        fetchCalendarEvents(start: number, end?: number, limit?: number, previousEventId?: string): Promise<{
+            events: INostrEvent[];
+            data: any;
+        }>;
         fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent>;
         fetchCalendarEventPosts(calendarEventUri: string): Promise<INostrEvent[]>;
         fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
@@ -2093,7 +2104,10 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         private mapCommunityUriToMemberIdRoleCombo;
         private extractCalendarEventInfo;
         updateCalendarEvent(updateCalendarEventInfo: IUpdateCalendarEventInfo): Promise<string>;
-        retrieveCalendarEventsByDateRange(start: number, end?: number, limit?: number, previousEventId?: string): Promise<ICalendarEventInfo[]>;
+        retrieveCalendarEventsByDateRange(start: number, end?: number, limit?: number, previousEventId?: string): Promise<{
+            calendarEventInfoList: ICalendarEventInfo[];
+            startDates: any;
+        }>;
         retrieveCalendarEvent(naddr: string): Promise<ICalendarEventDetailInfo>;
         acceptCalendarEvent(rsvpId: string, naddr: string): Promise<void>;
         declineCalendarEvent(rsvpId: string, naddr: string): Promise<void>;

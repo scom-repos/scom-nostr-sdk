@@ -595,7 +595,10 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
             limit: limit || 10
         }; 
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
-        return fetchEventsResponse.events;
+        return {
+            events: fetchEventsResponse.events,
+            data: fetchEventsResponse.data
+        }
     }
 
     async fetchCalendarEvent(address: Nip19.AddressPointer) {
