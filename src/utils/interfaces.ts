@@ -135,7 +135,7 @@ export enum ProtectedMembershipPolicyType {
 }
 
 export interface IProtectedMembershipPolicy {
-	type: ProtectedMembershipPolicyType;
+	policyType: ProtectedMembershipPolicyType;
 	chainId?: number;
 	tokenAddress?: string;
 	tokenType?: TokenType;

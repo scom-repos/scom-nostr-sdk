@@ -7844,9 +7844,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 let encryptionPublicKeys = [creatorPubkey, gatekeeperPublicKey];
                 let memberIds = [communityInfo.creatorId, communityInfo.gatekeeperNpub];
                 for (let policy of communityInfo.policies) {
-                    if (policy.type === interfaces_4.ProtectedMembershipPolicyType.TokenExclusive) {
+                    if (policy.policyType === interfaces_4.ProtectedMembershipPolicyType.TokenExclusive) {
                     }
-                    else if (policy.type === interfaces_4.ProtectedMembershipPolicyType.Whitelist) {
+                    else if (policy.policyType === interfaces_4.ProtectedMembershipPolicyType.Whitelist) {
                         for (let memberId of policy.memberIds) {
                             const memberPublicKey = index_6.Nip19.decode(memberId).data;
                             encryptionPublicKeys.push(memberPublicKey);
@@ -7881,9 +7881,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 let encryptionPublicKeys = [creatorPubkey, gatekeeperPublicKey];
                 let memberIds = [info.creatorId, info.gatekeeperNpub];
                 for (let policy of info.policies) {
-                    if (policy.type === interfaces_4.ProtectedMembershipPolicyType.TokenExclusive) {
+                    if (policy.policyType === interfaces_4.ProtectedMembershipPolicyType.TokenExclusive) {
                     }
-                    else if (policy.type === interfaces_4.ProtectedMembershipPolicyType.Whitelist) {
+                    else if (policy.policyType === interfaces_4.ProtectedMembershipPolicyType.Whitelist) {
                         for (let memberId of policy.memberIds) {
                             const memberPublicKey = index_6.Nip19.decode(memberId).data;
                             encryptionPublicKeys.push(memberPublicKey);

@@ -117,7 +117,7 @@ export declare enum ProtectedMembershipPolicyType {
     Whitelist = "Whitelist"
 }
 export interface IProtectedMembershipPolicy {
-    type: ProtectedMembershipPolicyType;
+    policyType: ProtectedMembershipPolicyType;
     chainId?: number;
     tokenAddress?: string;
     tokenType?: TokenType;

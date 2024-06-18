@@ -1153,9 +1153,9 @@ class SocialDataManager {
             let encryptionPublicKeys = [creatorPubkey, gatekeeperPublicKey];
             let memberIds: string[] = [communityInfo.creatorId, communityInfo.gatekeeperNpub];
             for (let policy of communityInfo.policies) {
-                if (policy.type === ProtectedMembershipPolicyType.TokenExclusive) {
+                if (policy.policyType === ProtectedMembershipPolicyType.TokenExclusive) {
                 }
-                else if (policy.type === ProtectedMembershipPolicyType.Whitelist) {
+                else if (policy.policyType === ProtectedMembershipPolicyType.Whitelist) {
                     for (let memberId of policy.memberIds) {
                         const memberPublicKey = Nip19.decode(memberId).data as string;
                         encryptionPublicKeys.push(memberPublicKey);
@@ -1197,9 +1197,9 @@ class SocialDataManager {
             let encryptionPublicKeys = [creatorPubkey, gatekeeperPublicKey];
             let memberIds: string[] = [info.creatorId, info.gatekeeperNpub];
             for (let policy of info.policies) {
-                if (policy.type === ProtectedMembershipPolicyType.TokenExclusive) {
+                if (policy.policyType === ProtectedMembershipPolicyType.TokenExclusive) {
                 }
-                else if (policy.type === ProtectedMembershipPolicyType.Whitelist) {
+                else if (policy.policyType === ProtectedMembershipPolicyType.Whitelist) {
                     for (let memberId of policy.memberIds) {
                         const memberPublicKey = Nip19.decode(memberId).data as string;
                         encryptionPublicKeys.push(memberPublicKey);
