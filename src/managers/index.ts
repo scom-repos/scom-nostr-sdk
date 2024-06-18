@@ -700,6 +700,7 @@ class SocialDataManager {
                 };
             }
             else if (event.kind === 10000107) {
+                if (!event.content) continue;
                 const noteEvent = SocialUtilsManager.parseContent(event.content) as INostrEvent;
                 quotedNotesMap[noteEvent.id] = {
                     eventData: noteEvent
@@ -732,6 +733,7 @@ class SocialDataManager {
                 }
             }
             else if (event.kind === 10000100) {
+                if (!event.content) continue;
                 const content = SocialUtilsManager.parseContent(event.content);
                 noteStatsMap[content.event_id] = {
                     upvotes: content.likes,
@@ -745,6 +747,7 @@ class SocialDataManager {
                 const timeInfo = SocialUtilsManager.parseContent(event.content);
             }
             else if (event.kind === 10000115) {
+                if (!event.content) continue;
                 const content = SocialUtilsManager.parseContent(event.content);
                 noteActionsMap[content.event_id] = {
                     liked: content.liked,

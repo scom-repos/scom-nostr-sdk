@@ -7411,6 +7411,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     };
                 }
                 else if (event.kind === 10000107) {
+                    if (!event.content)
+                        continue;
                     const noteEvent = utilsManager_5.SocialUtilsManager.parseContent(event.content);
                     quotedNotesMap[noteEvent.id] = {
                         eventData: noteEvent
@@ -7444,6 +7446,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     }
                 }
                 else if (event.kind === 10000100) {
+                    if (!event.content)
+                        continue;
                     const content = utilsManager_5.SocialUtilsManager.parseContent(event.content);
                     noteStatsMap[content.event_id] = {
                         upvotes: content.likes,
@@ -7457,6 +7461,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     const timeInfo = utilsManager_5.SocialUtilsManager.parseContent(event.content);
                 }
                 else if (event.kind === 10000115) {
+                    if (!event.content)
+                        continue;
                     const content = utilsManager_5.SocialUtilsManager.parseContent(event.content);
                     noteActionsMap[content.event_id] = {
                         liked: content.liked,
