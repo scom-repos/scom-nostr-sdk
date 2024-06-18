@@ -1217,7 +1217,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         Whitelist = "Whitelist"
     }
     export interface IProtectedMembershipPolicy {
-        type: ProtectedMembershipPolicyType;
+        policyType: ProtectedMembershipPolicyType;
         chainId?: number;
         tokenAddress?: string;
         tokenType?: TokenType;
