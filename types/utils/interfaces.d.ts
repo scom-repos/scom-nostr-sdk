@@ -279,6 +279,7 @@ export interface INoteActions {
     replied?: boolean;
     reposted?: boolean;
     zapped?: boolean;
+    bookmarked?: boolean;
 }
 export interface IMessageContactInfo {
     id: string;
