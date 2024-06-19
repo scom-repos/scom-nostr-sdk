@@ -1,7 +1,7 @@
 {
     "name": "@scom/scom-social-sdk",
     "type": "sdk",
-    "version": "0.1.32",
+    "version": "0.1.33",
     "dependencies": [
         "@ijstech/ln-wallet",
         "@ijstech/eth-wallet",
