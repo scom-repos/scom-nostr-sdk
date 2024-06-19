@@ -26,6 +26,7 @@ interface ISocialEventManagerWrite {
     createPaymentReceiptEvent(requestEventId: string, recipient: string, comment: string, preimage?: string, tx?: string): Promise<void>;
     updateCommunityPinnedNotes(creatorId: string, communityId: string, eventIds: string[]): Promise<void>;
     updateUserPinnedNotes(eventIds: string[]): Promise<void>;
+    updateUserBookmarks(tags: string[][]): Promise<void>;
 }
 declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
     protected _nostrCommunicationManagers: INostrCommunicationManager[];
@@ -57,5 +58,6 @@ declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
     createPaymentReceiptEvent(requestEventId: string, recipient: string, comment: string, preimage?: string, tx?: string): Promise<void>;
     updateCommunityPinnedNotes(creatorId: string, communityId: string, eventIds: string[]): Promise<void>;
     updateUserPinnedNotes(eventIds: string[]): Promise<void>;
+    updateUserBookmarks(tags: string[][]): Promise<void>;
 }
 export { NostrEventManagerWrite, ISocialEventManagerWrite };

@@ -738,6 +738,17 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
         return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
     }
+
+    async fetchUserBookmarks(options: SocialEventManagerReadOptions.IFetchUserBookmarks) {
+        const {pubKey} = options;
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        let request: any = {
+            kinds: [10003],
+            authors: [decodedPubKey]
+        }
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+        return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+    }
 }
 
 export {

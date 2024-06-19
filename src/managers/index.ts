@@ -2644,6 +2644,47 @@ class SocialDataManager {
         }
         await this._socialEventManagerWrite.updateUserPinnedNotes(noteIds);
     }
+    
+    async fetchUserBookmarks(pubKey: string) {
+        const bookmarksEvent = await this._socialEventManagerRead.fetchUserBookmarks({ pubKey });
+        const eventIds: string[] = [];
+        if (bookmarksEvent) {
+            for (let tag of bookmarksEvent.tags) {
+                if (tag[0] === 'e' || tag[0] === 'a') {
+                    eventIds.push(tag[1]);
+                }
+            }
+        }
+        return eventIds;
+    }
+
+    async addBookmark(pubKey: string, eventId: string, isArticle: boolean = false) {
+        const bookmarksEvent = await this._socialEventManagerRead.fetchUserBookmarks({ pubKey });
+        let tags: string[][] = [
+            [isArticle ? "a" : "e", eventId]
+        ];
+        if (bookmarksEvent) {
+            for (let tag of bookmarksEvent.tags) {
+                if (tag[1] !== eventId) {
+                    tags.push(tag);
+                }
+            }
+        }
+        await this._socialEventManagerWrite.updateUserBookmarks(tags);
+    }
+
+    async removeBookmark(pubKey: string, eventId: string, isArticle: boolean = false) {
+        const bookmarksEvent = await this._socialEventManagerRead.fetchUserBookmarks({ pubKey });
+        let tags: string[][] = [];
+        if (bookmarksEvent) {
+            for (let tag of bookmarksEvent.tags) {
+                if (tag[1] !== eventId) {
+                    tags.push(tag);
+                }
+            }
+        }
+        await this._socialEventManagerWrite.updateUserBookmarks(tags);
+    }
 
     async deleteEvents(eventIds: string[]) {
         await this._socialEventManagerWrite.deleteEvents(eventIds);
