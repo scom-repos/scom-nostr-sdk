@@ -245,6 +245,7 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
             identifiers.push(identifier);
         }
         let msg = this.augmentWithAuthInfo({
+            communityMetadataIncluded: true,
             identifiers,
             limit: 50
         });
@@ -254,29 +255,39 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
 
     async fetchCommunityFeed(options: SocialEventManagerReadOptions.IFetchCommunityFeed) {
         const {communityUri, since, until} = options;
-        let request: any = {
-            kinds: [1],
-            "#a": [communityUri],
-            limit: 20
-        }
-        if (since != null) {
-            request.since = since;
-        }
-        if (until != null) {
-            request.until = until;
-        }
-        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
-        return fetchEventsResponse.events;
+        const {creatorId, communityId} = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+        let identifier: any = {
+            pubkey: creatorId,
+            names: [communityId]
+        };
+        let msg = this.augmentWithAuthInfo({
+            communityMetadataIncluded: false,
+            identifiers: [identifier],
+            limit: 50,
+            since,
+            until
+        });
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-feed', msg);
+        return fetchEventsResponse.events || [];  
     }
 
     async fetchCommunitiesFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesFeed) {
         const {communityUriArr} = options;
-        let request: any = {
-            kinds: [1],
-            "#a": communityUriArr,
+        let identifiers: any[] = [];
+        for (let communityUri of communityUriArr) {
+            const {creatorId, communityId} = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+            let identifier: any = {
+                pubkey: creatorId,
+                names: [communityId]
+            };
+            identifiers.push(identifier);
+        }
+        let msg = this.augmentWithAuthInfo({
+            communityMetadataIncluded: false,
+            identifiers,
             limit: 50
-        };
-        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+        });
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-feed', msg);
         return fetchEventsResponse.events || [];
     }
 
