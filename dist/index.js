@@ -5370,6 +5370,16 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
             const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
+        async updateUserBookmarks(tags) {
+            let event = {
+                "kind": 10003,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": "",
+                "tags": [...tags]
+            };
+            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
+            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        }
     }
     exports.NostrEventManagerWrite = NostrEventManagerWrite;
 });
@@ -6214,6 +6224,16 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
         }
+        async fetchUserBookmarks(options) {
+            const { pubKey } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
+            let request = {
+                kinds: [10003],
+                authors: [decodedPubKey]
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        }
     }
     exports.NostrEventManagerRead = NostrEventManagerRead;
 });
@@ -6930,6 +6950,16 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
             let request = {
                 kinds: [10001],
+                authors: [decodedPubKey]
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        }
+        async fetchUserBookmarks(options) {
+            const { pubKey } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
+            let request = {
+                kinds: [10003],
                 authors: [decodedPubKey]
             };
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
@@ -9444,6 +9474,44 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 }
             }
             await this._socialEventManagerWrite.updateUserPinnedNotes(noteIds);
+        }
+        async fetchUserBookmarks(pubKey) {
+            const bookmarksEvent = await this._socialEventManagerRead.fetchUserBookmarks({ pubKey });
+            const eventIds = [];
+            if (bookmarksEvent) {
+                for (let tag of bookmarksEvent.tags) {
+                    if (tag[0] === 'e' || tag[0] === 'a') {
+                        eventIds.push(tag[1]);
+                    }
+                }
+            }
+            return eventIds;
+        }
+        async addBookmark(pubKey, eventId, isArticle = false) {
+            const bookmarksEvent = await this._socialEventManagerRead.fetchUserBookmarks({ pubKey });
+            let tags = [
+                [isArticle ? "a" : "e", eventId]
+            ];
+            if (bookmarksEvent) {
+                for (let tag of bookmarksEvent.tags) {
+                    if (tag[1] !== eventId) {
+                        tags.push(tag);
+                    }
+                }
+            }
+            await this._socialEventManagerWrite.updateUserBookmarks(tags);
+        }
+        async removeBookmark(pubKey, eventId, isArticle = false) {
+            const bookmarksEvent = await this._socialEventManagerRead.fetchUserBookmarks({ pubKey });
+            let tags = [];
+            if (bookmarksEvent) {
+                for (let tag of bookmarksEvent.tags) {
+                    if (tag[1] !== eventId) {
+                        tags.push(tag);
+                    }
+                }
+            }
+            await this._socialEventManagerWrite.updateUserBookmarks(tags);
         }
         async deleteEvents(eventIds) {
             await this._socialEventManagerWrite.deleteEvents(eventIds);

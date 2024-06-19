@@ -326,6 +326,7 @@ export interface INoteActions {
 	replied?: boolean;
 	reposted?: boolean;
 	zapped?: boolean;
+	bookmarked?: boolean;
 }
 
 export interface IMessageContactInfo {
@@ -644,6 +645,9 @@ export namespace SocialEventManagerReadOptions {
 	export interface IFetchUserPinnedNotes {
 		pubKey: string;
 	}
+	export interface IFetchUserBookmarks {
+		pubKey: string;
+	}
 }
 
 export interface ISocialEventManagerRead {
@@ -692,6 +696,7 @@ export interface ISocialEventManagerRead {
 	fetchCommunityPinnedNotesEvent(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNotesEvent): Promise<INostrEvent>;
 	fetchCommunityPinnedNoteIds(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNoteIds): Promise<string[]>;
 	fetchUserPinnedNotes(options: SocialEventManagerReadOptions.IFetchUserPinnedNotes): Promise<INostrEvent>;
+	fetchUserBookmarks(options: SocialEventManagerReadOptions.IFetchUserBookmarks): Promise<INostrEvent>;
 	// fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
     // fetchReplies(options: IFetchRepliesOptions): Promise<INostrEvent[]>;
     // fetchFollowing(npubs: string[]): Promise<INostrEvent[]>;

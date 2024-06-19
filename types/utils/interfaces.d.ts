@@ -279,6 +279,7 @@ export interface INoteActions {
     replied?: boolean;
     reposted?: boolean;
     zapped?: boolean;
+    bookmarked?: boolean;
 }
 export interface IMessageContactInfo {
     id: string;
@@ -578,6 +579,9 @@ export declare namespace SocialEventManagerReadOptions {
     interface IFetchUserPinnedNotes {
         pubKey: string;
     }
+    interface IFetchUserBookmarks {
+        pubKey: string;
+    }
 }
 export interface ISocialEventManagerRead {
     nostrCommunicationManager: INostrCommunicationManager | INostrRestAPIManager;
@@ -625,6 +629,7 @@ export interface ISocialEventManagerRead {
     fetchCommunityPinnedNotesEvent(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNotesEvent): Promise<INostrEvent>;
     fetchCommunityPinnedNoteIds(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNoteIds): Promise<string[]>;
     fetchUserPinnedNotes(options: SocialEventManagerReadOptions.IFetchUserPinnedNotes): Promise<INostrEvent>;
+    fetchUserBookmarks(options: SocialEventManagerReadOptions.IFetchUserBookmarks): Promise<INostrEvent>;
 }
 export interface INostrRestAPIManager extends INostrCommunicationManager {
     fetchEventsFromAPI(endpoint: string, msg: any): Promise<INostrFetchEventsResponse>;
