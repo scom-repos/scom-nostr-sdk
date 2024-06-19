@@ -1,3 +1,4 @@
+import { SocialEventManagerReadOptions } from "../utils/interfaces";
 import { INostrRestAPIManager } from "./communication";
 import { ISocialEventManagerRead } from "./eventManagerRead";
 import { NostrEventManagerReadV1o5 } from "./eventManagerReadV1o5";
@@ -6,10 +7,10 @@ declare class NostrEventManagerReadV2 extends NostrEventManagerReadV1o5 implemen
     constructor(manager: INostrRestAPIManager);
     set nostrCommunicationManager(manager: INostrRestAPIManager);
     protected augmentWithAuthInfo(obj: Record<string, any>): Record<string, any>;
-    searchUsers(query: string): Promise<any[]>;
-    fetchPaymentRequestEvent(paymentRequest: string): Promise<any>;
-    fetchPaymentActivitiesForRecipient(pubkey: string, since?: number, until?: number): Promise<any[]>;
-    fetchPaymentActivitiesForSender(pubkey: string, since?: number, until?: number): Promise<any[]>;
-    fetchUserFollowingFeed(pubKey: string, until?: number): Promise<any[]>;
+    searchUsers(options: SocialEventManagerReadOptions.ISearchUsers): Promise<any[]>;
+    fetchPaymentRequestEvent(options: SocialEventManagerReadOptions.IFetchPaymentRequestEvent): Promise<any>;
+    fetchPaymentActivitiesForRecipient(options: SocialEventManagerReadOptions.IFetchPaymentActivitiesForRecipient): Promise<any[]>;
+    fetchPaymentActivitiesForSender(options: SocialEventManagerReadOptions.IFetchPaymentActivitiesForSender): Promise<any[]>;
+    fetchUserFollowingFeed(options: SocialEventManagerReadOptions.IFetchUserFollowingFeed): Promise<any[]>;
 }
 export { NostrEventManagerReadV2 };

@@ -44,7 +44,10 @@ export {
     IPaymentActivity,
     INostrFetchEventsResponse,
     ILongFormContentInfo,
-    MqttManager
+    MqttManager,
+    SocialEventManagerReadOptions,
+    ISocialEventManagerReadResult,
+    IAllUserRelatedChannels
 } from './utils/index'
 
 export {

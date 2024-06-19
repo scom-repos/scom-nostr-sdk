@@ -5387,7 +5387,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
         set privateKey(privateKey) {
             this._privateKey = privateKey;
         }
-        async fetchThreadCacheEvents(id, pubKey) {
+        async fetchThreadCacheEvents(options) {
+            const { id, pubKey } = options;
             let decodedId = id.startsWith('note1') ? index_4.Nip19.decode(id).data : id;
             let msg = {
                 event_id: decodedId,
@@ -5400,7 +5401,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('thread_view', msg);
             return fetchEventsResponse.events;
         }
-        async fetchTrendingCacheEvents(pubKey) {
+        async fetchTrendingCacheEvents(options) {
+            const { pubKey } = options;
             let msg = {};
             if (pubKey) {
                 const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
@@ -5409,7 +5411,12 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('explore_global_trending_24h', msg);
             return fetchEventsResponse.events;
         }
-        async fetchProfileFeedCacheEvents(userPubkey, pubKey, since = 0, until = 0) {
+        async fetchProfileFeedCacheEvents(options) {
+            let { pubKey, since, until, userPubkey } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
             let msg = {
                 limit: 20,
@@ -5429,7 +5436,12 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('feed', msg);
             return fetchEventsResponse.events;
         }
-        async fetchProfileRepliesCacheEvents(userPubkey, pubKey, since = 0, until = 0) {
+        async fetchProfileRepliesCacheEvents(options) {
+            let { pubKey, since, until, userPubkey } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
             let msg = {
                 limit: 20,
@@ -5449,7 +5461,12 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('feed', msg);
             return fetchEventsResponse.events;
         }
-        async fetchHomeFeedCacheEvents(pubKey, since = 0, until = 0) {
+        async fetchHomeFeedCacheEvents(options) {
+            let { since, until, pubKey } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
             let msg = {
                 limit: 20
             };
@@ -5467,7 +5484,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('feed', msg);
             return fetchEventsResponse.events;
         }
-        async fetchUserProfileCacheEvents(pubKeys) {
+        async fetchUserProfileCacheEvents(options) {
+            const { pubKeys } = options;
             const decodedPubKeys = pubKeys.map(pubKey => pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey);
             let msg = {
                 pubkeys: decodedPubKeys
@@ -5475,7 +5493,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_infos', msg);
             return fetchEventsResponse.events;
         }
-        async fetchUserProfileDetailCacheEvents(pubKey) {
+        async fetchUserProfileDetailCacheEvents(options) {
+            const { pubKey } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
             let msg = {
                 pubkey: decodedPubKey,
@@ -5484,7 +5503,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_profile', msg);
             return fetchEventsResponse.events;
         }
-        async fetchContactListCacheEvents(pubKey, detailIncluded = true) {
+        async fetchContactListCacheEvents(options) {
+            const { pubKey, detailIncluded } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
             let msg = {
                 extended_response: detailIncluded,
@@ -5493,7 +5513,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('contact_list', msg);
             return fetchEventsResponse.events;
         }
-        async fetchUserRelays(pubKey) {
+        async fetchUserRelays(options) {
+            const { pubKey } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
             let msg = {
                 pubkey: decodedPubKey
@@ -5501,7 +5522,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('get_user_relays', msg);
             return fetchEventsResponse.events;
         }
-        async fetchFollowersCacheEvents(pubKey) {
+        async fetchFollowersCacheEvents(options) {
+            const { pubKey } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
             let msg = {
                 pubkey: decodedPubKey
@@ -5509,7 +5531,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_followers', msg);
             return fetchEventsResponse.events;
         }
-        async fetchCommunities(pubkeyToCommunityIdsMap) {
+        async fetchCommunities(options) {
+            const { pubkeyToCommunityIdsMap } = options;
             let events;
             if (pubkeyToCommunityIdsMap && Object.keys(pubkeyToCommunityIdsMap).length > 0) {
                 let requests = [];
@@ -5536,7 +5559,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             }
             return events;
         }
-        async fetchAllUserRelatedCommunities(pubKey) {
+        async fetchAllUserRelatedCommunities(options) {
+            const { pubKey } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
             let requestForCreatedCommunities = {
                 kinds: [34550],
@@ -5578,7 +5602,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             }
             return communitiesEvents;
         }
-        async fetchUserBookmarkedCommunities(pubKey, excludedCommunity) {
+        async fetchUserBookmarkedCommunities(options) {
+            const { pubKey, excludedCommunity } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
             let request = {
                 kinds: [30001],
@@ -5590,7 +5615,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const communities = utilsManager_2.SocialUtilsManager.extractBookmarkedCommunities(bookmarkedCommunitiesEvent, excludedCommunity);
             return communities;
         }
-        async fetchCommunity(creatorId, communityId) {
+        async fetchCommunity(options) {
+            const { communityId, creatorId } = options;
             const decodedCreatorId = creatorId.startsWith('npub1') ? index_4.Nip19.decode(creatorId).data : creatorId;
             let infoMsg = {
                 kinds: [34550],
@@ -5600,7 +5626,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(infoMsg);
             return fetchEventsResponse.events;
         }
-        async fetchCommunitiesMetadataFeed(communities) {
+        async fetchCommunitiesMetadataFeed(options) {
+            const { communities } = options;
             let requests = [];
             for (let community of communities) {
                 const decodedCreatorId = community.creatorId.startsWith('npub1') ? index_4.Nip19.decode(community.creatorId).data : community.creatorId;
@@ -5621,7 +5648,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(...requests);
             return fetchEventsResponse.events;
         }
-        async fetchCommunityFeed(communityUri, since, until) {
+        async fetchCommunityFeed(options) {
+            const { communityUri, since, until } = options;
             let request = {
                 kinds: [1],
                 "#a": [communityUri],
@@ -5636,7 +5664,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
             return fetchEventsResponse.events;
         }
-        async fetchCommunitiesFeed(communityUriArr) {
+        async fetchCommunitiesFeed(options) {
+            const { communityUriArr } = options;
             let request = {
                 kinds: [1],
                 "#a": communityUriArr,
@@ -5645,7 +5674,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
             return fetchEventsResponse.events;
         }
-        async fetchCommunitiesGeneralMembers(communities) {
+        async fetchCommunitiesGeneralMembers(options) {
+            const { communities } = options;
             const communityUriArr = [];
             for (let community of communities) {
                 const communityUri = utilsManager_2.SocialUtilsManager.getCommunityUri(community.creatorId, community.communityId);
@@ -5713,7 +5743,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
         //     const events = await this._nostrCommunicationManager.fetchEvents(msg);
         //     return events;
         // }
-        async fetchAllUserRelatedChannels(pubKey) {
+        async fetchAllUserRelatedChannels(options) {
+            const { pubKey } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
             let requestForCreatedChannels = {
                 kinds: [40, 41],
@@ -5751,7 +5782,9 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
                 }
             }
             if (bookmarkedChannelEventIds.length > 0) {
-                const bookmarkedChannelEvents = await this.fetchEventsByIds(bookmarkedChannelEventIds);
+                const bookmarkedChannelEvents = await this.fetchEventsByIds({
+                    ids: bookmarkedChannelEventIds
+                });
                 for (let event of bookmarkedChannelEvents) {
                     handleChannelEvent(event);
                 }
@@ -5782,7 +5815,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
                 channelIdToCommunityMap
             };
         }
-        async fetchUserBookmarkedChannelEventIds(pubKey) {
+        async fetchUserBookmarkedChannelEventIds(options) {
+            const { pubKey } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
             let requestForJoinedChannels = {
                 kinds: [30001],
@@ -5794,14 +5828,20 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const channelEventIds = utilsManager_2.SocialUtilsManager.extractBookmarkedChannels(bookmarkedChannelsEvent);
             return channelEventIds;
         }
-        async fetchEventsByIds(ids) {
+        async fetchEventsByIds(options) {
+            const { ids } = options;
             let request = {
                 ids: ids
             };
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
             return fetchEventsResponse.events;
         }
-        async fetchChannelMessages(channelId, since = 0, until = 0) {
+        async fetchChannelMessages(options) {
+            let { channelId, since, until } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
             const decodedChannelId = channelId.startsWith('npub1') ? index_4.Nip19.decode(channelId).data : channelId;
             let messagesReq = {
                 kinds: [42],
@@ -5817,7 +5857,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(messagesReq);
             return fetchEventsResponse.events;
         }
-        async fetchChannelInfoMessages(channelId) {
+        async fetchChannelInfoMessages(options) {
+            const { channelId } = options;
             const decodedChannelId = channelId.startsWith('npub1') ? index_4.Nip19.decode(channelId).data : channelId;
             let channelCreationEventReq = {
                 kinds: [40],
@@ -5835,7 +5876,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(channelCreationEventReq, channelMetadataEventReq, messagesReq);
             return fetchEventsResponse.events;
         }
-        async fetchMessageContactsCacheEvents(pubKey) {
+        async fetchMessageContactsCacheEvents(options) {
+            const { pubKey } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
             let msg = {
                 user_pubkey: decodedPubKey,
@@ -5849,7 +5891,12 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const otherEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('get_directmsg_contacts', msg);
             return [...followsEventsResponse.events, ...otherEventsResponse.events];
         }
-        async fetchDirectMessages(pubKey, sender, since = 0, until = 0) {
+        async fetchDirectMessages(options) {
+            let { pubKey, sender, since, until } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
             const decodedSenderPubKey = sender.startsWith('npub1') ? index_4.Nip19.decode(sender).data : sender;
             const req = {
@@ -5866,7 +5913,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('get_directmsgs', req);
             return fetchEventsResponse.events;
         }
-        async resetMessageCount(pubKey, sender) {
+        async resetMessageCount(options) {
+            const { pubKey, sender } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
             const decodedSenderPubKey = sender.startsWith('npub1') ? index_4.Nip19.decode(sender).data : sender;
             const createAt = Math.ceil(Date.now() / 1000);
@@ -5890,7 +5938,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             };
             await this._nostrCommunicationManager.fetchCachedEvents('reset_directmsg_count', msg);
         }
-        async fetchGroupKeys(identifier) {
+        async fetchGroupKeys(options) {
+            const { identifier } = options;
             let req = {
                 kinds: [30078],
                 "#d": [identifier]
@@ -5898,7 +5947,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
         }
-        async fetchUserGroupInvitations(groupKinds, pubKey) {
+        async fetchUserGroupInvitations(options) {
+            const { pubKey, groupKinds } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
             let req = {
                 kinds: [30078],
@@ -5909,7 +5959,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             let events = fetchEventsResponse.events?.filter(event => event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'invitee').map(tag => tag[1]).includes(decodedPubKey));
             return events;
         }
-        async fetchCalendarEvents(start, end, limit, previousEventId) {
+        async fetchCalendarEvents(options) {
+            const { limit } = options;
             let req = {
                 kinds: [31922, 31923],
                 limit: limit || 10
@@ -5920,7 +5971,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
                 data: fetchEventsResponse.data
             };
         }
-        async fetchCalendarEvent(address) {
+        async fetchCalendarEvent(options) {
+            const { address } = options;
             let req = {
                 kinds: [address.kind],
                 "#d": [address.identifier],
@@ -5929,7 +5981,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
         }
-        async fetchCalendarEventPosts(calendarEventUri) {
+        async fetchCalendarEventPosts(options) {
+            const { calendarEventUri } = options;
             let request = {
                 kinds: [1],
                 "#a": [calendarEventUri],
@@ -5938,7 +5991,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
             return fetchEventsResponse.events;
         }
-        async fetchCalendarEventRSVPs(calendarEventUri, pubkey) {
+        async fetchCalendarEventRSVPs(options) {
+            const { calendarEventUri, pubkey } = options;
             let req = {
                 kinds: [31925],
                 "#a": [calendarEventUri]
@@ -5950,7 +6004,12 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
             return fetchEventsResponse.events;
         }
-        async fetchLongFormContentEvents(pubKey, since = 0, until = 0) {
+        async fetchLongFormContentEvents(options) {
+            let { pubKey, since, until } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
             let req = {
                 kinds: [30023],
                 limit: 20
@@ -5976,7 +6035,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
         //     const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
         //     return fetchEventsResponse.events;
         // }
-        async searchUsers(query) {
+        async searchUsers(options) {
+            const { query } = options;
             const req = {
                 query: query,
                 limit: 10
@@ -5984,7 +6044,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_search', req);
             return fetchEventsResponse.events;
         }
-        async fetchPaymentRequestEvent(paymentRequest) {
+        async fetchPaymentRequestEvent(options) {
+            const { paymentRequest } = options;
             let hash = index_4.Event.getPaymentRequestHash(paymentRequest);
             let req = {
                 kinds: [9739],
@@ -5993,7 +6054,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
         }
-        async fetchPaymentReceiptEvent(requestEventId) {
+        async fetchPaymentReceiptEvent(options) {
+            const { requestEventId } = options;
             let req = {
                 kinds: [9740],
                 "#e": [requestEventId]
@@ -6008,7 +6070,12 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             }
             return tagsMap['bolt11']?.[0] || tagsMap['payreq']?.[0] || tagsMap['r']?.[0];
         }
-        async fetchPaymentActivitiesForRecipient(pubkey, since = 0, until = 0) {
+        async fetchPaymentActivitiesForRecipient(options) {
+            let { pubkey, since, until } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
             let paymentRequestEventsReq = {
                 kinds: [9739],
                 authors: [pubkey],
@@ -6049,7 +6116,12 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             }
             return paymentActivity;
         }
-        async fetchPaymentActivitiesForSender(pubkey, since = 0, until = 0) {
+        async fetchPaymentActivitiesForSender(options) {
+            let { pubkey, since, until } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
             let paymentReceiptEventsReq = {
                 kinds: [9740],
                 authors: [pubkey],
@@ -6093,7 +6165,10 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             }
             return paymentActivity;
         }
-        async fetchUserFollowingFeed(pubKey, until = 0) {
+        async fetchUserFollowingFeed(options) {
+            let { pubKey, until } = options;
+            if (!until)
+                until = 0;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
             let msg = {
                 user_pubkey: decodedPubKey,
@@ -6107,7 +6182,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('explore', msg);
             return fetchEventsResponse.events;
         }
-        async fetchCommunityPinnedNotes(creatorId, communityId) {
+        async fetchCommunityPinnedNotesEvent(options) {
+            const { creatorId, communityId } = options;
             const communityUri = utilsManager_2.SocialUtilsManager.getCommunityUri(creatorId, communityId);
             let request = {
                 kinds: [9741],
@@ -6116,7 +6192,20 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
         }
-        async fetchUserPinnedNotes(pubKey) {
+        async fetchCommunityPinnedNoteIds(options) {
+            const event = await this.fetchCommunityPinnedNotesEvent(options);
+            let noteIds = [];
+            if (event) {
+                for (let tag of event.tags) {
+                    if (tag[0] === 'e') {
+                        noteIds.push(tag[1]);
+                    }
+                }
+            }
+            return noteIds;
+        }
+        async fetchUserPinnedNotes(options) {
+            const { pubKey } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
             let request = {
                 kinds: [10001],
@@ -6145,7 +6234,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
         augmentWithAuthInfo(obj) {
             return utilsManager_3.SocialUtilsManager.augmentWithAuthInfo(obj, this._privateKey);
         }
-        async fetchThreadCacheEvents(id, pubKey) {
+        async fetchThreadCacheEvents(options) {
+            const { id } = options;
             let decodedId = id.startsWith('note1') ? index_5.Nip19.decode(id).data : id;
             let msg = this.augmentWithAuthInfo({
                 eventId: decodedId,
@@ -6154,12 +6244,17 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-thread-posts', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchTrendingCacheEvents(pubKey) {
+        async fetchTrendingCacheEvents(options) {
             let msg = this.augmentWithAuthInfo({});
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-trending-posts', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchProfileFeedCacheEvents(userPubkey, pubKey, since = 0, until = 0) {
+        async fetchProfileFeedCacheEvents(options) {
+            let { pubKey, since, until, userPubkey } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
             let msg = this.augmentWithAuthInfo({
                 limit: 20,
@@ -6178,7 +6273,12 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-profile-feed', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchProfileRepliesCacheEvents(userPubkey, pubKey, since = 0, until = 0) {
+        async fetchProfileRepliesCacheEvents(options) {
+            let { pubKey, since, until, userPubkey } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
             let msg = this.augmentWithAuthInfo({
                 limit: 20,
@@ -6197,7 +6297,12 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-profile-replies', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchHomeFeedCacheEvents(pubKey, since = 0, until = 0) {
+        async fetchHomeFeedCacheEvents(options) {
+            let { since, until, pubKey } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
             let msg = {
                 limit: 20
             };
@@ -6214,7 +6319,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-home-feed', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchUserProfileCacheEvents(pubKeys) {
+        async fetchUserProfileCacheEvents(options) {
+            let { pubKeys } = options;
             const decodedPubKeys = pubKeys.map(pubKey => pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey);
             let msg = this.augmentWithAuthInfo({
                 pubkeys: decodedPubKeys
@@ -6223,7 +6329,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-profiles', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchUserProfileDetailCacheEvents(pubKey) {
+        async fetchUserProfileDetailCacheEvents(options) {
+            let { pubKey } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
             let msg = this.augmentWithAuthInfo({
                 pubkey: decodedPubKey
@@ -6231,7 +6338,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-profile-detail', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchContactListCacheEvents(pubKey, detailIncluded = true) {
+        async fetchContactListCacheEvents(options) {
+            let { pubKey, detailIncluded } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
             let msg = this.augmentWithAuthInfo({
                 pubkey: decodedPubKey,
@@ -6240,7 +6348,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-contact-list', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchUserRelays(pubKey) {
+        async fetchUserRelays(options) {
+            const { pubKey } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
             let msg = this.augmentWithAuthInfo({
                 pubkey: decodedPubKey
@@ -6248,7 +6357,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-relays', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchFollowersCacheEvents(pubKey) {
+        async fetchFollowersCacheEvents(options) {
+            const { pubKey } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
             let msg = this.augmentWithAuthInfo({
                 pubkey: decodedPubKey
@@ -6256,7 +6366,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-followers', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchCommunities(pubkeyToCommunityIdsMap) {
+        async fetchCommunities(options) {
+            const { pubkeyToCommunityIdsMap } = options;
             let events;
             if (pubkeyToCommunityIdsMap && Object.keys(pubkeyToCommunityIdsMap).length > 0) {
                 let msg = this.augmentWithAuthInfo({
@@ -6283,7 +6394,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             }
             return events;
         }
-        async fetchAllUserRelatedCommunities(pubKey) {
+        async fetchAllUserRelatedCommunities(options) {
+            const { pubKey } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
             let msg = this.augmentWithAuthInfo({
                 pubkey: decodedPubKey
@@ -6291,7 +6403,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-communities', msg);
             return response.events || [];
         }
-        async fetchUserBookmarkedCommunities(pubKey, excludedCommunity) {
+        async fetchUserBookmarkedCommunities(options) {
+            const { pubKey, excludedCommunity } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
             let msg = this.augmentWithAuthInfo({
                 pubkey: decodedPubKey
@@ -6308,7 +6421,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             }
             return communities;
         }
-        async fetchCommunity(creatorId, communityId) {
+        async fetchCommunity(options) {
+            const { communityId, creatorId } = options;
             const decodedCreatorId = creatorId.startsWith('npub1') ? index_5.Nip19.decode(creatorId).data : creatorId;
             let msg = this.augmentWithAuthInfo({
                 identifiers: [
@@ -6321,7 +6435,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchCommunitiesMetadataFeed(communities) {
+        async fetchCommunitiesMetadataFeed(options) {
+            const { communities } = options;
             let identifiers = [];
             for (let community of communities) {
                 const decodedCreatorId = community.creatorId.startsWith('npub1') ? index_5.Nip19.decode(community.creatorId).data : community.creatorId;
@@ -6338,7 +6453,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-feed', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchCommunityFeed(communityUri, since, until) {
+        async fetchCommunityFeed(options) {
+            const { communityUri, since, until } = options;
             let request = {
                 kinds: [1],
                 "#a": [communityUri],
@@ -6353,7 +6469,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
             return fetchEventsResponse.events;
         }
-        async fetchCommunitiesFeed(communityUriArr) {
+        async fetchCommunitiesFeed(options) {
+            const { communityUriArr } = options;
             let request = {
                 kinds: [1],
                 "#a": communityUriArr,
@@ -6362,7 +6479,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
             return fetchEventsResponse.events || [];
         }
-        async fetchCommunitiesGeneralMembers(communities) {
+        async fetchCommunitiesGeneralMembers(options) {
+            const { communities } = options;
             let msg = this.augmentWithAuthInfo({
                 identifiers: []
             });
@@ -6391,7 +6509,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchAllUserRelatedChannels(pubKey) {
+        async fetchAllUserRelatedChannels(options) {
+            const { pubKey } = options;
             let msg = this.augmentWithAuthInfo({
                 pubKey
             });
@@ -6438,21 +6557,28 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 channelIdToCommunityMap
             };
         }
-        async fetchUserBookmarkedChannelEventIds(pubKey) {
+        async fetchUserBookmarkedChannelEventIds(options) {
+            const { pubKey } = options;
             let msg = this.augmentWithAuthInfo({
                 pubKey
             });
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-bookmarked-channel-event-ids', msg);
             return fetchEventsResponse.data;
         }
-        async fetchEventsByIds(ids) {
+        async fetchEventsByIds(options) {
+            const { ids } = options;
             let msg = this.augmentWithAuthInfo({
                 ids
             });
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-events', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchChannelMessages(channelId, since = 0, until = 0) {
+        async fetchChannelMessages(options) {
+            let { channelId, since, until } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
             const decodedChannelId = channelId.startsWith('npub1') ? index_5.Nip19.decode(channelId).data : channelId;
             let msg = this.augmentWithAuthInfo({
                 channelId: decodedChannelId,
@@ -6467,7 +6593,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-channel-messages', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchChannelInfoMessages(channelId) {
+        async fetchChannelInfoMessages(options) {
+            const { channelId } = options;
             const decodedChannelId = channelId.startsWith('npub1') ? index_5.Nip19.decode(channelId).data : channelId;
             let msg = this.augmentWithAuthInfo({
                 channelId: decodedChannelId,
@@ -6476,7 +6603,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-channel-info-messages', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchMessageContactsCacheEvents(pubKey) {
+        async fetchMessageContactsCacheEvents(options) {
+            const { pubKey } = options;
             const senderToLastReadMap = {};
             //FIXME: Implement a better way to get last read messages
             if (localStorage) {
@@ -6497,7 +6625,12 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-direct-messages-stats', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchDirectMessages(pubKey, sender, since = 0, until = 0) {
+        async fetchDirectMessages(options) {
+            let { pubKey, since, until, sender } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
             const decodedSenderPubKey = sender.startsWith('npub1') ? index_5.Nip19.decode(sender).data : sender;
             const msg = this.augmentWithAuthInfo({
@@ -6514,7 +6647,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-direct-messages', msg);
             return fetchEventsResponse.events || [];
         }
-        async resetMessageCount(pubKey, sender) {
+        async resetMessageCount(options) {
+            const { sender } = options;
             //FIXME: Implement a better way to set last read messages
             if (localStorage) {
                 const lastReadsStr = localStorage.getItem('lastReads');
@@ -6526,14 +6660,16 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 localStorage.setItem('lastReads', JSON.stringify(lastReads));
             }
         }
-        async fetchGroupKeys(identifier) {
+        async fetchGroupKeys(options) {
+            const { identifier } = options;
             let msg = this.augmentWithAuthInfo({
                 identifier
             });
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-application-specific', msg);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
         }
-        async fetchUserGroupInvitations(groupKinds, pubKey) {
+        async fetchUserGroupInvitations(options) {
+            const { pubKey, groupKinds } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
             let msg = this.augmentWithAuthInfo({
                 pubKey: decodedPubKey,
@@ -6543,7 +6679,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             let events = fetchEventsResponse.events?.filter(event => event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'invitee').map(tag => tag[1]).includes(decodedPubKey));
             return events;
         }
-        async fetchCalendarEvents(start, end, limit, previousEventId) {
+        async fetchCalendarEvents(options) {
+            const { start, end, limit, previousEventId } = options;
             let msg = this.augmentWithAuthInfo({
                 start: start,
                 end: end,
@@ -6556,7 +6693,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 data: fetchEventsResponse.data
             };
         }
-        async fetchCalendarEvent(address) {
+        async fetchCalendarEvent(options) {
+            const { address } = options;
             const key = `${address.kind}:${address.pubkey}:${address.identifier}`;
             let msg = this.augmentWithAuthInfo({
                 key
@@ -6564,7 +6702,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-events', msg);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
         }
-        async fetchCalendarEventPosts(calendarEventUri) {
+        async fetchCalendarEventPosts(options) {
+            const { calendarEventUri } = options;
             let msg = this.augmentWithAuthInfo({
                 eventUri: calendarEventUri,
                 limit: 50
@@ -6572,7 +6711,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-posts', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchCalendarEventRSVPs(calendarEventUri, pubkey) {
+        async fetchCalendarEventRSVPs(options) {
+            const { calendarEventUri, pubkey } = options;
             let msg = this.augmentWithAuthInfo({
                 eventUri: calendarEventUri
             });
@@ -6583,7 +6723,12 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-rsvps', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchLongFormContentEvents(pubKey, since = 0, until = 0) {
+        async fetchLongFormContentEvents(options) {
+            let { pubKey, since, until } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
             let msg = this.augmentWithAuthInfo({
                 limit: 20
             });
@@ -6600,7 +6745,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-long-form-content', msg);
             return fetchEventsResponse.events || [];
         }
-        async searchUsers(query) {
+        async searchUsers(options) {
+            const { query } = options;
             const req = {
                 query: query,
                 limit: 10
@@ -6608,7 +6754,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_search', req);
             return fetchEventsResponse.events || [];
         }
-        async fetchPaymentRequestEvent(paymentRequest) {
+        async fetchPaymentRequestEvent(options) {
+            const { paymentRequest } = options;
             let hash = index_5.Event.getPaymentRequestHash(paymentRequest);
             let req = {
                 kinds: [9739],
@@ -6617,7 +6764,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
         }
-        async fetchPaymentReceiptEvent(requestEventId) {
+        async fetchPaymentReceiptEvent(options) {
+            const { requestEventId } = options;
             let req = {
                 kinds: [9740],
                 "#e": [requestEventId]
@@ -6632,7 +6780,12 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             }
             return tagsMap['bolt11']?.[0] || tagsMap['payreq']?.[0] || tagsMap['r']?.[0];
         }
-        async fetchPaymentActivitiesForRecipient(pubkey, since = 0, until = 0) {
+        async fetchPaymentActivitiesForRecipient(options) {
+            let { pubkey, since, until } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
             let paymentRequestEventsReq = {
                 kinds: [9739],
                 authors: [pubkey],
@@ -6673,7 +6826,12 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             }
             return paymentActivity;
         }
-        async fetchPaymentActivitiesForSender(pubkey, since = 0, until = 0) {
+        async fetchPaymentActivitiesForSender(options) {
+            let { pubkey, since, until } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
             let paymentReceiptEventsReq = {
                 kinds: [9740],
                 authors: [pubkey],
@@ -6717,7 +6875,10 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             }
             return paymentActivity;
         }
-        async fetchUserFollowingFeed(pubKey, until = 0) {
+        async fetchUserFollowingFeed(options) {
+            let { pubKey, until } = options;
+            if (!until)
+                until = 0;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
             let msg = {
                 user_pubkey: decodedPubKey,
@@ -6731,16 +6892,30 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('explore', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchCommunityPinnedNotes(creatorId, communityId) {
-            const communityUri = utilsManager_3.SocialUtilsManager.getCommunityUri(creatorId, communityId);
-            let request = {
-                kinds: [9741],
-                "#a": [communityUri]
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+        async fetchCommunityPinnedNotesEvent(options) {
+            const { communityId, creatorId } = options;
+            const communityPubkey = creatorId.startsWith('npub1') ? index_5.Nip19.decode(creatorId).data : creatorId;
+            let msg = this.augmentWithAuthInfo({
+                communityPubkey,
+                communityName: communityId,
+                eventMetadataIncluded: true
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-pinned-notes', msg);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
         }
-        async fetchUserPinnedNotes(pubKey) {
+        async fetchCommunityPinnedNoteIds(options) {
+            const { communityId, creatorId } = options;
+            const communityPubkey = creatorId.startsWith('npub1') ? index_5.Nip19.decode(creatorId).data : creatorId;
+            let msg = this.augmentWithAuthInfo({
+                communityPubkey,
+                communityName: communityId,
+                eventMetadataIncluded: false
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-pinned-notes', msg);
+            return fetchEventsResponse.data?.ids || [];
+        }
+        async fetchUserPinnedNotes(options) {
+            const { pubKey } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
             let request = {
                 kinds: [10001],
@@ -6766,19 +6941,19 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV2.ts", ["require", "expo
         augmentWithAuthInfo(obj) {
             return utilsManager_4.SocialUtilsManager.augmentWithAuthInfo(obj, this._privateKey);
         }
-        async searchUsers(query) {
+        async searchUsers(options) {
             return [];
         }
-        async fetchPaymentRequestEvent(paymentRequest) {
+        async fetchPaymentRequestEvent(options) {
             return null;
         }
-        async fetchPaymentActivitiesForRecipient(pubkey, since = 0, until = 0) {
+        async fetchPaymentActivitiesForRecipient(options) {
             return [];
         }
-        async fetchPaymentActivitiesForSender(pubkey, since = 0, until = 0) {
+        async fetchPaymentActivitiesForSender(options) {
             return [];
         }
-        async fetchUserFollowingFeed(pubKey, until = 0) {
+        async fetchUserFollowingFeed(options) {
             return [];
         }
     }
@@ -6893,12 +7068,14 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             this.mqttManager.publish(topic, message);
         }
         async retrieveCommunityEvents(creatorId, communityId) {
-            const feedEvents = await this._socialEventManagerRead.fetchCommunitiesMetadataFeed([
-                {
-                    creatorId,
-                    communityId
-                }
-            ]);
+            const feedEvents = await this._socialEventManagerRead.fetchCommunitiesMetadataFeed({
+                communities: [
+                    {
+                        creatorId,
+                        communityId
+                    }
+                ]
+            });
             const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(feedEvents);
             const communityEvent = feedEvents.find(event => event.kind === 34550);
             if (!communityEvent)
@@ -6911,7 +7088,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             if (notesCountEvent) {
                 notesCount = JSON.parse(notesCountEvent.content).note_count;
             }
-            const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(communityInfo.communityUri + ':keys');
+            const keyEvent = await this._socialEventManagerRead.fetchGroupKeys({
+                identifier: communityInfo.communityUri + ':keys'
+            });
             if (keyEvent) {
                 communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
             }
@@ -6923,7 +7102,11 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async fetchCommunityFeedInfo(creatorId, communityId, since, until) {
             const communityUri = utilsManager_5.SocialUtilsManager.getCommunityUri(creatorId, communityId);
-            const events = await this._socialEventManagerRead.fetchCommunityFeed(communityUri, since, until);
+            const events = await this._socialEventManagerRead.fetchCommunityFeed({
+                communityUri,
+                since,
+                until
+            });
             const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(events);
             return notes;
         }
@@ -7197,7 +7380,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             }
             const uniqueKeys = Array.from(mentionAuthorSet);
             const npubs = notes.map(note => note.pubkey).filter((value, index, self) => self.indexOf(value) === index);
-            const metadata = await this._socialEventManagerRead.fetchUserProfileCacheEvents([...npubs, ...uniqueKeys]);
+            const metadata = await this._socialEventManagerRead.fetchUserProfileCacheEvents({
+                pubKeys: [...npubs, ...uniqueKeys]
+            });
             const metadataByPubKeyMap = metadata.reduce((acc, cur) => {
                 const content = JSON.parse(cur.content);
                 if (cur.pubkey) {
@@ -7216,7 +7401,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             let followersCountMap = {};
             const fetchData = async () => {
                 if (fetchFromCache) {
-                    const events = await this._socialEventManagerRead.fetchUserProfileCacheEvents(pubKeys);
+                    const events = await this._socialEventManagerRead.fetchUserProfileCacheEvents({ pubKeys });
                     for (let event of events) {
                         if (event.kind === 0) {
                             metadataArr.push({
@@ -7265,7 +7450,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         async fetchTrendingNotesInfo() {
             let notes = [];
             let metadataByPubKeyMap = {};
-            const events = await this._socialEventManagerRead.fetchTrendingCacheEvents();
+            const events = await this._socialEventManagerRead.fetchTrendingCacheEvents({});
             for (let event of events) {
                 if (event.kind === 0) {
                     metadataByPubKeyMap[event.pubkey] = {
@@ -7286,7 +7471,12 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async fetchProfileFeedInfo(pubKey, since = 0, until) {
             const selfPubkey = this._privateKey ? utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
-            const events = await this._socialEventManagerRead.fetchProfileFeedCacheEvents(selfPubkey, pubKey, since, until);
+            const events = await this._socialEventManagerRead.fetchProfileFeedCacheEvents({
+                userPubkey: selfPubkey,
+                pubKey,
+                since,
+                until
+            });
             const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
             const { notes, metadataByPubKeyMap, quotedNotesMap, noteToRepostIdMap } = this.createNoteEventMappings(events);
             for (let note of notes) {
@@ -7330,7 +7520,12 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async fetchProfileRepliesInfo(pubKey, since = 0, until) {
             const selfPubkey = this._privateKey ? utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
-            const events = await this._socialEventManagerRead.fetchProfileRepliesCacheEvents(selfPubkey, pubKey, since, until);
+            const events = await this._socialEventManagerRead.fetchProfileRepliesCacheEvents({
+                userPubkey: selfPubkey,
+                pubKey,
+                since,
+                until
+            });
             const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
             const { notes, metadataByPubKeyMap, quotedNotesMap, noteToParentAuthorIdMap } = this.createNoteEventMappings(events, true);
             for (let note of notes) {
@@ -7362,7 +7557,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             };
         }
         async fetchNotesByIds(ids) {
-            const noteEvents = await this._socialEventManagerRead.fetchEventsByIds(ids);
+            const noteEvents = await this._socialEventManagerRead.fetchEventsByIds({ ids });
             return noteEvents;
         }
         getEarliestEventTimestamp(events) {
@@ -7374,7 +7569,11 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             }, events[0].created_at);
         }
         async fetchHomeFeedInfo(pubKey, since = 0, until) {
-            let events = await this._socialEventManagerRead.fetchHomeFeedCacheEvents(pubKey, since, until);
+            let events = await this._socialEventManagerRead.fetchHomeFeedCacheEvents({
+                pubKey,
+                since,
+                until
+            });
             const earliest = this.getEarliestEventTimestamp(events.filter(v => v.kind === 1).filter(v => v.created_at));
             const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(events);
             return {
@@ -7385,7 +7584,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             };
         }
         async fetchUserFollowingFeedInfo(pubKey, until) {
-            let events = await this._socialEventManagerRead.fetchUserFollowingFeed(pubKey, until);
+            let events = await this._socialEventManagerRead.fetchUserFollowingFeed({
+                pubKey,
+                until
+            });
             const earliest = this.getEarliestEventTimestamp(events.filter(v => (v.kind === 1 || v.kind === 6) && v.created_at));
             const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(events);
             return {
@@ -7488,12 +7690,17 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             };
         }
         async fetchCommunityInfo(creatorId, communityId) {
-            const communityEvents = await this._socialEventManagerRead.fetchCommunity(creatorId, communityId);
+            const communityEvents = await this._socialEventManagerRead.fetchCommunity({
+                creatorId,
+                communityId
+            });
             const communityEvent = communityEvents.find(event => event.kind === 34550);
             if (!communityEvent)
                 return null;
             let communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(communityEvent);
-            const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(communityInfo.communityUri + ':keys');
+            const keyEvent = await this._socialEventManagerRead.fetchGroupKeys({
+                identifier: communityInfo.communityUri + ':keys'
+            });
             if (keyEvent) {
                 communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
             }
@@ -7543,13 +7750,17 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 //     communityId: 'Art'
                 // }
             ];
-            const feedEvents = await this._socialEventManagerRead.fetchCommunitiesMetadataFeed(suggestedCommunities);
+            const feedEvents = await this._socialEventManagerRead.fetchCommunitiesMetadataFeed({
+                communities: suggestedCommunities
+            });
             const communityEvents = feedEvents.filter(event => event.kind === 34550);
             for (let communityEvent of communityEvents) {
                 const communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(communityEvent);
                 if (!communityInfo)
                     continue;
-                const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(communityInfo.communityUri + ':keys');
+                const keyEvent = await this._socialEventManagerRead.fetchGroupKeys({
+                    identifier: communityInfo.communityUri + ':keys'
+                });
                 if (keyEvent) {
                     communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
                 }
@@ -7563,11 +7774,13 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         async fetchUserRelatedCommunityFeedInfo(pubKey) {
             let communityUriArr = [];
             let communityEventsMap = {};
-            const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunities(pubKey);
+            const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunities({ pubKey });
             for (let event of events) {
                 if (event.kind === 34550) {
                     const communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(event);
-                    const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(communityInfo.communityUri + ':keys');
+                    const keyEvent = await this._socialEventManagerRead.fetchGroupKeys({
+                        identifier: communityInfo.communityUri + ':keys'
+                    });
                     if (keyEvent) {
                         communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
                     }
@@ -7576,7 +7789,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 }
             }
             if (communityUriArr.length > 0) {
-                const feedEvents = await this._socialEventManagerRead.fetchCommunitiesFeed(communityUriArr);
+                const feedEvents = await this._socialEventManagerRead.fetchCommunitiesFeed({ communityUriArr });
                 for (let event of feedEvents) {
                     const communityUri = event.tags.find(tag => tag[0] === 'a')?.[1];
                     if (communityEventsMap[communityUri])
@@ -7593,7 +7806,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             //Ancestor posts -> Focused post -> Child replies
             let decodedFocusedNoteId = focusedNoteId.startsWith('note1') ? index_6.Nip19.decode(focusedNoteId).data : focusedNoteId;
             const selfPubkey = this._privateKey ? utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
-            const threadEvents = await this._socialEventManagerRead.fetchThreadCacheEvents(decodedFocusedNoteId, selfPubkey);
+            const threadEvents = await this._socialEventManagerRead.fetchThreadCacheEvents({
+                id: decodedFocusedNoteId,
+                pubKey: selfPubkey
+            });
             const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(threadEvents);
             for (let note of notes) {
                 if (note.eventData.tags?.length) {
@@ -7676,7 +7892,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         async retrieveUserProfileDetail(pubKey) {
             let metadata;
             let stats;
-            const userContactEvents = await this._socialEventManagerRead.fetchUserProfileDetailCacheEvents(pubKey);
+            const userContactEvents = await this._socialEventManagerRead.fetchUserProfileDetailCacheEvents({ pubKey });
             for (let event of userContactEvents) {
                 if (event.kind === 0) {
                     metadata = {
@@ -7729,7 +7945,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         async fetchUserContactList(pubKey) {
             let metadataArr = [];
             let followersCountMap = {};
-            const userContactEvents = await this._socialEventManagerRead.fetchContactListCacheEvents(pubKey, true);
+            const userContactEvents = await this._socialEventManagerRead.fetchContactListCacheEvents({
+                pubKey,
+                detailIncluded: true
+            });
             for (let event of userContactEvents) {
                 if (event.kind === 0) {
                     metadataArr.push({
@@ -7751,7 +7970,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         async fetchUserFollowersList(pubKey) {
             let metadataArr = [];
             let followersCountMap = {};
-            const userFollowersEvents = await this._socialEventManagerRead.fetchFollowersCacheEvents(pubKey);
+            const userFollowersEvents = await this._socialEventManagerRead.fetchFollowersCacheEvents({ pubKey });
             for (let event of userFollowersEvents) {
                 if (event.kind === 0) {
                     metadataArr.push({
@@ -7772,7 +7991,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async fetchUserRelayList(pubKey) {
             let relayList = [];
-            const relaysEvents = await this._socialEventManagerRead.fetchUserRelays(pubKey);
+            const relaysEvents = await this._socialEventManagerRead.fetchUserRelays({ pubKey });
             const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
             if (!relaysEvent)
                 return relayList;
@@ -7783,7 +8002,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         async followUser(userPubKey) {
             const decodedUserPubKey = userPubKey.startsWith('npub1') ? index_6.Nip19.decode(userPubKey).data : userPubKey;
             const selfPubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
-            const contactListEvents = await this._socialEventManagerRead.fetchContactListCacheEvents(selfPubkey, false);
+            const contactListEvents = await this._socialEventManagerRead.fetchContactListCacheEvents({
+                pubKey: selfPubkey,
+                detailIncluded: false
+            });
             let content = '';
             let contactPubKeys = new Set();
             let contactListEvent = contactListEvents.find(event => event.kind === 3);
@@ -7797,7 +8019,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         async unfollowUser(userPubKey) {
             const decodedUserPubKey = userPubKey.startsWith('npub1') ? index_6.Nip19.decode(userPubKey).data : userPubKey;
             const selfPubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
-            const contactListEvents = await this._socialEventManagerRead.fetchContactListCacheEvents(selfPubkey, false);
+            const contactListEvents = await this._socialEventManagerRead.fetchContactListCacheEvents({
+                pubKey: selfPubkey,
+                detailIncluded: false
+            });
             let content = '';
             let contactPubKeys = new Set();
             const contactListEvent = contactListEvents.find(event => event.kind === 3);
@@ -7987,7 +8212,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async fetchCommunities() {
             let communities = [];
-            const events = await this._socialEventManagerRead.fetchCommunities();
+            const events = await this._socialEventManagerRead.fetchCommunities({});
             for (let event of events) {
                 const communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(event);
                 let community = {
@@ -8006,7 +8231,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async fetchMyCommunities(pubKey) {
             let communities = [];
-            const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunities(pubKey);
+            const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunities({ pubKey });
             for (let event of events) {
                 if (event.kind === 34550) {
                     const communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(event);
@@ -8020,20 +8245,23 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             return communities;
         }
         async joinCommunity(community, pubKey) {
-            const communities = await this._socialEventManagerRead.fetchUserBookmarkedCommunities(pubKey);
+            const communities = await this._socialEventManagerRead.fetchUserBookmarkedCommunities({ pubKey });
             communities.push(community);
             await this._socialEventManagerWrite.updateUserBookmarkedCommunities(communities);
             if (community.scpData?.channelEventId) {
-                const channelEventIds = await this._socialEventManagerRead.fetchUserBookmarkedChannelEventIds(pubKey);
+                const channelEventIds = await this._socialEventManagerRead.fetchUserBookmarkedChannelEventIds({ pubKey });
                 channelEventIds.push(community.scpData.channelEventId);
                 await this._socialEventManagerWrite.updateUserBookmarkedChannels(channelEventIds);
             }
         }
         async leaveCommunity(community, pubKey) {
-            const communities = await this._socialEventManagerRead.fetchUserBookmarkedCommunities(pubKey, community);
+            const communities = await this._socialEventManagerRead.fetchUserBookmarkedCommunities({
+                pubKey,
+                excludedCommunity: community
+            });
             await this._socialEventManagerWrite.updateUserBookmarkedCommunities(communities);
             if (community.scpData?.channelEventId) {
-                const channelEventIds = await this._socialEventManagerRead.fetchUserBookmarkedChannelEventIds(pubKey);
+                const channelEventIds = await this._socialEventManagerRead.fetchUserBookmarkedChannelEventIds({ pubKey });
                 const index = channelEventIds.indexOf(community.scpData.channelEventId);
                 if (index > -1) {
                     channelEventIds.splice(index, 1);
@@ -8082,7 +8310,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             return responses;
         }
         async fetchAllUserRelatedChannels(pubKey) {
-            const { channels, channelMetadataMap, channelIdToCommunityMap } = await this._socialEventManagerRead.fetchAllUserRelatedChannels(pubKey);
+            const { channels, channelMetadataMap, channelIdToCommunityMap } = await this._socialEventManagerRead.fetchAllUserRelatedChannels({ pubKey });
             let outputChannels = [];
             for (let channel of channels) {
                 const channelMetadata = channelMetadataMap[channel.id];
@@ -8104,12 +8332,16 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             return outputChannels;
         }
         async retrieveChannelMessages(channelId, since, until) {
-            const events = await this._socialEventManagerRead.fetchChannelMessages(channelId, since, until);
+            const events = await this._socialEventManagerRead.fetchChannelMessages({
+                channelId,
+                since,
+                until
+            });
             const messageEvents = events.filter(event => event.kind === 42);
             return messageEvents;
         }
         async retrieveChannelEvents(creatorId, channelId) {
-            const channelEvents = await this._socialEventManagerRead.fetchChannelInfoMessages(channelId);
+            const channelEvents = await this._socialEventManagerRead.fetchChannelInfoMessages({ channelId });
             const messageEvents = channelEvents.filter(event => event.kind === 42);
             const channelCreationEvent = channelEvents.find(event => event.kind === 40);
             if (!channelCreationEvent)
@@ -8166,7 +8398,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 }
                 else {
                     const groupUri = `40:${channelInfo.id}`;
-                    const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(groupUri + ':keys');
+                    const keyEvent = await this._socialEventManagerRead.fetchGroupKeys({
+                        identifier: groupUri + ':keys'
+                    });
                     if (keyEvent) {
                         const creatorPubkey = channelInfo.eventData.pubkey;
                         const pubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(options.privateKey);
@@ -8205,7 +8439,12 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async fetchDirectMessagesBySender(selfPubKey, senderPubKey, since, until) {
             const decodedSenderPubKey = index_6.Nip19.decode(senderPubKey).data;
-            const events = await this._socialEventManagerRead.fetchDirectMessages(selfPubKey, decodedSenderPubKey, since, until);
+            const events = await this._socialEventManagerRead.fetchDirectMessages({
+                pubKey: selfPubKey,
+                sender: decodedSenderPubKey,
+                since,
+                until
+            });
             let metadataByPubKeyMap = {};
             const encryptedMessages = [];
             for (let event of events) {
@@ -8231,10 +8470,13 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             await this._socialEventManagerWrite.sendMessage(decodedReceiverPubKey, content, replyToEventId);
         }
         async resetMessageCount(selfPubKey, senderPubKey) {
-            await this._socialEventManagerRead.resetMessageCount(selfPubKey, senderPubKey);
+            await this._socialEventManagerRead.resetMessageCount({
+                pubKey: selfPubKey,
+                sender: senderPubKey
+            });
         }
         async fetchMessageContacts(pubKey) {
-            const events = await this._socialEventManagerRead.fetchMessageContactsCacheEvents(pubKey);
+            const events = await this._socialEventManagerRead.fetchMessageContactsCacheEvents({ pubKey });
             const pubkeyToMessageInfoMap = {};
             let metadataByPubKeyMap = {};
             for (let event of events) {
@@ -8288,7 +8530,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async fetchUserGroupInvitations(pubKey) {
             const identifiers = [];
-            const events = await this._socialEventManagerRead.fetchUserGroupInvitations([40, 34550], pubKey);
+            const events = await this._socialEventManagerRead.fetchUserGroupInvitations({
+                groupKinds: [40, 34550],
+                pubKey
+            });
             for (let event of events) {
                 const identifier = event.tags.find(tag => tag[0] === 'd')?.[1];
                 if (identifier) {
@@ -8321,7 +8566,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     }
                 }
             }
-            const generalMembersEvents = await this._socialEventManagerRead.fetchCommunitiesGeneralMembers(communities);
+            const generalMembersEvents = await this._socialEventManagerRead.fetchCommunitiesGeneralMembers({ communities });
             for (let event of generalMembersEvents) {
                 const communityUriArr = event.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
                 for (let communityUri of communityUriArr) {
@@ -8421,7 +8666,12 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             return naddr;
         }
         async retrieveCalendarEventsByDateRange(start, end, limit, previousEventId) {
-            const result = await this._socialEventManagerRead.fetchCalendarEvents(start, end, limit, previousEventId);
+            const result = await this._socialEventManagerRead.fetchCalendarEvents({
+                start,
+                end,
+                limit,
+                previousEventId
+            });
             let calendarEventInfoList = [];
             for (let event of result.events) {
                 let calendarEventInfo = this.extractCalendarEventInfo(event);
@@ -8434,7 +8684,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async retrieveCalendarEvent(naddr) {
             let address = index_6.Nip19.decode(naddr).data;
-            const calendarEvent = await this._socialEventManagerRead.fetchCalendarEvent(address);
+            const calendarEvent = await this._socialEventManagerRead.fetchCalendarEvent({ address });
             if (!calendarEvent)
                 return null;
             let calendarEventInfo = this.extractCalendarEventInfo(calendarEvent);
@@ -8444,7 +8694,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             let attendees = [];
             let attendeePubkeys = [];
             let attendeePubkeyToEventMap = {};
-            const postEvents = await this._socialEventManagerRead.fetchCalendarEventPosts(calendarEventUri);
+            const postEvents = await this._socialEventManagerRead.fetchCalendarEventPosts({ calendarEventUri });
             const notes = [];
             for (let postEvent of postEvents) {
                 const note = {
@@ -8452,7 +8702,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 };
                 notes.push(note);
             }
-            const rsvpEvents = await this._socialEventManagerRead.fetchCalendarEventRSVPs(calendarEventUri);
+            const rsvpEvents = await this._socialEventManagerRead.fetchCalendarEventRSVPs({ calendarEventUri });
             for (let rsvpEvent of rsvpEvents) {
                 if (attendeePubkeyToEventMap[rsvpEvent.pubkey])
                     continue;
@@ -8462,10 +8712,12 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     attendeePubkeys.push(rsvpEvent.pubkey);
                 }
             }
-            const userProfileEvents = await this._socialEventManagerRead.fetchUserProfileCacheEvents([
-                ...hostPubkeys,
-                ...attendeePubkeys
-            ]);
+            const userProfileEvents = await this._socialEventManagerRead.fetchUserProfileCacheEvents({
+                pubKeys: [
+                    ...hostPubkeys,
+                    ...attendeePubkeys
+                ]
+            });
             for (let event of userProfileEvents) {
                 if (event.kind === 0) {
                     let metaData = {
@@ -8502,7 +8754,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             let address = index_6.Nip19.decode(naddr).data;
             const calendarEventUri = `${address.kind}:${address.pubkey}:${address.identifier}`;
             const pubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
-            const rsvpEvents = await this._socialEventManagerRead.fetchCalendarEventRSVPs(calendarEventUri, pubkey);
+            const rsvpEvents = await this._socialEventManagerRead.fetchCalendarEventRSVPs({
+                calendarEventUri,
+                pubkey
+            });
             if (rsvpEvents.length > 0) {
                 rsvpId = rsvpEvents[0].tags.find(tag => tag[0] === 'd')?.[1];
             }
@@ -8512,7 +8767,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             let address = index_6.Nip19.decode(naddr).data;
             const calendarEventUri = `${address.kind}:${address.pubkey}:${address.identifier}`;
             const pubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
-            const rsvpEvents = await this._socialEventManagerRead.fetchCalendarEventRSVPs(calendarEventUri, pubkey);
+            const rsvpEvents = await this._socialEventManagerRead.fetchCalendarEventRSVPs({
+                calendarEventUri,
+                pubkey
+            });
             if (rsvpEvents.length > 0) {
                 rsvpId = rsvpEvents[0].tags.find(tag => tag[0] === 'd')?.[1];
             }
@@ -8794,7 +9052,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             return result;
         }
         async searchUsers(query) {
-            const events = await this._socialEventManagerRead.searchUsers(query);
+            const events = await this._socialEventManagerRead.searchUsers({ query });
             let metadataArr = [];
             let followersCountMap = {};
             for (let event of events) {
@@ -8817,7 +9075,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async addRelay(url) {
             const selfPubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
-            const relaysEvents = await this._socialEventManagerRead.fetchUserRelays(selfPubkey);
+            const relaysEvents = await this._socialEventManagerRead.fetchUserRelays({
+                pubKey: selfPubkey
+            });
             const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
             let relays = { [url]: { write: true, read: true } };
             if (relaysEvent) {
@@ -8838,7 +9098,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async removeRelay(url) {
             const selfPubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
-            const relaysEvents = await this._socialEventManagerRead.fetchUserRelays(selfPubkey);
+            const relaysEvents = await this._socialEventManagerRead.fetchUserRelays({
+                pubKey: selfPubkey
+            });
             const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
             let relays = {};
             if (relaysEvent) {
@@ -8859,7 +9121,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async updateRelays(add, remove, defaultRelays) {
             const selfPubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
-            const relaysEvents = await this._socialEventManagerRead.fetchUserRelays(selfPubkey);
+            const relaysEvents = await this._socialEventManagerRead.fetchUserRelays({
+                pubKey: selfPubkey
+            });
             const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
             let relaysMap = {};
             for (let relay of add) {
@@ -8945,7 +9209,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             else {
                 tx = await this.sendToken(paymentRequest);
             }
-            const requestEvent = await this._socialEventManagerRead.fetchPaymentRequestEvent(paymentRequest);
+            const requestEvent = await this._socialEventManagerRead.fetchPaymentRequestEvent({ paymentRequest });
             if (requestEvent) {
                 await this._socialEventManagerWrite.createPaymentReceiptEvent(requestEvent.id, requestEvent.pubkey, comment, preimage, tx);
             }
@@ -8956,8 +9220,16 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             return response;
         }
         async fetchUserPaymentActivities(pubkey, since, until) {
-            const paymentActivitiesForSender = await this._socialEventManagerRead.fetchPaymentActivitiesForSender(pubkey, since, until);
-            const paymentActivitiesForRecipient = await this._socialEventManagerRead.fetchPaymentActivitiesForRecipient(pubkey, since, until);
+            const paymentActivitiesForSender = await this._socialEventManagerRead.fetchPaymentActivitiesForSender({
+                pubkey,
+                since,
+                until
+            });
+            const paymentActivitiesForRecipient = await this._socialEventManagerRead.fetchPaymentActivitiesForRecipient({
+                pubkey,
+                since,
+                until
+            });
             const paymentActivities = [...paymentActivitiesForSender, ...paymentActivitiesForRecipient];
             return paymentActivities.sort((a, b) => b.createdAt - a.createdAt);
         }
@@ -8965,9 +9237,11 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             let info = {
                 status: 'pending'
             };
-            const requestEvent = await this._socialEventManagerRead.fetchPaymentRequestEvent(paymentRequest);
+            const requestEvent = await this._socialEventManagerRead.fetchPaymentRequestEvent({ paymentRequest });
             if (requestEvent) {
-                const receiptEvent = await this._socialEventManagerRead.fetchPaymentReceiptEvent(requestEvent.id);
+                const receiptEvent = await this._socialEventManagerRead.fetchPaymentReceiptEvent({
+                    requestEventId: requestEvent.id
+                });
                 const selfPubkey = this._privateKey ? utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
                 if (receiptEvent && receiptEvent.pubkey === selfPubkey) {
                     info.status = 'completed';
@@ -9092,46 +9366,37 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             return result;
         }
         async fetchCommunityPinnedNotes(creatorId, communityId) {
-            const pinnedNotesEvent = await this._socialEventManagerRead.fetchCommunityPinnedNotes(creatorId, communityId);
-            let noteIds = [];
-            if (pinnedNotesEvent) {
-                for (let tag of pinnedNotesEvent.tags) {
-                    if (tag[0] === 'e') {
-                        noteIds.push(tag[1]);
-                    }
-                }
-            }
+            const noteIds = await this._socialEventManagerRead.fetchCommunityPinnedNoteIds({
+                creatorId,
+                communityId
+            });
             if (noteIds.length > 0)
-                return this._socialEventManagerRead.fetchEventsByIds(noteIds);
+                return this._socialEventManagerRead.fetchEventsByIds({ ids: noteIds });
             else
                 return [];
         }
         async pinCommunityNote(creatorId, communityId, noteId) {
-            const pinnedNotesEvent = await this._socialEventManagerRead.fetchCommunityPinnedNotes(creatorId, communityId);
-            let noteIds = [noteId];
-            if (pinnedNotesEvent) {
-                for (let tag of pinnedNotesEvent.tags) {
-                    if (tag[0] === 'e' && tag[1] !== noteId) {
-                        noteIds.push(tag[1]);
-                    }
-                }
-            }
+            let noteIds = await this._socialEventManagerRead.fetchCommunityPinnedNoteIds({
+                creatorId,
+                communityId
+            });
+            noteIds = Array.from(new Set([...noteIds, noteId]));
             await this._socialEventManagerWrite.updateCommunityPinnedNotes(creatorId, communityId, noteIds);
         }
         async unpinCommunityNote(creatorId, communityId, noteId) {
-            const pinnedNotesEvent = await this._socialEventManagerRead.fetchCommunityPinnedNotes(creatorId, communityId);
-            let noteIds = [];
-            if (pinnedNotesEvent) {
-                for (let tag of pinnedNotesEvent.tags) {
-                    if (tag[0] === 'e' && tag[1] !== noteId) {
-                        noteIds.push(tag[1]);
-                    }
-                }
+            let noteIds = await this._socialEventManagerRead.fetchCommunityPinnedNoteIds({
+                creatorId,
+                communityId
+            });
+            noteIds = Array.from(new Set(noteIds));
+            const index = noteIds.indexOf(noteId);
+            if (index > -1) {
+                noteIds.splice(index, 1);
             }
             await this._socialEventManagerWrite.updateCommunityPinnedNotes(creatorId, communityId, noteIds);
         }
         async fetchUserPinnedNotes(pubKey) {
-            const pinnedNotesEvent = await this._socialEventManagerRead.fetchUserPinnedNotes(pubKey);
+            const pinnedNotesEvent = await this._socialEventManagerRead.fetchUserPinnedNotes({ pubKey });
             let noteIds = [];
             if (pinnedNotesEvent) {
                 for (let tag of pinnedNotesEvent.tags) {
@@ -9141,12 +9406,12 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 }
             }
             if (noteIds.length > 0)
-                return this._socialEventManagerRead.fetchEventsByIds(noteIds);
+                return this._socialEventManagerRead.fetchEventsByIds({ ids: noteIds });
             else
                 return [];
         }
         async pinUserNote(pubKey, noteId) {
-            const pinnedNotesEvent = await this._socialEventManagerRead.fetchUserPinnedNotes(pubKey);
+            const pinnedNotesEvent = await this._socialEventManagerRead.fetchUserPinnedNotes({ pubKey });
             let noteIds = [noteId];
             if (pinnedNotesEvent) {
                 for (let tag of pinnedNotesEvent.tags) {
@@ -9158,7 +9423,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             await this._socialEventManagerWrite.updateUserPinnedNotes(noteIds);
         }
         async unpinUserNote(pubKey, noteId) {
-            const pinnedNotesEvent = await this._socialEventManagerRead.fetchUserPinnedNotes(pubKey);
+            const pinnedNotesEvent = await this._socialEventManagerRead.fetchUserPinnedNotes({ pubKey });
             let noteIds = [];
             if (pinnedNotesEvent) {
                 for (let tag of pinnedNotesEvent.tags) {

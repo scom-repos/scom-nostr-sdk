@@ -14,7 +14,7 @@ import { ISocialEventManagerWrite, NostrEventManagerWrite } from "./eventManager
 import { ISocialEventManagerRead, NostrEventManagerRead } from "./eventManagerRead";
 import { NostrEventManagerReadV2 } from "./eventManagerReadV2";
 import { NostrEventManagerReadV1o5 } from "./eventManagerReadV1o5";
-import {Crypto} from "@scom/scom-signer";
+import { Crypto } from "@scom/scom-signer";
 import { Contracts, TransactionReceipt, Utils, Wallet } from "@ijstech/eth-wallet";
 
 //FIXME: remove this when compiler is fixed
@@ -63,7 +63,7 @@ class SocialDataManager {
                 this._socialEventManagerRead = new NostrEventManagerReadV1o5(
                     nostrReadRelayManager as NostrRestAPIManager
                 );
-            }        
+            }
             else {
                 this._socialEventManagerRead = new NostrEventManagerRead(
                     nostrReadRelayManager
@@ -80,7 +80,7 @@ class SocialDataManager {
                     subscriptions: config.mqttSubscriptions,
                     messageCallback: config.mqttMessageCallback
                 });
-            } 
+            }
             catch (e) {
                 console.error('Failed to connect to MQTT broker', e);
             }
@@ -145,12 +145,14 @@ class SocialDataManager {
     }
 
     async retrieveCommunityEvents(creatorId: string, communityId: string) {
-        const feedEvents = await this._socialEventManagerRead.fetchCommunitiesMetadataFeed([
-            {
-                creatorId,
-                communityId    
-            }
-        ]);
+        const feedEvents = await this._socialEventManagerRead.fetchCommunitiesMetadataFeed({
+            communities: [
+                {
+                    creatorId,
+                    communityId
+                }
+            ]
+        });
         const {
             notes,
             metadataByPubKeyMap,
@@ -166,7 +168,9 @@ class SocialDataManager {
             notesCount = JSON.parse(notesCountEvent.content).note_count;
         }
 
-        const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(communityInfo.communityUri + ':keys');
+        const keyEvent = await this._socialEventManagerRead.fetchGroupKeys({
+            identifier: communityInfo.communityUri + ':keys'
+        });
         if (keyEvent) {
             communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
         }
@@ -177,10 +181,14 @@ class SocialDataManager {
             notesCount
         }
     }
-    
+
     async fetchCommunityFeedInfo(creatorId: string, communityId: string, since?: number, until?: number) {
         const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
-        const events = await this._socialEventManagerRead.fetchCommunityFeed(communityUri, since, until);
+        const events = await this._socialEventManagerRead.fetchCommunityFeed({
+            communityUri,
+            since,
+            until
+        });
         const {
             notes,
             metadataByPubKeyMap,
@@ -361,7 +369,7 @@ class SocialDataManager {
         let relayToNotesMap: Record<string, INoteCommunityInfo[]> = {};
         for (let noteCommunityInfo of noteCommunityMappings.noteCommunityInfoList) {
             const communityPrivateKey = communityPrivateKeyMap[noteCommunityInfo.communityUri];
-            if (communityPrivateKey)  {
+            if (communityPrivateKey) {
                 const postPrivateKey = await this.retrievePostPrivateKey(noteCommunityInfo.eventData, noteCommunityInfo.communityUri, communityPrivateKey);
                 if (postPrivateKey) {
                     noteIdToPrivateKey[noteCommunityInfo.eventData.id] = postPrivateKey;
@@ -463,7 +471,9 @@ class SocialDataManager {
         }
         const uniqueKeys = Array.from(mentionAuthorSet) as string[];
         const npubs = notes.map(note => note.pubkey).filter((value, index, self) => self.indexOf(value) === index);
-        const metadata = await this._socialEventManagerRead.fetchUserProfileCacheEvents([...npubs, ...uniqueKeys]);
+        const metadata = await this._socialEventManagerRead.fetchUserProfileCacheEvents({
+            pubKeys: [...npubs, ...uniqueKeys]
+        });
 
         const metadataByPubKeyMap: Record<string, INostrMetadata> = metadata.reduce((acc, cur) => {
             const content = JSON.parse(cur.content);
@@ -484,7 +494,7 @@ class SocialDataManager {
         let followersCountMap: Record<string, number> = {};
         const fetchData = async () => {
             if (fetchFromCache) {
-                const events = await this._socialEventManagerRead.fetchUserProfileCacheEvents(pubKeys);
+                const events = await this._socialEventManagerRead.fetchUserProfileCacheEvents({ pubKeys });
                 for (let event of events) {
                     if (event.kind === 0) {
                         metadataArr.push({
@@ -534,7 +544,7 @@ class SocialDataManager {
     async fetchTrendingNotesInfo() {
         let notes: INoteInfo[] = [];
         let metadataByPubKeyMap: Record<string, INostrMetadata> = {};
-        const events = await this._socialEventManagerRead.fetchTrendingCacheEvents();
+        const events = await this._socialEventManagerRead.fetchTrendingCacheEvents({});
         for (let event of events) {
             if (event.kind === 0) {
                 metadataByPubKeyMap[event.pubkey] = {
@@ -556,7 +566,12 @@ class SocialDataManager {
 
     async fetchProfileFeedInfo(pubKey: string, since: number = 0, until?: number) {
         const selfPubkey = this._privateKey ? SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
-        const events = await this._socialEventManagerRead.fetchProfileFeedCacheEvents(selfPubkey, pubKey, since, until);
+        const events = await this._socialEventManagerRead.fetchProfileFeedCacheEvents({
+            userPubkey: selfPubkey,
+            pubKey,
+            since,
+            until
+        });
         const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
         const {
             notes,
@@ -568,7 +583,7 @@ class SocialDataManager {
             if (note.eventData.tags?.length) {
                 const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
                 if (communityUri) {
-                    const {creatorId, communityId} = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                    const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
                     note.community = {
                         communityUri,
                         communityId,
@@ -604,7 +619,12 @@ class SocialDataManager {
 
     async fetchProfileRepliesInfo(pubKey: string, since: number = 0, until?: number) {
         const selfPubkey = this._privateKey ? SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
-        const events = await this._socialEventManagerRead.fetchProfileRepliesCacheEvents(selfPubkey, pubKey, since, until);
+        const events = await this._socialEventManagerRead.fetchProfileRepliesCacheEvents({
+            userPubkey: selfPubkey,
+            pubKey,
+            since,
+            until
+        });
         const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
         const {
             notes,
@@ -641,7 +661,7 @@ class SocialDataManager {
     }
 
     async fetchNotesByIds(ids: string[]) {
-        const noteEvents = await this._socialEventManagerRead.fetchEventsByIds(ids);
+        const noteEvents = await this._socialEventManagerRead.fetchEventsByIds({ ids });
         return noteEvents;
     }
 
@@ -655,7 +675,11 @@ class SocialDataManager {
     }
 
     async fetchHomeFeedInfo(pubKey: string, since: number = 0, until?: number) {
-        let events: INostrEvent[] = await this._socialEventManagerRead.fetchHomeFeedCacheEvents(pubKey, since, until);
+        let events: INostrEvent[] = await this._socialEventManagerRead.fetchHomeFeedCacheEvents({
+            pubKey,
+            since,
+            until
+        });
         const earliest = this.getEarliestEventTimestamp(events.filter(v => v.kind === 1).filter(v => v.created_at));
         const {
             notes,
@@ -670,7 +694,10 @@ class SocialDataManager {
         }
     }
     async fetchUserFollowingFeedInfo(pubKey: string, until?: number) {
-        let events: INostrEvent[] = await this._socialEventManagerRead.fetchUserFollowingFeed(pubKey, until);
+        let events: INostrEvent[] = await this._socialEventManagerRead.fetchUserFollowingFeed({
+            pubKey,
+            until
+        });
         const earliest = this.getEarliestEventTimestamp(events.filter(v => (v.kind === 1 || v.kind === 6) && v.created_at));
         const {
             notes,
@@ -774,11 +801,16 @@ class SocialDataManager {
     }
 
     async fetchCommunityInfo(creatorId: string, communityId: string) {
-        const communityEvents = await this._socialEventManagerRead.fetchCommunity(creatorId, communityId);
+        const communityEvents = await this._socialEventManagerRead.fetchCommunity({
+            creatorId,
+            communityId
+        });
         const communityEvent = communityEvents.find(event => event.kind === 34550);
-        if(!communityEvent) return null;
+        if (!communityEvent) return null;
         let communityInfo = SocialUtilsManager.extractCommunityInfo(communityEvent);
-        const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(communityInfo.communityUri + ':keys');
+        const keyEvent = await this._socialEventManagerRead.fetchGroupKeys({
+            identifier: communityInfo.communityUri + ':keys'
+        });
         if (keyEvent) {
             communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
         }
@@ -799,7 +831,7 @@ class SocialDataManager {
             avatar: m.profileImageUrl,
             internetIdentifier: m.internetIdentifier,
             point: this.getRandomInt(min, max)
-        })).sort((a,b) => b.point - a.point).slice(0, 10);
+        })).sort((a, b) => b.point - a.point).slice(0, 10);
         return data;
     }
 
@@ -832,12 +864,16 @@ class SocialDataManager {
             //     communityId: 'Art'
             // }
         ];
-        const feedEvents = await this._socialEventManagerRead.fetchCommunitiesMetadataFeed(suggestedCommunities);
+        const feedEvents = await this._socialEventManagerRead.fetchCommunitiesMetadataFeed({
+            communities: suggestedCommunities
+        });
         const communityEvents = feedEvents.filter(event => event.kind === 34550);
         for (let communityEvent of communityEvents) {
             const communityInfo = SocialUtilsManager.extractCommunityInfo(communityEvent);
             if (!communityInfo) continue;
-            const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(communityInfo.communityUri + ':keys');
+            const keyEvent = await this._socialEventManagerRead.fetchGroupKeys({
+                identifier: communityInfo.communityUri + ':keys'
+            });
             if (keyEvent) {
                 communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
             }
@@ -853,11 +889,13 @@ class SocialDataManager {
         let communityUriArr: string[] = [];
         let communityEventsMap: Record<string, { info: ICommunityInfo, notes: INostrEvent[] }> = {};
 
-        const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunities(pubKey);
+        const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunities({ pubKey });
         for (let event of events) {
             if (event.kind === 34550) {
                 const communityInfo = SocialUtilsManager.extractCommunityInfo(event);
-                const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(communityInfo.communityUri + ':keys');
+                const keyEvent = await this._socialEventManagerRead.fetchGroupKeys({
+                    identifier: communityInfo.communityUri + ':keys'
+                });
                 if (keyEvent) {
                     communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
                 }
@@ -866,7 +904,7 @@ class SocialDataManager {
             }
         }
         if (communityUriArr.length > 0) {
-            const feedEvents = await this._socialEventManagerRead.fetchCommunitiesFeed(communityUriArr);
+            const feedEvents = await this._socialEventManagerRead.fetchCommunitiesFeed({ communityUriArr });
             for (let event of feedEvents) {
                 const communityUri = event.tags.find(tag => tag[0] === 'a')?.[1];
                 if (communityEventsMap[communityUri]) communityEventsMap[communityUri].notes.push(event);
@@ -884,7 +922,10 @@ class SocialDataManager {
         //Ancestor posts -> Focused post -> Child replies
         let decodedFocusedNoteId = focusedNoteId.startsWith('note1') ? Nip19.decode(focusedNoteId).data as string : focusedNoteId;
         const selfPubkey = this._privateKey ? SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
-        const threadEvents = await this._socialEventManagerRead.fetchThreadCacheEvents(decodedFocusedNoteId, selfPubkey);
+        const threadEvents = await this._socialEventManagerRead.fetchThreadCacheEvents({
+            id: decodedFocusedNoteId,
+            pubKey: selfPubkey
+        });
         const {
             notes,
             metadataByPubKeyMap,
@@ -894,7 +935,7 @@ class SocialDataManager {
             if (note.eventData.tags?.length) {
                 const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
                 if (communityUri) {
-                    const {creatorId, communityId} = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                    const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
                     note.community = {
                         communityUri,
                         communityId,
@@ -919,7 +960,7 @@ class SocialDataManager {
         if (scpData) {
             const communityUri = this.retrieveCommunityUri(focusedNote.eventData, scpData);
             if (communityUri) {
-                const {creatorId, communityId} = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
                 communityInfo = await this.fetchCommunityInfo(creatorId, communityId);
             }
         }
@@ -943,7 +984,7 @@ class SocialDataManager {
             if (scpData) {
                 const communityUri = this.retrieveCommunityUri(note, scpData);
                 if (communityUri) {
-                    const {creatorId, communityId} = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                    const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
                     pubkeyToCommunityIdsMap[creatorId] = pubkeyToCommunityIdsMap[creatorId] || [];
                     if (!pubkeyToCommunityIdsMap[creatorId].includes(communityId)) {
                         pubkeyToCommunityIdsMap[creatorId].push(communityId);
@@ -975,7 +1016,7 @@ class SocialDataManager {
     async retrieveUserProfileDetail(pubKey: string) {
         let metadata: INostrMetadata;
         let stats: IUserActivityStats;
-        const userContactEvents = await this._socialEventManagerRead.fetchUserProfileDetailCacheEvents(pubKey);
+        const userContactEvents = await this._socialEventManagerRead.fetchUserProfileDetailCacheEvents({ pubKey });
         for (let event of userContactEvents) {
             if (event.kind === 0) {
                 metadata = {
@@ -1029,7 +1070,10 @@ class SocialDataManager {
     async fetchUserContactList(pubKey: string) {
         let metadataArr: INostrMetadata[] = [];
         let followersCountMap: Record<string, number> = {};
-        const userContactEvents = await this._socialEventManagerRead.fetchContactListCacheEvents(pubKey, true);
+        const userContactEvents = await this._socialEventManagerRead.fetchContactListCacheEvents({
+            pubKey,
+            detailIncluded: true
+        });
         for (let event of userContactEvents) {
             if (event.kind === 0) {
                 metadataArr.push({
@@ -1052,7 +1096,7 @@ class SocialDataManager {
     async fetchUserFollowersList(pubKey: string) {
         let metadataArr: INostrMetadata[] = [];
         let followersCountMap: Record<string, number> = {};
-        const userFollowersEvents = await this._socialEventManagerRead.fetchFollowersCacheEvents(pubKey);
+        const userFollowersEvents = await this._socialEventManagerRead.fetchFollowersCacheEvents({ pubKey });
         for (let event of userFollowersEvents) {
             if (event.kind === 0) {
                 metadataArr.push({
@@ -1074,7 +1118,7 @@ class SocialDataManager {
 
     async fetchUserRelayList(pubKey: string) {
         let relayList: string[] = [];
-        const relaysEvents = await this._socialEventManagerRead.fetchUserRelays(pubKey);
+        const relaysEvents = await this._socialEventManagerRead.fetchUserRelays({ pubKey });
         const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
         if (!relaysEvent) return relayList;
         relayList = relaysEvent.tags.filter(tag => tag[0] === 'r')?.map(tag => tag[1]) || [];
@@ -1085,7 +1129,10 @@ class SocialDataManager {
     async followUser(userPubKey: string) {
         const decodedUserPubKey = userPubKey.startsWith('npub1') ? Nip19.decode(userPubKey).data as string : userPubKey;
         const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
-        const contactListEvents = await this._socialEventManagerRead.fetchContactListCacheEvents(selfPubkey, false);
+        const contactListEvents = await this._socialEventManagerRead.fetchContactListCacheEvents({
+            pubKey: selfPubkey,
+            detailIncluded: false
+        });
         let content = '';
         let contactPubKeys: Set<string> = new Set();
         let contactListEvent = contactListEvents.find(event => event.kind === 3);
@@ -1100,7 +1147,10 @@ class SocialDataManager {
     async unfollowUser(userPubKey: string) {
         const decodedUserPubKey = userPubKey.startsWith('npub1') ? Nip19.decode(userPubKey).data as string : userPubKey;
         const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
-        const contactListEvents = await this._socialEventManagerRead.fetchContactListCacheEvents(selfPubkey, false);
+        const contactListEvents = await this._socialEventManagerRead.fetchContactListCacheEvents({
+            pubKey: selfPubkey,
+            detailIncluded: false
+        });
         let content = '';
         let contactPubKeys: Set<string> = new Set();
         const contactListEvent = contactListEvents.find(event => event.kind === 3);
@@ -1311,7 +1361,7 @@ class SocialDataManager {
 
     async fetchCommunities() {
         let communities: ICommunity[] = [];
-        const events = await this._socialEventManagerRead.fetchCommunities();
+        const events = await this._socialEventManagerRead.fetchCommunities({});
         for (let event of events) {
             const communityInfo = SocialUtilsManager.extractCommunityInfo(event);
             let community: ICommunity = {
@@ -1331,7 +1381,7 @@ class SocialDataManager {
 
     async fetchMyCommunities(pubKey: string) {
         let communities: ICommunity[] = [];
-        const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunities(pubKey);
+        const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunities({ pubKey });
         for (let event of events) {
             if (event.kind === 34550) {
                 const communityInfo = SocialUtilsManager.extractCommunityInfo(event);
@@ -1346,21 +1396,24 @@ class SocialDataManager {
     }
 
     async joinCommunity(community: ICommunityInfo, pubKey: string) {
-        const communities = await this._socialEventManagerRead.fetchUserBookmarkedCommunities(pubKey);
+        const communities = await this._socialEventManagerRead.fetchUserBookmarkedCommunities({ pubKey });
         communities.push(community);
         await this._socialEventManagerWrite.updateUserBookmarkedCommunities(communities);
         if (community.scpData?.channelEventId) {
-            const channelEventIds = await this._socialEventManagerRead.fetchUserBookmarkedChannelEventIds(pubKey);
+            const channelEventIds = await this._socialEventManagerRead.fetchUserBookmarkedChannelEventIds({ pubKey });
             channelEventIds.push(community.scpData.channelEventId);
             await this._socialEventManagerWrite.updateUserBookmarkedChannels(channelEventIds);
         }
     }
 
     async leaveCommunity(community: ICommunityInfo, pubKey: string) {
-        const communities = await this._socialEventManagerRead.fetchUserBookmarkedCommunities(pubKey, community);
+        const communities = await this._socialEventManagerRead.fetchUserBookmarkedCommunities({
+            pubKey,
+            excludedCommunity: community
+        });
         await this._socialEventManagerWrite.updateUserBookmarkedCommunities(communities);
         if (community.scpData?.channelEventId) {
-            const channelEventIds = await this._socialEventManagerRead.fetchUserBookmarkedChannelEventIds(pubKey);
+            const channelEventIds = await this._socialEventManagerRead.fetchUserBookmarkedChannelEventIds({ pubKey });
             const index = channelEventIds.indexOf(community.scpData.channelEventId);
             if (index > -1) {
                 channelEventIds.splice(index, 1);
@@ -1419,7 +1472,7 @@ class SocialDataManager {
             channels,
             channelMetadataMap,
             channelIdToCommunityMap
-        } = await this._socialEventManagerRead.fetchAllUserRelatedChannels(pubKey);
+        } = await this._socialEventManagerRead.fetchAllUserRelatedChannels({ pubKey });
 
         let outputChannels: IChannelInfo[] = [];
         for (let channel of channels) {
@@ -1444,13 +1497,17 @@ class SocialDataManager {
     }
 
     async retrieveChannelMessages(channelId: string, since?: number, until?: number) {
-        const events = await this._socialEventManagerRead.fetchChannelMessages(channelId, since, until);
+        const events = await this._socialEventManagerRead.fetchChannelMessages({
+            channelId,
+            since,
+            until
+        });
         const messageEvents = events.filter(event => event.kind === 42);
         return messageEvents;
     }
 
     async retrieveChannelEvents(creatorId: string, channelId: string) {
-        const channelEvents = await this._socialEventManagerRead.fetchChannelInfoMessages(channelId);
+        const channelEvents = await this._socialEventManagerRead.fetchChannelInfoMessages({ channelId });
         const messageEvents = channelEvents.filter(event => event.kind === 42);
         const channelCreationEvent = channelEvents.find(event => event.kind === 40);
         if (!channelCreationEvent) throw new Error('No info event found');
@@ -1499,14 +1556,16 @@ class SocialDataManager {
             const channelInfo = channelEvents.info;
             const messageEvents = channelEvents.messageEvents;
             if (channelInfo.scpData.communityUri) {
-                const {communityId} = SocialUtilsManager.getCommunityBasicInfoFromUri(channelInfo.scpData.communityUri);
+                const { communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(channelInfo.scpData.communityUri);
                 const communityInfo = await this.fetchCommunityInfo(channelInfo.eventData.pubkey, communityId);
                 groupPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, options.privateKey);
                 if (!groupPrivateKey) return messageIdToPrivateKey;
             }
             else {
                 const groupUri = `40:${channelInfo.id}`;
-                const keyEvent = await this._socialEventManagerRead.fetchGroupKeys(groupUri + ':keys');
+                const keyEvent = await this._socialEventManagerRead.fetchGroupKeys({
+                    identifier: groupUri + ':keys'
+                });
                 if (keyEvent) {
                     const creatorPubkey = channelInfo.eventData.pubkey;
                     const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(options.privateKey);
@@ -1555,7 +1614,12 @@ class SocialDataManager {
 
     async fetchDirectMessagesBySender(selfPubKey: string, senderPubKey: string, since?: number, until?: number) {
         const decodedSenderPubKey = Nip19.decode(senderPubKey).data as string;
-        const events = await this._socialEventManagerRead.fetchDirectMessages(selfPubKey, decodedSenderPubKey, since, until);
+        const events = await this._socialEventManagerRead.fetchDirectMessages({
+            pubKey: selfPubKey,
+            sender: decodedSenderPubKey,
+            since,
+            until
+        });
         let metadataByPubKeyMap: Record<string, INostrMetadata> = {};
         const encryptedMessages = [];
         for (let event of events) {
@@ -1582,11 +1646,14 @@ class SocialDataManager {
     }
 
     async resetMessageCount(selfPubKey: string, senderPubKey: string) {
-        await this._socialEventManagerRead.resetMessageCount(selfPubKey, senderPubKey);
+        await this._socialEventManagerRead.resetMessageCount({
+            pubKey: selfPubKey,
+            sender: senderPubKey
+        });
     }
 
     async fetchMessageContacts(pubKey: string) {
-        const events = await this._socialEventManagerRead.fetchMessageContactsCacheEvents(pubKey);
+        const events = await this._socialEventManagerRead.fetchMessageContactsCacheEvents({ pubKey });
         const pubkeyToMessageInfoMap: Record<string, { cnt: number, latest_at: number, latest_event_id: string }> = {};
         let metadataByPubKeyMap: Record<string, INostrMetadata> = {};
         for (let event of events) {
@@ -1642,7 +1709,10 @@ class SocialDataManager {
 
     async fetchUserGroupInvitations(pubKey: string) {
         const identifiers: string[] = [];
-        const events = await this._socialEventManagerRead.fetchUserGroupInvitations([40, 34550], pubKey);
+        const events = await this._socialEventManagerRead.fetchUserGroupInvitations({
+            groupKinds: [40, 34550],
+            pubKey
+        });
         for (let event of events) {
             const identifier = event.tags.find(tag => tag[0] === 'd')?.[1];
             if (identifier) {
@@ -1675,7 +1745,7 @@ class SocialDataManager {
                 }
             }
         }
-        const generalMembersEvents = await this._socialEventManagerRead.fetchCommunitiesGeneralMembers(communities);
+        const generalMembersEvents = await this._socialEventManagerRead.fetchCommunitiesGeneralMembers({ communities });
         for (let event of generalMembersEvents) {
             const communityUriArr = event.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
             for (let communityUri of communityUriArr) {
@@ -1776,7 +1846,12 @@ class SocialDataManager {
     }
 
     async retrieveCalendarEventsByDateRange(start: number, end?: number, limit?: number, previousEventId?: string) {
-        const result = await this._socialEventManagerRead.fetchCalendarEvents(start, end, limit, previousEventId);
+        const result = await this._socialEventManagerRead.fetchCalendarEvents({
+            start,
+            end,
+            limit,
+            previousEventId
+        });
         let calendarEventInfoList: ICalendarEventInfo[] = [];
         for (let event of result.events) {
             let calendarEventInfo = this.extractCalendarEventInfo(event);
@@ -1790,7 +1865,7 @@ class SocialDataManager {
 
     async retrieveCalendarEvent(naddr: string) {
         let address = Nip19.decode(naddr).data as Nip19.AddressPointer;
-        const calendarEvent = await this._socialEventManagerRead.fetchCalendarEvent(address);
+        const calendarEvent = await this._socialEventManagerRead.fetchCalendarEvent({ address });
         if (!calendarEvent) return null;
         let calendarEventInfo = this.extractCalendarEventInfo(calendarEvent);
         let hostPubkeys = calendarEvent.tags.filter(tag => tag[0] === 'p' && tag[3] === 'host')?.map(tag => tag[1]) || [];
@@ -1799,7 +1874,7 @@ class SocialDataManager {
         let attendees: ICalendarEventAttendee[] = [];
         let attendeePubkeys: string[] = [];
         let attendeePubkeyToEventMap: Record<string, INostrEvent> = {};
-        const postEvents = await this._socialEventManagerRead.fetchCalendarEventPosts(calendarEventUri);
+        const postEvents = await this._socialEventManagerRead.fetchCalendarEventPosts({ calendarEventUri });
         const notes: INoteInfo[] = [];
         for (let postEvent of postEvents) {
             const note: INoteInfo = {
@@ -1807,7 +1882,7 @@ class SocialDataManager {
             }
             notes.push(note);
         }
-        const rsvpEvents = await this._socialEventManagerRead.fetchCalendarEventRSVPs(calendarEventUri);
+        const rsvpEvents = await this._socialEventManagerRead.fetchCalendarEventRSVPs({ calendarEventUri });
         for (let rsvpEvent of rsvpEvents) {
             if (attendeePubkeyToEventMap[rsvpEvent.pubkey]) continue;
             let attendanceStatus = rsvpEvent.tags.find(tag => tag[0] === 'l' && tag[2] === 'status')?.[1];
@@ -1816,10 +1891,12 @@ class SocialDataManager {
                 attendeePubkeys.push(rsvpEvent.pubkey);
             }
         }
-        const userProfileEvents = await this._socialEventManagerRead.fetchUserProfileCacheEvents([
-            ...hostPubkeys,
-            ...attendeePubkeys
-        ])
+        const userProfileEvents = await this._socialEventManagerRead.fetchUserProfileCacheEvents({
+            pubKeys: [
+                ...hostPubkeys,
+                ...attendeePubkeys
+            ]
+        })
         for (let event of userProfileEvents) {
             if (event.kind === 0) {
                 let metaData = {
@@ -1857,7 +1934,10 @@ class SocialDataManager {
         let address = Nip19.decode(naddr).data as Nip19.AddressPointer;
         const calendarEventUri = `${address.kind}:${address.pubkey}:${address.identifier}`;
         const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
-        const rsvpEvents = await this._socialEventManagerRead.fetchCalendarEventRSVPs(calendarEventUri, pubkey);
+        const rsvpEvents = await this._socialEventManagerRead.fetchCalendarEventRSVPs({
+            calendarEventUri,
+            pubkey
+        });
         if (rsvpEvents.length > 0) {
             rsvpId = rsvpEvents[0].tags.find(tag => tag[0] === 'd')?.[1];
         }
@@ -1868,7 +1948,10 @@ class SocialDataManager {
         let address = Nip19.decode(naddr).data as Nip19.AddressPointer;
         const calendarEventUri = `${address.kind}:${address.pubkey}:${address.identifier}`;
         const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
-        const rsvpEvents = await this._socialEventManagerRead.fetchCalendarEventRSVPs(calendarEventUri, pubkey);
+        const rsvpEvents = await this._socialEventManagerRead.fetchCalendarEventRSVPs({
+            calendarEventUri,
+            pubkey
+        });
         if (rsvpEvents.length > 0) {
             rsvpId = rsvpEvents[0].tags.find(tag => tag[0] === 'd')?.[1];
         }
@@ -2153,7 +2236,7 @@ class SocialDataManager {
     }
 
     async searchUsers(query: string) {
-        const events = await this._socialEventManagerRead.searchUsers(query);
+        const events = await this._socialEventManagerRead.searchUsers({ query });
         let metadataArr: INostrMetadata[] = [];
         let followersCountMap: Record<string, number> = {};
         for (let event of events) {
@@ -2177,7 +2260,9 @@ class SocialDataManager {
 
     async addRelay(url: string) {
         const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
-        const relaysEvents = await this._socialEventManagerRead.fetchUserRelays(selfPubkey);
+        const relaysEvents = await this._socialEventManagerRead.fetchUserRelays({
+            pubKey: selfPubkey
+        });
         const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
         let relays: Record<string, IRelayConfig> = { [url]: { write: true, read: true } };
         if (relaysEvent) {
@@ -2198,7 +2283,9 @@ class SocialDataManager {
 
     async removeRelay(url: string) {
         const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
-        const relaysEvents = await this._socialEventManagerRead.fetchUserRelays(selfPubkey);
+        const relaysEvents = await this._socialEventManagerRead.fetchUserRelays({
+            pubKey: selfPubkey
+        });
         const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
         let relays: Record<string, IRelayConfig> = {};
         if (relaysEvent) {
@@ -2219,7 +2306,9 @@ class SocialDataManager {
 
     async updateRelays(add: string[], remove: string[], defaultRelays: string[]) {
         const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
-        const relaysEvents = await this._socialEventManagerRead.fetchUserRelays(selfPubkey);
+        const relaysEvents = await this._socialEventManagerRead.fetchUserRelays({
+            pubKey: selfPubkey
+        });
         const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
         let relaysMap: Record<string, IRelayConfig> = {};
         for (let relay of add) {
@@ -2307,7 +2396,7 @@ class SocialDataManager {
         } else {
             tx = await this.sendToken(paymentRequest);
         }
-        const requestEvent = await this._socialEventManagerRead.fetchPaymentRequestEvent(paymentRequest);
+        const requestEvent = await this._socialEventManagerRead.fetchPaymentRequestEvent({ paymentRequest });
         if (requestEvent) {
             await this._socialEventManagerWrite.createPaymentReceiptEvent(requestEvent.id, requestEvent.pubkey, comment, preimage, tx);
         }
@@ -2320,8 +2409,16 @@ class SocialDataManager {
     }
 
     async fetchUserPaymentActivities(pubkey: string, since?: number, until?: number) {
-        const paymentActivitiesForSender = await this._socialEventManagerRead.fetchPaymentActivitiesForSender(pubkey, since, until);
-        const paymentActivitiesForRecipient = await this._socialEventManagerRead.fetchPaymentActivitiesForRecipient(pubkey, since, until);
+        const paymentActivitiesForSender = await this._socialEventManagerRead.fetchPaymentActivitiesForSender({
+            pubkey,
+            since,
+            until
+        });
+        const paymentActivitiesForRecipient = await this._socialEventManagerRead.fetchPaymentActivitiesForRecipient({
+            pubkey,
+            since,
+            until
+        });
         const paymentActivities = [...paymentActivitiesForSender, ...paymentActivitiesForRecipient];
         return paymentActivities.sort((a, b) => b.createdAt - a.createdAt);
     }
@@ -2334,9 +2431,11 @@ class SocialDataManager {
         } = {
             status: 'pending'
         };
-        const requestEvent = await this._socialEventManagerRead.fetchPaymentRequestEvent(paymentRequest);
+        const requestEvent = await this._socialEventManagerRead.fetchPaymentRequestEvent({ paymentRequest });
         if (requestEvent) {
-            const receiptEvent = await this._socialEventManagerRead.fetchPaymentReceiptEvent(requestEvent.id);
+            const receiptEvent = await this._socialEventManagerRead.fetchPaymentReceiptEvent({
+                requestEventId: requestEvent.id
+            });
             const selfPubkey = this._privateKey ? SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
             if (receiptEvent && receiptEvent.pubkey === selfPubkey) {
                 info.status = 'completed';
@@ -2373,14 +2472,14 @@ class SocialDataManager {
 
     async fetchApps(keyword?: string) {
         let url = `${this._apiBaseUrl}/apps`;
-        if(keyword !== undefined)
+        if (keyword !== undefined)
             url += `?keyword=${keyword}`;
         try {
             const response = await fetch(url);
             const result = await response.json();
             return result.data.apps;
         }
-        catch(e) {
+        catch (e) {
             console.log('e', e)
         }
     }
@@ -2388,7 +2487,7 @@ class SocialDataManager {
     async fetchApp(pubkey: string, id: string) {
         const installed = await this.fetchInstalledByPubKey(pubkey);
         let installedVersionId;
-        if(installed)
+        if (installed)
             installedVersionId = installed[id];
         const url = `${this._apiBaseUrl}/app`;
         const response = await fetch(url, {
@@ -2413,7 +2512,7 @@ class SocialDataManager {
         const result = await response.json();
         const installed = result.data.installed;
         // const decrypted = await SocialUtilsManager.decryptMessage(this._privateKey, pubkey, installed);
-        if(!installed)
+        if (!installed)
             return null;
         const decrypted = await Crypto.decryptWithPrivKey(this._privateKey, installed);
         console.log('decrypted', decrypted);
@@ -2422,7 +2521,7 @@ class SocialDataManager {
 
     async fetchInstalledApps(pubkey: string) {
         const installed = await this.fetchInstalledByPubKey(pubkey);
-        if(!installed)
+        if (!installed)
             return [];
         // const decrypted = await SocialUtilsManager.decryptMessage(this._privateKey, pubkey, installed);
         const url = `${this._apiBaseUrl}/installed-apps`;
@@ -2450,8 +2549,8 @@ class SocialDataManager {
         // const installedApps =  JSON.parse(decryptedInstalled);
         // console.log('installedApps', installedApps);
         let newInstalledApps: any = {};
-        if(installedApps)
-            newInstalledApps = {...installedApps};
+        if (installedApps)
+            newInstalledApps = { ...installedApps };
         newInstalledApps[appId] = appVersionId;
 
         // const encryptedInstalledAppList = await SocialUtilsManager.encryptMessage(this._privateKey, pubkey, JSON.stringify(newInstalledApps));
@@ -2470,51 +2569,42 @@ class SocialDataManager {
         const result = await response.json();
         return result;
     }
-    
+
     async fetchCommunityPinnedNotes(creatorId: string, communityId: string) {
-        const pinnedNotesEvent = await this._socialEventManagerRead.fetchCommunityPinnedNotes(creatorId, communityId);
-        let noteIds = [];
-        if (pinnedNotesEvent) {
-            for (let tag of pinnedNotesEvent.tags) {
-                if (tag[0] === 'e') {
-                    noteIds.push(tag[1]);
-                }
-            }
-        }
+        const noteIds = await this._socialEventManagerRead.fetchCommunityPinnedNoteIds({
+            creatorId,
+            communityId
+        });
         if (noteIds.length > 0)
-            return this._socialEventManagerRead.fetchEventsByIds(noteIds);
+            return this._socialEventManagerRead.fetchEventsByIds({ ids: noteIds });
         else
             return [];
     }
 
     async pinCommunityNote(creatorId: string, communityId: string, noteId: string) {
-        const pinnedNotesEvent = await this._socialEventManagerRead.fetchCommunityPinnedNotes(creatorId, communityId);
-        let noteIds = [noteId];
-        if (pinnedNotesEvent) {
-            for (let tag of pinnedNotesEvent.tags) {
-                if (tag[0] === 'e' && tag[1] !== noteId) {
-                    noteIds.push(tag[1]);
-                }
-            }
-        }
+        let noteIds = await this._socialEventManagerRead.fetchCommunityPinnedNoteIds({
+            creatorId,
+            communityId
+        });
+        noteIds = Array.from(new Set([...noteIds, noteId]));
         await this._socialEventManagerWrite.updateCommunityPinnedNotes(creatorId, communityId, noteIds);
     }
 
     async unpinCommunityNote(creatorId: string, communityId: string, noteId: string) {
-        const pinnedNotesEvent = await this._socialEventManagerRead.fetchCommunityPinnedNotes(creatorId, communityId);
-        let noteIds = [];
-        if (pinnedNotesEvent) {
-            for (let tag of pinnedNotesEvent.tags) {
-                if (tag[0] === 'e' && tag[1] !== noteId) {
-                    noteIds.push(tag[1]);
-                }
-            }
+        let noteIds = await this._socialEventManagerRead.fetchCommunityPinnedNoteIds({
+            creatorId,
+            communityId
+        });
+        noteIds = Array.from(new Set(noteIds));
+        const index = noteIds.indexOf(noteId);
+        if (index > -1) {
+            noteIds.splice(index, 1);
         }
         await this._socialEventManagerWrite.updateCommunityPinnedNotes(creatorId, communityId, noteIds);
     }
 
     async fetchUserPinnedNotes(pubKey: string) {
-        const pinnedNotesEvent = await this._socialEventManagerRead.fetchUserPinnedNotes(pubKey);
+        const pinnedNotesEvent = await this._socialEventManagerRead.fetchUserPinnedNotes({ pubKey });
         let noteIds = [];
         if (pinnedNotesEvent) {
             for (let tag of pinnedNotesEvent.tags) {
@@ -2524,13 +2614,13 @@ class SocialDataManager {
             }
         }
         if (noteIds.length > 0)
-            return this._socialEventManagerRead.fetchEventsByIds(noteIds);
+            return this._socialEventManagerRead.fetchEventsByIds({ ids: noteIds });
         else
             return [];
     }
 
     async pinUserNote(pubKey: string, noteId: string) {
-        const pinnedNotesEvent = await this._socialEventManagerRead.fetchUserPinnedNotes(pubKey);
+        const pinnedNotesEvent = await this._socialEventManagerRead.fetchUserPinnedNotes({ pubKey });
         let noteIds = [noteId];
         if (pinnedNotesEvent) {
             for (let tag of pinnedNotesEvent.tags) {
@@ -2543,7 +2633,7 @@ class SocialDataManager {
     }
 
     async unpinUserNote(pubKey: string, noteId: string) {
-        const pinnedNotesEvent = await this._socialEventManagerRead.fetchUserPinnedNotes(pubKey);
+        const pinnedNotesEvent = await this._socialEventManagerRead.fetchUserPinnedNotes({ pubKey });
         let noteIds = [];
         if (pinnedNotesEvent) {
             for (let tag of pinnedNotesEvent.tags) {

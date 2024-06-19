@@ -1,5 +1,4 @@
-import { Nip19, Event, Keys } from "../core/index";
-import { IAllUserRelatedChannels, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, INostrEvent, IPaymentActivity } from "../utils/interfaces";
+import { SocialEventManagerReadOptions } from "../utils/interfaces";
 import { INostrRestAPIManager } from "./communication";
 import { SocialUtilsManager } from "./utilsManager";
 import { ISocialEventManagerRead } from "./eventManagerRead";
@@ -20,23 +19,23 @@ class NostrEventManagerReadV2 extends NostrEventManagerReadV1o5 implements ISoci
         return SocialUtilsManager.augmentWithAuthInfo(obj, this._privateKey);
     }
 
-    async searchUsers(query: string) {
+    async searchUsers(options: SocialEventManagerReadOptions.ISearchUsers) {
         return [];
     }
 
-    async fetchPaymentRequestEvent(paymentRequest: string) {
+    async fetchPaymentRequestEvent(options: SocialEventManagerReadOptions.IFetchPaymentRequestEvent) {
         return null;
     }
 
-    async fetchPaymentActivitiesForRecipient(pubkey: string, since: number = 0, until: number = 0) {
+    async fetchPaymentActivitiesForRecipient(options: SocialEventManagerReadOptions.IFetchPaymentActivitiesForRecipient) {
         return [];
     }
 
-    async fetchPaymentActivitiesForSender(pubkey: string, since: number = 0, until: number = 0) {
+    async fetchPaymentActivitiesForSender(options: SocialEventManagerReadOptions.IFetchPaymentActivitiesForSender) {
         return [];
     }
 
-    async fetchUserFollowingFeed(pubKey: string, until: number = 0) {
+    async fetchUserFollowingFeed(options: SocialEventManagerReadOptions.IFetchUserFollowingFeed) {
         return [];
     }
 }

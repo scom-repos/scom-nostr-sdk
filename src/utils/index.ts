@@ -35,7 +35,10 @@ export {
     ISocialDataManagerConfig,
     INostrFetchEventsResponse,
     IPaymentActivity,
-    ILongFormContentInfo
+    ILongFormContentInfo,
+    SocialEventManagerReadOptions,
+    ISocialEventManagerReadResult,
+    IAllUserRelatedChannels
 } from "./interfaces";
 
 export {

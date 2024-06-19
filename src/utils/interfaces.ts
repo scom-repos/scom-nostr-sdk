@@ -479,55 +479,223 @@ export interface ISocialEventManagerReadResult {
 	events?: INostrEvent[];
 	data?: any;
 }
+
+export namespace SocialEventManagerReadOptions {
+	export interface IFetchThreadCacheEvents {
+		id: string;
+		pubKey?: string;
+	}
+	export interface IFetchTrendingCacheEvents {
+		pubKey?: string;
+	}
+	export interface IFetchProfileFeedCacheEvents {
+		userPubkey: string;
+		pubKey: string;
+		since?: number;
+		until?: number;
+	}
+	export interface IFetchProfileRepliesCacheEvents {
+		userPubkey: string;
+		pubKey: string;
+		since?: number;
+		until?: number;
+	}
+	export interface IFetchHomeFeedCacheEvents {
+		pubKey?: string;
+		since?: number;
+		until?: number;
+	}
+	export interface IFetchUserProfileCacheEvents {
+		pubKeys: string[];
+	}
+	export interface IFetchUserProfileDetailCacheEvents {
+		pubKey: string;
+	}
+	export interface IFetchContactListCacheEvents {
+		pubKey: string;
+		detailIncluded?: boolean;
+	}
+	export interface IFetchUserRelays {
+		pubKey: string;
+	}
+	export interface IFetchFollowersCacheEvents {
+		pubKey: string;
+	}
+	export interface IFetchCommunities {
+		pubkeyToCommunityIdsMap?: Record<string, string[]>;
+	}
+	export interface IFetchAllUserRelatedCommunities {
+		pubKey: string;
+	}
+	export interface IFetchUserBookmarkedCommunities {
+		pubKey: string;
+		excludedCommunity?: ICommunityInfo;
+	}
+	export interface IFetchCommunity {
+		creatorId: string;
+		communityId: string;
+	}
+	export interface IFetchCommunitiesMetadataFeed {
+		communities: ICommunityBasicInfo[];
+	}
+	export interface IFetchCommunityFeed {
+		communityUri: string;
+		since?: number;
+		until?: number;
+	}
+	export interface IFetchCommunitiesFeed {
+		communityUriArr: string[];
+	}
+	export interface IFetchCommunitiesGeneralMembers {
+		communities: ICommunityBasicInfo[];
+	}
+	export interface IFetchNotes {
+		options: IFetchNotesOptions;
+	}
+	export interface IFetchEventsByIds {
+		ids: string[];
+	}
+	export interface IFetchAllUserRelatedChannels {
+		pubKey: string;
+	}
+	export interface IFetchUserBookmarkedChannelEventIds {
+		pubKey: string;
+	}
+	export interface IFetchChannelMessages {
+		channelId: string;
+		since?: number;
+		until?: number;
+	}
+	export interface IFetchChannelInfoMessages {
+		channelId: string;
+	}
+	export interface IFetchMessageContactsCacheEvents {
+		pubKey: string;
+	}
+	export interface IFetchDirectMessages {
+		pubKey: string;
+		sender: string;
+		since?: number;
+		until?: number;
+	}
+	export interface IResetMessageCount {
+		pubKey: string;
+		sender: string;
+	}
+	export interface IFetchGroupKeys {
+		identifier: string;
+	}
+	export interface IFetchUserGroupInvitations {
+		groupKinds: number[];
+		pubKey: string;
+	}
+	export interface IFetchCalendarEventPosts {
+		calendarEventUri: string;
+	}
+	export interface IFetchCalendarEvents {
+		start: number;
+		end?: number;
+		limit?: number;
+		previousEventId?: string;
+	}
+	export interface IFetchCalendarEvent {
+		address: Nip19.AddressPointer;
+	}
+	export interface IFetchCalendarEventRSVPs {
+		calendarEventUri: string;
+		pubkey?: string;
+	}
+	export interface IFetchLongFormContentEvents {
+		pubKey?: string;
+		since?: number;
+		until?: number;
+	}
+	export interface ISearchUsers {
+		query: string;
+	}
+	export interface IFetchPaymentRequestEvent {
+		paymentRequest: string;
+	}
+	export interface IFetchPaymentReceiptEvent {
+		requestEventId: string;
+	}
+	export interface IFetchPaymentActivitiesForRecipient {
+		pubkey: string;
+		since?: number;
+		until?: number;
+	}
+	export interface IFetchPaymentActivitiesForSender {
+		pubkey: string;
+		since?: number;
+		until?: number;
+	}
+	export interface IFetchUserFollowingFeed {
+		pubKey: string;
+		until?: number;
+	}
+	export interface IFetchCommunityPinnedNotesEvent {
+		creatorId: string;
+		communityId: string;
+	}
+	export interface IFetchCommunityPinnedNoteIds {
+		creatorId: string;
+		communityId: string;
+	}
+	export interface IFetchUserPinnedNotes {
+		pubKey: string;
+	}
+}
+
 export interface ISocialEventManagerRead {
     nostrCommunicationManager: INostrCommunicationManager | INostrRestAPIManager;
     privateKey: string;
-    fetchThreadCacheEvents(id: string, pubKey?: string): Promise<INostrEvent[]>;
-    fetchTrendingCacheEvents(pubKey?: string): Promise<INostrEvent[]>;
-    fetchProfileFeedCacheEvents(userPubkey: string, pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    fetchProfileRepliesCacheEvents(userPubkey: string, pubKey: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    fetchHomeFeedCacheEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    fetchUserProfileCacheEvents(pubKeys: string[]): Promise<INostrEvent[]>;
-    fetchUserProfileDetailCacheEvents(pubKey: string): Promise<INostrEvent[]>;
-    fetchContactListCacheEvents(pubKey: string, detailIncluded?: boolean): Promise<INostrEvent[]>;
-    fetchUserRelays(pubKey: string): Promise<INostrEvent[]>;
-    fetchFollowersCacheEvents(pubKey: string): Promise<INostrEvent[]>;
-    fetchCommunities(pubkeyToCommunityIdsMap?: Record<string, string[]>): Promise<INostrEvent[]>;
-    fetchAllUserRelatedCommunities(pubKey: string): Promise<INostrEvent[]>;
-    fetchUserBookmarkedCommunities(pubKey: string, excludedCommunity?: ICommunityInfo): Promise<ICommunityBasicInfo[]>;
-    fetchCommunity(creatorId: string, communityId: string): Promise<INostrEvent[]>;
-    fetchCommunitiesMetadataFeed(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
-    fetchCommunityFeed(communityUri: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    fetchCommunitiesFeed(communityUriArr: string[]): Promise<INostrEvent[]>;
-    fetchCommunitiesGeneralMembers(communities: ICommunityBasicInfo[]): Promise<INostrEvent[]>;
-    fetchNotes(options: IFetchNotesOptions): Promise<INostrEvent[]>;
-    // fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
+	fetchThreadCacheEvents(options: SocialEventManagerReadOptions.IFetchThreadCacheEvents): Promise<INostrEvent[]>;
+	fetchTrendingCacheEvents(options: SocialEventManagerReadOptions.IFetchTrendingCacheEvents): Promise<INostrEvent[]>;
+	fetchProfileFeedCacheEvents(options: SocialEventManagerReadOptions.IFetchProfileFeedCacheEvents): Promise<INostrEvent[]>;
+	fetchProfileRepliesCacheEvents(options: SocialEventManagerReadOptions.IFetchProfileRepliesCacheEvents): Promise<INostrEvent[]>;
+	fetchHomeFeedCacheEvents(options: SocialEventManagerReadOptions.IFetchHomeFeedCacheEvents): Promise<INostrEvent[]>;
+	fetchUserProfileCacheEvents(options: SocialEventManagerReadOptions.IFetchUserProfileCacheEvents): Promise<INostrEvent[]>;
+	fetchUserProfileDetailCacheEvents(options: SocialEventManagerReadOptions.IFetchUserProfileDetailCacheEvents): Promise<INostrEvent[]>;
+	fetchContactListCacheEvents(options: SocialEventManagerReadOptions.IFetchContactListCacheEvents): Promise<INostrEvent[]>;
+	fetchUserRelays(options: SocialEventManagerReadOptions.IFetchUserRelays): Promise<INostrEvent[]>;
+	fetchFollowersCacheEvents(options: SocialEventManagerReadOptions.IFetchFollowersCacheEvents): Promise<INostrEvent[]>;
+	fetchCommunities(options: SocialEventManagerReadOptions.IFetchCommunities): Promise<INostrEvent[]>;
+	fetchAllUserRelatedCommunities(options: SocialEventManagerReadOptions.IFetchAllUserRelatedCommunities): Promise<INostrEvent[]>;
+	fetchUserBookmarkedCommunities(options: SocialEventManagerReadOptions.IFetchUserBookmarkedCommunities): Promise<ICommunityBasicInfo[]>;
+	fetchCommunity(options: SocialEventManagerReadOptions.IFetchCommunity): Promise<INostrEvent[]>;
+	fetchCommunitiesMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesMetadataFeed): Promise<INostrEvent[]>;
+	fetchCommunityFeed(options: SocialEventManagerReadOptions.IFetchCommunityFeed): Promise<INostrEvent[]>;
+	fetchCommunitiesFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesFeed): Promise<INostrEvent[]>;
+	fetchCommunitiesGeneralMembers(options: SocialEventManagerReadOptions.IFetchCommunitiesGeneralMembers): Promise<INostrEvent[]>;
+	fetchNotes(options: IFetchNotesOptions): Promise<INostrEvent[]>;
+	fetchEventsByIds(options: SocialEventManagerReadOptions.IFetchEventsByIds): Promise<INostrEvent[]>;
+	fetchAllUserRelatedChannels(options: SocialEventManagerReadOptions.IFetchAllUserRelatedChannels): Promise<IAllUserRelatedChannels>;
+	fetchUserBookmarkedChannelEventIds(options: SocialEventManagerReadOptions.IFetchUserBookmarkedChannelEventIds): Promise<string[]>;
+	fetchChannelMessages(options: SocialEventManagerReadOptions.IFetchChannelMessages): Promise<INostrEvent[]>;
+	fetchChannelInfoMessages(options: SocialEventManagerReadOptions.IFetchChannelInfoMessages): Promise<INostrEvent[]>;
+	fetchMessageContactsCacheEvents(options: SocialEventManagerReadOptions.IFetchMessageContactsCacheEvents): Promise<INostrEvent[]>;
+	fetchDirectMessages(options: SocialEventManagerReadOptions.IFetchDirectMessages): Promise<INostrEvent[]>;
+	resetMessageCount(options: SocialEventManagerReadOptions.IResetMessageCount): Promise<void>;
+	fetchGroupKeys(options: SocialEventManagerReadOptions.IFetchGroupKeys): Promise<INostrEvent>;
+	fetchUserGroupInvitations(options: SocialEventManagerReadOptions.IFetchUserGroupInvitations): Promise<INostrEvent[]>;
+	fetchCalendarEventPosts(options: SocialEventManagerReadOptions.IFetchCalendarEventPosts): Promise<INostrEvent[]>;
+	fetchCalendarEvents(options: SocialEventManagerReadOptions.IFetchCalendarEvents): Promise<ISocialEventManagerReadResult>;
+	fetchCalendarEvent(options: SocialEventManagerReadOptions.IFetchCalendarEvent): Promise<INostrEvent | null>;
+	fetchCalendarEventRSVPs(options: SocialEventManagerReadOptions.IFetchCalendarEventRSVPs): Promise<INostrEvent[]>;
+	fetchLongFormContentEvents(options: SocialEventManagerReadOptions.IFetchLongFormContentEvents): Promise<INostrEvent[]>;
+	searchUsers(options: SocialEventManagerReadOptions.ISearchUsers): Promise<INostrEvent[]>;
+	fetchPaymentRequestEvent(options: SocialEventManagerReadOptions.IFetchPaymentRequestEvent): Promise<INostrEvent>;
+	fetchPaymentReceiptEvent(options: SocialEventManagerReadOptions.IFetchPaymentReceiptEvent): Promise<INostrEvent>;
+	fetchPaymentActivitiesForRecipient(options: SocialEventManagerReadOptions.IFetchPaymentActivitiesForRecipient): Promise<IPaymentActivity[]>;
+	fetchPaymentActivitiesForSender(options: SocialEventManagerReadOptions.IFetchPaymentActivitiesForSender): Promise<IPaymentActivity[]>;
+	fetchUserFollowingFeed(options: SocialEventManagerReadOptions.IFetchUserFollowingFeed): Promise<INostrEvent[]>;
+	fetchCommunityPinnedNotesEvent(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNotesEvent): Promise<INostrEvent>;
+	fetchCommunityPinnedNoteIds(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNoteIds): Promise<string[]>;
+	fetchUserPinnedNotes(options: SocialEventManagerReadOptions.IFetchUserPinnedNotes): Promise<INostrEvent>;
+	// fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
     // fetchReplies(options: IFetchRepliesOptions): Promise<INostrEvent[]>;
     // fetchFollowing(npubs: string[]): Promise<INostrEvent[]>;
-    fetchEventsByIds(ids: string[]): Promise<INostrEvent[]>;
-    fetchAllUserRelatedChannels(pubKey: string): Promise<IAllUserRelatedChannels>;
-    fetchUserBookmarkedChannelEventIds(pubKey: string): Promise<string[]>;
-    fetchChannelMessages(channelId: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    fetchChannelInfoMessages(channelId: string): Promise<INostrEvent[]>;
-    fetchMessageContactsCacheEvents(pubKey: string): Promise<INostrEvent[]>;
-    fetchDirectMessages(pubKey: string, sender: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    resetMessageCount(pubKey: string, sender: string): Promise<void>;
-    fetchGroupKeys(identifier: string): Promise<INostrEvent>;
-    fetchUserGroupInvitations(groupKinds: number[], pubKey: string): Promise<INostrEvent[]>;
-    fetchCalendarEventPosts(calendarEventUri: string): Promise<INostrEvent[]>;
-    fetchCalendarEvents(start: number, end?: number, limit?: number, previousEventId?: string): Promise<ISocialEventManagerReadResult>;
-    fetchCalendarEvent(address: Nip19.AddressPointer): Promise<INostrEvent | null>;
-    fetchCalendarEventRSVPs(calendarEventUri: string, pubkey?: string): Promise<INostrEvent[]>;
-    fetchLongFormContentEvents(pubKey?: string, since?: number, until?: number): Promise<INostrEvent[]>;
-    // fetchLikes(eventId: string): Promise<INostrEvent[]>;
-    searchUsers(query: string): Promise<INostrEvent[]>;
-    fetchPaymentRequestEvent(paymentRequest: string): Promise<INostrEvent>;
-    fetchPaymentReceiptEvent(requestEventId: string): Promise<INostrEvent>;
-    fetchPaymentActivitiesForRecipient(pubkey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
-    fetchPaymentActivitiesForSender(pubKey: string, since?: number, until?: number): Promise<IPaymentActivity[]>;
-    fetchUserFollowingFeed(pubKey: string, until?: number): Promise<INostrEvent[]>;
-    fetchCommunityPinnedNotes(creatorId: string, communityId: string): Promise<INostrEvent>;
-    fetchUserPinnedNotes(pubKey: string): Promise<INostrEvent>;
+	// fetchLikes(eventId: string): Promise<INostrEvent[]>;
 }
 
 export interface INostrRestAPIManager extends INostrCommunicationManager {
