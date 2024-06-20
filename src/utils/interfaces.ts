@@ -299,7 +299,8 @@ export interface ICommunityGatekeeperInfo {
 export interface IRetrieveCommunityPostKeysByNoteEventsOptions {
 	notes: INostrEvent[]; 
 	pubKey: string;
-	getSignature: (message: string) => Promise<string>
+	getSignature: (message: string) => Promise<string>;
+	gatekeeperUrl?: string;
 	// gatekeepers: ICommunityGatekeeperInfo[];
 }
 

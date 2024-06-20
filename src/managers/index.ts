@@ -382,6 +382,10 @@ class SocialDataManager {
                     relayToNotesMap[communityInfo.privateRelay] = relayToNotesMap[communityInfo.privateRelay] || [];
                     relayToNotesMap[communityInfo.privateRelay].push(noteCommunityInfo);
                 }
+                else if (options.gatekeeperUrl) {
+                    relayToNotesMap[options.gatekeeperUrl] = relayToNotesMap[options.gatekeeperUrl] || [];
+                    relayToNotesMap[options.gatekeeperUrl].push(noteCommunityInfo);
+                }
                 // else if (communityInfo.membershipType === MembershipType.InviteOnly) {
                 //     inviteOnlyCommunityNotesMap[communityInfo.communityUri] = inviteOnlyCommunityNotesMap[communityInfo.communityUri] || [];
                 //     inviteOnlyCommunityNotesMap[communityInfo.communityUri].push(noteCommunityInfo);
@@ -1000,7 +1004,9 @@ class SocialDataManager {
         }
 
         if (noteCommunityInfoList.length > 0) {
-            const communityEvents = await this._socialEventManagerRead.fetchCommunities(pubkeyToCommunityIdsMap);
+            const communityEvents = await this._socialEventManagerRead.fetchCommunities({
+                pubkeyToCommunityIdsMap
+            });
             for (let event of communityEvents) {
                 let communityInfo = SocialUtilsManager.extractCommunityInfo(event);
                 communityInfoList.push(communityInfo);

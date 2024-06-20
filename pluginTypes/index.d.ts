@@ -1357,6 +1357,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         notes: INostrEvent[];
         pubKey: string;
         getSignature: (message: string) => Promise<string>;
+        gatekeeperUrl?: string;
     }
     export interface IRetrieveCommunityThreadPostKeysOptions {
         communityInfo: ICommunityInfo;

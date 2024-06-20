@@ -7343,6 +7343,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                         relayToNotesMap[communityInfo.privateRelay] = relayToNotesMap[communityInfo.privateRelay] || [];
                         relayToNotesMap[communityInfo.privateRelay].push(noteCommunityInfo);
                     }
+                    else if (options.gatekeeperUrl) {
+                        relayToNotesMap[options.gatekeeperUrl] = relayToNotesMap[options.gatekeeperUrl] || [];
+                        relayToNotesMap[options.gatekeeperUrl].push(noteCommunityInfo);
+                    }
                     // else if (communityInfo.membershipType === MembershipType.InviteOnly) {
                     //     inviteOnlyCommunityNotesMap[communityInfo.communityUri] = inviteOnlyCommunityNotesMap[communityInfo.communityUri] || [];
                     //     inviteOnlyCommunityNotesMap[communityInfo.communityUri].push(noteCommunityInfo);
@@ -7929,7 +7933,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 }
             }
             if (noteCommunityInfoList.length > 0) {
-                const communityEvents = await this._socialEventManagerRead.fetchCommunities(pubkeyToCommunityIdsMap);
+                const communityEvents = await this._socialEventManagerRead.fetchCommunities({
+                    pubkeyToCommunityIdsMap
+                });
                 for (let event of communityEvents) {
                     let communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(event);
                     communityInfoList.push(communityInfo);
