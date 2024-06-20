@@ -4826,8 +4826,18 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 pointSystem: info.pointSystem,
                 collectibles: info.collectibles
             };
-            if (info.membershipType === interfaces_3.MembershipType.Protected)
-                data.policies = info.policies;
+            if (info.membershipType === interfaces_3.MembershipType.Protected) {
+                data.policies = [];
+                for (let policy of info.policies) {
+                    const memberIds = policy.memberIds.map(memberId => {
+                        return memberId.startsWith('npub1') ? index_3.Nip19.decode(memberId).data : memberId;
+                    });
+                    data.policies.push({
+                        ...policy,
+                        memberIds
+                    });
+                }
+            }
             const isEmptyObject = JSON.stringify(data) === "{}";
             const content = isEmptyObject ? "" : JSON.stringify(data);
             let event = {
