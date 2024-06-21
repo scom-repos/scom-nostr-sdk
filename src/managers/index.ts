@@ -153,6 +153,9 @@ class SocialDataManager {
                 }
             ]
         });
+        if (feedEvents.length === 0) {
+            return null;
+        }
         const {
             notes,
             metadataByPubKeyMap,
@@ -265,6 +268,7 @@ class SocialDataManager {
     private async constructCommunityNoteIdToPrivateKeyMap(creatorId: string, communityId: string) {
         let noteIdToPrivateKey: Record<string, string> = {};
         const communityEvents = await this.retrieveCommunityEvents(creatorId, communityId);
+        if (!communityEvents) return noteIdToPrivateKey;
         const communityInfo = communityEvents.info;
         const notes = communityEvents.notes;
         let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);

@@ -7127,6 +7127,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     }
                 ]
             });
+            if (feedEvents.length === 0) {
+                return null;
+            }
             const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(feedEvents);
             const communityEvent = feedEvents.find(event => event.kind === 34550);
             if (!communityEvent)
@@ -7225,6 +7228,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         async constructCommunityNoteIdToPrivateKeyMap(creatorId, communityId) {
             let noteIdToPrivateKey = {};
             const communityEvents = await this.retrieveCommunityEvents(creatorId, communityId);
+            if (!communityEvents)
+                return noteIdToPrivateKey;
             const communityInfo = communityEvents.info;
             const notes = communityEvents.notes;
             let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
