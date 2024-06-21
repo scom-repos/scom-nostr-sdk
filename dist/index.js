@@ -7853,13 +7853,6 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 if (event.kind === 34550) {
                     const communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(event);
                     identifiers.push(communityInfo.communityUri + ':keys');
-                    // const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
-                    //     identifiers: [communityInfo.communityUri + ':keys']
-                    // });
-                    // const keyEvent = keyEvents[0];
-                    // if (keyEvent) {
-                    //     communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
-                    // }
                     communityUriArr.push(communityInfo.communityUri);
                     communityEventsMap[communityInfo.communityUri] = { info: communityInfo, notes: [] };
                 }
