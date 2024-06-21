@@ -7245,7 +7245,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async retrieveCommunityPostKeys(options) {
             let noteIdToPrivateKey = {};
-            if (options.gatekeeperUrl) {
+            const policyTypes = options.policies?.map(v => v.policyType) || [];
+            if (policyTypes.includes(interfaces_4.ProtectedMembershipPolicyType.TokenExclusive) && options.gatekeeperUrl) {
                 let bodyData = {
                     creatorId: options.creatorId,
                     communityId: options.communityId,
@@ -7278,7 +7279,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         async retrieveCommunityThreadPostKeys(options) {
             const communityInfo = options.communityInfo;
             let noteIdToPrivateKey = {};
-            if (options.gatekeeperUrl) {
+            const policyTypes = communityInfo.policies?.map(v => v.policyType) || [];
+            if (policyTypes.includes(interfaces_4.ProtectedMembershipPolicyType.TokenExclusive) && options.gatekeeperUrl) {
                 let bodyData = {
                     creatorId: communityInfo.creatorId,
                     communityId: communityInfo.communityId,
@@ -7349,8 +7351,16 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                         relayToNotesMap[communityInfo.privateRelay].push(noteCommunityInfo);
                     }
                     else if (options.gatekeeperUrl) {
-                        relayToNotesMap[options.gatekeeperUrl] = relayToNotesMap[options.gatekeeperUrl] || [];
-                        relayToNotesMap[options.gatekeeperUrl].push(noteCommunityInfo);
+                        for (let policy of communityInfo.policies) {
+                            if (policy.policyType === interfaces_4.ProtectedMembershipPolicyType.Whitelist) {
+                                inviteOnlyCommunityNotesMap[communityInfo.communityUri] = inviteOnlyCommunityNotesMap[communityInfo.communityUri] || [];
+                                inviteOnlyCommunityNotesMap[communityInfo.communityUri].push(noteCommunityInfo);
+                            }
+                            else if (policy.policyType === interfaces_4.ProtectedMembershipPolicyType.TokenExclusive) {
+                                relayToNotesMap[options.gatekeeperUrl] = relayToNotesMap[options.gatekeeperUrl] || [];
+                                relayToNotesMap[options.gatekeeperUrl].push(noteCommunityInfo);
+                            }
+                        }
                     }
                     // else if (communityInfo.membershipType === MembershipType.InviteOnly) {
                     //     inviteOnlyCommunityNotesMap[communityInfo.communityUri] = inviteOnlyCommunityNotesMap[communityInfo.communityUri] || [];
@@ -7419,15 +7429,15 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             //         }
             //     }
             // }
-            // for (let communityUri in inviteOnlyCommunityNotesMap) {
-            //     for (let noteCommunityInfo of inviteOnlyCommunityNotesMap[communityUri]) {
-            //         const inviteOnlyNoteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(noteCommunityInfo.creatorId, noteCommunityInfo.communityId);
-            //         noteIdToPrivateKey = {
-            //             ...noteIdToPrivateKey,
-            //             ...inviteOnlyNoteIdToPrivateKey
-            //         };
-            //     }
-            // }
+            for (let communityUri in inviteOnlyCommunityNotesMap) {
+                for (let noteCommunityInfo of inviteOnlyCommunityNotesMap[communityUri]) {
+                    const inviteOnlyNoteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(noteCommunityInfo.creatorId, noteCommunityInfo.communityId);
+                    noteIdToPrivateKey = {
+                        ...noteIdToPrivateKey,
+                        ...inviteOnlyNoteIdToPrivateKey
+                    };
+                }
+            }
             return noteIdToPrivateKey;
         }
         async constructMetadataByPubKeyMap(notes) {

@@ -284,7 +284,8 @@ class SocialDataManager {
 
     async retrieveCommunityPostKeys(options: IRetrieveCommunityPostKeysOptions) {
         let noteIdToPrivateKey: Record<string, string> = {};
-        if (options.gatekeeperUrl) {
+        const policyTypes = options.policies?.map(v => v.policyType) || [];  
+        if (policyTypes.includes(ProtectedMembershipPolicyType.TokenExclusive) && options.gatekeeperUrl) {
             let bodyData = {
                 creatorId: options.creatorId,
                 communityId: options.communityId,
@@ -318,7 +319,8 @@ class SocialDataManager {
     async retrieveCommunityThreadPostKeys(options: IRetrieveCommunityThreadPostKeysOptions) {
         const communityInfo = options.communityInfo;
         let noteIdToPrivateKey: Record<string, string> = {};
-        if (options.gatekeeperUrl) {
+        const policyTypes = communityInfo.policies?.map(v => v.policyType) || [];  
+        if (policyTypes.includes(ProtectedMembershipPolicyType.TokenExclusive) && options.gatekeeperUrl) {
             let bodyData = {
                 creatorId: communityInfo.creatorId,
                 communityId: communityInfo.communityId,
@@ -387,8 +389,16 @@ class SocialDataManager {
                     relayToNotesMap[communityInfo.privateRelay].push(noteCommunityInfo);
                 }
                 else if (options.gatekeeperUrl) {
-                    relayToNotesMap[options.gatekeeperUrl] = relayToNotesMap[options.gatekeeperUrl] || [];
-                    relayToNotesMap[options.gatekeeperUrl].push(noteCommunityInfo);
+                    for (let policy of communityInfo.policies) {
+                        if (policy.policyType === ProtectedMembershipPolicyType.Whitelist) {
+                            inviteOnlyCommunityNotesMap[communityInfo.communityUri] = inviteOnlyCommunityNotesMap[communityInfo.communityUri] || [];
+                            inviteOnlyCommunityNotesMap[communityInfo.communityUri].push(noteCommunityInfo);
+                        }
+                        else if (policy.policyType === ProtectedMembershipPolicyType.TokenExclusive) {
+                            relayToNotesMap[options.gatekeeperUrl] = relayToNotesMap[options.gatekeeperUrl] || [];
+                            relayToNotesMap[options.gatekeeperUrl].push(noteCommunityInfo);
+                        }
+                    }
                 }
                 // else if (communityInfo.membershipType === MembershipType.InviteOnly) {
                 //     inviteOnlyCommunityNotesMap[communityInfo.communityUri] = inviteOnlyCommunityNotesMap[communityInfo.communityUri] || [];
@@ -457,15 +467,15 @@ class SocialDataManager {
         //         }
         //     }
         // }
-        // for (let communityUri in inviteOnlyCommunityNotesMap) {
-        //     for (let noteCommunityInfo of inviteOnlyCommunityNotesMap[communityUri]) {
-        //         const inviteOnlyNoteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(noteCommunityInfo.creatorId, noteCommunityInfo.communityId);
-        //         noteIdToPrivateKey = {
-        //             ...noteIdToPrivateKey,
-        //             ...inviteOnlyNoteIdToPrivateKey
-        //         };
-        //     }
-        // }
+        for (let communityUri in inviteOnlyCommunityNotesMap) {
+            for (let noteCommunityInfo of inviteOnlyCommunityNotesMap[communityUri]) {
+                const inviteOnlyNoteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(noteCommunityInfo.creatorId, noteCommunityInfo.communityId);
+                noteIdToPrivateKey = {
+                    ...noteIdToPrivateKey,
+                    ...inviteOnlyNoteIdToPrivateKey
+                };
+            }
+        }
         return noteIdToPrivateKey;
     }
 

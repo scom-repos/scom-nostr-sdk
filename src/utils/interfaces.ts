@@ -285,6 +285,7 @@ export interface INewCommunityPostInfo {
 export interface IRetrieveCommunityPostKeysOptions {
 	creatorId: string;
 	communityId: string; 
+	policies?: IProtectedMembershipPolicy[];
 	gatekeeperUrl?: string;
 	message?: string;
 	signature?: string;

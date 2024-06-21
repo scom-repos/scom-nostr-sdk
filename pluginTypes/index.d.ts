@@ -1344,6 +1344,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     export interface IRetrieveCommunityPostKeysOptions {
         creatorId: string;
         communityId: string;
+        policies?: IProtectedMembershipPolicy[];
         gatekeeperUrl?: string;
         message?: string;
         signature?: string;
