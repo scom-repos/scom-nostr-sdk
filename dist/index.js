@@ -5959,13 +5959,13 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             await this._nostrCommunicationManager.fetchCachedEvents('reset_directmsg_count', msg);
         }
         async fetchGroupKeys(options) {
-            const { identifier } = options;
+            const { identifiers } = options;
             let req = {
                 kinds: [30078],
-                "#d": [identifier]
+                "#d": identifiers
             };
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
-            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+            return fetchEventsResponse.events || [];
         }
         async fetchUserGroupInvitations(options) {
             const { pubKey, groupKinds } = options;
@@ -6702,12 +6702,12 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             }
         }
         async fetchGroupKeys(options) {
-            const { identifier } = options;
+            const { identifiers } = options;
             let msg = this.augmentWithAuthInfo({
-                identifier
+                identifiers
             });
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-application-specific', msg);
-            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+            return fetchEventsResponse.events || [];
         }
         async fetchUserGroupInvitations(options) {
             const { pubKey, groupKinds } = options;
@@ -7142,9 +7142,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             if (notesCountEvent) {
                 notesCount = JSON.parse(notesCountEvent.content).note_count;
             }
-            const keyEvent = await this._socialEventManagerRead.fetchGroupKeys({
-                identifier: communityInfo.communityUri + ':keys'
+            const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
+                identifiers: [communityInfo.communityUri + ':keys']
             });
+            const keyEvent = keyEvents[0];
             if (keyEvent) {
                 communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
             }
@@ -7768,9 +7769,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             if (!communityEvent)
                 return null;
             let communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(communityEvent);
-            const keyEvent = await this._socialEventManagerRead.fetchGroupKeys({
-                identifier: communityInfo.communityUri + ':keys'
+            const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
+                identifiers: [communityInfo.communityUri + ':keys']
             });
+            const keyEvent = keyEvents[0];
             if (keyEvent) {
                 communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
             }
@@ -7828,9 +7830,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 const communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(communityEvent);
                 if (!communityInfo)
                     continue;
-                const keyEvent = await this._socialEventManagerRead.fetchGroupKeys({
-                    identifier: communityInfo.communityUri + ':keys'
+                const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
+                    identifiers: [communityInfo.communityUri + ':keys']
                 });
+                const keyEvent = keyEvents[0];
                 if (keyEvent) {
                     communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
                 }
@@ -7845,17 +7848,31 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             let communityUriArr = [];
             let communityEventsMap = {};
             const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunities({ pubKey });
+            let identifiers = [];
             for (let event of events) {
                 if (event.kind === 34550) {
                     const communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(event);
-                    const keyEvent = await this._socialEventManagerRead.fetchGroupKeys({
-                        identifier: communityInfo.communityUri + ':keys'
-                    });
-                    if (keyEvent) {
-                        communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
-                    }
+                    identifiers.push(communityInfo.communityUri + ':keys');
+                    // const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
+                    //     identifiers: [communityInfo.communityUri + ':keys']
+                    // });
+                    // const keyEvent = keyEvents[0];
+                    // if (keyEvent) {
+                    //     communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
+                    // }
                     communityUriArr.push(communityInfo.communityUri);
                     communityEventsMap[communityInfo.communityUri] = { info: communityInfo, notes: [] };
+                }
+            }
+            const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
+                identifiers
+            });
+            for (let keyEvent of keyEvents) {
+                const communityUri = keyEvent.tags.find(tag => tag[0] === 'd')?.[1];
+                if (communityUri) {
+                    const communityInfo = communityEventsMap[communityUri]?.info;
+                    if (communityInfo)
+                        communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
                 }
             }
             if (communityUriArr.length > 0) {
@@ -8470,9 +8487,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 }
                 else {
                     const groupUri = `40:${channelInfo.id}`;
-                    const keyEvent = await this._socialEventManagerRead.fetchGroupKeys({
-                        identifier: groupUri + ':keys'
+                    const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
+                        identifiers: [groupUri + ':keys']
                     });
+                    const keyEvent = keyEvents[0];
                     if (keyEvent) {
                         const creatorPubkey = channelInfo.eventData.pubkey;
                         const pubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(options.privateKey);

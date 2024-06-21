@@ -171,9 +171,10 @@ class SocialDataManager {
             notesCount = JSON.parse(notesCountEvent.content).note_count;
         }
 
-        const keyEvent = await this._socialEventManagerRead.fetchGroupKeys({
-            identifier: communityInfo.communityUri + ':keys'
+        const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
+            identifiers: [communityInfo.communityUri + ':keys']
         });
+        const keyEvent = keyEvents[0];
         if (keyEvent) {
             communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
         }
@@ -826,9 +827,10 @@ class SocialDataManager {
         const communityEvent = communityEvents.find(event => event.kind === 34550);
         if (!communityEvent) return null;
         let communityInfo = SocialUtilsManager.extractCommunityInfo(communityEvent);
-        const keyEvent = await this._socialEventManagerRead.fetchGroupKeys({
-            identifier: communityInfo.communityUri + ':keys'
+        const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
+            identifiers: [communityInfo.communityUri + ':keys']
         });
+        const keyEvent = keyEvents[0];
         if (keyEvent) {
             communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
         }
@@ -889,9 +891,10 @@ class SocialDataManager {
         for (let communityEvent of communityEvents) {
             const communityInfo = SocialUtilsManager.extractCommunityInfo(communityEvent);
             if (!communityInfo) continue;
-            const keyEvent = await this._socialEventManagerRead.fetchGroupKeys({
-                identifier: communityInfo.communityUri + ':keys'
+            const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
+                identifiers: [communityInfo.communityUri + ':keys']
             });
+            const keyEvent = keyEvents[0];
             if (keyEvent) {
                 communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
             }
@@ -908,17 +911,23 @@ class SocialDataManager {
         let communityEventsMap: Record<string, { info: ICommunityInfo, notes: INostrEvent[] }> = {};
 
         const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunities({ pubKey });
+        let identifiers: string[] = [];
         for (let event of events) {
             if (event.kind === 34550) {
                 const communityInfo = SocialUtilsManager.extractCommunityInfo(event);
-                const keyEvent = await this._socialEventManagerRead.fetchGroupKeys({
-                    identifier: communityInfo.communityUri + ':keys'
-                });
-                if (keyEvent) {
-                    communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
-                }
+                identifiers.push(communityInfo.communityUri + ':keys');
                 communityUriArr.push(communityInfo.communityUri);
                 communityEventsMap[communityInfo.communityUri] = { info: communityInfo, notes: [] };
+            }
+        }
+        const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
+            identifiers
+        });
+        for (let keyEvent of keyEvents) {
+            const communityUri = keyEvent.tags.find(tag => tag[0] === 'd')?.[1];
+            if (communityUri) {
+                const communityInfo = communityEventsMap[communityUri]?.info;
+                if (communityInfo) communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
             }
         }
         if (communityUriArr.length > 0) {
@@ -1583,9 +1592,10 @@ class SocialDataManager {
             }
             else {
                 const groupUri = `40:${channelInfo.id}`;
-                const keyEvent = await this._socialEventManagerRead.fetchGroupKeys({
-                    identifier: groupUri + ':keys'
+                const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
+                    identifiers: [groupUri + ':keys']
                 });
+                const keyEvent = keyEvents[0];
                 if (keyEvent) {
                     const creatorPubkey = channelInfo.eventData.pubkey;
                     const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(options.privateKey);

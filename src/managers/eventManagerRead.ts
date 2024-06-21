@@ -607,13 +607,13 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
     }
 
     async fetchGroupKeys(options: SocialEventManagerReadOptions.IFetchGroupKeys) {
-        const {identifier} = options;
+        const {identifiers} = options;
         let req: any = {
             kinds: [30078],
-            "#d": [identifier]
+            "#d": identifiers
         };
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
-        return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        return fetchEventsResponse.events || [];
     }
 
     async fetchUserGroupInvitations(options: SocialEventManagerReadOptions.IFetchUserGroupInvitations) {

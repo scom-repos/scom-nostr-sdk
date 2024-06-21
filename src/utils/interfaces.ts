@@ -586,7 +586,7 @@ export namespace SocialEventManagerReadOptions {
 		sender: string;
 	}
 	export interface IFetchGroupKeys {
-		identifier: string;
+		identifiers: string[];
 	}
 	export interface IFetchUserGroupInvitations {
 		groupKinds: number[];
@@ -682,7 +682,7 @@ export interface ISocialEventManagerRead {
 	fetchMessageContactsCacheEvents(options: SocialEventManagerReadOptions.IFetchMessageContactsCacheEvents): Promise<INostrEvent[]>;
 	fetchDirectMessages(options: SocialEventManagerReadOptions.IFetchDirectMessages): Promise<INostrEvent[]>;
 	resetMessageCount(options: SocialEventManagerReadOptions.IResetMessageCount): Promise<void>;
-	fetchGroupKeys(options: SocialEventManagerReadOptions.IFetchGroupKeys): Promise<INostrEvent>;
+	fetchGroupKeys(options: SocialEventManagerReadOptions.IFetchGroupKeys): Promise<INostrEvent[]>;
 	fetchUserGroupInvitations(options: SocialEventManagerReadOptions.IFetchUserGroupInvitations): Promise<INostrEvent[]>;
 	fetchCalendarEventPosts(options: SocialEventManagerReadOptions.IFetchCalendarEventPosts): Promise<INostrEvent[]>;
 	fetchCalendarEvents(options: SocialEventManagerReadOptions.IFetchCalendarEvents): Promise<ISocialEventManagerReadResult>;

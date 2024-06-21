@@ -1620,7 +1620,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
             sender: string;
         }
         interface IFetchGroupKeys {
-            identifier: string;
+            identifiers: string[];
         }
         interface IFetchUserGroupInvitations {
             groupKinds: number[];
@@ -1715,7 +1715,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         fetchMessageContactsCacheEvents(options: SocialEventManagerReadOptions.IFetchMessageContactsCacheEvents): Promise<INostrEvent[]>;
         fetchDirectMessages(options: SocialEventManagerReadOptions.IFetchDirectMessages): Promise<INostrEvent[]>;
         resetMessageCount(options: SocialEventManagerReadOptions.IResetMessageCount): Promise<void>;
-        fetchGroupKeys(options: SocialEventManagerReadOptions.IFetchGroupKeys): Promise<INostrEvent>;
+        fetchGroupKeys(options: SocialEventManagerReadOptions.IFetchGroupKeys): Promise<INostrEvent[]>;
         fetchUserGroupInvitations(options: SocialEventManagerReadOptions.IFetchUserGroupInvitations): Promise<INostrEvent[]>;
         fetchCalendarEventPosts(options: SocialEventManagerReadOptions.IFetchCalendarEventPosts): Promise<INostrEvent[]>;
         fetchCalendarEvents(options: SocialEventManagerReadOptions.IFetchCalendarEvents): Promise<ISocialEventManagerReadResult>;
@@ -2012,7 +2012,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         fetchMessageContactsCacheEvents(options: SocialEventManagerReadOptions.IFetchMessageContactsCacheEvents): Promise<INostrEvent[]>;
         fetchDirectMessages(options: SocialEventManagerReadOptions.IFetchDirectMessages): Promise<INostrEvent[]>;
         resetMessageCount(options: SocialEventManagerReadOptions.IResetMessageCount): Promise<void>;
-        fetchGroupKeys(options: SocialEventManagerReadOptions.IFetchGroupKeys): Promise<INostrEvent>;
+        fetchGroupKeys(options: SocialEventManagerReadOptions.IFetchGroupKeys): Promise<INostrEvent[]>;
         fetchUserGroupInvitations(options: SocialEventManagerReadOptions.IFetchUserGroupInvitations): Promise<INostrEvent[]>;
         fetchCalendarEvents(options: SocialEventManagerReadOptions.IFetchCalendarEvents): Promise<{
             events: INostrEvent[];
@@ -2079,7 +2079,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" {
         fetchMessageContactsCacheEvents(options: SocialEventManagerReadOptions.IFetchMessageContactsCacheEvents): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
         fetchDirectMessages(options: SocialEventManagerReadOptions.IFetchDirectMessages): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
         resetMessageCount(options: SocialEventManagerReadOptions.IResetMessageCount): Promise<void>;
-        fetchGroupKeys(options: SocialEventManagerReadOptions.IFetchGroupKeys): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent>;
+        fetchGroupKeys(options: SocialEventManagerReadOptions.IFetchGroupKeys): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
         fetchUserGroupInvitations(options: SocialEventManagerReadOptions.IFetchUserGroupInvitations): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
         fetchCalendarEvents(options: SocialEventManagerReadOptions.IFetchCalendarEvents): Promise<{
             events: import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[];

@@ -39,7 +39,7 @@ declare class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     fetchMessageContactsCacheEvents(options: SocialEventManagerReadOptions.IFetchMessageContactsCacheEvents): Promise<import("../utils/interfaces").INostrEvent[]>;
     fetchDirectMessages(options: SocialEventManagerReadOptions.IFetchDirectMessages): Promise<import("../utils/interfaces").INostrEvent[]>;
     resetMessageCount(options: SocialEventManagerReadOptions.IResetMessageCount): Promise<void>;
-    fetchGroupKeys(options: SocialEventManagerReadOptions.IFetchGroupKeys): Promise<import("../utils/interfaces").INostrEvent>;
+    fetchGroupKeys(options: SocialEventManagerReadOptions.IFetchGroupKeys): Promise<import("../utils/interfaces").INostrEvent[]>;
     fetchUserGroupInvitations(options: SocialEventManagerReadOptions.IFetchUserGroupInvitations): Promise<import("../utils/interfaces").INostrEvent[]>;
     fetchCalendarEvents(options: SocialEventManagerReadOptions.IFetchCalendarEvents): Promise<{
         events: import("../utils/interfaces").INostrEvent[];
