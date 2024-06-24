@@ -464,6 +464,11 @@ export declare namespace SocialEventManagerReadOptions {
     interface IFetchAllUserRelatedCommunities {
         pubKey: string;
     }
+    interface IFetchAllUserRelatedCommunitiesFeed {
+        pubKey: string;
+        since?: number;
+        until?: number;
+    }
     interface IFetchUserBookmarkedCommunities {
         pubKey: string;
         excludedCommunity?: ICommunityInfo;
@@ -600,6 +605,7 @@ export interface ISocialEventManagerRead {
     fetchFollowersCacheEvents(options: SocialEventManagerReadOptions.IFetchFollowersCacheEvents): Promise<INostrEvent[]>;
     fetchCommunities(options: SocialEventManagerReadOptions.IFetchCommunities): Promise<INostrEvent[]>;
     fetchAllUserRelatedCommunities(options: SocialEventManagerReadOptions.IFetchAllUserRelatedCommunities): Promise<INostrEvent[]>;
+    fetchAllUserRelatedCommunitiesFeed(options: SocialEventManagerReadOptions.IFetchAllUserRelatedCommunitiesFeed): Promise<INostrEvent[]>;
     fetchUserBookmarkedCommunities(options: SocialEventManagerReadOptions.IFetchUserBookmarkedCommunities): Promise<ICommunityBasicInfo[]>;
     fetchCommunity(options: SocialEventManagerReadOptions.IFetchCommunity): Promise<INostrEvent[]>;
     fetchCommunitiesMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesMetadataFeed): Promise<INostrEvent[]>;

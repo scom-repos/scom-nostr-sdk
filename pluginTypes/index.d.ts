@@ -1564,6 +1564,11 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         interface IFetchAllUserRelatedCommunities {
             pubKey: string;
         }
+        interface IFetchAllUserRelatedCommunitiesFeed {
+            pubKey: string;
+            since?: number;
+            until?: number;
+        }
         interface IFetchUserBookmarkedCommunities {
             pubKey: string;
             excludedCommunity?: ICommunityInfo;
@@ -1700,6 +1705,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         fetchFollowersCacheEvents(options: SocialEventManagerReadOptions.IFetchFollowersCacheEvents): Promise<INostrEvent[]>;
         fetchCommunities(options: SocialEventManagerReadOptions.IFetchCommunities): Promise<INostrEvent[]>;
         fetchAllUserRelatedCommunities(options: SocialEventManagerReadOptions.IFetchAllUserRelatedCommunities): Promise<INostrEvent[]>;
+        fetchAllUserRelatedCommunitiesFeed(options: SocialEventManagerReadOptions.IFetchAllUserRelatedCommunitiesFeed): Promise<INostrEvent[]>;
         fetchUserBookmarkedCommunities(options: SocialEventManagerReadOptions.IFetchUserBookmarkedCommunities): Promise<ICommunityBasicInfo[]>;
         fetchCommunity(options: SocialEventManagerReadOptions.IFetchCommunity): Promise<INostrEvent[]>;
         fetchCommunitiesMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesMetadataFeed): Promise<INostrEvent[]>;
@@ -1994,6 +2000,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         fetchFollowersCacheEvents(options: SocialEventManagerReadOptions.IFetchFollowersCacheEvents): Promise<INostrEvent[]>;
         fetchCommunities(options: SocialEventManagerReadOptions.IFetchCommunities): Promise<any>;
         fetchAllUserRelatedCommunities(options: SocialEventManagerReadOptions.IFetchAllUserRelatedCommunities): Promise<INostrEvent[]>;
+        fetchAllUserRelatedCommunitiesFeed(options: SocialEventManagerReadOptions.IFetchAllUserRelatedCommunitiesFeed): Promise<INostrEvent[]>;
         fetchUserBookmarkedCommunities(options: SocialEventManagerReadOptions.IFetchUserBookmarkedCommunities): Promise<ICommunityBasicInfo[]>;
         fetchCommunity(options: SocialEventManagerReadOptions.IFetchCommunity): Promise<INostrEvent[]>;
         fetchCommunitiesMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesMetadataFeed): Promise<INostrEvent[]>;
@@ -2062,6 +2069,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" {
         fetchFollowersCacheEvents(options: SocialEventManagerReadOptions.IFetchFollowersCacheEvents): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
         fetchCommunities(options: SocialEventManagerReadOptions.IFetchCommunities): Promise<any>;
         fetchAllUserRelatedCommunities(options: SocialEventManagerReadOptions.IFetchAllUserRelatedCommunities): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
+        fetchAllUserRelatedCommunitiesFeed(options: SocialEventManagerReadOptions.IFetchAllUserRelatedCommunitiesFeed): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
         fetchUserBookmarkedCommunities(options: SocialEventManagerReadOptions.IFetchUserBookmarkedCommunities): Promise<ICommunityBasicInfo[]>;
         fetchCommunity(options: SocialEventManagerReadOptions.IFetchCommunity): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
         fetchCommunitiesMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesMetadataFeed): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
@@ -2218,10 +2226,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
             weekly: ICommunityLeaderboard[];
         }>;
         fetchCommunitiesFeedInfo(): Promise<INoteInfoExtended[]>;
-        fetchUserRelatedCommunityFeedInfo(pubKey: string): Promise<{
-            info: ICommunityInfo;
-            notes: INostrEvent[];
-        }[]>;
+        fetchUserRelatedCommunityFeedInfo(pubKey: string): Promise<INoteInfoExtended[]>;
         fetchThreadNotesInfo(focusedNoteId: string): Promise<{
             focusedNote: INoteInfo;
             ancestorNotes: INoteInfo[];

@@ -200,6 +200,16 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         return response.events || [];
     }
 
+    async fetchAllUserRelatedCommunitiesFeed(options: SocialEventManagerReadOptions.IFetchAllUserRelatedCommunitiesFeed) {
+        const {pubKey} = options;
+        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        let msg = this.augmentWithAuthInfo({
+            pubkey: decodedPubKey
+        });
+        let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-communities-feed', msg);
+        return response.events || [];
+    }
+
     async fetchUserBookmarkedCommunities(options: SocialEventManagerReadOptions.IFetchUserBookmarkedCommunities) {
         const {pubKey, excludedCommunity} = options;
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
@@ -356,7 +366,7 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         }
 
         let channelIdToCommunityMap: Record<string, ICommunityInfo> = {};
-        const communityEvents = await this.fetchCommunities(pubkeyToCommunityIdsMap);
+        const communityEvents = await this.fetchCommunities({pubkeyToCommunityIdsMap});
         for (let event of communityEvents) {
             const communityInfo = SocialUtilsManager.extractCommunityInfo(event);
             const channelId = communityInfo.scpData?.channelEventId;

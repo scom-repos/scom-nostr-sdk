@@ -237,12 +237,30 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
             }
         }
         if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
-            const bookmarkedCommunitiesEvents = await this.fetchCommunities(pubkeyToCommunityIdsMap);
+            const bookmarkedCommunitiesEvents = await this.fetchCommunities({pubkeyToCommunityIdsMap});
             for (let event of bookmarkedCommunitiesEvents) {
                 communitiesEvents.push(event);
             }
         }
         return communitiesEvents;
+    }
+
+    async fetchAllUserRelatedCommunitiesFeed(options: SocialEventManagerReadOptions.IFetchAllUserRelatedCommunitiesFeed) {
+        const communitiesEvents = await this.fetchAllUserRelatedCommunities(options);
+        let communityUriArr: string[] = [];
+        let identifiers: string[] = [];
+        for (let event of communitiesEvents) {
+            if (event.kind === 34550) {
+                const communityInfo = SocialUtilsManager.extractCommunityInfo(event);
+                identifiers.push(communityInfo.communityUri + ':keys');
+                communityUriArr.push(communityInfo.communityUri);
+            }
+        }
+        let feedEvents: INostrEvent[] = [];
+        if (communityUriArr.length > 0) {
+            feedEvents = await this.fetchCommunitiesFeed({ communityUriArr });
+        }
+        return feedEvents;
     }
 
     async fetchUserBookmarkedCommunities(options: SocialEventManagerReadOptions.IFetchUserBookmarkedCommunities) {

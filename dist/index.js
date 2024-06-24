@@ -5615,12 +5615,29 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
                 }
             }
             if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
-                const bookmarkedCommunitiesEvents = await this.fetchCommunities(pubkeyToCommunityIdsMap);
+                const bookmarkedCommunitiesEvents = await this.fetchCommunities({ pubkeyToCommunityIdsMap });
                 for (let event of bookmarkedCommunitiesEvents) {
                     communitiesEvents.push(event);
                 }
             }
             return communitiesEvents;
+        }
+        async fetchAllUserRelatedCommunitiesFeed(options) {
+            const communitiesEvents = await this.fetchAllUserRelatedCommunities(options);
+            let communityUriArr = [];
+            let identifiers = [];
+            for (let event of communitiesEvents) {
+                if (event.kind === 34550) {
+                    const communityInfo = utilsManager_2.SocialUtilsManager.extractCommunityInfo(event);
+                    identifiers.push(communityInfo.communityUri + ':keys');
+                    communityUriArr.push(communityInfo.communityUri);
+                }
+            }
+            let feedEvents = [];
+            if (communityUriArr.length > 0) {
+                feedEvents = await this.fetchCommunitiesFeed({ communityUriArr });
+            }
+            return feedEvents;
         }
         async fetchUserBookmarkedCommunities(options) {
             const { pubKey, excludedCommunity } = options;
@@ -6443,6 +6460,15 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-communities', msg);
             return response.events || [];
         }
+        async fetchAllUserRelatedCommunitiesFeed(options) {
+            const { pubKey } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
+            let msg = this.augmentWithAuthInfo({
+                pubkey: decodedPubKey
+            });
+            let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-communities-feed', msg);
+            return response.events || [];
+        }
         async fetchUserBookmarkedCommunities(options) {
             const { pubKey, excludedCommunity } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
@@ -6594,7 +6620,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 }
             }
             let channelIdToCommunityMap = {};
-            const communityEvents = await this.fetchCommunities(pubkeyToCommunityIdsMap);
+            const communityEvents = await this.fetchCommunities({ pubkeyToCommunityIdsMap });
             for (let event of communityEvents) {
                 const communityInfo = utilsManager_3.SocialUtilsManager.extractCommunityInfo(event);
                 const channelId = communityInfo.scpData?.channelEventId;
@@ -7874,38 +7900,40 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             return result;
         }
         async fetchUserRelatedCommunityFeedInfo(pubKey) {
-            let communityUriArr = [];
-            let communityEventsMap = {};
-            const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunities({ pubKey });
-            let identifiers = [];
-            for (let event of events) {
-                if (event.kind === 34550) {
-                    const communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(event);
-                    identifiers.push(communityInfo.communityUri + ':keys');
-                    communityUriArr.push(communityInfo.communityUri);
-                    communityEventsMap[communityInfo.communityUri] = { info: communityInfo, notes: [] };
+            let result = [];
+            const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunitiesFeed({ pubKey });
+            const statsEvents = events.filter(event => event.kind === 10000100);
+            let noteStatsMap = {};
+            for (let event of statsEvents) {
+                const content = utilsManager_5.SocialUtilsManager.parseContent(event.content);
+                noteStatsMap[content.event_id] = {
+                    upvotes: content.likes,
+                    replies: content.replies,
+                    reposts: content.reposts,
+                    satszapped: content.satszapped
+                };
+            }
+            const notesEvents = events.filter(event => event.kind === 1);
+            for (let noteEvent of notesEvents) {
+                if (noteEvent.tags?.length) {
+                    const communityUri = noteEvent.tags.find(tag => tag[0] === 'a')?.[1];
+                    if (communityUri) {
+                        const { creatorId, communityId } = utilsManager_5.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                        const stats = noteStatsMap[noteEvent.id];
+                        const noteInfo = {
+                            eventData: noteEvent,
+                            stats,
+                            community: {
+                                communityUri,
+                                communityId,
+                                creatorId: index_6.Nip19.npubEncode(creatorId)
+                            }
+                        };
+                        result.push(noteInfo);
+                    }
                 }
             }
-            const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
-                identifiers
-            });
-            for (let keyEvent of keyEvents) {
-                const communityUri = keyEvent.tags.find(tag => tag[0] === 'd')?.[1];
-                if (communityUri) {
-                    const communityInfo = communityEventsMap[communityUri]?.info;
-                    if (communityInfo)
-                        communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
-                }
-            }
-            if (communityUriArr.length > 0) {
-                const feedEvents = await this._socialEventManagerRead.fetchCommunitiesFeed({ communityUriArr });
-                for (let event of feedEvents) {
-                    const communityUri = event.tags.find(tag => tag[0] === 'a')?.[1];
-                    if (communityEventsMap[communityUri])
-                        communityEventsMap[communityUri].notes.push(event);
-                }
-            }
-            return Object.values(communityEventsMap);
+            return result;
         }
         async fetchThreadNotesInfo(focusedNoteId) {
             let focusedNote;

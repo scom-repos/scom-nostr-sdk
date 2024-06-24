@@ -20,6 +20,7 @@ declare class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     fetchFollowersCacheEvents(options: SocialEventManagerReadOptions.IFetchFollowersCacheEvents): Promise<import("../utils/interfaces").INostrEvent[]>;
     fetchCommunities(options: SocialEventManagerReadOptions.IFetchCommunities): Promise<any>;
     fetchAllUserRelatedCommunities(options: SocialEventManagerReadOptions.IFetchAllUserRelatedCommunities): Promise<import("../utils/interfaces").INostrEvent[]>;
+    fetchAllUserRelatedCommunitiesFeed(options: SocialEventManagerReadOptions.IFetchAllUserRelatedCommunitiesFeed): Promise<import("../utils/interfaces").INostrEvent[]>;
     fetchUserBookmarkedCommunities(options: SocialEventManagerReadOptions.IFetchUserBookmarkedCommunities): Promise<ICommunityBasicInfo[]>;
     fetchCommunity(options: SocialEventManagerReadOptions.IFetchCommunity): Promise<import("../utils/interfaces").INostrEvent[]>;
     fetchCommunitiesMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesMetadataFeed): Promise<import("../utils/interfaces").INostrEvent[]>;
