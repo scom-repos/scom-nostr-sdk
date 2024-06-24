@@ -58,5 +58,6 @@ declare class NostrEventManagerRead implements ISocialEventManagerRead {
     fetchCommunityPinnedNoteIds(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNoteIds): Promise<string[]>;
     fetchUserPinnedNotes(options: SocialEventManagerReadOptions.IFetchUserPinnedNotes): Promise<INostrEvent>;
     fetchUserBookmarks(options: SocialEventManagerReadOptions.IFetchUserBookmarks): Promise<INostrEvent>;
+    fetchTrendingCommunities(): Promise<any>;
 }
 export { NostrEventManagerRead, ISocialEventManagerRead };

@@ -632,6 +632,7 @@ export interface ISocialEventManagerRead {
     fetchCommunityPinnedNoteIds(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNoteIds): Promise<string[]>;
     fetchUserPinnedNotes(options: SocialEventManagerReadOptions.IFetchUserPinnedNotes): Promise<INostrEvent>;
     fetchUserBookmarks(options: SocialEventManagerReadOptions.IFetchUserBookmarks): Promise<INostrEvent>;
+    fetchTrendingCommunities(): Promise<INostrEvent[]>;
 }
 export interface INostrRestAPIManager extends INostrCommunicationManager {
     fetchEventsFromAPI(endpoint: string, msg: any): Promise<INostrFetchEventsResponse>;

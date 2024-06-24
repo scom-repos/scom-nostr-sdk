@@ -760,6 +760,13 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
         return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
     }
+
+    async fetchTrendingCommunities() {
+        let msg = this.augmentWithAuthInfo({
+        });
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-trending-communities', msg);
+        return fetchEventsResponse.events || [];
+    }
 }
 
 export {
