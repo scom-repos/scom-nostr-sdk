@@ -171,7 +171,7 @@ declare class SocialDataManager {
     private fetchEventMetadataFromIPFS;
     getAccountBalance(walletAddress: string): Promise<any>;
     getNFTsByOwner(walletAddress: string): Promise<any>;
-    submitMessage(message: string, conversationPath?: IConversationPath): Promise<string>;
+    submitMessage(message: string, conversationPath?: IConversationPath, createdAt?: number): Promise<string>;
     submitLongFormContent(info: ILongFormContentInfo): Promise<string>;
     submitLike(postEventData: INostrEvent): Promise<void>;
     submitRepost(postEventData: INostrEvent): Promise<void>;

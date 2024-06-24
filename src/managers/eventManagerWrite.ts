@@ -9,7 +9,7 @@ interface ISocialEventManagerWrite {
     nostrCommunicationManagers: INostrCommunicationManager[];
     privateKey: string;
     updateContactList(content: string, contactPubKeys: string[]): Promise<void>;
-    postNote(content: string, conversationPath?: IConversationPath): Promise<string>;
+    postNote(content: string, conversationPath?: IConversationPath, createdAt?: number): Promise<string>;
     deleteEvents(eventIds: string[]): Promise<INostrSubmitResponse[]>;
     updateCommunity(info: ICommunityInfo): Promise<INostrSubmitResponse[]>;
     updateChannel(info: IChannelInfo): Promise<INostrSubmitResponse[]>;
@@ -115,10 +115,10 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
     }  
 
-    async postNote(content: string, conversationPath?: IConversationPath): Promise<string> {
+    async postNote(content: string, conversationPath?: IConversationPath, createdAt?: number): Promise<string> {
         let event = {
             "kind": 1,
-            "created_at": Math.round(Date.now() / 1000),
+            "created_at": createdAt !== undefined ? createdAt : Math.round(Date.now() / 1000),
             "content": content,
             "tags": []
         };

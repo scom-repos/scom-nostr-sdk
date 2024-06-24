@@ -2151,8 +2151,8 @@ class SocialDataManager {
         return data.result;
     }
 
-    async submitMessage(message: string, conversationPath?: IConversationPath) {
-        return this._socialEventManagerWrite.postNote(message, conversationPath);
+    async submitMessage(message: string, conversationPath?: IConversationPath, createdAt?: number) {
+        return this._socialEventManagerWrite.postNote(message, conversationPath, createdAt);
     }
 
     async submitLongFormContent(info: ILongFormContentInfo) {
