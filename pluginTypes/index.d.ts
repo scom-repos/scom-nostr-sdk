@@ -2124,7 +2124,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV2.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/index.ts" />
 declare module "@scom/scom-social-sdk/managers/index.ts" {
-    import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
     import { INostrCommunicationManager, INostrRestAPIManager, NostrRestAPIManager, NostrWebSocketManager } from "@scom/scom-social-sdk/managers/communication.ts";
     import { SocialUtilsManager } from "@scom/scom-social-sdk/managers/utilsManager.ts";
     import { ISocialEventManagerWrite, NostrEventManagerWrite } from "@scom/scom-social-sdk/managers/eventManagerWrite.ts";
@@ -2214,10 +2214,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
             monthly: ICommunityLeaderboard[];
             weekly: ICommunityLeaderboard[];
         }>;
-        fetchCommunitiesFeedInfo(): Promise<{
-            info: ICommunityInfo;
-            notes: INostrEvent[];
-        }[]>;
+        fetchCommunitiesFeedInfo(): Promise<INoteInfoExtended[]>;
         fetchUserRelatedCommunityFeedInfo(pubKey: string): Promise<{
             info: ICommunityInfo;
             notes: INostrEvent[];

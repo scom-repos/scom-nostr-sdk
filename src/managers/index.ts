@@ -869,7 +869,7 @@ class SocialDataManager {
     }
 
     async fetchCommunitiesFeedInfo() {
-        let result: { info: ICommunityInfo, notes: INostrEvent[] }[] = [];
+        let result: INoteInfoExtended[] = [];
         const suggestedCommunities = [
             {
                 creatorId: 'npub1rjc54ve4sahunm7r0kpchg58eut7ttwvevst7m2fl8dfd9w4y33q0w0qw2',
@@ -884,24 +884,39 @@ class SocialDataManager {
             //     communityId: 'Art'
             // }
         ];
-        const feedEvents = await this._socialEventManagerRead.fetchCommunitiesMetadataFeed({
+        const communitiesMetadataFeedResult = await this._socialEventManagerRead.fetchCommunitiesMetadataFeed({
             communities: suggestedCommunities
         });
-        const communityEvents = feedEvents.filter(event => event.kind === 34550);
-        for (let communityEvent of communityEvents) {
-            const communityInfo = SocialUtilsManager.extractCommunityInfo(communityEvent);
-            if (!communityInfo) continue;
-            const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
-                identifiers: [communityInfo.communityUri + ':keys']
-            });
-            const keyEvent = keyEvents[0];
-            if (keyEvent) {
-                communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
+        const statsEvents = communitiesMetadataFeedResult.filter(event => event.kind === 10000100);
+        let noteStatsMap: Record<string, IPostStats> = {};
+        for (let event of statsEvents) {
+            const content = SocialUtilsManager.parseContent(event.content);
+            noteStatsMap[content.event_id] = {
+                upvotes: content.likes,
+                replies: content.replies,
+                reposts: content.reposts,
+                satszapped: content.satszapped
             }
-            result.push({
-                info: communityInfo,
-                notes: feedEvents.filter(event => event.tags?.find(tag => tag[0] === 'a' && tag[1] === communityInfo.communityUri))
-            });
+        }
+        const notesEvents = communitiesMetadataFeedResult.filter(event => event.kind === 1);
+        for (let noteEvent of notesEvents) {
+            if (noteEvent.tags?.length) {
+                const communityUri = noteEvent.tags.find(tag => tag[0] === 'a')?.[1];
+                if (communityUri) {
+                    const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                    const stats = noteStatsMap[noteEvent.id];
+                    const noteInfo: INoteInfoExtended = {
+                        eventData: noteEvent,
+                        stats,
+                        community: {
+                            communityUri,
+                            communityId,
+                            creatorId: Nip19.npubEncode(creatorId)
+                        }
+                    };
+                    result.push(noteInfo);
+                }
+            }
         }
         return result
     }

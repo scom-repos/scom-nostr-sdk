@@ -1,4 +1,4 @@
-import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "../utils/interfaces";
+import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "../utils/interfaces";
 import { INostrCommunicationManager, INostrRestAPIManager, NostrRestAPIManager, NostrWebSocketManager } from "./communication";
 import { SocialUtilsManager } from "./utilsManager";
 import { ISocialEventManagerWrite, NostrEventManagerWrite } from "./eventManagerWrite";
@@ -88,10 +88,7 @@ declare class SocialDataManager {
         monthly: ICommunityLeaderboard[];
         weekly: ICommunityLeaderboard[];
     }>;
-    fetchCommunitiesFeedInfo(): Promise<{
-        info: ICommunityInfo;
-        notes: INostrEvent[];
-    }[]>;
+    fetchCommunitiesFeedInfo(): Promise<INoteInfoExtended[]>;
     fetchUserRelatedCommunityFeedInfo(pubKey: string): Promise<{
         info: ICommunityInfo;
         notes: INostrEvent[];
