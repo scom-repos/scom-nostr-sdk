@@ -212,5 +212,6 @@ declare class SocialDataManager {
     addBookmark(pubKey: string, eventId: string, isArticle?: boolean): Promise<void>;
     removeBookmark(pubKey: string, eventId: string, isArticle?: boolean): Promise<void>;
     deleteEvents(eventIds: string[]): Promise<void>;
+    fetchTrendingCommunities(): Promise<ICommunity[]>;
 }
 export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager, INostrCommunicationManager, INostrRestAPIManager };

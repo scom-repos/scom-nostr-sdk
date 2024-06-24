@@ -6244,6 +6244,16 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
         }
+        async fetchTrendingCommunities() {
+            const pubkeyToCommunityIdsMap = {
+                "npub1rjc54ve4sahunm7r0kpchg58eut7ttwvevst7m2fl8dfd9w4y33q0w0qw2": ["Photography"],
+                "npub1c6dhrhzkflwr2zkdmlujnujawgp2c9rsep6gscyt6mvcusnt5a3srnzmx3": ["Vegan_Consciousness"]
+            };
+            const events = this.fetchCommunities({
+                pubkeyToCommunityIdsMap
+            });
+            return events || [];
+        }
     }
     exports.NostrEventManagerRead = NostrEventManagerRead;
 });
@@ -6974,6 +6984,11 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             };
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        }
+        async fetchTrendingCommunities() {
+            let msg = this.augmentWithAuthInfo({});
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-trending-communities', msg);
+            return fetchEventsResponse.events || [];
         }
     }
     exports.NostrEventManagerReadV1o5 = NostrEventManagerReadV1o5;
@@ -9571,6 +9586,23 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async deleteEvents(eventIds) {
             await this._socialEventManagerWrite.deleteEvents(eventIds);
+        }
+        async fetchTrendingCommunities() {
+            let communities = [];
+            const events = await this._socialEventManagerRead.fetchTrendingCommunities();
+            for (let event of events) {
+                const communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(event);
+                let community = {
+                    ...communityInfo,
+                    members: []
+                };
+                communities.push(community);
+            }
+            const communityUriToMembersMap = await this.fetchCommunitiesMembers(communities);
+            for (let community of communities) {
+                community.members = communityUriToMembersMap[community.communityUri];
+            }
+            return communities;
         }
     }
     exports.SocialDataManager = SocialDataManager;

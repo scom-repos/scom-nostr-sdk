@@ -903,6 +903,17 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
         return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
     }
+    
+    async fetchTrendingCommunities() {
+        const pubkeyToCommunityIdsMap: Record<string, string[]> = {
+            "npub1rjc54ve4sahunm7r0kpchg58eut7ttwvevst7m2fl8dfd9w4y33q0w0qw2": ["Photography"],
+            "npub1c6dhrhzkflwr2zkdmlujnujawgp2c9rsep6gscyt6mvcusnt5a3srnzmx3": ["Vegan_Consciousness"]
+        };
+        const events = this.fetchCommunities({
+            pubkeyToCommunityIdsMap
+        });
+        return events || [];
+    }
 }
 
 export {

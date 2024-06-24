@@ -2734,6 +2734,24 @@ class SocialDataManager {
     async deleteEvents(eventIds: string[]) {
         await this._socialEventManagerWrite.deleteEvents(eventIds);
     }
+
+    async fetchTrendingCommunities() {
+        let communities: ICommunity[] = [];
+        const events = await this._socialEventManagerRead.fetchTrendingCommunities();
+        for (let event of events) {
+            const communityInfo = SocialUtilsManager.extractCommunityInfo(event);
+            let community: ICommunity = {
+                ...communityInfo,
+                members: []
+            }
+            communities.push(community);
+        }
+        const communityUriToMembersMap = await this.fetchCommunitiesMembers(communities);
+        for (let community of communities) {
+            community.members = communityUriToMembersMap[community.communityUri];
+        }
+        return communities;
+    }
 }
 
 export {

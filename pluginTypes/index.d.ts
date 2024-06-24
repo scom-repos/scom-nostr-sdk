@@ -1732,6 +1732,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         fetchCommunityPinnedNoteIds(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNoteIds): Promise<string[]>;
         fetchUserPinnedNotes(options: SocialEventManagerReadOptions.IFetchUserPinnedNotes): Promise<INostrEvent>;
         fetchUserBookmarks(options: SocialEventManagerReadOptions.IFetchUserBookmarks): Promise<INostrEvent>;
+        fetchTrendingCommunities(): Promise<INostrEvent[]>;
     }
     export interface INostrRestAPIManager extends INostrCommunicationManager {
         fetchEventsFromAPI(endpoint: string, msg: any): Promise<INostrFetchEventsResponse>;
@@ -2033,6 +2034,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         fetchCommunityPinnedNoteIds(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNoteIds): Promise<string[]>;
         fetchUserPinnedNotes(options: SocialEventManagerReadOptions.IFetchUserPinnedNotes): Promise<INostrEvent>;
         fetchUserBookmarks(options: SocialEventManagerReadOptions.IFetchUserBookmarks): Promise<INostrEvent>;
+        fetchTrendingCommunities(): Promise<any>;
     }
     export { NostrEventManagerRead, ISocialEventManagerRead };
 }
@@ -2100,6 +2102,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" {
         fetchCommunityPinnedNoteIds(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNoteIds): Promise<any>;
         fetchUserPinnedNotes(options: SocialEventManagerReadOptions.IFetchUserPinnedNotes): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent>;
         fetchUserBookmarks(options: SocialEventManagerReadOptions.IFetchUserBookmarks): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent>;
+        fetchTrendingCommunities(): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
     }
     export { NostrEventManagerReadV1o5 };
 }
@@ -2338,6 +2341,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         addBookmark(pubKey: string, eventId: string, isArticle?: boolean): Promise<void>;
         removeBookmark(pubKey: string, eventId: string, isArticle?: boolean): Promise<void>;
         deleteEvents(eventIds: string[]): Promise<void>;
+        fetchTrendingCommunities(): Promise<ICommunity[]>;
     }
     export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager, INostrCommunicationManager, INostrRestAPIManager };
 }
