@@ -7074,7 +7074,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             this._ipLocationServiceBaseUrl = config.ipLocationServiceBaseUrl;
             let nostrCommunicationManagers = [];
             this._publicIndexingRelay = config.publicIndexingRelay;
-            this._writeRelays = config.writeRelays || [];
+            this._writeRelays = [this._publicIndexingRelay, ...config.writeRelays];
+            this._writeRelays = Array.from(new Set(this._writeRelays));
             for (let relay of this._writeRelays) {
                 if (relay.startsWith('wss://')) {
                     nostrCommunicationManagers.push(new communication_1.NostrWebSocketManager(relay));
