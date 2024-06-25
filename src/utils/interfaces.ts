@@ -365,6 +365,10 @@ export interface ICommunity extends ICommunityInfo {
 	members: ICommunityMember[];
 }
 
+export interface ITrendingCommunityInfo extends ICommunityInfo {
+	memberCount: number;
+}
+
 export enum CalendarEventType {
 	DateBased = 'dateBased',
 	TimeBased = 'timeBased'

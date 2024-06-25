@@ -7072,18 +7072,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         constructor(config) {
             this._apiBaseUrl = config.apiBaseUrl || '';
             this._ipLocationServiceBaseUrl = config.ipLocationServiceBaseUrl;
-            let nostrCommunicationManagers = [];
             this._publicIndexingRelay = config.publicIndexingRelay;
-            this._writeRelays = [this._publicIndexingRelay, ...config.writeRelays];
-            this._writeRelays = Array.from(new Set(this._writeRelays));
-            for (let relay of this._writeRelays) {
-                if (relay.startsWith('wss://')) {
-                    nostrCommunicationManagers.push(new communication_1.NostrWebSocketManager(relay));
-                }
-                else {
-                    nostrCommunicationManagers.push(new communication_1.NostrRestAPIManager(relay));
-                }
-            }
+            const writeRelaysManagers = this._initializeWriteRelaysManagers(config.writeRelays);
             if (config.readManager) {
                 this._socialEventManagerRead = config.readManager;
             }
@@ -7099,7 +7089,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     this._socialEventManagerRead = new eventManagerRead_1.NostrEventManagerRead(nostrReadRelayManager);
                 }
             }
-            this._socialEventManagerWrite = new eventManagerWrite_1.NostrEventManagerWrite(nostrCommunicationManagers);
+            this._socialEventManagerWrite = new eventManagerWrite_1.NostrEventManagerWrite(writeRelaysManagers);
             if (config.mqttBrokerUrl) {
                 try {
                     this.mqttManager = new mqtt_2.MqttManager({
@@ -7137,9 +7127,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             return this._socialEventManagerWrite;
         }
         set relays(value) {
-            this._setRelays(value);
+            const writeRelaysManagers = this._initializeWriteRelaysManagers(value);
+            this._socialEventManagerWrite.nostrCommunicationManagers = writeRelaysManagers;
         }
-        _setRelays(relays) {
+        _initializeWriteRelaysManagers(relays) {
             this._writeRelays = [this._publicIndexingRelay, ...relays];
             this._writeRelays = Array.from(new Set(this._writeRelays));
             let nostrCommunicationManagers = [];
@@ -7151,7 +7142,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     nostrCommunicationManagers.push(new communication_1.NostrRestAPIManager(relay));
                 }
             }
-            this._socialEventManagerWrite.nostrCommunicationManagers = nostrCommunicationManagers;
+            return nostrCommunicationManagers;
         }
         subscribeToMqttTopics(topics) {
             this.mqttManager.subscribe(topics);
@@ -9623,18 +9614,26 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         async fetchTrendingCommunities() {
             let communities = [];
             const events = await this._socialEventManagerRead.fetchTrendingCommunities();
-            for (let event of events) {
+            const memberCountsEvents = events.filter(event => event.kind === 10000109);
+            let eventIdToMemberCountMap = {};
+            for (let event of memberCountsEvents) {
+                const content = utilsManager_5.SocialUtilsManager.parseContent(event.content);
+                eventIdToMemberCountMap[content.event_id] = content.member_count;
+            }
+            const communitiesEvents = events.filter(event => event.kind === 34550);
+            for (let event of communitiesEvents) {
                 const communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(event);
+                const memberCount = eventIdToMemberCountMap[event.id] || 0;
                 let community = {
                     ...communityInfo,
-                    members: []
+                    memberCount
                 };
                 communities.push(community);
             }
-            const communityUriToMembersMap = await this.fetchCommunitiesMembers(communities);
-            for (let community of communities) {
-                community.members = communityUriToMembersMap[community.communityUri];
-            }
+            // const communityUriToMembersMap = await this.fetchCommunitiesMembers(communities);
+            // for (let community of communities) {
+            //     community.members = communityUriToMembersMap[community.communityUri];
+            // }
             return communities;
         }
     }

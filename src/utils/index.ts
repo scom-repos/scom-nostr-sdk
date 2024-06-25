@@ -24,6 +24,7 @@ export {
     CommunityRole,
     ICommunityMember,
     ICommunity,
+    ITrendingCommunityInfo,
     CalendarEventType,
     ICalendarEventInfo,
     IUpdateCalendarEventInfo,

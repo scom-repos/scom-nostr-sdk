@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId } from "../utils/interfaces";
+import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId } from "../utils/interfaces";
 import {
     INostrCommunicationManager,
     INostrRestAPIManager,
@@ -38,18 +38,8 @@ class SocialDataManager {
     constructor(config: ISocialDataManagerConfig) {
         this._apiBaseUrl = config.apiBaseUrl || '';
         this._ipLocationServiceBaseUrl = config.ipLocationServiceBaseUrl;
-        let nostrCommunicationManagers: INostrCommunicationManager[] = [];
         this._publicIndexingRelay = config.publicIndexingRelay;
-        this._writeRelays = [this._publicIndexingRelay, ...config.writeRelays];
-        this._writeRelays = Array.from(new Set(this._writeRelays));
-        for (let relay of this._writeRelays) {
-            if (relay.startsWith('wss://')) {
-                nostrCommunicationManagers.push(new NostrWebSocketManager(relay));
-            }
-            else {
-                nostrCommunicationManagers.push(new NostrRestAPIManager(relay));
-            }
-        }
+        const writeRelaysManagers = this._initializeWriteRelaysManagers(config.writeRelays);
         if (config.readManager) {
             this._socialEventManagerRead = config.readManager;
         }
@@ -72,7 +62,7 @@ class SocialDataManager {
             }
         }
         this._socialEventManagerWrite = new NostrEventManagerWrite(
-            nostrCommunicationManagers
+            writeRelaysManagers
         );
         if (config.mqttBrokerUrl) {
             try {
@@ -116,10 +106,11 @@ class SocialDataManager {
     }
 
     set relays(value: string[]) {
-        this._setRelays(value);
+        const writeRelaysManagers = this._initializeWriteRelaysManagers(value);
+        this._socialEventManagerWrite.nostrCommunicationManagers = writeRelaysManagers;
     }
 
-    private _setRelays(relays: string[]) {
+    private _initializeWriteRelaysManagers(relays: string[]) {
         this._writeRelays = [this._publicIndexingRelay, ...relays];
         this._writeRelays = Array.from(new Set(this._writeRelays));
         let nostrCommunicationManagers: INostrCommunicationManager[] = [];
@@ -131,7 +122,7 @@ class SocialDataManager {
                 nostrCommunicationManagers.push(new NostrRestAPIManager(relay));
             }
         }
-        this._socialEventManagerWrite.nostrCommunicationManagers = nostrCommunicationManagers;
+        return nostrCommunicationManagers;
     }
 
     subscribeToMqttTopics(topics: string[]) {
@@ -2742,19 +2733,23 @@ class SocialDataManager {
     }
 
     async fetchTrendingCommunities() {
-        let communities: ICommunity[] = [];
+        let communities: ITrendingCommunityInfo[] = [];
         const events = await this._socialEventManagerRead.fetchTrendingCommunities();
-        for (let event of events) {
+        const memberCountsEvents = events.filter(event => event.kind === 10000109);
+        let eventIdToMemberCountMap: Record<string, number> = {};
+        for (let event of memberCountsEvents) {
+            const content = SocialUtilsManager.parseContent(event.content);
+            eventIdToMemberCountMap[content.event_id] = content.member_count;
+        }
+        const communitiesEvents = events.filter(event => event.kind === 34550);
+        for (let event of communitiesEvents) {
             const communityInfo = SocialUtilsManager.extractCommunityInfo(event);
-            let community: ICommunity = {
+            const memberCount = eventIdToMemberCountMap[event.id] || 0;
+            let community: ITrendingCommunityInfo = {
                 ...communityInfo,
-                members: []
+                memberCount
             }
             communities.push(community);
-        }
-        const communityUriToMembersMap = await this.fetchCommunitiesMembers(communities);
-        for (let community of communities) {
-            community.members = communityUriToMembersMap[community.communityUri];
         }
         return communities;
     }
