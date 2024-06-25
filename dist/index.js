@@ -9630,10 +9630,6 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 };
                 communities.push(community);
             }
-            // const communityUriToMembersMap = await this.fetchCommunitiesMembers(communities);
-            // for (let community of communities) {
-            //     community.members = communityUriToMembersMap[community.communityUri];
-            // }
             return communities;
         }
     }
