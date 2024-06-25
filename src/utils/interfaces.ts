@@ -550,6 +550,8 @@ export namespace SocialEventManagerReadOptions {
 	}
 	export interface IFetchCommunitiesMetadataFeed {
 		communities: ICommunityBasicInfo[];
+		since?: number;
+		until?: number;
 	}
 	export interface IFetchCommunityFeed {
 		communityUri: string;
@@ -558,6 +560,8 @@ export namespace SocialEventManagerReadOptions {
 	}
 	export interface IFetchCommunitiesFeed {
 		communityUriArr: string[];
+		since?: number;
+		until?: number;
 	}
 	export interface IFetchCommunitiesGeneralMembers {
 		communities: ICommunityBasicInfo[];
