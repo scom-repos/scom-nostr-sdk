@@ -8352,9 +8352,11 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             }
             return communityUriToMembersMap;
         }
-        async fetchCommunities() {
+        async fetchCommunities(query) {
             let communities = [];
-            const events = await this._socialEventManagerRead.fetchCommunities({});
+            const events = await this._socialEventManagerRead.fetchCommunities({
+                query
+            });
             for (let event of events) {
                 const communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(event);
                 let community = {
