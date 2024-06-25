@@ -6424,7 +6424,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             return fetchEventsResponse.events || [];
         }
         async fetchCommunities(options) {
-            const { pubkeyToCommunityIdsMap } = options;
+            const { pubkeyToCommunityIdsMap, query } = options;
             let events;
             if (pubkeyToCommunityIdsMap && Object.keys(pubkeyToCommunityIdsMap).length > 0) {
                 let msg = this.augmentWithAuthInfo({
@@ -6444,7 +6444,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             }
             else {
                 let msg = this.augmentWithAuthInfo({
-                    limit: 50
+                    limit: 50,
+                    query
                 });
                 let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities', msg);
                 events = response.events;

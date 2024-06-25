@@ -162,7 +162,7 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     }  
 
     async fetchCommunities(options: SocialEventManagerReadOptions.IFetchCommunities) {
-        const {pubkeyToCommunityIdsMap} = options;
+        const {pubkeyToCommunityIdsMap, query} = options;
         let events;
         if (pubkeyToCommunityIdsMap && Object.keys(pubkeyToCommunityIdsMap).length > 0) {
             let msg = this.augmentWithAuthInfo({
@@ -182,7 +182,8 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         }   
         else {
             let msg = this.augmentWithAuthInfo({
-                limit: 50
+                limit: 50,
+                query
             });
             let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities', msg);
             events = response.events;

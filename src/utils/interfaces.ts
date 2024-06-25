@@ -526,6 +526,7 @@ export namespace SocialEventManagerReadOptions {
 	}
 	export interface IFetchCommunities {
 		pubkeyToCommunityIdsMap?: Record<string, string[]>;
+		query?: string; //Not supported for eventManagerRead
 	}
 	export interface IFetchAllUserRelatedCommunities {
 		pubKey: string;

@@ -460,6 +460,7 @@ export declare namespace SocialEventManagerReadOptions {
     }
     interface IFetchCommunities {
         pubkeyToCommunityIdsMap?: Record<string, string[]>;
+        query?: string;
     }
     interface IFetchAllUserRelatedCommunities {
         pubKey: string;

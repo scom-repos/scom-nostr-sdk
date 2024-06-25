@@ -1560,6 +1560,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         }
         interface IFetchCommunities {
             pubkeyToCommunityIdsMap?: Record<string, string[]>;
+            query?: string;
         }
         interface IFetchAllUserRelatedCommunities {
             pubKey: string;
