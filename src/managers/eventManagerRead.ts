@@ -246,6 +246,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
     }
 
     async fetchAllUserRelatedCommunitiesFeed(options: SocialEventManagerReadOptions.IFetchAllUserRelatedCommunitiesFeed) {
+        const {since, until} = options;
         const communitiesEvents = await this.fetchAllUserRelatedCommunities(options);
         let communityUriArr: string[] = [];
         let identifiers: string[] = [];
@@ -258,7 +259,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         }
         let feedEvents: INostrEvent[] = [];
         if (communityUriArr.length > 0) {
-            feedEvents = await this.fetchCommunitiesFeed({ communityUriArr });
+            feedEvents = await this.fetchCommunitiesFeed({ communityUriArr, since, until });
         }
         return feedEvents;
     }
@@ -290,24 +291,32 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
     }
 
     async fetchCommunitiesMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesMetadataFeed) {
-        const {communities} = options;
+        const {communities, since, until} = options;
         let requests: any[] = [];
+        const communityUriArr: string[] = [];
         for (let community of communities) {
             const decodedCreatorId = community.creatorId.startsWith('npub1') ? Nip19.decode(community.creatorId).data : community.creatorId;
             const communityUri = SocialUtilsManager.getCommunityUri(community.creatorId, community.communityId);
+            communityUriArr.push(communityUri);
             let infoMsg: any = {
                 kinds: [34550],
                 authors: [decodedCreatorId],
                 "#d": [community.communityId]
             };
-            let notesMsg: any = {
-                kinds: [1],
-                "#a": [communityUri],
-                limit: 20
-            };
             requests.push(infoMsg);
-            requests.push(notesMsg);
         }
+        let notesMsg: any = {
+            kinds: [1],
+            "#a": communityUriArr,
+            limit: 20
+        };
+        if (since != null) {
+            notesMsg.since = since;
+        }
+        if (until != null) {
+            notesMsg.until = until;
+        }
+        requests.push(notesMsg);
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(...requests);
         return fetchEventsResponse.events;        
     }
@@ -330,12 +339,18 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
     }
 
     async fetchCommunitiesFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesFeed) {
-        const {communityUriArr} = options;
+        const {communityUriArr, since, until} = options;
         let request: any = {
             kinds: [1],
             "#a": communityUriArr,
-            limit: 50
+            limit: 20
         };
+        if (since != null) {
+            request.since = since;
+        }
+        if (until != null) {
+            request.until = until;
+        }
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
         return fetchEventsResponse.events;
     }

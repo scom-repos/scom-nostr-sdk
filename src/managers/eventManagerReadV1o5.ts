@@ -202,10 +202,13 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     }
 
     async fetchAllUserRelatedCommunitiesFeed(options: SocialEventManagerReadOptions.IFetchAllUserRelatedCommunitiesFeed) {
-        const {pubKey} = options;
+        const {pubKey, since, until} = options;
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
         let msg = this.augmentWithAuthInfo({
-            pubkey: decodedPubKey
+            pubkey: decodedPubKey,
+            since,
+            until,
+            limit: 20
         });
         let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-communities-feed', msg);
         return response.events || [];
@@ -245,7 +248,7 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     }
 
     async fetchCommunitiesMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesMetadataFeed) {
-        const {communities} = options;
+        const {communities, since, until} = options;
         let identifiers: any[] = [];
         for (let community of communities) {
             const decodedCreatorId = community.creatorId.startsWith('npub1') ? Nip19.decode(community.creatorId).data : community.creatorId;
@@ -258,7 +261,9 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         let msg = this.augmentWithAuthInfo({
             communityMetadataIncluded: true,
             identifiers,
-            limit: 50
+            limit: 20,
+            since,
+            until
         });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-feed', msg);
         return fetchEventsResponse.events || [];        

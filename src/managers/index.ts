@@ -861,7 +861,7 @@ class SocialDataManager {
         }
     }
 
-    async fetchCommunitiesFeedInfo() {
+    async fetchCommunitiesFeedInfo(since?: number, until?: number) {
         let result: INoteInfoExtended[] = [];
         const suggestedCommunities = [
             {
@@ -878,7 +878,9 @@ class SocialDataManager {
             // }
         ];
         const communitiesMetadataFeedResult = await this._socialEventManagerRead.fetchCommunitiesMetadataFeed({
-            communities: suggestedCommunities
+            communities: suggestedCommunities,
+            since,
+            until
         });
         const statsEvents = communitiesMetadataFeedResult.filter(event => event.kind === 10000100);
         let noteStatsMap: Record<string, IPostStats> = {};
@@ -914,9 +916,9 @@ class SocialDataManager {
         return result
     }
 
-    async fetchUserRelatedCommunityFeedInfo(pubKey: string) {
+    async fetchUserRelatedCommunityFeedInfo(pubKey: string, since?: number, until?: number) {
         let result: INoteInfoExtended[] = [];
-        const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunitiesFeed({ pubKey });
+        const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunitiesFeed({ pubKey, since, until });
         const statsEvents = events.filter(event => event.kind === 10000100);
         let noteStatsMap: Record<string, IPostStats> = {};
         for (let event of statsEvents) {

@@ -88,8 +88,8 @@ declare class SocialDataManager {
         monthly: ICommunityLeaderboard[];
         weekly: ICommunityLeaderboard[];
     }>;
-    fetchCommunitiesFeedInfo(): Promise<INoteInfoExtended[]>;
-    fetchUserRelatedCommunityFeedInfo(pubKey: string): Promise<INoteInfoExtended[]>;
+    fetchCommunitiesFeedInfo(since?: number, until?: number): Promise<INoteInfoExtended[]>;
+    fetchUserRelatedCommunityFeedInfo(pubKey: string, since?: number, until?: number): Promise<INoteInfoExtended[]>;
     fetchThreadNotesInfo(focusedNoteId: string): Promise<{
         focusedNote: INoteInfo;
         ancestorNotes: INoteInfo[];

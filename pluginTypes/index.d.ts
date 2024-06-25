@@ -1583,6 +1583,8 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         }
         interface IFetchCommunitiesMetadataFeed {
             communities: ICommunityBasicInfo[];
+            since?: number;
+            until?: number;
         }
         interface IFetchCommunityFeed {
             communityUri: string;
@@ -1591,6 +1593,8 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         }
         interface IFetchCommunitiesFeed {
             communityUriArr: string[];
+            since?: number;
+            until?: number;
         }
         interface IFetchCommunitiesGeneralMembers {
             communities: ICommunityBasicInfo[];
@@ -2229,8 +2233,8 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
             monthly: ICommunityLeaderboard[];
             weekly: ICommunityLeaderboard[];
         }>;
-        fetchCommunitiesFeedInfo(): Promise<INoteInfoExtended[]>;
-        fetchUserRelatedCommunityFeedInfo(pubKey: string): Promise<INoteInfoExtended[]>;
+        fetchCommunitiesFeedInfo(since?: number, until?: number): Promise<INoteInfoExtended[]>;
+        fetchUserRelatedCommunityFeedInfo(pubKey: string, since?: number, until?: number): Promise<INoteInfoExtended[]>;
         fetchThreadNotesInfo(focusedNoteId: string): Promise<{
             focusedNote: INoteInfo;
             ancestorNotes: INoteInfo[];
