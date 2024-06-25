@@ -1407,9 +1407,11 @@ class SocialDataManager {
         return communityUriToMembersMap;
     }
 
-    async fetchCommunities() {
+    async fetchCommunities(query?: string) {
         let communities: ICommunity[] = [];
-        const events = await this._socialEventManagerRead.fetchCommunities({});
+        const events = await this._socialEventManagerRead.fetchCommunities({
+            query
+        });
         for (let event of events) {
             const communityInfo = SocialUtilsManager.extractCommunityInfo(event);
             let community: ICommunity = {
