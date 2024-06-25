@@ -7140,7 +7140,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             this._setRelays(value);
         }
         _setRelays(relays) {
-            this._writeRelays = relays;
+            this._writeRelays = [this._publicIndexingRelay, ...relays];
+            this._writeRelays = Array.from(new Set(this._writeRelays));
             let nostrCommunicationManagers = [];
             for (let relay of relays) {
                 if (relay.startsWith('wss://')) {

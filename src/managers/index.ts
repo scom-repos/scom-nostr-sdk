@@ -120,7 +120,8 @@ class SocialDataManager {
     }
 
     private _setRelays(relays: string[]) {
-        this._writeRelays = relays;
+        this._writeRelays = [this._publicIndexingRelay, ...relays];
+        this._writeRelays = Array.from(new Set(this._writeRelays));
         let nostrCommunicationManagers: INostrCommunicationManager[] = [];
         for (let relay of relays) {
             if (relay.startsWith('wss://')) {
