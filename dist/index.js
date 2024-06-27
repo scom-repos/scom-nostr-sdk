@@ -5392,17 +5392,17 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
         }
         async updateUserEthWalletAccountsInfo(options) {
             let event = {
-                "kind": 30078,
+                "kind": 9742,
                 "created_at": Math.round(Date.now() / 1000),
                 "content": JSON.stringify({
                     "master_wallet_signature": options.masterWalletSignature,
                     "social_wallet_signature": options.socialWalletSignature,
-                    "encrypted_key": options.encrypted_key
+                    "encrypted_key": options.encryptedKey
                 }),
                 "tags": [
                     [
                         "d",
-                        'eth-wallet-accounts'
+                        options.masterWalletHash
                     ]
                 ]
             };
@@ -6306,6 +6306,21 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             });
             return events || [];
         }
+        async fetchUserEthWalletAccountsInfo(options) {
+            const { pubKey, walletHash } = options;
+            let request = {
+                kinds: [9742]
+            };
+            if (pubKey) {
+                const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
+                request.authors = [decodedPubKey];
+            }
+            else if (walletHash) {
+                request["#d"] = [walletHash];
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        }
     }
     exports.NostrEventManagerRead = NostrEventManagerRead;
 });
@@ -7056,6 +7071,19 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             let msg = this.augmentWithAuthInfo({});
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-trending-communities', msg);
             return fetchEventsResponse.events || [];
+        }
+        async fetchUserEthWalletAccountsInfo(options) {
+            const { pubKey, walletHash } = options;
+            let msg = this.augmentWithAuthInfo({});
+            if (pubKey) {
+                const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
+                msg.pubkey = decodedPubKey;
+            }
+            else if (walletHash) {
+                msg.walletHash = walletHash;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-eth-wallet-info', msg);
+            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
         }
     }
     exports.NostrEventManagerReadV1o5 = NostrEventManagerReadV1o5;
@@ -9673,6 +9701,25 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 communities.push(community);
             }
             return communities;
+        }
+        async fetchUserEthWalletAccountsInfo(walletHash) {
+            const event = await this._socialEventManagerRead.fetchUserEthWalletAccountsInfo({ walletHash });
+            if (!event)
+                return null;
+            const content = utilsManager_5.SocialUtilsManager.parseContent(event.content);
+            let accountsInfo = {
+                masterWalletSignature: content.master_wallet_signature,
+                socialWalletSignature: content.social_wallet_signature,
+                encryptedKey: content.encrypted_key,
+                masterWalletHash: walletHash,
+                eventData: event
+            };
+            return accountsInfo;
+        }
+        async updateUserEthWalletAccountsInfo(info) {
+            const responses = await this._socialEventManagerWrite.updateUserEthWalletAccountsInfo(info);
+            const response = responses[0];
+            return response.success ? response.eventId : null;
         }
     }
     exports.SocialDataManager = SocialDataManager;

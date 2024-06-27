@@ -61,5 +61,6 @@ declare class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     fetchUserPinnedNotes(options: SocialEventManagerReadOptions.IFetchUserPinnedNotes): Promise<import("../utils/interfaces").INostrEvent>;
     fetchUserBookmarks(options: SocialEventManagerReadOptions.IFetchUserBookmarks): Promise<import("../utils/interfaces").INostrEvent>;
     fetchTrendingCommunities(): Promise<import("../utils/interfaces").INostrEvent[]>;
+    fetchUserEthWalletAccountsInfo(options: SocialEventManagerReadOptions.IFetchUserEthWalletAccountsInfo): Promise<import("../utils/interfaces").INostrEvent>;
 }
 export { NostrEventManagerReadV1o5 };

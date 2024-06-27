@@ -43,6 +43,7 @@ export {
     ILocationCoordinates,
     ISocialDataManagerConfig,
     IPaymentActivity,
+    IEthWalletAccountsInfo,
     INostrFetchEventsResponse,
     ILongFormContentInfo,
     MqttManager,

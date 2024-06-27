@@ -37,6 +37,7 @@ export {
     INostrFetchEventsResponse,
     IPaymentActivity,
     ILongFormContentInfo,
+    IEthWalletAccountsInfo,
     SocialEventManagerReadOptions,
     ISocialEventManagerReadResult,
     SocialEventManagerWriteOptions,

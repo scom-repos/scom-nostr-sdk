@@ -783,6 +783,21 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-trending-communities', msg);
         return fetchEventsResponse.events || [];
     }
+
+    async fetchUserEthWalletAccountsInfo(options: SocialEventManagerReadOptions.IFetchUserEthWalletAccountsInfo) {
+        const {pubKey, walletHash} = options;
+        let msg: any = this.augmentWithAuthInfo({
+        });
+        if (pubKey) {
+            const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+            msg.pubkey = decodedPubKey;
+        }
+        else if (walletHash) {
+            msg.walletHash = walletHash;
+        }
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-eth-wallet-info', msg);
+        return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+    }
 }
 
 export {

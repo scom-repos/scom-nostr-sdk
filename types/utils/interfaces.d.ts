@@ -410,6 +410,13 @@ export interface IPaymentActivity {
     status: string;
     createdAt: number;
 }
+export interface IEthWalletAccountsInfo {
+    masterWalletSignature: string;
+    socialWalletSignature: string;
+    encryptedKey: string;
+    masterWalletHash: string;
+    eventData?: INostrEvent;
+}
 export interface INostrCommunicationManager {
     fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
     fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
@@ -597,6 +604,10 @@ export declare namespace SocialEventManagerReadOptions {
     interface IFetchUserBookmarks {
         pubKey: string;
     }
+    interface IFetchUserEthWalletAccountsInfo {
+        walletHash?: string;
+        pubKey?: string;
+    }
 }
 export interface ISocialEventManagerRead {
     nostrCommunicationManager: INostrCommunicationManager | INostrRestAPIManager;
@@ -647,12 +658,14 @@ export interface ISocialEventManagerRead {
     fetchUserPinnedNotes(options: SocialEventManagerReadOptions.IFetchUserPinnedNotes): Promise<INostrEvent>;
     fetchUserBookmarks(options: SocialEventManagerReadOptions.IFetchUserBookmarks): Promise<INostrEvent>;
     fetchTrendingCommunities(): Promise<INostrEvent[]>;
+    fetchUserEthWalletAccountsInfo(options: SocialEventManagerReadOptions.IFetchUserEthWalletAccountsInfo): Promise<INostrEvent>;
 }
 export declare namespace SocialEventManagerWriteOptions {
     interface IUpdateUserEthWalletAccountsInfo {
         masterWalletSignature: string;
         socialWalletSignature: string;
-        encrypted_key: string;
+        encryptedKey: string;
+        masterWalletHash: string;
     }
 }
 export interface ISocialEventManagerWrite {

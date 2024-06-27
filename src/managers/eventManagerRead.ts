@@ -947,6 +947,22 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         });
         return events || [];
     }
+
+    async fetchUserEthWalletAccountsInfo(options: SocialEventManagerReadOptions.IFetchUserEthWalletAccountsInfo) {
+        const {pubKey, walletHash} = options;
+        let request: any = {
+            kinds: [9742]
+        }
+        if (pubKey) {
+            const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+            request.authors = [decodedPubKey];
+        }
+        else if (walletHash) {
+            request["#d"] = [walletHash];
+        }
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+        return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+    }
 }
 
 export {
