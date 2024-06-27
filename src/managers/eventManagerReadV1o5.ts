@@ -1,8 +1,8 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IFetchNotesOptions, IPaymentActivity, SocialEventManagerReadOptions } from "../utils/interfaces";
+import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IFetchNotesOptions, IPaymentActivity, ISocialEventManagerRead, SocialEventManagerReadOptions } from "../utils/interfaces";
 import { INostrCommunicationManager, INostrRestAPIManager } from "./communication";
 import { SocialUtilsManager } from "./utilsManager";
-import { ISocialEventManagerRead, NostrEventManagerRead } from "./eventManagerRead";
+import { NostrEventManagerRead } from "./eventManagerRead";
 
 class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     protected _nostrCommunicationManager: INostrRestAPIManager;

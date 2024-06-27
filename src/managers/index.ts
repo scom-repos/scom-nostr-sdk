@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId } from "../utils/interfaces";
+import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId } from "../utils/interfaces";
 import {
     INostrCommunicationManager,
     INostrRestAPIManager,
@@ -10,8 +10,8 @@ import Geohash from '../utils/geohash';
 import { MqttManager } from "../utils/mqtt";
 import { LightningWalletManager } from "../utils/lightningWallet";
 import { SocialUtilsManager } from "./utilsManager";
-import { ISocialEventManagerWrite, NostrEventManagerWrite } from "./eventManagerWrite";
-import { ISocialEventManagerRead, NostrEventManagerRead } from "./eventManagerRead";
+import {  NostrEventManagerWrite } from "./eventManagerWrite";
+import { NostrEventManagerRead } from "./eventManagerRead";
 import { NostrEventManagerReadV2 } from "./eventManagerReadV2";
 import { NostrEventManagerReadV1o5 } from "./eventManagerReadV1o5";
 import { Crypto } from "@scom/scom-signer";
@@ -2761,8 +2761,6 @@ export {
     NostrEventManagerRead,
     NostrEventManagerReadV2,
     NostrEventManagerWrite,
-    ISocialEventManagerRead,
-    ISocialEventManagerWrite,
     SocialUtilsManager,
     SocialDataManager,
     NostrRestAPIManager,

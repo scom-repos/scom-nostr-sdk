@@ -1,38 +1,9 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, ILongFormContentInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityPostInfo, INostrMetadataContent, INostrSubmitResponse, IRelayConfig, IUpdateCalendarEventInfo,  MembershipType,  ScpStandardId } from "../utils/interfaces";
+import { CalendarEventType, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, ILongFormContentInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityPostInfo, INostrMetadataContent, INostrSubmitResponse, IRelayConfig, ISocialEventManagerWrite, IUpdateCalendarEventInfo,  MembershipType,  ScpStandardId, SocialEventManagerWriteOptions } from "../utils/interfaces";
 import {
     INostrCommunicationManager
 } from "./communication";
 import { SocialUtilsManager } from "./utilsManager";
-
-interface ISocialEventManagerWrite {
-    nostrCommunicationManagers: INostrCommunicationManager[];
-    privateKey: string;
-    updateContactList(content: string, contactPubKeys: string[]): Promise<void>;
-    postNote(content: string, conversationPath?: IConversationPath, createdAt?: number): Promise<string>;
-    deleteEvents(eventIds: string[]): Promise<INostrSubmitResponse[]>;
-    updateCommunity(info: ICommunityInfo): Promise<INostrSubmitResponse[]>;
-    updateChannel(info: IChannelInfo): Promise<INostrSubmitResponse[]>;
-    updateUserBookmarkedChannels(channelEventIds: string[]): Promise<void>;
-    submitChannelMessage(info: INewChannelMessageInfo): Promise<void>;
-    updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[]): Promise<void>;
-    submitCommunityPost(info: INewCommunityPostInfo): Promise<INostrSubmitResponse[]>;
-    updateUserProfile(content: INostrMetadataContent): Promise<void>;
-    sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<void>;
-    updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]): Promise<INostrSubmitResponse[]>;
-    updateCalendarEvent(info: IUpdateCalendarEventInfo): Promise<INostrSubmitResponse[]>;
-    createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean): Promise<INostrSubmitResponse[]>;
-    submitCalendarEventPost(info: INewCalendarEventPostInfo): Promise<INostrSubmitResponse[]>;
-    submitLongFormContentEvents(info: ILongFormContentInfo): Promise<string>;
-    submitLike(tags: string[][]): Promise<void>;
-    submitRepost(content: string, tags: string[][]): Promise<void>;
-    updateRelayList(relays: Record<string, IRelayConfig>): Promise<void>;
-    createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, isLightningInvoice?: boolean): Promise<void>;
-    createPaymentReceiptEvent(requestEventId: string, recipient: string, comment: string, preimage?: string, tx?: string): Promise<void>;
-    updateCommunityPinnedNotes(creatorId: string, communityId: string, eventIds: string[]): Promise<void>;
-    updateUserPinnedNotes(eventIds: string[]): Promise<void>;
-    updateUserBookmarks(tags: string[][]): Promise<void>;
-}
 
 function convertUnixTimestampToDate(timestamp: number): string {
     const date = new Date(timestamp * 1000);
@@ -793,9 +764,29 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         const verifiedEvent = Event.finishEvent(event, this._privateKey);
         const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
     }
+
+    async updateUserEthWalletAccountsInfo(options: SocialEventManagerWriteOptions.IUpdateUserEthWalletAccountsInfo) {
+        let event = {
+            "kind": 30078,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": JSON.stringify({
+                "master_wallet_signature": options.masterWalletSignature,
+                "social_wallet_signature": options.socialWalletSignature,
+                "encrypted_key": options.encrypted_key
+            }),
+            "tags": [
+                [
+                    "d",
+                    'eth-wallet-accounts'
+                ]
+            ]
+        };
+        const verifiedEvent = Event.finishEvent(event, this._privateKey);
+        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        return responses;
+    }
 }
 
 export {
-    NostrEventManagerWrite,
-    ISocialEventManagerWrite
+    NostrEventManagerWrite
 }

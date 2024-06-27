@@ -1,6 +1,5 @@
-import { SocialEventManagerReadOptions } from "../utils/interfaces";
+import { ISocialEventManagerRead, SocialEventManagerReadOptions } from "../utils/interfaces";
 import { INostrRestAPIManager } from "./communication";
-import { ISocialEventManagerRead } from "./eventManagerRead";
 import { NostrEventManagerReadV1o5 } from "./eventManagerReadV1o5";
 declare class NostrEventManagerReadV2 extends NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     protected _nostrCommunicationManager: INostrRestAPIManager;

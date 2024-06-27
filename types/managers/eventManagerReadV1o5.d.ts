@@ -1,6 +1,5 @@
-import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IFetchNotesOptions, IPaymentActivity, SocialEventManagerReadOptions } from "../utils/interfaces";
+import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IFetchNotesOptions, IPaymentActivity, ISocialEventManagerRead, SocialEventManagerReadOptions } from "../utils/interfaces";
 import { INostrRestAPIManager } from "./communication";
-import { ISocialEventManagerRead } from "./eventManagerRead";
 declare class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     protected _nostrCommunicationManager: INostrRestAPIManager;
     protected _privateKey: string;

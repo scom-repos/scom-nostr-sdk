@@ -1748,6 +1748,42 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         fetchUserBookmarks(options: SocialEventManagerReadOptions.IFetchUserBookmarks): Promise<INostrEvent>;
         fetchTrendingCommunities(): Promise<INostrEvent[]>;
     }
+    export namespace SocialEventManagerWriteOptions {
+        interface IUpdateUserEthWalletAccountsInfo {
+            masterWalletSignature: string;
+            socialWalletSignature: string;
+            encrypted_key: string;
+        }
+    }
+    export interface ISocialEventManagerWrite {
+        nostrCommunicationManagers: INostrCommunicationManager[];
+        privateKey: string;
+        updateContactList(content: string, contactPubKeys: string[]): Promise<void>;
+        postNote(content: string, conversationPath?: IConversationPath, createdAt?: number): Promise<string>;
+        deleteEvents(eventIds: string[]): Promise<INostrSubmitResponse[]>;
+        updateCommunity(info: ICommunityInfo): Promise<INostrSubmitResponse[]>;
+        updateChannel(info: IChannelInfo): Promise<INostrSubmitResponse[]>;
+        updateUserBookmarkedChannels(channelEventIds: string[]): Promise<void>;
+        submitChannelMessage(info: INewChannelMessageInfo): Promise<void>;
+        updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[]): Promise<void>;
+        submitCommunityPost(info: INewCommunityPostInfo): Promise<INostrSubmitResponse[]>;
+        updateUserProfile(content: INostrMetadataContent): Promise<void>;
+        sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<void>;
+        updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]): Promise<INostrSubmitResponse[]>;
+        updateCalendarEvent(info: IUpdateCalendarEventInfo): Promise<INostrSubmitResponse[]>;
+        createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean): Promise<INostrSubmitResponse[]>;
+        submitCalendarEventPost(info: INewCalendarEventPostInfo): Promise<INostrSubmitResponse[]>;
+        submitLongFormContentEvents(info: ILongFormContentInfo): Promise<string>;
+        submitLike(tags: string[][]): Promise<void>;
+        submitRepost(content: string, tags: string[][]): Promise<void>;
+        updateRelayList(relays: Record<string, IRelayConfig>): Promise<void>;
+        createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, isLightningInvoice?: boolean): Promise<void>;
+        createPaymentReceiptEvent(requestEventId: string, recipient: string, comment: string, preimage?: string, tx?: string): Promise<void>;
+        updateCommunityPinnedNotes(creatorId: string, communityId: string, eventIds: string[]): Promise<void>;
+        updateUserPinnedNotes(eventIds: string[]): Promise<void>;
+        updateUserBookmarks(tags: string[][]): Promise<void>;
+        updateUserEthWalletAccountsInfo(options: SocialEventManagerWriteOptions.IUpdateUserEthWalletAccountsInfo): Promise<INostrSubmitResponse[]>;
+    }
     export interface INostrRestAPIManager extends INostrCommunicationManager {
         fetchEventsFromAPI(endpoint: string, msg: any): Promise<INostrFetchEventsResponse>;
     }
@@ -1775,7 +1811,7 @@ declare module "@scom/scom-social-sdk/utils/mqtt.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk/utils/index.ts" />
 declare module "@scom/scom-social-sdk/utils/index.ts" {
-    export { IFetchNotesOptions, INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityCollectible, ICommunityLeaderboard, ICommunityScpData, INoteInfo, INoteInfoExtended, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, INewCommunityInfo, TokenType, MembershipType, ProtectedMembershipPolicyType, IProtectedMembershipPolicy, CommunityRole, ICommunityMember, ICommunity, ITrendingCommunityInfo, CalendarEventType, ICalendarEventInfo, IUpdateCalendarEventInfo, ICalendarEventHost, ICalendarEventAttendee, ICalendarEventDetailInfo, INewCalendarEventPostInfo, ILocationCoordinates, ISocialDataManagerConfig, INostrFetchEventsResponse, IPaymentActivity, ILongFormContentInfo, SocialEventManagerReadOptions, ISocialEventManagerReadResult, IAllUserRelatedChannels } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    export { IFetchNotesOptions, INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityCollectible, ICommunityLeaderboard, ICommunityScpData, INoteInfo, INoteInfoExtended, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, INewCommunityInfo, TokenType, MembershipType, ProtectedMembershipPolicyType, IProtectedMembershipPolicy, CommunityRole, ICommunityMember, ICommunity, ITrendingCommunityInfo, CalendarEventType, ICalendarEventInfo, IUpdateCalendarEventInfo, ICalendarEventHost, ICalendarEventAttendee, ICalendarEventDetailInfo, INewCalendarEventPostInfo, ILocationCoordinates, ISocialDataManagerConfig, INostrFetchEventsResponse, IPaymentActivity, ILongFormContentInfo, SocialEventManagerReadOptions, ISocialEventManagerReadResult, SocialEventManagerWriteOptions, ISocialEventManagerRead, ISocialEventManagerWrite, IAllUserRelatedChannels } from "@scom/scom-social-sdk/utils/interfaces.ts";
     export { MqttManager } from "@scom/scom-social-sdk/utils/mqtt.ts";
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/communication.ts" />
@@ -1922,36 +1958,8 @@ declare module "@scom/scom-social-sdk/managers/utilsManager.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/eventManagerWrite.ts" />
 declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
-    import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, ILongFormContentInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityPostInfo, INostrMetadataContent, INostrSubmitResponse, IRelayConfig, IUpdateCalendarEventInfo } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, ILongFormContentInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityPostInfo, INostrMetadataContent, INostrSubmitResponse, IRelayConfig, ISocialEventManagerWrite, IUpdateCalendarEventInfo, SocialEventManagerWriteOptions } from "@scom/scom-social-sdk/utils/interfaces.ts";
     import { INostrCommunicationManager } from "@scom/scom-social-sdk/managers/communication.ts";
-    interface ISocialEventManagerWrite {
-        nostrCommunicationManagers: INostrCommunicationManager[];
-        privateKey: string;
-        updateContactList(content: string, contactPubKeys: string[]): Promise<void>;
-        postNote(content: string, conversationPath?: IConversationPath, createdAt?: number): Promise<string>;
-        deleteEvents(eventIds: string[]): Promise<INostrSubmitResponse[]>;
-        updateCommunity(info: ICommunityInfo): Promise<INostrSubmitResponse[]>;
-        updateChannel(info: IChannelInfo): Promise<INostrSubmitResponse[]>;
-        updateUserBookmarkedChannels(channelEventIds: string[]): Promise<void>;
-        submitChannelMessage(info: INewChannelMessageInfo): Promise<void>;
-        updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[]): Promise<void>;
-        submitCommunityPost(info: INewCommunityPostInfo): Promise<INostrSubmitResponse[]>;
-        updateUserProfile(content: INostrMetadataContent): Promise<void>;
-        sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<void>;
-        updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]): Promise<INostrSubmitResponse[]>;
-        updateCalendarEvent(info: IUpdateCalendarEventInfo): Promise<INostrSubmitResponse[]>;
-        createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean): Promise<INostrSubmitResponse[]>;
-        submitCalendarEventPost(info: INewCalendarEventPostInfo): Promise<INostrSubmitResponse[]>;
-        submitLongFormContentEvents(info: ILongFormContentInfo): Promise<string>;
-        submitLike(tags: string[][]): Promise<void>;
-        submitRepost(content: string, tags: string[][]): Promise<void>;
-        updateRelayList(relays: Record<string, IRelayConfig>): Promise<void>;
-        createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, isLightningInvoice?: boolean): Promise<void>;
-        createPaymentReceiptEvent(requestEventId: string, recipient: string, comment: string, preimage?: string, tx?: string): Promise<void>;
-        updateCommunityPinnedNotes(creatorId: string, communityId: string, eventIds: string[]): Promise<void>;
-        updateUserPinnedNotes(eventIds: string[]): Promise<void>;
-        updateUserBookmarks(tags: string[][]): Promise<void>;
-    }
     class NostrEventManagerWrite implements ISocialEventManagerWrite {
         protected _nostrCommunicationManagers: INostrCommunicationManager[];
         protected _privateKey: string;
@@ -1983,8 +1991,9 @@ declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
         updateCommunityPinnedNotes(creatorId: string, communityId: string, eventIds: string[]): Promise<void>;
         updateUserPinnedNotes(eventIds: string[]): Promise<void>;
         updateUserBookmarks(tags: string[][]): Promise<void>;
+        updateUserEthWalletAccountsInfo(options: SocialEventManagerWriteOptions.IUpdateUserEthWalletAccountsInfo): Promise<INostrSubmitResponse[]>;
     }
-    export { NostrEventManagerWrite, ISocialEventManagerWrite };
+    export { NostrEventManagerWrite };
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/eventManagerRead.ts" />
 declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
@@ -2051,13 +2060,12 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         fetchUserBookmarks(options: SocialEventManagerReadOptions.IFetchUserBookmarks): Promise<INostrEvent>;
         fetchTrendingCommunities(): Promise<any>;
     }
-    export { NostrEventManagerRead, ISocialEventManagerRead };
+    export { NostrEventManagerRead };
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" />
 declare module "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" {
-    import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IFetchNotesOptions, IPaymentActivity, SocialEventManagerReadOptions } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IFetchNotesOptions, IPaymentActivity, ISocialEventManagerRead, SocialEventManagerReadOptions } from "@scom/scom-social-sdk/utils/interfaces.ts";
     import { INostrRestAPIManager } from "@scom/scom-social-sdk/managers/communication.ts";
-    import { ISocialEventManagerRead } from "@scom/scom-social-sdk/managers/eventManagerRead.ts";
     class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         protected _nostrCommunicationManager: INostrRestAPIManager;
         protected _privateKey: string;
@@ -2124,9 +2132,8 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/eventManagerReadV2.ts" />
 declare module "@scom/scom-social-sdk/managers/eventManagerReadV2.ts" {
-    import { SocialEventManagerReadOptions } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    import { ISocialEventManagerRead, SocialEventManagerReadOptions } from "@scom/scom-social-sdk/utils/interfaces.ts";
     import { INostrRestAPIManager } from "@scom/scom-social-sdk/managers/communication.ts";
-    import { ISocialEventManagerRead } from "@scom/scom-social-sdk/managers/eventManagerRead.ts";
     import { NostrEventManagerReadV1o5 } from "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts";
     class NostrEventManagerReadV2 extends NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         protected _nostrCommunicationManager: INostrRestAPIManager;
@@ -2143,11 +2150,11 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV2.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/index.ts" />
 declare module "@scom/scom-social-sdk/managers/index.ts" {
-    import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, IConversationPath, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
     import { INostrCommunicationManager, INostrRestAPIManager, NostrRestAPIManager, NostrWebSocketManager } from "@scom/scom-social-sdk/managers/communication.ts";
     import { SocialUtilsManager } from "@scom/scom-social-sdk/managers/utilsManager.ts";
-    import { ISocialEventManagerWrite, NostrEventManagerWrite } from "@scom/scom-social-sdk/managers/eventManagerWrite.ts";
-    import { ISocialEventManagerRead, NostrEventManagerRead } from "@scom/scom-social-sdk/managers/eventManagerRead.ts";
+    import { NostrEventManagerWrite } from "@scom/scom-social-sdk/managers/eventManagerWrite.ts";
+    import { NostrEventManagerRead } from "@scom/scom-social-sdk/managers/eventManagerRead.ts";
     import { NostrEventManagerReadV2 } from "@scom/scom-social-sdk/managers/eventManagerReadV2.ts";
     class SocialDataManager {
         private _writeRelays;
@@ -2356,11 +2363,11 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         deleteEvents(eventIds: string[]): Promise<void>;
         fetchTrendingCommunities(): Promise<ITrendingCommunityInfo[]>;
     }
-    export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager, INostrCommunicationManager, INostrRestAPIManager };
+    export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager, INostrCommunicationManager, INostrRestAPIManager };
 }
 /// <amd-module name="@scom/scom-social-sdk" />
 declare module "@scom/scom-social-sdk" {
     export { Event, Keys, Nip19, Bech32, secp256k1, schnorr } from "@scom/scom-social-sdk/core/index.ts";
-    export { IFetchNotesOptions, INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityCollectible, ICommunityLeaderboard, ICommunityScpData, INoteInfo, INoteInfoExtended, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, INewCommunityInfo, TokenType, MembershipType, ProtectedMembershipPolicyType, IProtectedMembershipPolicy, CommunityRole, ICommunityMember, ICommunity, ITrendingCommunityInfo, CalendarEventType, ICalendarEventInfo, IUpdateCalendarEventInfo, ICalendarEventHost, ICalendarEventAttendee, ICalendarEventDetailInfo, INewCalendarEventPostInfo, ILocationCoordinates, ISocialDataManagerConfig, IPaymentActivity, INostrFetchEventsResponse, ILongFormContentInfo, MqttManager, SocialEventManagerReadOptions, ISocialEventManagerReadResult, IAllUserRelatedChannels } from "@scom/scom-social-sdk/utils/index.ts";
-    export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, ISocialEventManagerRead, ISocialEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrWebSocketManager, NostrRestAPIManager, INostrCommunicationManager, INostrRestAPIManager } from "@scom/scom-social-sdk/managers/index.ts";
+    export { IFetchNotesOptions, INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityCollectible, ICommunityLeaderboard, ICommunityScpData, INoteInfo, INoteInfoExtended, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, INewCommunityInfo, TokenType, MembershipType, ProtectedMembershipPolicyType, IProtectedMembershipPolicy, CommunityRole, ICommunityMember, ICommunity, ITrendingCommunityInfo, CalendarEventType, ICalendarEventInfo, IUpdateCalendarEventInfo, ICalendarEventHost, ICalendarEventAttendee, ICalendarEventDetailInfo, INewCalendarEventPostInfo, ILocationCoordinates, ISocialDataManagerConfig, IPaymentActivity, INostrFetchEventsResponse, ILongFormContentInfo, MqttManager, SocialEventManagerReadOptions, ISocialEventManagerReadResult, SocialEventManagerWriteOptions, ISocialEventManagerRead, ISocialEventManagerWrite, IAllUserRelatedChannels } from "@scom/scom-social-sdk/utils/index.ts";
+    export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrWebSocketManager, NostrRestAPIManager, INostrCommunicationManager, INostrRestAPIManager } from "@scom/scom-social-sdk/managers/index.ts";
 }

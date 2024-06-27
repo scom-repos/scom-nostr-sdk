@@ -48,6 +48,9 @@ export {
     MqttManager,
     SocialEventManagerReadOptions,
     ISocialEventManagerReadResult,
+    SocialEventManagerWriteOptions,
+    ISocialEventManagerRead,
+    ISocialEventManagerWrite,
     IAllUserRelatedChannels
 } from './utils/index'
 
@@ -55,8 +58,6 @@ export {
     NostrEventManagerRead,
     NostrEventManagerReadV2,
     NostrEventManagerWrite,
-    ISocialEventManagerRead,
-    ISocialEventManagerWrite,
     SocialUtilsManager,
     SocialDataManager,
     NostrWebSocketManager,

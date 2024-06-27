@@ -5390,6 +5390,26 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
             const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
+        async updateUserEthWalletAccountsInfo(options) {
+            let event = {
+                "kind": 30078,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": JSON.stringify({
+                    "master_wallet_signature": options.masterWalletSignature,
+                    "social_wallet_signature": options.socialWalletSignature,
+                    "encrypted_key": options.encrypted_key
+                }),
+                "tags": [
+                    [
+                        "d",
+                        'eth-wallet-accounts'
+                    ]
+                ]
+            };
+            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
+            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            return responses;
+        }
     }
     exports.NostrEventManagerWrite = NostrEventManagerWrite;
 });

@@ -39,6 +39,9 @@ export {
     ILongFormContentInfo,
     SocialEventManagerReadOptions,
     ISocialEventManagerReadResult,
+    SocialEventManagerWriteOptions,
+    ISocialEventManagerRead,
+    ISocialEventManagerWrite,
     IAllUserRelatedChannels
 } from "./interfaces";
 

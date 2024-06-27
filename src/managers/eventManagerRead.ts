@@ -950,6 +950,5 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
 }
 
 export {
-    NostrEventManagerRead,
-    ISocialEventManagerRead
+    NostrEventManagerRead
 }
