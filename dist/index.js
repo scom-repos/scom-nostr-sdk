@@ -8484,13 +8484,13 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 encryptedGroupKey
             };
         }
-        async submitCommunityPost(message, info, conversationPath, timestamp) {
+        async submitCommunityPost(message, info, conversationPath, timestamp, isPublicPost = false) {
             const messageContent = {
                 communityUri: info.communityUri,
                 message,
             };
             let newCommunityPostInfo;
-            if (info.membershipType === interfaces_4.MembershipType.Open) {
+            if (info.membershipType === interfaces_4.MembershipType.Open || isPublicPost) {
                 newCommunityPostInfo = {
                     community: info,
                     message,
