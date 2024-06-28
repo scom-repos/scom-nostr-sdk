@@ -1480,13 +1480,13 @@ class SocialDataManager {
         }
     }
 
-    async submitCommunityPost(message: string, info: ICommunityInfo, conversationPath?: IConversationPath, timestamp?: number) {
+    async submitCommunityPost(message: string, info: ICommunityInfo, conversationPath?: IConversationPath, timestamp?: number, isPublicPost: boolean = false) {
         const messageContent = {
             communityUri: info.communityUri,
             message,
         }
         let newCommunityPostInfo: INewCommunityPostInfo;
-        if (info.membershipType === MembershipType.Open) {
+        if (info.membershipType === MembershipType.Open || isPublicPost) {
             newCommunityPostInfo = {
                 community: info,
                 message,
