@@ -38,6 +38,7 @@ export {
     IPaymentActivity,
     ILongFormContentInfo,
     IEthWalletAccountsInfo,
+    SocialDataManagerOptions,
     SocialEventManagerReadOptions,
     ISocialEventManagerReadResult,
     SocialEventManagerWriteOptions,

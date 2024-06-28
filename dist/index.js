@@ -5390,7 +5390,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
             const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         }
-        async updateUserEthWalletAccountsInfo(options) {
+        async updateUserEthWalletAccountsInfo(options, privateKey) {
             let event = {
                 "kind": 9742,
                 "created_at": Math.round(Date.now() / 1000),
@@ -5406,7 +5406,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     ]
                 ]
             };
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
+            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey || privateKey);
             const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
             return responses;
         }
@@ -7199,6 +7199,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             this._socialEventManagerWrite.nostrCommunicationManagers = writeRelaysManagers;
         }
         _initializeWriteRelaysManagers(relays) {
+            if (!relays || relays.length === 0) {
+                this._writeRelays = [];
+                return [];
+            }
             this._writeRelays = [this._publicIndexingRelay, ...relays];
             this._writeRelays = Array.from(new Set(this._writeRelays));
             let nostrCommunicationManagers = [];
@@ -7351,12 +7355,12 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             let noteIdToPrivateKey = {};
             const policyTypes = options.policies?.map(v => v.policyType) || [];
             if (policyTypes.includes(interfaces_4.ProtectedMembershipPolicyType.TokenExclusive) && options.gatekeeperUrl) {
-                let bodyData = {
+                let bodyData = utilsManager_5.SocialUtilsManager.augmentWithAuthInfo({
                     creatorId: options.creatorId,
                     communityId: options.communityId,
                     message: options.message,
                     signature: options.signature
-                };
+                }, this._privateKey);
                 let url = `${options.gatekeeperUrl}/api/communities/v0/post-keys`;
                 let response = await fetch(url, {
                     method: 'POST',
@@ -7385,13 +7389,13 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             let noteIdToPrivateKey = {};
             const policyTypes = communityInfo.policies?.map(v => v.policyType) || [];
             if (policyTypes.includes(interfaces_4.ProtectedMembershipPolicyType.TokenExclusive) && options.gatekeeperUrl) {
-                let bodyData = {
+                let bodyData = utilsManager_5.SocialUtilsManager.augmentWithAuthInfo({
                     creatorId: communityInfo.creatorId,
                     communityId: communityInfo.communityId,
                     focusedNoteId: options.focusedNoteId,
                     message: options.message,
                     signature: options.signature
-                };
+                }, this._privateKey);
                 let url = `${options.gatekeeperUrl}/api/communities/v0/post-keys`;
                 let response = await fetch(url, {
                     method: 'POST',
@@ -7479,12 +7483,12 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             if (Object.keys(relayToNotesMap).length > 0) {
                 for (let relay in relayToNotesMap) {
                     const noteIds = relayToNotesMap[relay].map(v => v.eventData.id);
-                    const signature = await options.getSignature(options.pubKey);
-                    let bodyData = {
+                    const signature = await options.getSignature(options.message);
+                    let bodyData = utilsManager_5.SocialUtilsManager.augmentWithAuthInfo({
                         noteIds: noteIds.join(','),
-                        message: options.pubKey,
+                        message: options.message,
                         signature: signature
-                    };
+                    }, this._privateKey);
                     let url = `${relay}/api/communities/v0/post-keys`;
                     let response = await fetch(url, {
                         method: 'POST',
@@ -8569,12 +8573,12 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         async retrieveChannelMessageKeys(options) {
             let messageIdToPrivateKey = {};
             if (options.gatekeeperUrl) {
-                let bodyData = {
+                let bodyData = utilsManager_5.SocialUtilsManager.augmentWithAuthInfo({
                     creatorId: options.creatorId,
                     channelId: options.channelId,
                     message: options.message,
                     signature: options.signature
-                };
+                }, this._privateKey);
                 let url = `${options.gatekeeperUrl}/api/channels/v0/message-keys`;
                 let response = await fetch(url, {
                     method: 'POST',
@@ -9702,8 +9706,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             }
             return communities;
         }
-        async fetchUserEthWalletAccountsInfo(walletHash) {
-            const event = await this._socialEventManagerRead.fetchUserEthWalletAccountsInfo({ walletHash });
+        async fetchUserEthWalletAccountsInfo(options) {
+            const { walletHash, pubKey } = options;
+            const event = await this._socialEventManagerRead.fetchUserEthWalletAccountsInfo({ walletHash, pubKey });
             if (!event)
                 return null;
             const content = utilsManager_5.SocialUtilsManager.parseContent(event.content);
@@ -9716,8 +9721,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             };
             return accountsInfo;
         }
-        async updateUserEthWalletAccountsInfo(info) {
-            const responses = await this._socialEventManagerWrite.updateUserEthWalletAccountsInfo(info);
+        async updateUserEthWalletAccountsInfo(info, privateKey) {
+            const responses = await this._socialEventManagerWrite.updateUserEthWalletAccountsInfo(info, privateKey);
             const response = responses[0];
             return response.success ? response.eventId : null;
         }

@@ -765,7 +765,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
     }
 
-    async updateUserEthWalletAccountsInfo(options: SocialEventManagerWriteOptions.IUpdateUserEthWalletAccountsInfo) {
+    async updateUserEthWalletAccountsInfo(options: SocialEventManagerWriteOptions.IUpdateUserEthWalletAccountsInfo, privateKey?: string) {
         let event = {
             "kind": 9742,
             "created_at": Math.round(Date.now() / 1000),
@@ -781,7 +781,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 ]
             ]
         };
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
+        const verifiedEvent = Event.finishEvent(event, this._privateKey || privateKey);
         const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         return responses;
     }

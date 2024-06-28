@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, IConversationPath, IEthWalletAccountsInfo, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId } from "../utils/interfaces";
+import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, IConversationPath, IEthWalletAccountsInfo, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId, SocialDataManagerOptions } from "../utils/interfaces";
 import {
     INostrCommunicationManager,
     INostrRestAPIManager,
@@ -111,6 +111,10 @@ class SocialDataManager {
     }
 
     private _initializeWriteRelaysManagers(relays: string[]) {
+        if (!relays || relays.length === 0) {
+            this._writeRelays = [];
+            return [];
+        }
         this._writeRelays = [this._publicIndexingRelay, ...relays];
         this._writeRelays = Array.from(new Set(this._writeRelays));
         let nostrCommunicationManagers: INostrCommunicationManager[] = [];
@@ -280,12 +284,12 @@ class SocialDataManager {
         let noteIdToPrivateKey: Record<string, string> = {};
         const policyTypes = options.policies?.map(v => v.policyType) || [];  
         if (policyTypes.includes(ProtectedMembershipPolicyType.TokenExclusive) && options.gatekeeperUrl) {
-            let bodyData = {
+            let bodyData = SocialUtilsManager.augmentWithAuthInfo({
                 creatorId: options.creatorId,
                 communityId: options.communityId,
                 message: options.message,
                 signature: options.signature
-            };
+            }, this._privateKey);
             let url = `${options.gatekeeperUrl}/api/communities/v0/post-keys`;
             let response = await fetch(url, {
                 method: 'POST',
@@ -315,13 +319,13 @@ class SocialDataManager {
         let noteIdToPrivateKey: Record<string, string> = {};
         const policyTypes = communityInfo.policies?.map(v => v.policyType) || [];  
         if (policyTypes.includes(ProtectedMembershipPolicyType.TokenExclusive) && options.gatekeeperUrl) {
-            let bodyData = {
+            let bodyData = SocialUtilsManager.augmentWithAuthInfo({
                 creatorId: communityInfo.creatorId,
                 communityId: communityInfo.communityId,
                 focusedNoteId: options.focusedNoteId,
                 message: options.message,
                 signature: options.signature
-            };
+            }, this._privateKey);
             let url = `${options.gatekeeperUrl}/api/communities/v0/post-keys`;
             let response = await fetch(url, {
                 method: 'POST',
@@ -407,12 +411,12 @@ class SocialDataManager {
         if (Object.keys(relayToNotesMap).length > 0) {
             for (let relay in relayToNotesMap) {
                 const noteIds = relayToNotesMap[relay].map(v => v.eventData.id);
-                const signature = await options.getSignature(options.pubKey);
-                let bodyData = {
+                const signature = await options.getSignature(options.message);
+                let bodyData = SocialUtilsManager.augmentWithAuthInfo({
                     noteIds: noteIds.join(','),
-                    message: options.pubKey,
+                    message: options.message,
                     signature: signature
-                };
+                }, this._privateKey);
                 let url = `${relay}/api/communities/v0/post-keys`;
                 let response = await fetch(url, {
                     method: 'POST',
@@ -1573,12 +1577,12 @@ class SocialDataManager {
     async retrieveChannelMessageKeys(options: IRetrieveChannelMessageKeysOptions) {
         let messageIdToPrivateKey: Record<string, string> = {};
         if (options.gatekeeperUrl) {
-            let bodyData = {
+            let bodyData = SocialUtilsManager.augmentWithAuthInfo({
                 creatorId: options.creatorId,
                 channelId: options.channelId,
                 message: options.message,
                 signature: options.signature
-            };
+            }, this._privateKey);
             let url = `${options.gatekeeperUrl}/api/channels/v0/message-keys`;
             let response = await fetch(url, {
                 method: 'POST',
@@ -2756,8 +2760,9 @@ class SocialDataManager {
         return communities;
     }
 
-    async fetchUserEthWalletAccountsInfo(walletHash: string) {
-        const event = await this._socialEventManagerRead.fetchUserEthWalletAccountsInfo({ walletHash });
+    async fetchUserEthWalletAccountsInfo(options: SocialDataManagerOptions.IFetchUserEthWalletAccountsInfoOptions) {
+        const { walletHash, pubKey } = options;
+        const event = await this._socialEventManagerRead.fetchUserEthWalletAccountsInfo({ walletHash, pubKey });
         if (!event) return null;
         const content = SocialUtilsManager.parseContent(event.content);
         let accountsInfo: IEthWalletAccountsInfo = {
@@ -2770,8 +2775,8 @@ class SocialDataManager {
         return accountsInfo;
     }
 
-    async updateUserEthWalletAccountsInfo(info: IEthWalletAccountsInfo) {
-        const responses = await this._socialEventManagerWrite.updateUserEthWalletAccountsInfo(info);
+    async updateUserEthWalletAccountsInfo(info: IEthWalletAccountsInfo, privateKey?: string) {
+        const responses = await this._socialEventManagerWrite.updateUserEthWalletAccountsInfo(info, privateKey);
         const response = responses[0];
         return response.success ? response.eventId : null;
     }

@@ -47,6 +47,7 @@ export {
     INostrFetchEventsResponse,
     ILongFormContentInfo,
     MqttManager,
+    SocialDataManagerOptions,
     SocialEventManagerReadOptions,
     ISocialEventManagerReadResult,
     SocialEventManagerWriteOptions,

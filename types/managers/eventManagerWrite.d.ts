@@ -31,6 +31,6 @@ declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
     updateCommunityPinnedNotes(creatorId: string, communityId: string, eventIds: string[]): Promise<void>;
     updateUserPinnedNotes(eventIds: string[]): Promise<void>;
     updateUserBookmarks(tags: string[][]): Promise<void>;
-    updateUserEthWalletAccountsInfo(options: SocialEventManagerWriteOptions.IUpdateUserEthWalletAccountsInfo): Promise<INostrSubmitResponse[]>;
+    updateUserEthWalletAccountsInfo(options: SocialEventManagerWriteOptions.IUpdateUserEthWalletAccountsInfo, privateKey?: string): Promise<INostrSubmitResponse[]>;
 }
 export { NostrEventManagerWrite };

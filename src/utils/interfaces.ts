@@ -300,6 +300,7 @@ export interface ICommunityGatekeeperInfo {
 export interface IRetrieveCommunityPostKeysByNoteEventsOptions {
 	notes: INostrEvent[]; 
 	pubKey: string;
+	message: string;
 	getSignature: (message: string) => Promise<string>;
 	gatekeeperUrl?: string;
 	// gatekeepers: ICommunityGatekeeperInfo[];
@@ -485,6 +486,8 @@ export interface IEthWalletAccountsInfo {
 	eventData?: INostrEvent;
 }
 
+
+
 export interface INostrCommunicationManager {
     fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
     fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
@@ -494,6 +497,13 @@ export interface ISocialEventManagerReadResult {
 	error?: string;
 	events?: INostrEvent[];
 	data?: any;
+}
+
+export namespace SocialDataManagerOptions {
+	export interface IFetchUserEthWalletAccountsInfoOptions {
+		walletHash?: string;
+		pubKey?: string;
+	}
 }
 
 export namespace SocialEventManagerReadOptions {
@@ -771,7 +781,7 @@ export interface ISocialEventManagerWrite {
     updateCommunityPinnedNotes(creatorId: string, communityId: string, eventIds: string[]): Promise<void>;
     updateUserPinnedNotes(eventIds: string[]): Promise<void>;
     updateUserBookmarks(tags: string[][]): Promise<void>;
-	updateUserEthWalletAccountsInfo(options: SocialEventManagerWriteOptions.IUpdateUserEthWalletAccountsInfo): Promise<INostrSubmitResponse[]>;
+	updateUserEthWalletAccountsInfo(options: SocialEventManagerWriteOptions.IUpdateUserEthWalletAccountsInfo, privateKey?: string): Promise<INostrSubmitResponse[]>;
 }
 
 export interface INostrRestAPIManager extends INostrCommunicationManager {
