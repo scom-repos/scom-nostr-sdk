@@ -718,16 +718,14 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         let {pubKey, until} = options;
         if (!until) until = 0;
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
-        let msg: any = {
-            user_pubkey: decodedPubKey,
-            timeframe: 'latest',
-            scope: 'follows',
+        let msg: any = this.augmentWithAuthInfo({
+            pubkey: decodedPubKey,
             limit: 20
-        };
+        });
         if (until > 0) {
             msg.until = until;
         }
-        const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('explore', msg);
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-following-feed', msg);
         return fetchEventsResponse.events || [];
     }
 
