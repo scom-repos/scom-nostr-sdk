@@ -1,1 +1,1 @@
-cat "./node_modules/mqtt/dist/mqtt.min.js" >> "./dist/index.js"
+cat "src/lib/mqtt.min.js" >> "./dist/index.js"
