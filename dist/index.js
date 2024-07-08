@@ -6556,24 +6556,27 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             return fetchEventsResponse.events || [];
         }
         async fetchCommunitiesMetadataFeed(options) {
-            const { communities, since, until } = options;
+            const { communities, since, until, noteCountsIncluded } = options;
             let identifiers = [];
-            for (let community of communities) {
-                const decodedCreatorId = community.creatorId.startsWith('npub1') ? index_5.Nip19.decode(community.creatorId).data : community.creatorId;
-                let identifier = {
-                    pubkey: decodedCreatorId,
-                    names: [community.communityId]
-                };
-                identifiers.push(identifier);
+            if (communities) {
+                for (let community of communities) {
+                    const decodedCreatorId = community.creatorId.startsWith('npub1') ? index_5.Nip19.decode(community.creatorId).data : community.creatorId;
+                    let identifier = {
+                        pubkey: decodedCreatorId,
+                        names: [community.communityId]
+                    };
+                    identifiers.push(identifier);
+                }
             }
             let msg = this.augmentWithAuthInfo({
                 communityMetadataIncluded: true,
                 identifiers,
                 limit: 20,
                 since,
-                until
+                until,
+                noteCountsIncluded
             });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-feed', msg);
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities-metadata-feed', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchCommunityFeed(options) {
@@ -6589,25 +6592,6 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 limit: 50,
                 since,
                 until
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-feed', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchCommunitiesFeed(options) {
-            const { communityUriArr } = options;
-            let identifiers = [];
-            for (let communityUri of communityUriArr) {
-                const { creatorId, communityId } = utilsManager_3.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
-                let identifier = {
-                    pubkey: creatorId,
-                    names: [communityId]
-                };
-                identifiers.push(identifier);
-            }
-            let msg = this.augmentWithAuthInfo({
-                communityMetadataIncluded: false,
-                identifiers,
-                limit: 50
             });
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-feed', msg);
             return fetchEventsResponse.events || [];
@@ -7230,7 +7214,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                         creatorId,
                         communityId
                     }
-                ]
+                ],
+                noteCountsIncluded: true
             });
             if (feedEvents.length === 0) {
                 return null;
@@ -7913,24 +7898,25 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async fetchCommunitiesFeedInfo(since, until) {
             let result = [];
-            const suggestedCommunities = [
-                {
-                    creatorId: 'npub1rjc54ve4sahunm7r0kpchg58eut7ttwvevst7m2fl8dfd9w4y33q0w0qw2',
-                    communityId: 'Photography'
-                },
-                {
-                    creatorId: 'npub1c6dhrhzkflwr2zkdmlujnujawgp2c9rsep6gscyt6mvcusnt5a3srnzmx3',
-                    communityId: 'Vegan_Consciousness'
-                },
-                // {
-                //     creatorId: 'npub17nd4yu9anyd3004pumgrtazaacujjxwzj36thtqsxskjy0r5urgqf6950x',
-                //     communityId: 'Art'
-                // }
-            ];
+            // const suggestedCommunities = [
+            //     {
+            //         creatorId: 'npub1rjc54ve4sahunm7r0kpchg58eut7ttwvevst7m2fl8dfd9w4y33q0w0qw2',
+            //         communityId: 'Photography'
+            //     },
+            //     {
+            //         creatorId: 'npub1c6dhrhzkflwr2zkdmlujnujawgp2c9rsep6gscyt6mvcusnt5a3srnzmx3',
+            //         communityId: 'Vegan_Consciousness'
+            //     },
+            //     // {
+            //     //     creatorId: 'npub17nd4yu9anyd3004pumgrtazaacujjxwzj36thtqsxskjy0r5urgqf6950x',
+            //     //     communityId: 'Art'
+            //     // }
+            // ];
             const communitiesMetadataFeedResult = await this._socialEventManagerRead.fetchCommunitiesMetadataFeed({
-                communities: suggestedCommunities,
+                // communities: suggestedCommunities,
                 since,
-                until
+                until,
+                noteCountsIncluded: false
             });
             const statsEvents = communitiesMetadataFeedResult.filter(event => event.kind === 10000100);
             let noteStatsMap = {};

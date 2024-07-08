@@ -248,24 +248,27 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     }
 
     async fetchCommunitiesMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesMetadataFeed) {
-        const {communities, since, until} = options;
+        const {communities, since, until, noteCountsIncluded} = options;
         let identifiers: any[] = [];
-        for (let community of communities) {
-            const decodedCreatorId = community.creatorId.startsWith('npub1') ? Nip19.decode(community.creatorId).data : community.creatorId;
-            let identifier: any = {
-                pubkey: decodedCreatorId,
-                names: [community.communityId]
-            };
-            identifiers.push(identifier);
+        if (communities) {
+            for (let community of communities) {
+                const decodedCreatorId = community.creatorId.startsWith('npub1') ? Nip19.decode(community.creatorId).data : community.creatorId;
+                let identifier: any = {
+                    pubkey: decodedCreatorId,
+                    names: [community.communityId]
+                };
+                identifiers.push(identifier);
+            }
         }
         let msg = this.augmentWithAuthInfo({
             communityMetadataIncluded: true,
             identifiers,
             limit: 20,
             since,
-            until
+            until,
+            noteCountsIncluded
         });
-        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-feed', msg);
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities-metadata-feed', msg);
         return fetchEventsResponse.events || [];        
     }
 
@@ -285,26 +288,6 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-feed', msg);
         return fetchEventsResponse.events || [];  
-    }
-
-    async fetchCommunitiesFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesFeed) {
-        const {communityUriArr} = options;
-        let identifiers: any[] = [];
-        for (let communityUri of communityUriArr) {
-            const {creatorId, communityId} = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
-            let identifier: any = {
-                pubkey: creatorId,
-                names: [communityId]
-            };
-            identifiers.push(identifier);
-        }
-        let msg = this.augmentWithAuthInfo({
-            communityMetadataIncluded: false,
-            identifiers,
-            limit: 50
-        });
-        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-feed', msg);
-        return fetchEventsResponse.events || [];
     }
 
     async fetchCommunitiesGeneralMembers(options: SocialEventManagerReadOptions.IFetchCommunitiesGeneralMembers) {

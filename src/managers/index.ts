@@ -148,7 +148,8 @@ class SocialDataManager {
                     creatorId,
                     communityId
                 }
-            ]
+            ],
+            noteCountsIncluded: true
         });
         if (feedEvents.length === 0) {
             return null;
@@ -867,24 +868,25 @@ class SocialDataManager {
 
     async fetchCommunitiesFeedInfo(since?: number, until?: number) {
         let result: INoteInfoExtended[] = [];
-        const suggestedCommunities = [
-            {
-                creatorId: 'npub1rjc54ve4sahunm7r0kpchg58eut7ttwvevst7m2fl8dfd9w4y33q0w0qw2',
-                communityId: 'Photography'
-            },
-            {
-                creatorId: 'npub1c6dhrhzkflwr2zkdmlujnujawgp2c9rsep6gscyt6mvcusnt5a3srnzmx3',
-                communityId: 'Vegan_Consciousness'
-            },
-            // {
-            //     creatorId: 'npub17nd4yu9anyd3004pumgrtazaacujjxwzj36thtqsxskjy0r5urgqf6950x',
-            //     communityId: 'Art'
-            // }
-        ];
+        // const suggestedCommunities = [
+        //     {
+        //         creatorId: 'npub1rjc54ve4sahunm7r0kpchg58eut7ttwvevst7m2fl8dfd9w4y33q0w0qw2',
+        //         communityId: 'Photography'
+        //     },
+        //     {
+        //         creatorId: 'npub1c6dhrhzkflwr2zkdmlujnujawgp2c9rsep6gscyt6mvcusnt5a3srnzmx3',
+        //         communityId: 'Vegan_Consciousness'
+        //     },
+        //     // {
+        //     //     creatorId: 'npub17nd4yu9anyd3004pumgrtazaacujjxwzj36thtqsxskjy0r5urgqf6950x',
+        //     //     communityId: 'Art'
+        //     // }
+        // ];
         const communitiesMetadataFeedResult = await this._socialEventManagerRead.fetchCommunitiesMetadataFeed({
-            communities: suggestedCommunities,
+            // communities: suggestedCommunities,
             since,
-            until
+            until,
+            noteCountsIncluded: false
         });
         const statsEvents = communitiesMetadataFeedResult.filter(event => event.kind === 10000100);
         let noteStatsMap: Record<string, IPostStats> = {};
