@@ -7032,21 +7032,19 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
         async fetchUserPinnedNotes(options) {
             const { pubKey } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
-            let request = {
-                kinds: [10001],
-                authors: [decodedPubKey]
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            let msg = this.augmentWithAuthInfo({
+                pubkey: decodedPubKey
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-pinned-notes', msg);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
         }
         async fetchUserBookmarks(options) {
             const { pubKey } = options;
             const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
-            let request = {
-                kinds: [10003],
-                authors: [decodedPubKey]
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            let msg = this.augmentWithAuthInfo({
+                pubkey: decodedPubKey
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-bookmarks', msg);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
         }
         async fetchTrendingCommunities() {

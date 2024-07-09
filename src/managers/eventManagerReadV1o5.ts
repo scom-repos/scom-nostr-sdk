@@ -739,22 +739,20 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     async fetchUserPinnedNotes(options: SocialEventManagerReadOptions.IFetchUserPinnedNotes) {
         const {pubKey} = options;
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
-        let request: any = {
-            kinds: [10001],
-            authors: [decodedPubKey]
-        };
-        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+        let msg = this.augmentWithAuthInfo({
+            pubkey: decodedPubKey
+        });
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-pinned-notes', msg);
         return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
     }
 
     async fetchUserBookmarks(options: SocialEventManagerReadOptions.IFetchUserBookmarks) {
         const {pubKey} = options;
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
-        let request: any = {
-            kinds: [10003],
-            authors: [decodedPubKey]
-        }
-        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+        let msg = this.augmentWithAuthInfo({
+            pubkey: decodedPubKey
+        });
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-bookmarks', msg);
         return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
     }
 
