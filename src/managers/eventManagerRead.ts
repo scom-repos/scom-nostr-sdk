@@ -371,18 +371,18 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         return fetchEventsResponse.events;        
     }
 
-    async fetchNotes(options: IFetchNotesOptions) {
-        const decodedNpubs = options.authors?.map(npub => Nip19.decode(npub).data);
-        let decodedIds = options.ids?.map(id => id.startsWith('note1') ? Nip19.decode(id).data : id);
-        let msg: any = {
-            kinds: [1],
-            limit: 20
-        };
-        if (decodedNpubs) msg.authors = decodedNpubs;
-        if (decodedIds) msg.ids = decodedIds;
-        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(msg);
-        return fetchEventsResponse.events;
-    }
+    // async fetchNotes(options: IFetchNotesOptions) {
+    //     const decodedNpubs = options.authors?.map(npub => Nip19.decode(npub).data);
+    //     let decodedIds = options.ids?.map(id => id.startsWith('note1') ? Nip19.decode(id).data : id);
+    //     let msg: any = {
+    //         kinds: [1],
+    //         limit: 20
+    //     };
+    //     if (decodedNpubs) msg.authors = decodedNpubs;
+    //     if (decodedIds) msg.ids = decodedIds;
+    //     const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(msg);
+    //     return fetchEventsResponse.events;
+    // }
 
     // async fetchMetadata(options: IFetchMetadataOptions) {
     //     let decodedNpubs;

@@ -1,4 +1,4 @@
-import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IFetchNotesOptions, IPaymentActivity, ISocialEventManagerRead, SocialEventManagerReadOptions } from "../utils/interfaces";
+import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IPaymentActivity, ISocialEventManagerRead, SocialEventManagerReadOptions } from "../utils/interfaces";
 import { INostrRestAPIManager } from "./communication";
 declare class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     protected _nostrCommunicationManager: INostrRestAPIManager;
@@ -25,7 +25,6 @@ declare class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     fetchCommunitiesMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesMetadataFeed): Promise<import("../utils/interfaces").INostrEvent[]>;
     fetchCommunityFeed(options: SocialEventManagerReadOptions.IFetchCommunityFeed): Promise<import("../utils/interfaces").INostrEvent[]>;
     fetchCommunitiesGeneralMembers(options: SocialEventManagerReadOptions.IFetchCommunitiesGeneralMembers): Promise<import("../utils/interfaces").INostrEvent[]>;
-    fetchNotes(options: IFetchNotesOptions): Promise<import("../utils/interfaces").INostrEvent[]>;
     fetchAllUserRelatedChannels(options: SocialEventManagerReadOptions.IFetchAllUserRelatedChannels): Promise<{
         channels: IChannelInfo[];
         channelMetadataMap: Record<string, IChannelInfo>;

@@ -5761,20 +5761,18 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
             return fetchEventsResponse.events;
         }
-        async fetchNotes(options) {
-            const decodedNpubs = options.authors?.map(npub => index_4.Nip19.decode(npub).data);
-            let decodedIds = options.ids?.map(id => id.startsWith('note1') ? index_4.Nip19.decode(id).data : id);
-            let msg = {
-                kinds: [1],
-                limit: 20
-            };
-            if (decodedNpubs)
-                msg.authors = decodedNpubs;
-            if (decodedIds)
-                msg.ids = decodedIds;
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(msg);
-            return fetchEventsResponse.events;
-        }
+        // async fetchNotes(options: IFetchNotesOptions) {
+        //     const decodedNpubs = options.authors?.map(npub => Nip19.decode(npub).data);
+        //     let decodedIds = options.ids?.map(id => id.startsWith('note1') ? Nip19.decode(id).data : id);
+        //     let msg: any = {
+        //         kinds: [1],
+        //         limit: 20
+        //     };
+        //     if (decodedNpubs) msg.authors = decodedNpubs;
+        //     if (decodedIds) msg.ids = decodedIds;
+        //     const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(msg);
+        //     return fetchEventsResponse.events;
+        // }
         // async fetchMetadata(options: IFetchMetadataOptions) {
         //     let decodedNpubs;
         //     if (options.decodedAuthors) {
@@ -6612,20 +6610,18 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities-general-members', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchNotes(options) {
-            const decodedNpubs = options.authors?.map(npub => index_5.Nip19.decode(npub).data);
-            let decodedIds = options.ids?.map(id => id.startsWith('note1') ? index_5.Nip19.decode(id).data : id);
-            let msg = {
-                kinds: [1],
-                limit: 20
-            };
-            if (decodedNpubs)
-                msg.authors = decodedNpubs;
-            if (decodedIds)
-                msg.ids = decodedIds;
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(msg);
-            return fetchEventsResponse.events || [];
-        }
+        // async fetchNotes(options: IFetchNotesOptions) {
+        //     const decodedNpubs = options.authors?.map(npub => Nip19.decode(npub).data);
+        //     let decodedIds = options.ids?.map(id => id.startsWith('note1') ? Nip19.decode(id).data : id);
+        //     let msg: any = {
+        //         kinds: [1],
+        //         limit: 20
+        //     };
+        //     if (decodedNpubs) msg.authors = decodedNpubs;
+        //     if (decodedIds) msg.ids = decodedIds;
+        //     const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(msg);
+        //     return fetchEventsResponse.events || [];
+        // }
         async fetchAllUserRelatedChannels(options) {
             const { pubKey } = options;
             let msg = this.augmentWithAuthInfo({
