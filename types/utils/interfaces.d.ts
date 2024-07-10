@@ -501,6 +501,13 @@ export declare namespace SocialEventManagerReadOptions {
         until?: number;
         noteCountsIncluded?: boolean;
     }
+    interface IFetchCommunityMetadataFeed {
+        since?: number;
+        until?: number;
+        statsIncluded?: boolean;
+        communityCreatorId?: string;
+        communityName?: string;
+    }
     interface IFetchCommunityFeed {
         communityUri: string;
         since?: number;
@@ -636,6 +643,7 @@ export interface ISocialEventManagerRead {
     fetchUserBookmarkedCommunities(options: SocialEventManagerReadOptions.IFetchUserBookmarkedCommunities): Promise<ICommunityBasicInfo[]>;
     fetchCommunity(options: SocialEventManagerReadOptions.IFetchCommunity): Promise<INostrEvent[]>;
     fetchCommunitiesMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesMetadataFeed): Promise<INostrEvent[]>;
+    fetchCommunityMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunityMetadataFeed): Promise<INostrEvent[]>;
     fetchCommunityFeed(options: SocialEventManagerReadOptions.IFetchCommunityFeed): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(options: SocialEventManagerReadOptions.IFetchCommunitiesGeneralMembers): Promise<INostrEvent[]>;
     fetchEventsByIds(options: SocialEventManagerReadOptions.IFetchEventsByIds): Promise<INostrEvent[]>;

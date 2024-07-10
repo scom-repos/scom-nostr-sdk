@@ -5714,6 +5714,28 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(...requests);
             return fetchEventsResponse.events;
         }
+        async fetchCommunityMetadataFeed(options) {
+            const { communityCreatorId, communityName, since, until } = options;
+            const decodedCreatorId = communityCreatorId.startsWith('npub1') ? index_4.Nip19.decode(communityCreatorId).data : communityCreatorId;
+            let infoMsg = {
+                kinds: [34550],
+                authors: [decodedCreatorId],
+                "#d": [communityName]
+            };
+            let notesMsg = {
+                kinds: [1],
+                "#a": [utilsManager_2.SocialUtilsManager.getCommunityUri(communityCreatorId, communityName)],
+                limit: 20
+            };
+            if (since != null) {
+                notesMsg.since = since;
+            }
+            if (until != null) {
+                notesMsg.until = until;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(infoMsg, notesMsg);
+            return fetchEventsResponse.events;
+        }
         async fetchCommunityFeed(options) {
             const { communityUri, since, until } = options;
             let request = {
@@ -6567,7 +6589,6 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 }
             }
             let msg = this.augmentWithAuthInfo({
-                communityMetadataIncluded: true,
                 identifiers,
                 limit: 20,
                 since,
@@ -6575,6 +6596,20 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 noteCountsIncluded
             });
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities-metadata-feed', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchCommunityMetadataFeed(options) {
+            const { communityCreatorId, communityName, since, until, statsIncluded } = options;
+            const communityPubkey = communityCreatorId.startsWith('npub1') ? index_5.Nip19.decode(communityCreatorId).data : communityCreatorId;
+            let msg = this.augmentWithAuthInfo({
+                communityPubkey,
+                communityName,
+                limit: 20,
+                since,
+                until,
+                statsIncluded
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-metadata-feed', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchCommunityFeed(options) {
@@ -6585,7 +6620,6 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 names: [communityId]
             };
             let msg = this.augmentWithAuthInfo({
-                communityMetadataIncluded: false,
                 identifiers: [identifier],
                 limit: 50,
                 since,
@@ -7892,22 +7926,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async fetchCommunitiesFeedInfo(since, until) {
             let result = [];
-            // const suggestedCommunities = [
-            //     {
-            //         creatorId: 'npub1rjc54ve4sahunm7r0kpchg58eut7ttwvevst7m2fl8dfd9w4y33q0w0qw2',
-            //         communityId: 'Photography'
-            //     },
-            //     {
-            //         creatorId: 'npub1c6dhrhzkflwr2zkdmlujnujawgp2c9rsep6gscyt6mvcusnt5a3srnzmx3',
-            //         communityId: 'Vegan_Consciousness'
-            //     },
-            //     // {
-            //     //     creatorId: 'npub17nd4yu9anyd3004pumgrtazaacujjxwzj36thtqsxskjy0r5urgqf6950x',
-            //     //     communityId: 'Art'
-            //     // }
-            // ];
             const communitiesMetadataFeedResult = await this._socialEventManagerRead.fetchCommunitiesMetadataFeed({
-                // communities: suggestedCommunities,
                 since,
                 until,
                 noteCountsIncluded: false

@@ -261,7 +261,6 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
             }
         }
         let msg = this.augmentWithAuthInfo({
-            communityMetadataIncluded: true,
             identifiers,
             limit: 20,
             since,
@@ -272,6 +271,21 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         return fetchEventsResponse.events || [];        
     }
 
+    async fetchCommunityMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunityMetadataFeed) {
+        const {communityCreatorId, communityName, since, until, statsIncluded} = options;
+        const communityPubkey = communityCreatorId.startsWith('npub1') ? Nip19.decode(communityCreatorId).data : communityCreatorId;
+        let msg = this.augmentWithAuthInfo({
+            communityPubkey,
+            communityName,
+            limit: 20,
+            since,
+            until,
+            statsIncluded
+        });
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-metadata-feed', msg);
+        return fetchEventsResponse.events || [];
+    }
+
     async fetchCommunityFeed(options: SocialEventManagerReadOptions.IFetchCommunityFeed) {
         const {communityUri, since, until} = options;
         const {creatorId, communityId} = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
@@ -280,7 +294,6 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
             names: [communityId]
         };
         let msg = this.augmentWithAuthInfo({
-            communityMetadataIncluded: false,
             identifiers: [identifier],
             limit: 50,
             since,
