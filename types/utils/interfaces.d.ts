@@ -624,6 +624,10 @@ export declare namespace SocialEventManagerReadOptions {
         walletHash?: string;
         pubKey?: string;
     }
+    interface IFetchSubcommunites {
+        communityCreatorId: string;
+        communityName: string;
+    }
 }
 export interface ISocialEventManagerRead {
     nostrCommunicationManager: INostrCommunicationManager | INostrRestAPIManager;
@@ -674,6 +678,7 @@ export interface ISocialEventManagerRead {
     fetchUserBookmarks(options: SocialEventManagerReadOptions.IFetchUserBookmarks): Promise<INostrEvent>;
     fetchTrendingCommunities(): Promise<INostrEvent[]>;
     fetchUserEthWalletAccountsInfo(options: SocialEventManagerReadOptions.IFetchUserEthWalletAccountsInfo): Promise<INostrEvent>;
+    fetchSubcommunites(options: SocialEventManagerReadOptions.IFetchSubcommunites): Promise<INostrEvent[]>;
 }
 export declare namespace SocialEventManagerWriteOptions {
     interface IUpdateUserEthWalletAccountsInfo {

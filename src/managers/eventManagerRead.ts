@@ -986,6 +986,10 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
         return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
     }
+    
+    async fetchSubcommunites(options: SocialEventManagerReadOptions.IFetchSubcommunites) {
+        return []; // Not supported
+    }
 }
 
 export {

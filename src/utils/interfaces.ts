@@ -696,6 +696,10 @@ export namespace SocialEventManagerReadOptions {
 		walletHash?: string;
 		pubKey?: string;
 	}
+	export interface IFetchSubcommunites {
+		communityCreatorId: string;
+		communityName: string;
+	}
 }
 
 export interface ISocialEventManagerRead {
@@ -749,6 +753,7 @@ export interface ISocialEventManagerRead {
 	fetchUserBookmarks(options: SocialEventManagerReadOptions.IFetchUserBookmarks): Promise<INostrEvent>;
 	fetchTrendingCommunities(): Promise<INostrEvent[]>;
 	fetchUserEthWalletAccountsInfo(options: SocialEventManagerReadOptions.IFetchUserEthWalletAccountsInfo): Promise<INostrEvent>;
+	fetchSubcommunites(options: SocialEventManagerReadOptions.IFetchSubcommunites): Promise<INostrEvent[]>;
 	// fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
     // fetchReplies(options: IFetchRepliesOptions): Promise<INostrEvent[]>;
     // fetchFollowing(npubs: string[]): Promise<INostrEvent[]>;

@@ -1724,6 +1724,10 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
             walletHash?: string;
             pubKey?: string;
         }
+        interface IFetchSubcommunites {
+            communityCreatorId: string;
+            communityName: string;
+        }
     }
     export interface ISocialEventManagerRead {
         nostrCommunicationManager: INostrCommunicationManager | INostrRestAPIManager;
@@ -1774,6 +1778,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         fetchUserBookmarks(options: SocialEventManagerReadOptions.IFetchUserBookmarks): Promise<INostrEvent>;
         fetchTrendingCommunities(): Promise<INostrEvent[]>;
         fetchUserEthWalletAccountsInfo(options: SocialEventManagerReadOptions.IFetchUserEthWalletAccountsInfo): Promise<INostrEvent>;
+        fetchSubcommunites(options: SocialEventManagerReadOptions.IFetchSubcommunites): Promise<INostrEvent[]>;
     }
     export namespace SocialEventManagerWriteOptions {
         interface IUpdateUserEthWalletAccountsInfo {
@@ -2088,6 +2093,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         fetchUserBookmarks(options: SocialEventManagerReadOptions.IFetchUserBookmarks): Promise<INostrEvent>;
         fetchTrendingCommunities(): Promise<any>;
         fetchUserEthWalletAccountsInfo(options: SocialEventManagerReadOptions.IFetchUserEthWalletAccountsInfo): Promise<INostrEvent>;
+        fetchSubcommunites(options: SocialEventManagerReadOptions.IFetchSubcommunites): Promise<any[]>;
     }
     export { NostrEventManagerRead };
 }
@@ -2156,6 +2162,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" {
         fetchUserBookmarks(options: SocialEventManagerReadOptions.IFetchUserBookmarks): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent>;
         fetchTrendingCommunities(): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
         fetchUserEthWalletAccountsInfo(options: SocialEventManagerReadOptions.IFetchUserEthWalletAccountsInfo): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent>;
+        fetchSubcommunites(options: SocialEventManagerReadOptions.IFetchSubcommunites): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
     }
     export { NostrEventManagerReadV1o5 };
 }

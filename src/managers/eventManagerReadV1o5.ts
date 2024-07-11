@@ -790,6 +790,17 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-eth-wallet-info', msg);
         return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
     }
+
+    async fetchSubcommunites(options: SocialEventManagerReadOptions.IFetchSubcommunites) {
+        const {communityCreatorId, communityName} = options;
+        const communityPubkey = communityCreatorId.startsWith('npub1') ? Nip19.decode(communityCreatorId).data : communityCreatorId;
+        let msg = this.augmentWithAuthInfo({
+            communityPubkey,
+            communityName
+        });
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-subcommunities', msg);
+        return fetchEventsResponse.events || [];
+    }
 }
 
 export {

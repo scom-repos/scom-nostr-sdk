@@ -6349,6 +6349,9 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
         }
+        async fetchSubcommunites(options) {
+            return []; // Not supported
+        }
     }
     exports.NostrEventManagerRead = NostrEventManagerRead;
 });
@@ -7102,6 +7105,16 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             }
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-eth-wallet-info', msg);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        }
+        async fetchSubcommunites(options) {
+            const { communityCreatorId, communityName } = options;
+            const communityPubkey = communityCreatorId.startsWith('npub1') ? index_5.Nip19.decode(communityCreatorId).data : communityCreatorId;
+            let msg = this.augmentWithAuthInfo({
+                communityPubkey,
+                communityName
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-subcommunities', msg);
+            return fetchEventsResponse.events || [];
         }
     }
     exports.NostrEventManagerReadV1o5 = NostrEventManagerReadV1o5;
