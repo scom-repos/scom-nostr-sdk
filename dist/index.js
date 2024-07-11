@@ -9741,6 +9741,27 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             const response = responses[0];
             return response.success ? response.eventId : null;
         }
+        async fetchSubCommunities(creatorId, communityId) {
+            let communities = [];
+            try {
+                const events = await this._socialEventManagerRead.fetchSubcommunites({
+                    communityCreatorId: creatorId,
+                    communityName: communityId
+                });
+                for (let event of events) {
+                    const communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(event);
+                    let community = {
+                        ...communityInfo,
+                        members: []
+                    };
+                    communities.push(community);
+                }
+            }
+            catch (error) {
+                console.error('fetchSubCommunities', error);
+            }
+            return communities;
+        }
     }
     exports.SocialDataManager = SocialDataManager;
 });
