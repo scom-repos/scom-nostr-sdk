@@ -4529,6 +4529,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             const moderatorIds = event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'moderator').map(tag => index_2.Nip19.npubEncode(tag[1]));
             const scpTag = event.tags.find(tag => tag[0] === 'scp');
             const enableLeaderboard = event.tags.some(tag => tag[0] === 'leaderboard');
+            const parentCommunityUri = event.tags.find(tag => tag[0] === 'a')?.[1];
             let policies = [];
             let scpData;
             let gatekeeperNpub;
@@ -4576,7 +4577,8 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 policies,
                 pointSystem,
                 collectibles,
-                enableLeaderboard
+                enableLeaderboard,
+                parentCommunityUri
             };
             return communityInfo;
         }
@@ -4900,6 +4902,12 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 event.tags.push([
                     "leaderboard",
                     "true"
+                ]);
+            }
+            if (info.parentCommunityUri) {
+                event.tags.push([
+                    "a",
+                    info.parentCommunityUri
                 ]);
             }
             const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
@@ -7235,15 +7243,11 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         publishToMqttTopic(topic, message) {
             this.mqttManager.publish(topic, message);
         }
-        async retrieveCommunityEvents(creatorId, communityId) {
-            const feedEvents = await this._socialEventManagerRead.fetchCommunitiesMetadataFeed({
-                communities: [
-                    {
-                        creatorId,
-                        communityId
-                    }
-                ],
-                noteCountsIncluded: true
+        async retrieveCommunityEvents(creatorId, communityId, statsIncluded = false) {
+            const feedEvents = await this._socialEventManagerRead.fetchCommunityMetadataFeed({
+                communityCreatorId: creatorId,
+                communityName: communityId,
+                statsIncluded
             });
             if (feedEvents.length === 0) {
                 return null;

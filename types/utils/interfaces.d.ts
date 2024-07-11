@@ -182,6 +182,7 @@ export interface ICommunityInfo extends ICommunityBasicInfo {
     pointSystem?: ICommunityPointSystem;
     collectibles?: ICommunityCollectible[];
     enableLeaderboard?: boolean;
+    parentCommunityUri?: string;
 }
 export interface ICommunityLeaderboard {
     npub: string;

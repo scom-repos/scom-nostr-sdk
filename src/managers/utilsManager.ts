@@ -163,6 +163,7 @@ class SocialUtilsManager {
         const moderatorIds = event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'moderator').map(tag => Nip19.npubEncode(tag[1]));
         const scpTag = event.tags.find(tag => tag[0] === 'scp');
         const enableLeaderboard = event.tags.some(tag => tag[0] === 'leaderboard');
+        const parentCommunityUri = event.tags.find(tag => tag[0] === 'a')?.[1];
         let policies = [];
         let scpData;
         let gatekeeperNpub;
@@ -208,7 +209,8 @@ class SocialUtilsManager {
             policies,
             pointSystem,
             collectibles,
-            enableLeaderboard
+            enableLeaderboard,
+            parentCommunityUri
         }
 
         return communityInfo;

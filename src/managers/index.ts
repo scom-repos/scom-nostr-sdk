@@ -141,15 +141,11 @@ class SocialDataManager {
         this.mqttManager.publish(topic, message);
     }
 
-    async retrieveCommunityEvents(creatorId: string, communityId: string) {
-        const feedEvents = await this._socialEventManagerRead.fetchCommunitiesMetadataFeed({
-            communities: [
-                {
-                    creatorId,
-                    communityId
-                }
-            ],
-            noteCountsIncluded: true
+    async retrieveCommunityEvents(creatorId: string, communityId: string, statsIncluded: boolean = false) {
+        const feedEvents = await this._socialEventManagerRead.fetchCommunityMetadataFeed({
+            communityCreatorId: creatorId,
+            communityName: communityId,
+            statsIncluded
         });
         if (feedEvents.length === 0) {
             return null;

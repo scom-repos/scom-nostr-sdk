@@ -256,6 +256,12 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 "true"
             ])
         }
+        if (info.parentCommunityUri) {
+            event.tags.push([
+                "a",
+                info.parentCommunityUri
+            ]);
+        }
         const verifiedEvent = Event.finishEvent(event, this._privateKey);
         const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
         return responses;

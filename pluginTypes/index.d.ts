@@ -1282,6 +1282,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         pointSystem?: ICommunityPointSystem;
         collectibles?: ICommunityCollectible[];
         enableLeaderboard?: boolean;
+        parentCommunityUri?: string;
     }
     export interface ICommunityLeaderboard {
         npub: string;
@@ -2204,7 +2205,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         subscribeToMqttTopics(topics: string[]): void;
         unsubscribeFromMqttTopics(topics: string[]): void;
         publishToMqttTopic(topic: string, message: string): void;
-        retrieveCommunityEvents(creatorId: string, communityId: string): Promise<{
+        retrieveCommunityEvents(creatorId: string, communityId: string, statsIncluded?: boolean): Promise<{
             notes: INoteInfo[];
             info: ICommunityInfo;
             notesCount: number;
