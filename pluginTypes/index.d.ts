@@ -1307,6 +1307,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         pointSystem?: ICommunityPointSystem;
         collectibles?: ICommunityCollectible[];
         enableLeaderboard?: boolean;
+        parentCommunityUri?: string;
     }
     export interface IChannelInfo {
         id?: string;

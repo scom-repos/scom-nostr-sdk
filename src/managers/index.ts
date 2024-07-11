@@ -1225,7 +1225,8 @@ class SocialDataManager {
             gatekeeperNpub: newInfo.gatekeeperNpub,
             policies: newInfo.policies,
             pointSystem: newInfo.pointSystem,
-            collectibles: newInfo.collectibles
+            collectibles: newInfo.collectibles,
+            parentCommunityUri: newInfo.parentCommunityUri
         }
 
         if (communityInfo.membershipType === MembershipType.Protected) {

@@ -242,6 +242,7 @@ export interface INewCommunityInfo {
 	pointSystem?: ICommunityPointSystem;
 	collectibles?: ICommunityCollectible[];
 	enableLeaderboard?: boolean;
+	parentCommunityUri?: string;
 }
 
 export interface IChannelInfo {

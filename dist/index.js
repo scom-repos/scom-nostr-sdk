@@ -8288,7 +8288,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 gatekeeperNpub: newInfo.gatekeeperNpub,
                 policies: newInfo.policies,
                 pointSystem: newInfo.pointSystem,
-                collectibles: newInfo.collectibles
+                collectibles: newInfo.collectibles,
+                parentCommunityUri: newInfo.parentCommunityUri
             };
             if (communityInfo.membershipType === interfaces_4.MembershipType.Protected) {
                 const gatekeeperPublicKey = index_6.Nip19.decode(communityInfo.gatekeeperNpub).data;
