@@ -2401,6 +2401,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         fetchTrendingCommunities(): Promise<ITrendingCommunityInfo[]>;
         fetchUserEthWalletAccountsInfo(options: SocialDataManagerOptions.IFetchUserEthWalletAccountsInfoOptions): Promise<IEthWalletAccountsInfo>;
         updateUserEthWalletAccountsInfo(info: IEthWalletAccountsInfo, privateKey?: string): Promise<string>;
+        fetchSubCommunities(creatorId: string, communityId: string): Promise<ICommunityInfo[]>;
     }
     export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager, INostrCommunicationManager, INostrRestAPIManager };
 }

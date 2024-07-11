@@ -2765,6 +2765,27 @@ class SocialDataManager {
         return response.success ? response.eventId : null;
     }
 
+    async fetchSubCommunities(creatorId: string, communityId: string) {
+        let communities: ICommunityInfo[] = [];
+        try {
+            const events = await this._socialEventManagerRead.fetchSubcommunites({
+                communityCreatorId: creatorId,
+                communityName: communityId
+            });
+            for (let event of events) {
+                const communityInfo = SocialUtilsManager.extractCommunityInfo(event);
+                let community: ICommunity = {
+                    ...communityInfo,
+                    members: []
+                }
+                communities.push(community);
+            }
+        }
+        catch (error) {
+            console.error('fetchSubCommunities', error);
+        }
+        return communities;
+    }
 }
 
 export {
