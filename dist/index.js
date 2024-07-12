@@ -7287,6 +7287,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             return {
                 notes,
                 info: communityInfo,
+                metadataByPubKeyMap,
                 notesCount
             };
         }

@@ -176,6 +176,7 @@ class SocialDataManager {
         return {
             notes,
             info: communityInfo,
+            metadataByPubKeyMap,
             notesCount
         }
     }

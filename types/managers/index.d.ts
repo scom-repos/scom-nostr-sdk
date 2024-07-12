@@ -27,6 +27,7 @@ declare class SocialDataManager {
     retrieveCommunityEvents(creatorId: string, communityId: string, statsIncluded?: boolean): Promise<{
         notes: INoteInfo[];
         info: ICommunityInfo;
+        metadataByPubKeyMap: Record<string, INostrMetadata>;
         notesCount: number;
     }>;
     fetchCommunityFeedInfo(creatorId: string, communityId: string, since?: number, until?: number): Promise<INoteInfo[]>;
