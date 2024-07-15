@@ -801,6 +801,17 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-subcommunities', msg);
         return fetchEventsResponse.events || [];
     }
+
+    async fetchCommunityDetailMetadata(options: SocialEventManagerReadOptions.IFetchCommunityDetailMetadata) {
+        const {communityCreatorId, communityName} = options;
+        const communityPubkey = communityCreatorId.startsWith('npub1') ? Nip19.decode(communityCreatorId).data : communityCreatorId;
+        let msg = this.augmentWithAuthInfo({
+            communityPubkey,
+            communityName
+        });
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-detail-metadata', msg);
+        return fetchEventsResponse.events || [];
+    }
 }
 
 export {

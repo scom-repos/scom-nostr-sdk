@@ -3873,7 +3873,6 @@ define("@scom/scom-social-sdk/managers/communication.ts", ["require", "exports"]
                 let msg = JSON.stringify(["EVENT", event]);
                 const { ws, error } = await this.establishConnection(event.id, (message) => {
                     resolve({
-                        eventId: message[1],
                         success: message[2],
                         message: message[3],
                         relay: this.url
@@ -3881,7 +3880,6 @@ define("@scom/scom-social-sdk/managers/communication.ts", ["require", "exports"]
                 });
                 if (error) {
                     resolve({
-                        eventId: event.id,
                         success: false,
                         message: error,
                         relay: this.url
@@ -4722,6 +4720,14 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             }
             return tags;
         }
+        async handleEventSubmission(event) {
+            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
+            const relayResponses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            return {
+                event: verifiedEvent,
+                relayResponses
+            };
+        }
         async updateContactList(content, contactPubKeys) {
             let event = {
                 "kind": 3,
@@ -4735,8 +4741,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     contactPubKey
                 ]);
             }
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async postNote(content, conversationPath, createdAt) {
             let event = {
@@ -4749,10 +4755,10 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 const conversationPathTags = this.calculateConversationPathTags(conversationPath);
                 event.tags = conversationPathTags;
             }
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-            const noteId = index_3.Nip19.noteEncode(verifiedEvent.id);
-            return noteId;
+            // const noteId = Nip19.noteEncode(verifiedEvent.id);
+            // return noteId;
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async deleteEvents(eventIds) {
             let event = {
@@ -4768,9 +4774,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     decodedEventId
                 ]);
             }
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-            return responses;
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async updateChannel(info) {
             let kind = info.id ? 41 : 40;
@@ -4798,9 +4803,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     encodedScpData
                 ]);
             }
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-            return responses;
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async updateUserBookmarkedChannels(channelEventIds) {
             let event = {
@@ -4820,8 +4824,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     channelEventId
                 ]);
             }
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async updateCommunity(info) {
             const data = {
@@ -4910,9 +4914,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     info.parentCommunityUri
                 ]);
             }
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-            return responses;
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async updateUserBookmarkedCommunities(communities) {
             let communityUriArr = [];
@@ -4937,8 +4940,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     communityUri
                 ]);
             }
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async submitCommunityPost(info) {
             const community = info.community;
@@ -4970,9 +4973,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 ]);
             }
             console.log('submitCommunityPost', event);
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-            return responses;
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async submitChannelMessage(info) {
             let event = {
@@ -5001,8 +5003,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     "root"
                 ]);
             }
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async updateUserProfile(content) {
             let event = {
@@ -5011,8 +5013,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 "content": JSON.stringify(content),
                 "tags": []
             };
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async sendMessage(receiver, encryptedMessage, replyToEventId) {
             const decodedPubKey = receiver.startsWith('npub1') ? index_3.Nip19.decode(receiver).data : receiver;
@@ -5030,8 +5032,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             if (replyToEventId) {
                 event.tags.push(['e', replyToEventId]);
             }
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async updateGroupKeys(identifier, groupKind, keys, invitees) {
             let event = {
@@ -5062,9 +5064,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     "invitee"
                 ]);
             }
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-            return responses;
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async updateCalendarEvent(info) {
             let kind;
@@ -5152,10 +5153,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     info.city
                 ]);
             }
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-            const failedResponses = responses.filter(response => !response.success); //FIXME: Handle failed responses
-            return responses;
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async createCalendarEventRSVP(rsvpId, calendarEventUri, accepted) {
             let event = {
@@ -5182,9 +5181,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     ]
                 ]
             };
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-            return responses;
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async submitCalendarEventPost(info) {
             let event = {
@@ -5205,9 +5203,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     "root"
                 ]);
             }
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-            return responses;
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async submitLongFormContentEvents(info) {
             let hashtags = [];
@@ -5258,9 +5255,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     info.publishedAt.toString()
                 ]);
             }
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-            return verifiedEvent.id;
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async submitLike(tags) {
             let event = {
@@ -5269,8 +5265,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 "content": "+",
                 "tags": tags
             };
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async submitRepost(content, tags) {
             let event = {
@@ -5279,8 +5275,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 "content": content,
                 "tags": tags
             };
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async updateRelayList(relays) {
             let event = {
@@ -5301,8 +5297,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     tag.push(read ? 'read' : 'write');
                 event.tags.push(tag);
             }
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async createPaymentRequestEvent(paymentRequest, amount, comment, isLightningInvoice) {
             let hash = index_3.Event.getPaymentRequestHash(paymentRequest);
@@ -5325,8 +5321,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     ]
                 ]
             };
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async createPaymentReceiptEvent(requestEventId, recipient, comment, preimage, tx) {
             let event = {
@@ -5356,8 +5352,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     tx
                 ]);
             }
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async updateCommunityPinnedNotes(creatorId, communityId, eventIds) {
             const communityUri = utilsManager_1.SocialUtilsManager.getCommunityUri(creatorId, communityId);
@@ -5374,8 +5370,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     ...tags
                 ]
             };
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async updateUserPinnedNotes(eventIds) {
             let tags = eventIds.map(id => ["e", id]);
@@ -5385,8 +5381,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 "content": "",
                 "tags": tags
             };
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async updateUserBookmarks(tags) {
             let event = {
@@ -5395,8 +5391,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 "content": "",
                 "tags": [...tags]
             };
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            const result = this.handleEventSubmission(event);
+            return result;
         }
         async updateUserEthWalletAccountsInfo(options, privateKey) {
             let event = {
@@ -5414,9 +5410,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     ]
                 ]
             };
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey || privateKey);
-            const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-            return responses;
+            const result = this.handleEventSubmission(event);
+            return result;
         }
     }
     exports.NostrEventManagerWrite = NostrEventManagerWrite;
@@ -6352,6 +6347,17 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
         async fetchSubcommunites(options) {
             return []; // Not supported
         }
+        async fetchCommunityDetailMetadata(options) {
+            const { communityCreatorId, communityName } = options;
+            const decodedCreatorId = communityCreatorId.startsWith('npub1') ? index_4.Nip19.decode(communityCreatorId).data : communityCreatorId;
+            let request = {
+                kinds: [34550],
+                authors: [decodedCreatorId],
+                "#d": communityName
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            return fetchEventsResponse.events;
+        }
     }
     exports.NostrEventManagerRead = NostrEventManagerRead;
 });
@@ -7114,6 +7120,16 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 communityName
             });
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-subcommunities', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchCommunityDetailMetadata(options) {
+            const { communityCreatorId, communityName } = options;
+            const communityPubkey = communityCreatorId.startsWith('npub1') ? index_5.Nip19.decode(communityCreatorId).data : communityCreatorId;
+            let msg = this.augmentWithAuthInfo({
+                communityPubkey,
+                communityName
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-detail-metadata', msg);
             return fetchEventsResponse.events || [];
         }
     }
@@ -7986,6 +8002,11 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             let result = [];
             const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunitiesFeed({ pubKey, since, until });
             const statsEvents = events.filter(event => event.kind === 10000100);
+            // const {
+            //     notes,
+            //     metadataByPubKeyMap,
+            //     quotedNotesMap
+            // } = this.createNoteEventMappings(feedEvents);
             let noteStatsMap = {};
             for (let event of statsEvents) {
                 const content = utilsManager_5.SocialUtilsManager.parseContent(event.content);
@@ -8317,11 +8338,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 memberIds = Array.from(new Set(memberIds));
                 await this._socialEventManagerWrite.updateGroupKeys(communityUri + ':keys', 34550, JSON.stringify(communityKeys.encryptedGroupKeys), memberIds);
                 if (communityInfo.scpData) {
-                    const updateChannelResponses = await this.updateCommunityChannel(communityInfo);
-                    //FIXME: fix this when the relay is fixed
-                    const updateChannelResponse = updateChannelResponses.find(v => v.success && !!v.eventId);
-                    if (updateChannelResponse?.eventId) {
-                        communityInfo.scpData.channelEventId = updateChannelResponse.eventId;
+                    const result = await this.updateCommunityChannel(communityInfo);
+                    if (result.event.id) {
+                        communityInfo.scpData.channelEventId = result.event.id;
                     }
                 }
             }
@@ -8386,11 +8405,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 ...channelInfo.scpData,
                 publicKey: channelKeys.groupPublicKey
             };
-            const updateChannelResponses = await this._socialEventManagerWrite.updateChannel(channelInfo);
-            //FIXME: fix this when the relay is fixed
-            const updateChannelResponse = updateChannelResponses.find(v => v.success && !!v.eventId);
-            if (updateChannelResponse?.eventId) {
-                const channelUri = `40:${updateChannelResponse.eventId}`;
+            const result = await this._socialEventManagerWrite.updateChannel(channelInfo);
+            if (result.event.id) {
+                const channelUri = `40:${result.event.id}`;
                 await this._socialEventManagerWrite.updateGroupKeys(channelUri + ':keys', 40, JSON.stringify(channelKeys.encryptedGroupKeys), memberIds);
             }
             return channelInfo;
@@ -9762,6 +9779,31 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 console.error('fetchSubCommunities', error);
             }
             return communities;
+        }
+        async fetchCommunityDetailMetadata(creatorId, communityId) {
+            const events = await this._socialEventManagerRead.fetchCommunityDetailMetadata({
+                communityCreatorId: creatorId,
+                communityName: communityId
+            });
+            const communityEvent = events.find(event => event.kind === 34550);
+            if (!communityEvent)
+                return null;
+            const communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(communityEvent);
+            const statsEvent = events.find(event => event.kind === 10000105);
+            let stats;
+            if (statsEvent) {
+                const content = utilsManager_5.SocialUtilsManager.parseContent(statsEvent.content);
+                stats = {
+                    notesCount: content.note_count,
+                    membersCount: content.member_count,
+                    subcommunitiesCount: content.subcommunity_count
+                };
+            }
+            let detailMetadata = {
+                info: communityInfo,
+                stats
+            };
+            return detailMetadata;
         }
     }
     exports.SocialDataManager = SocialDataManager;

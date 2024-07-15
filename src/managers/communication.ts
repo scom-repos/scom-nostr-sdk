@@ -216,7 +216,6 @@ class NostrWebSocketManager implements INostrCommunicationManager {
             let msg = JSON.stringify(["EVENT", event]);
             const { ws, error } = await this.establishConnection(event.id, (message) => {
                 resolve({
-                    eventId: message[1],
                     success: message[2],
                     message: message[3],
                     relay: this.url
@@ -224,9 +223,8 @@ class NostrWebSocketManager implements INostrCommunicationManager {
             });
             if (error) {
                 resolve({
-                    eventId: event.id,
                     success: false,
-                    message: error   ,
+                    message: error,
                     relay: this.url         
                 });
             }

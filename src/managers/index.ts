@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, IConversationPath, IEthWalletAccountsInfo, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId, SocialDataManagerOptions } from "../utils/interfaces";
+import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICommunity, ICommunityBasicInfo, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunityStats, IConversationPath, IEthWalletAccountsInfo, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId, SocialDataManagerOptions } from "../utils/interfaces";
 import {
     INostrCommunicationManager,
     INostrRestAPIManager,
@@ -908,6 +908,12 @@ class SocialDataManager {
         let result: INoteInfoExtended[] = [];
         const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunitiesFeed({ pubKey, since, until });
         const statsEvents = events.filter(event => event.kind === 10000100);
+
+        // const {
+        //     notes,
+        //     metadataByPubKeyMap,
+        //     quotedNotesMap
+        // } = this.createNoteEventMappings(feedEvents);
         let noteStatsMap: Record<string, IPostStats> = {};
         for (let event of statsEvents) {
             const content = SocialUtilsManager.parseContent(event.content);
@@ -1260,11 +1266,9 @@ class SocialDataManager {
                 memberIds
             );
             if (communityInfo.scpData) {
-                const updateChannelResponses = await this.updateCommunityChannel(communityInfo);
-                //FIXME: fix this when the relay is fixed
-                const updateChannelResponse = updateChannelResponses.find(v => v.success && !!v.eventId);
-                if (updateChannelResponse?.eventId) {
-                    communityInfo.scpData.channelEventId = updateChannelResponse.eventId;
+                const result = await this.updateCommunityChannel(communityInfo);
+                if (result.event.id) {
+                    communityInfo.scpData.channelEventId = result.event.id;
                 }
             }
         }
@@ -1338,11 +1342,9 @@ class SocialDataManager {
             ...channelInfo.scpData,
             publicKey: channelKeys.groupPublicKey
         }
-        const updateChannelResponses = await this._socialEventManagerWrite.updateChannel(channelInfo);
-        //FIXME: fix this when the relay is fixed
-        const updateChannelResponse = updateChannelResponses.find(v => v.success && !!v.eventId);
-        if (updateChannelResponse?.eventId) {
-            const channelUri = `40:${updateChannelResponse.eventId}`;
+        const result = await this._socialEventManagerWrite.updateChannel(channelInfo);
+        if (result.event.id) {
+            const channelUri = `40:${result.event.id}`;
             await this._socialEventManagerWrite.updateGroupKeys(
                 channelUri + ':keys',
                 40,
@@ -2786,6 +2788,34 @@ class SocialDataManager {
             console.error('fetchSubCommunities', error);
         }
         return communities;
+    }
+
+
+    async fetchCommunityDetailMetadata(creatorId: string, communityId: string) {
+        const events = await this._socialEventManagerRead.fetchCommunityDetailMetadata({
+            communityCreatorId: creatorId,
+            communityName: communityId
+        });
+
+        const communityEvent = events.find(event => event.kind === 34550);
+        if (!communityEvent) return null;
+        const communityInfo = SocialUtilsManager.extractCommunityInfo(communityEvent);
+        const statsEvent = events.find(event => event.kind === 10000105);
+        let stats: ICommunityStats;
+        if (statsEvent) {
+            const content = SocialUtilsManager.parseContent(statsEvent.content);
+            stats = {
+                notesCount: content.note_count,
+                membersCount: content.member_count,
+                subcommunitiesCount: content.subcommunity_count 
+            }
+        }
+        let detailMetadata: ICommunityDetailMetadata = {
+            info: communityInfo,
+            stats
+        }
+        
+        return detailMetadata;
     }
 }
 

@@ -22,10 +22,9 @@ export interface INostrFetchEventsResponse {
 }
 
 export interface INostrSubmitResponse {
-	eventId: string;
+	relay: string;
 	success: boolean;
 	message?: string;
-	relay?: string;
 }
 
 export interface INostrMetadataContent {
@@ -488,7 +487,16 @@ export interface IEthWalletAccountsInfo {
 	eventData?: INostrEvent;
 }
 
+export interface ICommunityStats {
+	notesCount: number;
+	subcommunitiesCount: number;
+	membersCount: number;
+}
 
+export interface ICommunityDetailMetadata {
+	info: ICommunityInfo;
+	stats: ICommunityStats;
+}
 
 export interface INostrCommunicationManager {
     fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
@@ -499,6 +507,11 @@ export interface ISocialEventManagerReadResult {
 	error?: string;
 	events?: INostrEvent[];
 	data?: any;
+}
+
+export interface ISocialEventManagerWriteResult {
+	relayResponses: INostrSubmitResponse[];
+	event: INostrEvent;
 }
 
 export namespace SocialDataManagerOptions {
@@ -591,6 +604,10 @@ export namespace SocialEventManagerReadOptions {
 		communityUriArr: string[];
 		since?: number;
 		until?: number;
+	}
+	export interface IFetchCommunityDetailMetadata {
+		communityCreatorId: string;
+		communityName: string;
 	}
 	export interface IFetchCommunitiesGeneralMembers {
 		communities: ICommunityBasicInfo[];
@@ -724,6 +741,7 @@ export interface ISocialEventManagerRead {
 	fetchCommunitiesMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesMetadataFeed): Promise<INostrEvent[]>;
 	fetchCommunityMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunityMetadataFeed): Promise<INostrEvent[]>;
 	fetchCommunityFeed(options: SocialEventManagerReadOptions.IFetchCommunityFeed): Promise<INostrEvent[]>;
+	fetchCommunityDetailMetadata(options: SocialEventManagerReadOptions.IFetchCommunityDetailMetadata): Promise<INostrEvent[]>;
 	// fetchCommunitiesFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesFeed): Promise<INostrEvent[]>;
 	fetchCommunitiesGeneralMembers(options: SocialEventManagerReadOptions.IFetchCommunitiesGeneralMembers): Promise<INostrEvent[]>;
 	// fetchNotes(options: IFetchNotesOptions): Promise<INostrEvent[]>;
@@ -773,31 +791,31 @@ export namespace SocialEventManagerWriteOptions {
 export interface ISocialEventManagerWrite {
     nostrCommunicationManagers: INostrCommunicationManager[];
     privateKey: string;
-    updateContactList(content: string, contactPubKeys: string[]): Promise<void>;
-    postNote(content: string, conversationPath?: IConversationPath, createdAt?: number): Promise<string>;
-    deleteEvents(eventIds: string[]): Promise<INostrSubmitResponse[]>;
-    updateCommunity(info: ICommunityInfo): Promise<INostrSubmitResponse[]>;
-    updateChannel(info: IChannelInfo): Promise<INostrSubmitResponse[]>;
-    updateUserBookmarkedChannels(channelEventIds: string[]): Promise<void>;
-    submitChannelMessage(info: INewChannelMessageInfo): Promise<void>;
-    updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[]): Promise<void>;
-    submitCommunityPost(info: INewCommunityPostInfo): Promise<INostrSubmitResponse[]>;
-    updateUserProfile(content: INostrMetadataContent): Promise<void>;
-    sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<void>;
-    updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]): Promise<INostrSubmitResponse[]>;
-    updateCalendarEvent(info: IUpdateCalendarEventInfo): Promise<INostrSubmitResponse[]>;
-    createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean): Promise<INostrSubmitResponse[]>;
-    submitCalendarEventPost(info: INewCalendarEventPostInfo): Promise<INostrSubmitResponse[]>;
-    submitLongFormContentEvents(info: ILongFormContentInfo): Promise<string>;
-    submitLike(tags: string[][]): Promise<void>;
-    submitRepost(content: string, tags: string[][]): Promise<void>;
-    updateRelayList(relays: Record<string, IRelayConfig>): Promise<void>;
-    createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, isLightningInvoice?: boolean): Promise<void>;
-    createPaymentReceiptEvent(requestEventId: string, recipient: string, comment: string, preimage?: string, tx?: string): Promise<void>;
-    updateCommunityPinnedNotes(creatorId: string, communityId: string, eventIds: string[]): Promise<void>;
-    updateUserPinnedNotes(eventIds: string[]): Promise<void>;
-    updateUserBookmarks(tags: string[][]): Promise<void>;
-	updateUserEthWalletAccountsInfo(options: SocialEventManagerWriteOptions.IUpdateUserEthWalletAccountsInfo, privateKey?: string): Promise<INostrSubmitResponse[]>;
+    updateContactList(content: string, contactPubKeys: string[]): Promise<ISocialEventManagerWriteResult>;
+    postNote(content: string, conversationPath?: IConversationPath, createdAt?: number): Promise<ISocialEventManagerWriteResult>;
+    deleteEvents(eventIds: string[]): Promise<ISocialEventManagerWriteResult>;
+    updateCommunity(info: ICommunityInfo): Promise<ISocialEventManagerWriteResult>;
+    updateChannel(info: IChannelInfo): Promise<ISocialEventManagerWriteResult>;
+    updateUserBookmarkedChannels(channelEventIds: string[]): Promise<ISocialEventManagerWriteResult>;
+    submitChannelMessage(info: INewChannelMessageInfo): Promise<ISocialEventManagerWriteResult>;
+    updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[]): Promise<ISocialEventManagerWriteResult>;
+    submitCommunityPost(info: INewCommunityPostInfo): Promise<ISocialEventManagerWriteResult>;
+    updateUserProfile(content: INostrMetadataContent): Promise<ISocialEventManagerWriteResult>;
+    sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<ISocialEventManagerWriteResult>;
+    updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]): Promise<ISocialEventManagerWriteResult>;
+    updateCalendarEvent(info: IUpdateCalendarEventInfo): Promise<ISocialEventManagerWriteResult>;
+    createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean): Promise<ISocialEventManagerWriteResult>;
+    submitCalendarEventPost(info: INewCalendarEventPostInfo): Promise<ISocialEventManagerWriteResult>;
+    submitLongFormContentEvents(info: ILongFormContentInfo): Promise<ISocialEventManagerWriteResult>;
+    submitLike(tags: string[][]): Promise<ISocialEventManagerWriteResult>;
+    submitRepost(content: string, tags: string[][]): Promise<ISocialEventManagerWriteResult>;
+    updateRelayList(relays: Record<string, IRelayConfig>): Promise<ISocialEventManagerWriteResult>;
+    createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, isLightningInvoice?: boolean): Promise<ISocialEventManagerWriteResult>;
+    createPaymentReceiptEvent(requestEventId: string, recipient: string, comment: string, preimage?: string, tx?: string): Promise<ISocialEventManagerWriteResult>;
+    updateCommunityPinnedNotes(creatorId: string, communityId: string, eventIds: string[]): Promise<ISocialEventManagerWriteResult>;
+    updateUserPinnedNotes(eventIds: string[]): Promise<ISocialEventManagerWriteResult>;
+    updateUserBookmarks(tags: string[][]): Promise<ISocialEventManagerWriteResult>;
+	updateUserEthWalletAccountsInfo(options: SocialEventManagerWriteOptions.IUpdateUserEthWalletAccountsInfo, privateKey?: string): Promise<ISocialEventManagerWriteResult>;
 }
 
 export interface INostrRestAPIManager extends INostrCommunicationManager {

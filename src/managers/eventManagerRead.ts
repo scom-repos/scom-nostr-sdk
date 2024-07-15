@@ -990,6 +990,18 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
     async fetchSubcommunites(options: SocialEventManagerReadOptions.IFetchSubcommunites) {
         return []; // Not supported
     }
+
+    async fetchCommunityDetailMetadata(options: SocialEventManagerReadOptions.IFetchCommunityDetailMetadata) {
+        const {communityCreatorId, communityName} = options;
+        const decodedCreatorId = communityCreatorId.startsWith('npub1') ? Nip19.decode(communityCreatorId).data : communityCreatorId;
+        let request: any = {
+            kinds: [34550],
+            authors: [decodedCreatorId],
+            "#d": communityName
+        };
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+        return fetchEventsResponse.events;
+    }
 }
 
 export {

@@ -62,5 +62,6 @@ declare class NostrEventManagerRead implements ISocialEventManagerRead {
     fetchTrendingCommunities(): Promise<any>;
     fetchUserEthWalletAccountsInfo(options: SocialEventManagerReadOptions.IFetchUserEthWalletAccountsInfo): Promise<INostrEvent>;
     fetchSubcommunites(options: SocialEventManagerReadOptions.IFetchSubcommunites): Promise<any[]>;
+    fetchCommunityDetailMetadata(options: SocialEventManagerReadOptions.IFetchCommunityDetailMetadata): Promise<INostrEvent[]>;
 }
 export { NostrEventManagerRead };

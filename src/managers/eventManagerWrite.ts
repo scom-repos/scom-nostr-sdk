@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, ILongFormContentInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityPostInfo, INostrMetadataContent, INostrSubmitResponse, IRelayConfig, ISocialEventManagerWrite, IUpdateCalendarEventInfo,  MembershipType,  ScpStandardId, SocialEventManagerWriteOptions } from "../utils/interfaces";
+import { CalendarEventType, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, ILongFormContentInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityPostInfo, INostrEvent, INostrMetadataContent, INostrSubmitResponse, IRelayConfig, ISocialEventManagerWrite, IUpdateCalendarEventInfo,  MembershipType,  ScpStandardId, SocialEventManagerWriteOptions } from "../utils/interfaces";
 import {
     INostrCommunicationManager
 } from "./communication";
@@ -69,6 +69,15 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         return tags;
     }
 
+    private async handleEventSubmission(event: Event.EventTemplate<number>) {
+        const verifiedEvent = Event.finishEvent(event, this._privateKey);
+        const relayResponses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        return {
+            event: verifiedEvent,
+            relayResponses
+        }
+    }
+
     async updateContactList(content: string, contactPubKeys: string[]) {
         let event = {
             "kind": 3,
@@ -82,11 +91,11 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 contactPubKey
             ]);
         }
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        const result = this.handleEventSubmission(event);
+        return result;
     }  
 
-    async postNote(content: string, conversationPath?: IConversationPath, createdAt?: number): Promise<string> {
+    async postNote(content: string, conversationPath?: IConversationPath, createdAt?: number) {
         let event = {
             "kind": 1,
             "created_at": createdAt !== undefined ? createdAt : Math.round(Date.now() / 1000),
@@ -97,10 +106,10 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             const conversationPathTags = this.calculateConversationPathTags(conversationPath);
             event.tags = conversationPathTags;
         }
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-        const noteId = Nip19.noteEncode(verifiedEvent.id);
-        return noteId;
+        // const noteId = Nip19.noteEncode(verifiedEvent.id);
+        // return noteId;
+        const result = this.handleEventSubmission(event);
+        return result;
     }
 
     async deleteEvents(eventIds: string[]) {
@@ -117,9 +126,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 decodedEventId
             ]);
         }
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-        return responses;
+        const result = this.handleEventSubmission(event);
+        return result;
     }
 
     async updateChannel(info: IChannelInfo) {
@@ -148,9 +156,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 encodedScpData
             ]);
         }
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-        return responses;
+        const result = this.handleEventSubmission(event);
+        return result;
     }
 
     async updateUserBookmarkedChannels(channelEventIds: string[]) {
@@ -171,8 +178,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 channelEventId
             ]);
         }
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        const result = this.handleEventSubmission(event);
+        return result;
     }
 
     async updateCommunity(info: ICommunityInfo) {
@@ -262,9 +269,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 info.parentCommunityUri
             ]);
         }
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-        return responses;
+        const result = this.handleEventSubmission(event);
+        return result;
     }
 
     async updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[]) {
@@ -290,8 +296,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 communityUri
             ]);
         }
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        const result = this.handleEventSubmission(event);
+        return result;
     }
 
     async submitCommunityPost(info: INewCommunityPostInfo) {
@@ -324,9 +330,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             ]);
         }
         console.log('submitCommunityPost', event);
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-        return responses;
+        const result = this.handleEventSubmission(event);
+        return result;
     }
 
     async submitChannelMessage(info: INewChannelMessageInfo) {
@@ -356,8 +361,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 "root"
             ]);
         }
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        const result = this.handleEventSubmission(event);
+        return result;
     }
 
     async updateUserProfile(content: INostrMetadataContent) {
@@ -367,8 +372,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             "content": JSON.stringify(content),
             "tags": []
         };
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        const result = this.handleEventSubmission(event);
+        return result;
     }
   
     async sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string) {
@@ -387,8 +392,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         if (replyToEventId) {
             event.tags.push(['e', replyToEventId]);
         }
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        const result = this.handleEventSubmission(event);
+        return result;
     }
 
     async updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]) {
@@ -420,9 +425,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 "invitee"
             ]);
         }
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-        return responses;
+        const result = this.handleEventSubmission(event);
+        return result;
     }
     
     async updateCalendarEvent(info: IUpdateCalendarEventInfo) {
@@ -511,10 +515,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 info.city
             ]);
         }
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-        const failedResponses = responses.filter(response => !response.success); //FIXME: Handle failed responses
-        return responses;
+        const result = this.handleEventSubmission(event);
+        return result;
     }
 
     async createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean) {
@@ -542,9 +544,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 ]
             ]
         };
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-        return responses;
+        const result = this.handleEventSubmission(event);
+        return result;
     }
 
     async submitCalendarEventPost(info: INewCalendarEventPostInfo) {
@@ -566,9 +567,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 "root"
             ]);
         }
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-        return responses;
+        const result = this.handleEventSubmission(event);
+        return result;
     }
 
     async submitLongFormContentEvents(info: ILongFormContentInfo) {
@@ -620,9 +620,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 info.publishedAt.toString()
             ]);
         }
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-        return verifiedEvent.id;
+        const result = this.handleEventSubmission(event);
+        return result;
     }
 
     async submitLike(tags: string[][]) {
@@ -632,8 +631,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             "content": "+",
             "tags": tags
         };
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        const result = this.handleEventSubmission(event);
+        return result;
     }
 
     async submitRepost(content: string, tags: string[][]) {
@@ -643,8 +642,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             "content": content,
             "tags": tags
         };
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        const result = this.handleEventSubmission(event);
+        return result;
     }
 
     async updateRelayList(relays: Record<string, IRelayConfig>) {
@@ -664,8 +663,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             if (!read || !write) tag.push(read ? 'read' : 'write');
             event.tags.push(tag)
         }
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        const result = this.handleEventSubmission(event);
+        return result;
     }
 
     async createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, isLightningInvoice?: boolean) {
@@ -689,8 +688,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 ]
             ]
         };
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        const result = this.handleEventSubmission(event);
+        return result;
     }
 
     async createPaymentReceiptEvent(requestEventId: string, recipient: string, comment: string, preimage?: string, tx?: string) {
@@ -725,8 +724,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 ]
             );
         }
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        const result = this.handleEventSubmission(event);
+        return result;
     }
 
     async updateCommunityPinnedNotes(creatorId: string, communityId: string, eventIds: string[]) {
@@ -744,8 +743,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 ...tags
             ]
         };
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        const result = this.handleEventSubmission(event);
+        return result;
     }
 
     async updateUserPinnedNotes(eventIds: string[]) {
@@ -756,8 +755,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             "content": "",
             "tags": tags
         };
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        const result = this.handleEventSubmission(event);
+        return result;
     }
 
     async updateUserBookmarks(tags: string[][]) {
@@ -767,8 +766,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             "content": "",
             "tags": [ ...tags ]
         };
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        const result = this.handleEventSubmission(event);
+        return result;
     }
 
     async updateUserEthWalletAccountsInfo(options: SocialEventManagerWriteOptions.IUpdateUserEthWalletAccountsInfo, privateKey?: string) {
@@ -787,9 +786,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 ]
             ]
         };
-        const verifiedEvent = Event.finishEvent(event, this._privateKey || privateKey);
-        const responses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-        return responses;
+        const result = this.handleEventSubmission(event);
+        return result;
     }
 }
 

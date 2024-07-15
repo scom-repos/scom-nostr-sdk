@@ -1,4 +1,4 @@
-import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, IConversationPath, IEthWalletAccountsInfo, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, SocialDataManagerOptions } from "../utils/interfaces";
+import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICommunity, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, IConversationPath, IEthWalletAccountsInfo, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, SocialDataManagerOptions } from "../utils/interfaces";
 import { INostrCommunicationManager, INostrRestAPIManager, NostrRestAPIManager, NostrWebSocketManager } from "./communication";
 import { SocialUtilsManager } from "./utilsManager";
 import { NostrEventManagerWrite } from "./eventManagerWrite";
@@ -121,16 +121,16 @@ declare class SocialDataManager {
     }>;
     createCommunity(newInfo: INewCommunityInfo, creatorId: string): Promise<ICommunityInfo>;
     updateCommunity(info: ICommunityInfo): Promise<ICommunityInfo>;
-    updateCommunityChannel(communityInfo: ICommunityInfo): Promise<import("../utils/interfaces").INostrSubmitResponse[]>;
+    updateCommunityChannel(communityInfo: ICommunityInfo): Promise<import("../utils/interfaces").ISocialEventManagerWriteResult>;
     createChannel(channelInfo: IChannelInfo, memberIds: string[]): Promise<IChannelInfo>;
-    updateChannel(channelInfo: IChannelInfo): Promise<import("../utils/interfaces").INostrSubmitResponse[]>;
+    updateChannel(channelInfo: IChannelInfo): Promise<import("../utils/interfaces").ISocialEventManagerWriteResult>;
     fetchCommunitiesMembers(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
     fetchCommunities(query?: string): Promise<ICommunity[]>;
     fetchMyCommunities(pubKey: string): Promise<ICommunity[]>;
     joinCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;
     leaveCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;
     private encryptGroupMessage;
-    submitCommunityPost(message: string, info: ICommunityInfo, conversationPath?: IConversationPath, timestamp?: number, isPublicPost?: boolean): Promise<import("../utils/interfaces").INostrSubmitResponse[]>;
+    submitCommunityPost(message: string, info: ICommunityInfo, conversationPath?: IConversationPath, timestamp?: number, isPublicPost?: boolean): Promise<import("../utils/interfaces").ISocialEventManagerWriteResult>;
     fetchAllUserRelatedChannels(pubKey: string): Promise<IChannelInfo[]>;
     retrieveChannelMessages(channelId: string, since?: number, until?: number): Promise<INostrEvent[]>;
     retrieveChannelEvents(creatorId: string, channelId: string): Promise<{
@@ -158,7 +158,7 @@ declare class SocialDataManager {
     retrieveCalendarEvent(naddr: string): Promise<ICalendarEventDetailInfo>;
     acceptCalendarEvent(rsvpId: string, naddr: string): Promise<void>;
     declineCalendarEvent(rsvpId: string, naddr: string): Promise<void>;
-    submitCalendarEventPost(naddr: string, message: string, conversationPath?: IConversationPath): Promise<string>;
+    submitCalendarEventPost(naddr: string, message: string, conversationPath?: IConversationPath): Promise<any>;
     fetchTimezones(): Promise<any[]>;
     fetchCitiesByKeyword(keyword: string): Promise<any[]>;
     fetchCitiesByCoordinates(latitude: number, longitude: number): Promise<any[]>;
@@ -166,8 +166,8 @@ declare class SocialDataManager {
     private fetchEventMetadataFromIPFS;
     getAccountBalance(walletAddress: string): Promise<any>;
     getNFTsByOwner(walletAddress: string): Promise<any>;
-    submitMessage(message: string, conversationPath?: IConversationPath, createdAt?: number): Promise<string>;
-    submitLongFormContent(info: ILongFormContentInfo): Promise<string>;
+    submitMessage(message: string, conversationPath?: IConversationPath, createdAt?: number): Promise<import("../utils/interfaces").ISocialEventManagerWriteResult>;
+    submitLongFormContent(info: ILongFormContentInfo): Promise<import("../utils/interfaces").ISocialEventManagerWriteResult>;
     submitLike(postEventData: INostrEvent): Promise<void>;
     submitRepost(postEventData: INostrEvent): Promise<void>;
     sendPingRequest(pubkey: string, relayUrl?: string): Promise<any>;
@@ -212,7 +212,8 @@ declare class SocialDataManager {
     deleteEvents(eventIds: string[]): Promise<void>;
     fetchTrendingCommunities(): Promise<ITrendingCommunityInfo[]>;
     fetchUserEthWalletAccountsInfo(options: SocialDataManagerOptions.IFetchUserEthWalletAccountsInfoOptions): Promise<IEthWalletAccountsInfo>;
-    updateUserEthWalletAccountsInfo(info: IEthWalletAccountsInfo, privateKey?: string): Promise<string>;
+    updateUserEthWalletAccountsInfo(info: IEthWalletAccountsInfo, privateKey?: string): Promise<any>;
     fetchSubCommunities(creatorId: string, communityId: string): Promise<ICommunityInfo[]>;
+    fetchCommunityDetailMetadata(creatorId: string, communityId: string): Promise<ICommunityDetailMetadata>;
 }
 export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager, INostrCommunicationManager, INostrRestAPIManager };
