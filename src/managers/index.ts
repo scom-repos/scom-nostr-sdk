@@ -1294,18 +1294,22 @@ class SocialDataManager {
                     memberIds = [...memberIds, ...policy.memberIds];
                 }
             }
-            const groupPrivateKey = await this.retrieveCommunityPrivateKey(info, this._privateKey);
             let encryptedGroupKeys: Record<string, string> = {};
-            for (let encryptionPublicKey of encryptionPublicKeys) {
-                const encryptedGroupKey = await SocialUtilsManager.encryptMessage(this._privateKey, encryptionPublicKey, groupPrivateKey);
-                encryptedGroupKeys[encryptionPublicKey] = encryptedGroupKey;
+            if (info.scpData) {
+                const groupPrivateKey = await this.retrieveCommunityPrivateKey(info, this._privateKey);
+                for (let encryptionPublicKey of encryptionPublicKeys) {
+                    const encryptedGroupKey = await SocialUtilsManager.encryptMessage(this._privateKey, encryptionPublicKey, groupPrivateKey);
+                    encryptedGroupKeys[encryptionPublicKey] = encryptedGroupKey;
+                }
+            } else {
+                const communityKeys = await this.generateGroupKeys(this._privateKey, encryptionPublicKeys);
+                info.scpData = {
+                    ...info.scpData,
+                    publicKey: communityKeys.groupPublicKey,
+                    gatekeeperPublicKey
+                }
+                encryptedGroupKeys = communityKeys.encryptedGroupKeys;
             }
-            // const communityKeys = await this.generateGroupKeys(this._privateKey, encryptionPublicKeys);
-            // info.scpData = {
-            //     ...info.scpData,
-            //     publicKey: communityKeys.groupPublicKey,
-            //     gatekeeperPublicKey
-            // }
             memberIds = Array.from(new Set(memberIds));
             const response = await this._socialEventManagerWrite.updateGroupKeys(
                 info.communityUri + ':keys',
