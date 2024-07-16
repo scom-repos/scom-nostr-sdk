@@ -8364,18 +8364,23 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                         memberIds = [...memberIds, ...policy.memberIds];
                     }
                 }
-                const groupPrivateKey = await this.retrieveCommunityPrivateKey(info, this._privateKey);
                 let encryptedGroupKeys = {};
-                for (let encryptionPublicKey of encryptionPublicKeys) {
-                    const encryptedGroupKey = await utilsManager_5.SocialUtilsManager.encryptMessage(this._privateKey, encryptionPublicKey, groupPrivateKey);
-                    encryptedGroupKeys[encryptionPublicKey] = encryptedGroupKey;
+                if (info.scpData) {
+                    const groupPrivateKey = await this.retrieveCommunityPrivateKey(info, this._privateKey);
+                    for (let encryptionPublicKey of encryptionPublicKeys) {
+                        const encryptedGroupKey = await utilsManager_5.SocialUtilsManager.encryptMessage(this._privateKey, encryptionPublicKey, groupPrivateKey);
+                        encryptedGroupKeys[encryptionPublicKey] = encryptedGroupKey;
+                    }
                 }
-                // const communityKeys = await this.generateGroupKeys(this._privateKey, encryptionPublicKeys);
-                // info.scpData = {
-                //     ...info.scpData,
-                //     publicKey: communityKeys.groupPublicKey,
-                //     gatekeeperPublicKey
-                // }
+                else {
+                    const communityKeys = await this.generateGroupKeys(this._privateKey, encryptionPublicKeys);
+                    info.scpData = {
+                        ...info.scpData,
+                        publicKey: communityKeys.groupPublicKey,
+                        gatekeeperPublicKey
+                    };
+                    encryptedGroupKeys = communityKeys.encryptedGroupKeys;
+                }
                 memberIds = Array.from(new Set(memberIds));
                 const response = await this._socialEventManagerWrite.updateGroupKeys(info.communityUri + ':keys', 34550, JSON.stringify(encryptedGroupKeys), memberIds);
             }
