@@ -118,6 +118,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
 
     async fetchUserProfileCacheEvents(options: SocialEventManagerReadOptions.IFetchUserProfileCacheEvents) {
         const {pubKeys} = options;
+        if (!pubKeys) return [];
         const decodedPubKeys = pubKeys.map(pubKey => pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey);
         let msg: any = {
             pubkeys: decodedPubKeys
@@ -128,6 +129,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
 
     async fetchUserProfileDetailCacheEvents(options: SocialEventManagerReadOptions.IFetchUserProfileDetailCacheEvents) {
         const {pubKey} = options;
+        if (!pubKey) return [];
         const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
         let msg: any = {
             pubkey: decodedPubKey,

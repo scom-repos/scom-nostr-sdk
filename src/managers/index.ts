@@ -254,15 +254,11 @@ class SocialDataManager {
         return communityPrivateKey;
     }
 
-    private async constructCommunityNoteIdToPrivateKeyMap(creatorId: string, communityId: string) {
+    private async constructCommunityNoteIdToPrivateKeyMap(communityInfo: ICommunityInfo, noteInfoList: INoteInfo[]) {
         let noteIdToPrivateKey: Record<string, string> = {};
-        const communityEvents = await this.retrieveCommunityEvents(creatorId, communityId);
-        if (!communityEvents) return noteIdToPrivateKey;
-        const communityInfo = communityEvents.info;
-        const notes = communityEvents.notes;
         let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
         if (!communityPrivateKey) return noteIdToPrivateKey;
-        for (const note of notes) {
+        for (const note of noteInfoList) {
             const postPrivateKey = await this.retrievePostPrivateKey(note.eventData, communityInfo.communityUri, communityPrivateKey);
             if (postPrivateKey) {
                 noteIdToPrivateKey[note.eventData.id] = postPrivateKey;
@@ -272,12 +268,13 @@ class SocialDataManager {
     }
 
     async retrieveCommunityPostKeys(options: IRetrieveCommunityPostKeysOptions) {
+        const {communityInfo, noteInfoList} = options;
         let noteIdToPrivateKey: Record<string, string> = {};
         const policyTypes = options.policies?.map(v => v.policyType) || [];  
         if (policyTypes.includes(ProtectedMembershipPolicyType.TokenExclusive) && options.gatekeeperUrl) {
             let bodyData = SocialUtilsManager.augmentWithAuthInfo({
-                creatorId: options.creatorId,
-                communityId: options.communityId,
+                creatorId: communityInfo.creatorId,
+                communityId: communityInfo.communityId,
                 message: options.message,
                 signature: options.signature
             }, this._privateKey);
@@ -296,7 +293,10 @@ class SocialDataManager {
             }
         }
         else {
-            const inviteOnlyNoteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(options.creatorId, options.communityId);
+            const inviteOnlyNoteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(
+                communityInfo, 
+                noteInfoList
+            );
             noteIdToPrivateKey = {
                 ...noteIdToPrivateKey,
                 ...inviteOnlyNoteIdToPrivateKey
@@ -456,9 +456,18 @@ class SocialDataManager {
         //         }
         //     }
         // }
+        // const noteInfoList = options.notes.map(v => v.eventData);
+
         for (let communityUri in inviteOnlyCommunityNotesMap) {
             for (let noteCommunityInfo of inviteOnlyCommunityNotesMap[communityUri]) {
-                const inviteOnlyNoteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(noteCommunityInfo.creatorId, noteCommunityInfo.communityId);
+                const communityInfo = communityInfoMap[communityUri];
+                const noteInfo = {
+                    eventData: noteCommunityInfo.eventData
+                }
+                const inviteOnlyNoteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(
+                    communityInfo, 
+                    [noteInfo]
+                );
                 noteIdToPrivateKey = {
                     ...noteIdToPrivateKey,
                     ...inviteOnlyNoteIdToPrivateKey

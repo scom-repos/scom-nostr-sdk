@@ -5557,6 +5557,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
         }
         async fetchUserProfileCacheEvents(options) {
             const { pubKeys } = options;
+            if (!pubKeys)
+                return [];
             const decodedPubKeys = pubKeys.map(pubKey => pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey);
             let msg = {
                 pubkeys: decodedPubKeys
@@ -5566,6 +5568,8 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
         }
         async fetchUserProfileDetailCacheEvents(options) {
             const { pubKey } = options;
+            if (!pubKey)
+                return [];
             const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
             let msg = {
                 pubkey: decodedPubKey,
@@ -6587,6 +6591,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
         }
         async fetchUserProfileCacheEvents(options) {
             let { pubKeys } = options;
+            if (!pubKeys)
+                return [];
             const decodedPubKeys = pubKeys.map(pubKey => pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey);
             let msg = this.augmentWithAuthInfo({
                 pubkeys: decodedPubKeys
@@ -6597,6 +6603,8 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
         }
         async fetchUserProfileDetailCacheEvents(options) {
             let { pubKey } = options;
+            if (!pubKey)
+                return [];
             const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
             let msg = this.augmentWithAuthInfo({
                 pubkey: decodedPubKey
@@ -7566,17 +7574,12 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             }
             return communityPrivateKey;
         }
-        async constructCommunityNoteIdToPrivateKeyMap(creatorId, communityId) {
+        async constructCommunityNoteIdToPrivateKeyMap(communityInfo, noteInfoList) {
             let noteIdToPrivateKey = {};
-            const communityEvents = await this.retrieveCommunityEvents(creatorId, communityId);
-            if (!communityEvents)
-                return noteIdToPrivateKey;
-            const communityInfo = communityEvents.info;
-            const notes = communityEvents.notes;
             let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
             if (!communityPrivateKey)
                 return noteIdToPrivateKey;
-            for (const note of notes) {
+            for (const note of noteInfoList) {
                 const postPrivateKey = await this.retrievePostPrivateKey(note.eventData, communityInfo.communityUri, communityPrivateKey);
                 if (postPrivateKey) {
                     noteIdToPrivateKey[note.eventData.id] = postPrivateKey;
@@ -7585,12 +7588,13 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             return noteIdToPrivateKey;
         }
         async retrieveCommunityPostKeys(options) {
+            const { communityInfo, noteInfoList } = options;
             let noteIdToPrivateKey = {};
             const policyTypes = options.policies?.map(v => v.policyType) || [];
             if (policyTypes.includes(interfaces_6.ProtectedMembershipPolicyType.TokenExclusive) && options.gatekeeperUrl) {
                 let bodyData = utilsManager_5.SocialUtilsManager.augmentWithAuthInfo({
-                    creatorId: options.creatorId,
-                    communityId: options.communityId,
+                    creatorId: communityInfo.creatorId,
+                    communityId: communityInfo.communityId,
                     message: options.message,
                     signature: options.signature
                 }, this._privateKey);
@@ -7609,7 +7613,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 }
             }
             else {
-                const inviteOnlyNoteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(options.creatorId, options.communityId);
+                const inviteOnlyNoteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(communityInfo, noteInfoList);
                 noteIdToPrivateKey = {
                     ...noteIdToPrivateKey,
                     ...inviteOnlyNoteIdToPrivateKey
@@ -7770,9 +7774,14 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             //         }
             //     }
             // }
+            // const noteInfoList = options.notes.map(v => v.eventData);
             for (let communityUri in inviteOnlyCommunityNotesMap) {
                 for (let noteCommunityInfo of inviteOnlyCommunityNotesMap[communityUri]) {
-                    const inviteOnlyNoteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(noteCommunityInfo.creatorId, noteCommunityInfo.communityId);
+                    const communityInfo = communityInfoMap[communityUri];
+                    const noteInfo = {
+                        eventData: noteCommunityInfo.eventData
+                    };
+                    const inviteOnlyNoteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(communityInfo, [noteInfo]);
                     noteIdToPrivateKey = {
                         ...noteIdToPrivateKey,
                         ...inviteOnlyNoteIdToPrivateKey
