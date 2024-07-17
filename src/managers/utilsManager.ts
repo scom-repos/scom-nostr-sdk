@@ -1,6 +1,6 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, INostrEvent, MembershipType, ScpStandardId } from "../utils/interfaces";
+import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, INostrEvent, INostrMetadata, IUserProfile, MembershipType, ScpStandardId } from "../utils/interfaces";
 import { Signer } from "@scom/scom-signer";
 
 class SocialUtilsManager {
@@ -292,6 +292,36 @@ class SocialUtilsManager {
                 signature
             }
         }
+    }
+
+    static constructUserProfile(metadata: INostrMetadata, followersCountMap?: Record<string, number>) {
+        const followersCount = followersCountMap?.[metadata.pubkey] || 0;
+        const encodedPubkey = Nip19.npubEncode(metadata.pubkey);
+        const metadataContent = metadata.content;
+        const internetIdentifier = typeof metadataContent.nip05 === 'string' ? metadataContent.nip05?.replace('_@', '') || '' : '';
+        let userProfile: IUserProfile = {
+            id: encodedPubkey,
+            username: metadataContent.username || metadataContent.name,
+            description: metadataContent.about,
+            avatar: metadataContent.picture,
+            npub: encodedPubkey,
+            pubkey: metadata.pubkey,
+            displayName: metadataContent.display_name || metadataContent.displayName || metadataContent.name,
+            internetIdentifier,
+            website: metadataContent.website,
+            banner: metadataContent.banner,
+            followers: followersCount,
+            lud16: metadataContent.lud16,
+            metadata,
+        }
+        return userProfile;
+    }
+
+    //FIXME: remove this when compiler is fixed
+    static flatMap<T, U>(array: T[], callback: (item: T) => U[]): U[] {
+        return array.reduce((acc, item) => {
+            return acc.concat(callback(item));
+        }, [] as U[]);
     }
 }
 

@@ -1,4 +1,4 @@
-import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, INostrEvent } from "../utils/interfaces";
+import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, INostrEvent, INostrMetadata, IUserProfile } from "../utils/interfaces";
 declare class SocialUtilsManager {
     static hexStringToUint8Array(hexString: string): Uint8Array;
     static base64ToUtf8(base64: string): string;
@@ -18,5 +18,7 @@ declare class SocialUtilsManager {
     static parseContent(content: string): any;
     static extractChannelInfo(event: INostrEvent): IChannelInfo;
     static augmentWithAuthInfo(obj: Record<string, any>, privateKey: string): Record<string, any>;
+    static constructUserProfile(metadata: INostrMetadata, followersCountMap?: Record<string, number>): IUserProfile;
+    static flatMap<T, U>(array: T[], callback: (item: T) => U[]): U[];
 }
 export { SocialUtilsManager };

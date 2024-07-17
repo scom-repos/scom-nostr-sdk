@@ -108,7 +108,6 @@ declare class SocialDataManager {
         userProfile: IUserProfile;
         stats: IUserActivityStats;
     }>;
-    private constructUserProfile;
     fetchUserContactList(pubKey: string): Promise<IUserProfile[]>;
     fetchUserFollowersList(pubKey: string): Promise<IUserProfile[]>;
     fetchUserRelayList(pubKey: string): Promise<string[]>;
@@ -148,7 +147,6 @@ declare class SocialDataManager {
     resetMessageCount(selfPubKey: string, senderPubKey: string): Promise<void>;
     fetchMessageContacts(pubKey: string): Promise<IMessageContactInfo[]>;
     fetchUserGroupInvitations(pubKey: string): Promise<string[]>;
-    private mapCommunityUriToMemberIdRoleCombo;
     private extractCalendarEventInfo;
     updateCalendarEvent(updateCalendarEventInfo: IUpdateCalendarEventInfo): Promise<string>;
     retrieveCalendarEventsByDateRange(start: number, end?: number, limit?: number, previousEventId?: string): Promise<{

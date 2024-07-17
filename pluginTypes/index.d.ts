@@ -1797,6 +1797,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         fetchTrendingCommunities(): Promise<INostrEvent[]>;
         fetchUserEthWalletAccountsInfo(options: SocialEventManagerReadOptions.IFetchUserEthWalletAccountsInfo): Promise<INostrEvent>;
         fetchSubcommunites(options: SocialEventManagerReadOptions.IFetchSubcommunites): Promise<INostrEvent[]>;
+        getCommunityUriToMembersMap(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
     }
     export namespace SocialEventManagerWriteOptions {
         interface IUpdateUserEthWalletAccountsInfo {
@@ -1980,7 +1981,7 @@ declare module "@scom/scom-social-sdk/utils/lightningWallet.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/utilsManager.ts" />
 declare module "@scom/scom-social-sdk/managers/utilsManager.ts" {
-    import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, INostrEvent } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, INostrEvent, INostrMetadata, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
     class SocialUtilsManager {
         static hexStringToUint8Array(hexString: string): Uint8Array;
         static base64ToUtf8(base64: string): string;
@@ -2004,6 +2005,8 @@ declare module "@scom/scom-social-sdk/managers/utilsManager.ts" {
         static parseContent(content: string): any;
         static extractChannelInfo(event: INostrEvent): IChannelInfo;
         static augmentWithAuthInfo(obj: Record<string, any>, privateKey: string): Record<string, any>;
+        static constructUserProfile(metadata: INostrMetadata, followersCountMap?: Record<string, number>): IUserProfile;
+        static flatMap<T, U>(array: T[], callback: (item: T) => U[]): U[];
     }
     export { SocialUtilsManager };
 }
@@ -2125,7 +2128,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/eventManagerRead.ts" />
 declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
-    import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, INostrEvent, IPaymentActivity, ISocialEventManagerRead, SocialEventManagerReadOptions } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, INostrEvent, IPaymentActivity, ISocialEventManagerRead, SocialEventManagerReadOptions } from "@scom/scom-social-sdk/utils/interfaces.ts";
     import { INostrCommunicationManager } from "@scom/scom-social-sdk/managers/communication.ts";
     class NostrEventManagerRead implements ISocialEventManagerRead {
         protected _nostrCommunicationManager: INostrCommunicationManager;
@@ -2190,12 +2193,13 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         fetchUserEthWalletAccountsInfo(options: SocialEventManagerReadOptions.IFetchUserEthWalletAccountsInfo): Promise<INostrEvent>;
         fetchSubcommunites(options: SocialEventManagerReadOptions.IFetchSubcommunites): Promise<any[]>;
         fetchCommunityDetailMetadata(options: SocialEventManagerReadOptions.IFetchCommunityDetailMetadata): Promise<INostrEvent[]>;
+        getCommunityUriToMembersMap(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
     }
     export { NostrEventManagerRead };
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" />
 declare module "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" {
-    import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IPaymentActivity, ISocialEventManagerRead, SocialEventManagerReadOptions } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, IPaymentActivity, ISocialEventManagerRead, SocialEventManagerReadOptions } from "@scom/scom-social-sdk/utils/interfaces.ts";
     import { INostrRestAPIManager } from "@scom/scom-social-sdk/managers/communication.ts";
     class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         protected _nostrCommunicationManager: INostrRestAPIManager;
@@ -2260,6 +2264,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" {
         fetchUserEthWalletAccountsInfo(options: SocialEventManagerReadOptions.IFetchUserEthWalletAccountsInfo): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent>;
         fetchSubcommunites(options: SocialEventManagerReadOptions.IFetchSubcommunites): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
         fetchCommunityDetailMetadata(options: SocialEventManagerReadOptions.IFetchCommunityDetailMetadata): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
+        getCommunityUriToMembersMap(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
     }
     export { NostrEventManagerReadV1o5 };
 }
@@ -2393,7 +2398,6 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
             userProfile: IUserProfile;
             stats: IUserActivityStats;
         }>;
-        private constructUserProfile;
         fetchUserContactList(pubKey: string): Promise<IUserProfile[]>;
         fetchUserFollowersList(pubKey: string): Promise<IUserProfile[]>;
         fetchUserRelayList(pubKey: string): Promise<string[]>;
@@ -2433,7 +2437,6 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         resetMessageCount(selfPubKey: string, senderPubKey: string): Promise<void>;
         fetchMessageContacts(pubKey: string): Promise<IMessageContactInfo[]>;
         fetchUserGroupInvitations(pubKey: string): Promise<string[]>;
-        private mapCommunityUriToMemberIdRoleCombo;
         private extractCalendarEventInfo;
         updateCalendarEvent(updateCalendarEventInfo: IUpdateCalendarEventInfo): Promise<string>;
         retrieveCalendarEventsByDateRange(start: number, end?: number, limit?: number, previousEventId?: string): Promise<{

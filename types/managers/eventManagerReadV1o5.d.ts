@@ -1,4 +1,4 @@
-import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IPaymentActivity, ISocialEventManagerRead, SocialEventManagerReadOptions } from "../utils/interfaces";
+import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, IPaymentActivity, ISocialEventManagerRead, SocialEventManagerReadOptions } from "../utils/interfaces";
 import { INostrRestAPIManager } from "./communication";
 declare class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     protected _nostrCommunicationManager: INostrRestAPIManager;
@@ -63,5 +63,6 @@ declare class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     fetchUserEthWalletAccountsInfo(options: SocialEventManagerReadOptions.IFetchUserEthWalletAccountsInfo): Promise<import("../utils/interfaces").INostrEvent>;
     fetchSubcommunites(options: SocialEventManagerReadOptions.IFetchSubcommunites): Promise<import("../utils/interfaces").INostrEvent[]>;
     fetchCommunityDetailMetadata(options: SocialEventManagerReadOptions.IFetchCommunityDetailMetadata): Promise<import("../utils/interfaces").INostrEvent[]>;
+    getCommunityUriToMembersMap(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
 }
 export { NostrEventManagerReadV1o5 };

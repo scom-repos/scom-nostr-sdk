@@ -17,13 +17,6 @@ import { NostrEventManagerReadV1o5 } from "./eventManagerReadV1o5";
 import { Crypto } from "@scom/scom-signer";
 import { Contracts, TransactionReceipt, Utils, Wallet } from "@ijstech/eth-wallet";
 
-//FIXME: remove this when compiler is fixed
-function flatMap<T, U>(array: T[], callback: (item: T) => U[]): U[] {
-    return array.reduce((acc, item) => {
-        return acc.concat(callback(item));
-    }, [] as U[]);
-}
-
 class SocialDataManager {
     private _writeRelays: string[];
     private _publicIndexingRelay: string;
@@ -503,41 +496,22 @@ class SocialDataManager {
     }
 
     async fetchUserProfiles(pubKeys: string[]): Promise<IUserProfile[]> {
-        const fetchFromCache = true;
+        if (pubKeys.length === 0) return [];
         let metadataArr: INostrMetadata[] = [];
         let followersCountMap: Record<string, number> = {};
-        const fetchData = async () => {
-            if (fetchFromCache) {
-                const events = await this._socialEventManagerRead.fetchUserProfileCacheEvents({ pubKeys });
-                for (let event of events) {
-                    if (event.kind === 0) {
-                        metadataArr.push({
-                            ...event,
-                            content: SocialUtilsManager.parseContent(event.content)
-                        });
-                    }
-                    else if (event.kind === 10000108) {
-                        followersCountMap = SocialUtilsManager.parseContent(event.content);
-                    }
+        try {
+            const events = await this._socialEventManagerRead.fetchUserProfileCacheEvents({ pubKeys });
+            for (let event of events) {
+                if (event.kind === 0) {
+                    metadataArr.push({
+                        ...event,
+                        content: SocialUtilsManager.parseContent(event.content)
+                    });
+                }
+                else if (event.kind === 10000108) {
+                    followersCountMap = SocialUtilsManager.parseContent(event.content);
                 }
             }
-            // else {
-            //     const metadataEvents = await this._socialEventManagerRead.fetchMetadata({
-            //         authors: pubKeys
-            //     });
-            //     if (metadataEvents.length === 0) return null;
-            //     metadataArr.push({
-            //         ...metadataEvents[0],
-            //         content: JSON.parse(metadataEvents[0].content)
-            //     });
-            // }
-            // if (metadataArr.length == 0) {
-            //     throw new Error(`Metadata not found`);
-            // }
-        };
-        try {
-            // await SocialUtilsManager.exponentialBackoffRetry(fetchData, 5, 1000, 16000, 2);
-            await fetchData();
         }
         catch (error) {
             console.error('fetchUserProfiles', error);
@@ -545,7 +519,7 @@ class SocialDataManager {
         if (metadataArr.length == 0) return null;
         const userProfiles: IUserProfile[] = [];
         for (let metadata of metadataArr) {
-            let userProfile = this.constructUserProfile(metadata, followersCountMap);
+            let userProfile = SocialUtilsManager.constructUserProfile(metadata, followersCountMap);
             userProfiles.push(userProfile);
         }
         return userProfiles;
@@ -1072,34 +1046,11 @@ class SocialDataManager {
             }
         }
         if (!metadata) return null;
-        let userProfile = this.constructUserProfile(metadata);
+        let userProfile = SocialUtilsManager.constructUserProfile(metadata);
         return {
             userProfile,
             stats
         }
-    }
-
-    private constructUserProfile(metadata: INostrMetadata, followersCountMap?: Record<string, number>) {
-        const followersCount = followersCountMap?.[metadata.pubkey] || 0;
-        const encodedPubkey = Nip19.npubEncode(metadata.pubkey);
-        const metadataContent = metadata.content;
-        const internetIdentifier = typeof metadataContent.nip05 === 'string' ? metadataContent.nip05?.replace('_@', '') || '' : '';
-        let userProfile: IUserProfile = {
-            id: encodedPubkey,
-            username: metadataContent.username || metadataContent.name,
-            description: metadataContent.about,
-            avatar: metadataContent.picture,
-            npub: encodedPubkey,
-            pubkey: metadata.pubkey,
-            displayName: metadataContent.display_name || metadataContent.displayName || metadataContent.name,
-            internetIdentifier,
-            website: metadataContent.website,
-            banner: metadataContent.banner,
-            followers: followersCount,
-            lud16: metadataContent.lud16,
-            metadata,
-        }
-        return userProfile;
     }
 
     async fetchUserContactList(pubKey: string) {
@@ -1122,7 +1073,7 @@ class SocialDataManager {
         }
         const userProfiles: IUserProfile[] = [];
         for (let metadata of metadataArr) {
-            let userProfile = this.constructUserProfile(metadata, followersCountMap);
+            let userProfile = SocialUtilsManager.constructUserProfile(metadata, followersCountMap);
             userProfiles.push(userProfile);
         }
         return userProfiles;
@@ -1145,7 +1096,7 @@ class SocialDataManager {
         }
         const userProfiles: IUserProfile[] = [];
         for (let metadata of metadataArr) {
-            let userProfile = this.constructUserProfile(metadata, followersCountMap);
+            let userProfile = SocialUtilsManager.constructUserProfile(metadata, followersCountMap);
             userProfiles.push(userProfile);
         }
         return userProfiles;
@@ -1366,32 +1317,7 @@ class SocialDataManager {
 
     async fetchCommunitiesMembers(communities: ICommunityInfo[]) {
         if (communities.length === 0) return {};
-        const communityUriToMemberIdRoleComboMap = await this.mapCommunityUriToMemberIdRoleCombo(communities);
-        let pubkeys = new Set(flatMap(Object.values(communityUriToMemberIdRoleComboMap), combo => combo.map(c => c.id)));
-        const communityUriToMembersMap: Record<string, ICommunityMember[]> = {};
-        if (pubkeys.size > 0) {
-            const userProfiles = await this.fetchUserProfiles(Array.from(pubkeys));
-            if (!userProfiles) return communityUriToMembersMap;
-            for (let community of communities) {
-                const memberIds = communityUriToMemberIdRoleComboMap[community.communityUri];
-                if (!memberIds) continue;
-                const communityMembers: ICommunityMember[] = [];
-                for (let memberIdRoleCombo of memberIds) {
-                    const userProfile = userProfiles.find(profile => profile.npub === memberIdRoleCombo.id);
-                    if (!userProfile) continue;
-                    let communityMember: ICommunityMember = {
-                        id: userProfile.npub,
-                        name: userProfile.displayName,
-                        profileImageUrl: userProfile.avatar,
-                        username: userProfile.username,
-                        internetIdentifier: userProfile.internetIdentifier,
-                        role: memberIdRoleCombo.role
-                    }
-                    communityMembers.push(communityMember);
-                }
-                communityUriToMembersMap[community.communityUri] = communityMembers;
-            }
-        }
+        const communityUriToMembersMap = await this._socialEventManagerRead.getCommunityUriToMembersMap(communities);
         return communityUriToMembersMap;
     }
 
@@ -1761,44 +1687,95 @@ class SocialDataManager {
         return identifiers;
     }
 
-    private async mapCommunityUriToMemberIdRoleCombo(communities: ICommunityInfo[]) {
-        const communityUriToMemberIdRoleComboMap: Record<string, { id: string; role: CommunityRole }[]> = {};
-        const communityUriToCreatorOrModeratorIdsMap: Record<string, Set<string>> = {};
-        for (let community of communities) {
-            const communityUri = community.communityUri;
-            communityUriToMemberIdRoleComboMap[communityUri] = [];
-            communityUriToMemberIdRoleComboMap[communityUri].push({
-                id: community.creatorId,
-                role: CommunityRole.Creator
-            });
-            communityUriToCreatorOrModeratorIdsMap[communityUri] = new Set<string>();
-            communityUriToCreatorOrModeratorIdsMap[communityUri].add(community.creatorId);
-            if (community.moderatorIds) {
-                for (let moderator of community.moderatorIds) {
-                    if (moderator === community.creatorId) continue;
-                    communityUriToMemberIdRoleComboMap[communityUri].push({
-                        id: moderator,
-                        role: CommunityRole.Moderator
-                    });
-                    communityUriToCreatorOrModeratorIdsMap[communityUri].add(moderator);
-                }
-            }
-        }
-        const generalMembersEvents = await this._socialEventManagerRead.fetchCommunitiesGeneralMembers({ communities });
-        for (let event of generalMembersEvents) {
-            const communityUriArr = event.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
-            for (let communityUri of communityUriArr) {
-                if (!communityUriToMemberIdRoleComboMap[communityUri]) continue;
-                const pubkey = Nip19.npubEncode(event.pubkey);
-                if (communityUriToCreatorOrModeratorIdsMap[communityUri].has(pubkey)) continue;
-                communityUriToMemberIdRoleComboMap[communityUri].push({
-                    id: pubkey,
-                    role: CommunityRole.GeneralMember
-                });
-            }
-        }
-        return communityUriToMemberIdRoleComboMap;
-    }
+    // private async getCommunityUriToMembersMap(communities: ICommunityInfo[]) {
+    //     const communityUriToMemberIdRoleComboMap: Record<string, { id: string; role: CommunityRole }[]> = {};
+    //     const communityUriToCreatorOrModeratorIdsMap: Record<string, Set<string>> = {};
+    //     for (let community of communities) {
+    //         const communityUri = community.communityUri;
+    //         communityUriToMemberIdRoleComboMap[communityUri] = [];
+    //         communityUriToMemberIdRoleComboMap[communityUri].push({
+    //             id: community.creatorId,
+    //             role: CommunityRole.Creator
+    //         });
+    //         communityUriToCreatorOrModeratorIdsMap[communityUri] = new Set<string>();
+    //         communityUriToCreatorOrModeratorIdsMap[communityUri].add(community.creatorId);
+    //         if (community.moderatorIds) {
+    //             for (let moderator of community.moderatorIds) {
+    //                 if (moderator === community.creatorId) continue;
+    //                 communityUriToMemberIdRoleComboMap[communityUri].push({
+    //                     id: moderator,
+    //                     role: CommunityRole.Moderator
+    //                 });
+    //                 communityUriToCreatorOrModeratorIdsMap[communityUri].add(moderator);
+    //             }
+    //         }
+    //     }
+    //     const generalMembersEvents = await this._socialEventManagerRead.fetchCommunitiesGeneralMembers({ communities });
+    //     for (let event of generalMembersEvents) {
+    //         const communityUriArr = event.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
+    //         for (let communityUri of communityUriArr) {
+    //             if (!communityUriToMemberIdRoleComboMap[communityUri]) continue;
+    //             const pubkey = Nip19.npubEncode(event.pubkey);
+    //             if (communityUriToCreatorOrModeratorIdsMap[communityUri].has(pubkey)) continue;
+    //             communityUriToMemberIdRoleComboMap[communityUri].push({
+    //                 id: pubkey,
+    //                 role: CommunityRole.GeneralMember
+    //             });
+    //         }
+    //     }
+
+    //     let pubkeys = new Set(SocialUtilsManager.flatMap(Object.values(communityUriToMemberIdRoleComboMap), combo => combo.map(c => c.id)));
+    //     const communityUriToMembersMap: Record<string, ICommunityMember[]> = {};
+    //     if (pubkeys.size > 0) {
+    //         let metadataArr: INostrMetadata[] = [];
+    //         let followersCountMap: Record<string, number> = {};
+    //         try {
+    //             const events = await this._socialEventManagerRead.fetchUserProfileCacheEvents({ pubKeys: Array.from(pubkeys) });
+    //             for (let event of events) {
+    //                 if (event.kind === 0) {
+    //                     metadataArr.push({
+    //                         ...event,
+    //                         content: SocialUtilsManager.parseContent(event.content)
+    //                     });
+    //                 }
+    //                 else if (event.kind === 10000108) {
+    //                     followersCountMap = SocialUtilsManager.parseContent(event.content);
+    //                 }
+    //             }
+    //         }
+    //         catch (error) {
+    //             console.error('fetchUserProfiles', error);
+    //         }
+    //         if (metadataArr.length == 0) return null;
+    //         const userProfiles: IUserProfile[] = [];
+    //         for (let metadata of metadataArr) {
+    //             let userProfile = SocialUtilsManager.constructUserProfile(metadata, followersCountMap);
+    //             userProfiles.push(userProfile);
+    //         }
+    //         // const userProfiles = await this.fetchUserProfiles(Array.from(pubkeys));
+    //         if (!userProfiles) return communityUriToMembersMap;
+    //         for (let community of communities) {
+    //             const memberIds = communityUriToMemberIdRoleComboMap[community.communityUri];
+    //             if (!memberIds) continue;
+    //             const communityMembers: ICommunityMember[] = [];
+    //             for (let memberIdRoleCombo of memberIds) {
+    //                 const userProfile = userProfiles.find(profile => profile.npub === memberIdRoleCombo.id);
+    //                 if (!userProfile) continue;
+    //                 let communityMember: ICommunityMember = {
+    //                     id: userProfile.npub,
+    //                     name: userProfile.displayName,
+    //                     profileImageUrl: userProfile.avatar,
+    //                     username: userProfile.username,
+    //                     internetIdentifier: userProfile.internetIdentifier,
+    //                     role: memberIdRoleCombo.role
+    //                 }
+    //                 communityMembers.push(communityMember);
+    //             }
+    //             communityUriToMembersMap[community.communityUri] = communityMembers;
+    //         }
+    //     }
+    //     return communityUriToMembersMap;
+    // }
 
     private extractCalendarEventInfo(event: INostrEvent) {
         const description = event.content;
@@ -1942,7 +1919,7 @@ class SocialDataManager {
                     ...event,
                     content: SocialUtilsManager.parseContent(event.content)
                 };
-                let userProfile = this.constructUserProfile(metaData);
+                let userProfile = SocialUtilsManager.constructUserProfile(metaData);
                 if (hostPubkeys.includes(event.pubkey)) {
                     let host: ICalendarEventHost = {
                         pubkey: event.pubkey,
@@ -2291,7 +2268,7 @@ class SocialDataManager {
         }
         const userProfiles: IUserProfile[] = [];
         for (let metadata of metadataArr) {
-            let userProfile = this.constructUserProfile(metadata, followersCountMap);
+            let userProfile = SocialUtilsManager.constructUserProfile(metadata, followersCountMap);
             userProfiles.push(userProfile);
         }
         return userProfiles;

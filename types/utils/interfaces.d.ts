@@ -697,6 +697,7 @@ export interface ISocialEventManagerRead {
     fetchTrendingCommunities(): Promise<INostrEvent[]>;
     fetchUserEthWalletAccountsInfo(options: SocialEventManagerReadOptions.IFetchUserEthWalletAccountsInfo): Promise<INostrEvent>;
     fetchSubcommunites(options: SocialEventManagerReadOptions.IFetchSubcommunites): Promise<INostrEvent[]>;
+    getCommunityUriToMembersMap(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
 }
 export declare namespace SocialEventManagerWriteOptions {
     interface IUpdateUserEthWalletAccountsInfo {
