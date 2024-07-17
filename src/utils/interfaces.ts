@@ -365,6 +365,7 @@ export interface ICommunityMember {
 
 export interface ICommunity extends ICommunityInfo {
 	members: ICommunityMember[];
+	memberCount?: number;
 }
 
 export interface ITrendingCommunityInfo extends ICommunityInfo {

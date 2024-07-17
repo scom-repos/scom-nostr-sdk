@@ -1414,6 +1414,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     }
     export interface ICommunity extends ICommunityInfo {
         members: ICommunityMember[];
+        memberCount?: number;
     }
     export interface ITrendingCommunityInfo extends ICommunityInfo {
         memberCount: number;
@@ -2414,6 +2415,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         createChannel(channelInfo: IChannelInfo, memberIds: string[]): Promise<IChannelInfo>;
         updateChannel(channelInfo: IChannelInfo): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").ISocialEventManagerWriteResult>;
         fetchCommunitiesMembers(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
+        private getEventIdToMemberMap;
         fetchCommunities(query?: string): Promise<ICommunity[]>;
         fetchMyCommunities(pubKey: string): Promise<ICommunity[]>;
         joinCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;

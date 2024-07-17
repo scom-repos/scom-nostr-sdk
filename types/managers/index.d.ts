@@ -124,6 +124,7 @@ declare class SocialDataManager {
     createChannel(channelInfo: IChannelInfo, memberIds: string[]): Promise<IChannelInfo>;
     updateChannel(channelInfo: IChannelInfo): Promise<import("../utils/interfaces").ISocialEventManagerWriteResult>;
     fetchCommunitiesMembers(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
+    private getEventIdToMemberMap;
     fetchCommunities(query?: string): Promise<ICommunity[]>;
     fetchMyCommunities(pubKey: string): Promise<ICommunity[]>;
     joinCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;

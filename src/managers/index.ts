@@ -1330,24 +1330,32 @@ class SocialDataManager {
         return communityUriToMembersMap;
     }
 
+    private getEventIdToMemberMap(events: INostrEvent[]) {
+        const memberCountsEvents = events.filter(event => event.kind === 10000109);
+        let eventIdToMemberCountMap: Record<string, number> = {};
+        for (let event of memberCountsEvents) {
+            const content = SocialUtilsManager.parseContent(event.content);
+            eventIdToMemberCountMap[content.event_id] = content.member_count;
+        }
+        return eventIdToMemberCountMap;
+    }
+
     async fetchCommunities(query?: string) {
         let communities: ICommunity[] = [];
         const events = await this._socialEventManagerRead.fetchCommunities({
             query
         });
-        for (let event of events) {
+        let eventIdToMemberCountMap = this.getEventIdToMemberMap(events);
+        const communityEvents = events.filter(event => event.kind === 34550);
+        for (let event of communityEvents) {
             const communityInfo = SocialUtilsManager.extractCommunityInfo(event);
+            const memberCount = eventIdToMemberCountMap[event.id] || 0;
             let community: ICommunity = {
                 ...communityInfo,
-                members: []
+                members: [],
+                memberCount
             }
             communities.push(community);
-        }
-        const communityUriToMembersMap = await this.fetchCommunitiesMembers(communities);
-        for (let community of communities) {
-            if (communityUriToMembersMap[community.communityUri]) {
-                community.members = communityUriToMembersMap[community.communityUri];
-            }
         }
         return communities;
     }
@@ -1355,15 +1363,17 @@ class SocialDataManager {
     async fetchMyCommunities(pubKey: string) {
         let communities: ICommunity[] = [];
         const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunities({ pubKey });
-        for (let event of events) {
-            if (event.kind === 34550) {
-                const communityInfo = SocialUtilsManager.extractCommunityInfo(event);
-                communities.push({ ...communityInfo, members: [] });
+        let eventIdToMemberCountMap = this.getEventIdToMemberMap(events);
+        const communitiesEvents = events.filter(event => event.kind === 34550);
+        for (let event of communitiesEvents) {
+            const communityInfo = SocialUtilsManager.extractCommunityInfo(event);
+            const memberCount = eventIdToMemberCountMap[event.id] || 0;
+            let community: ICommunity = {
+                ...communityInfo,
+                members: [],
+                memberCount
             }
-        }
-        const communityUriToMembersMap = await this.fetchCommunitiesMembers(communities);
-        for (let community of communities) {
-            community.members = communityUriToMembersMap[community.communityUri];
+            communities.push(community);
         }
         return communities;
     }
@@ -2718,12 +2728,7 @@ class SocialDataManager {
     async fetchTrendingCommunities() {
         let communities: ITrendingCommunityInfo[] = [];
         const events = await this._socialEventManagerRead.fetchTrendingCommunities();
-        const memberCountsEvents = events.filter(event => event.kind === 10000109);
-        let eventIdToMemberCountMap: Record<string, number> = {};
-        for (let event of memberCountsEvents) {
-            const content = SocialUtilsManager.parseContent(event.content);
-            eventIdToMemberCountMap[content.event_id] = content.member_count;
-        }
+        let eventIdToMemberCountMap = this.getEventIdToMemberMap(events);
         const communitiesEvents = events.filter(event => event.kind === 34550);
         for (let event of communitiesEvents) {
             const communityInfo = SocialUtilsManager.extractCommunityInfo(event);
