@@ -5501,7 +5501,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
         }
         async fetchUserProfileCacheEvents(options) {
             const { pubKeys } = options;
-            if (!pubKeys)
+            if (!pubKeys || pubKeys.length === 0)
                 return [];
             const decodedPubKeys = pubKeys.map(pubKey => pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey);
             let msg = {
@@ -6256,7 +6256,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('explore', msg);
             return fetchEventsResponse.events;
         }
-        async fetchCommunityPinnedNotesEvent(options) {
+        async fetchCommunityPinnedNotesEvents(options) {
             const { creatorId, communityId } = options;
             const communityUri = utilsManager_2.SocialUtilsManager.getCommunityUri(creatorId, communityId);
             let request = {
@@ -6264,10 +6264,11 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
                 "#a": [communityUri]
             };
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
-            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+            return fetchEventsResponse.events || [];
         }
         async fetchCommunityPinnedNoteIds(options) {
-            const event = await this.fetchCommunityPinnedNotesEvent(options);
+            const events = await this.fetchCommunityPinnedNotesEvents(options);
+            const event = events[0];
             let noteIds = [];
             if (event) {
                 for (let tag of event.tags) {
@@ -6538,13 +6539,12 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
         }
         async fetchUserProfileCacheEvents(options) {
             let { pubKeys } = options;
-            if (!pubKeys)
+            if (!pubKeys || pubKeys.length === 0)
                 return [];
             const decodedPubKeys = pubKeys.map(pubKey => pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey);
             let msg = this.augmentWithAuthInfo({
                 pubkeys: decodedPubKeys
             });
-            console.log('fetchUserProfileCacheEvents', msg);
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-profiles', msg);
             return fetchEventsResponse.events || [];
         }
@@ -7139,7 +7139,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-following-feed', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchCommunityPinnedNotesEvent(options) {
+        async fetchCommunityPinnedNotesEvents(options) {
             const { communityId, creatorId } = options;
             const communityPubkey = creatorId.startsWith('npub1') ? index_5.Nip19.decode(creatorId).data : creatorId;
             let msg = this.augmentWithAuthInfo({
@@ -7148,7 +7148,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 eventMetadataIncluded: true
             });
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-pinned-notes', msg);
-            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+            return fetchEventsResponse.events || [];
         }
         async fetchCommunityPinnedNoteIds(options) {
             const { communityId, creatorId } = options;
@@ -9765,14 +9765,15 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             return result;
         }
         async fetchCommunityPinnedNotes(creatorId, communityId) {
-            const noteIds = await this._socialEventManagerRead.fetchCommunityPinnedNoteIds({
+            const events = await this._socialEventManagerRead.fetchCommunityPinnedNotesEvents({
                 creatorId,
                 communityId
             });
-            if (noteIds.length > 0)
-                return this._socialEventManagerRead.fetchEventsByIds({ ids: noteIds });
-            else
-                return [];
+            const { notes, metadataByPubKeyMap } = this.createNoteEventMappings(events);
+            return {
+                notes,
+                metadataByPubKeyMap
+            };
         }
         async pinCommunityNote(creatorId, communityId, noteId) {
             let noteIds = await this._socialEventManagerRead.fetchCommunityPinnedNoteIds({

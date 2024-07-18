@@ -2620,14 +2620,18 @@ class SocialDataManager {
     }
 
     async fetchCommunityPinnedNotes(creatorId: string, communityId: string) {
-        const noteIds = await this._socialEventManagerRead.fetchCommunityPinnedNoteIds({
+        const events = await this._socialEventManagerRead.fetchCommunityPinnedNotesEvents({
             creatorId,
             communityId
         });
-        if (noteIds.length > 0)
-            return this._socialEventManagerRead.fetchEventsByIds({ ids: noteIds });
-        else
-            return [];
+        const {
+            notes,
+            metadataByPubKeyMap
+        } = this.createNoteEventMappings(events);
+        return {
+            notes,
+            metadataByPubKeyMap
+        }
     }
 
     async pinCommunityNote(creatorId: string, communityId: string, noteId: string) {

@@ -56,7 +56,7 @@ declare class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     fetchPaymentActivitiesForRecipient(options: SocialEventManagerReadOptions.IFetchPaymentActivitiesForRecipient): Promise<IPaymentActivity[]>;
     fetchPaymentActivitiesForSender(options: SocialEventManagerReadOptions.IFetchPaymentActivitiesForSender): Promise<IPaymentActivity[]>;
     fetchUserFollowingFeed(options: SocialEventManagerReadOptions.IFetchUserFollowingFeed): Promise<import("../utils/interfaces").INostrEvent[]>;
-    fetchCommunityPinnedNotesEvent(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNotesEvent): Promise<import("../utils/interfaces").INostrEvent>;
+    fetchCommunityPinnedNotesEvents(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNotesEvents): Promise<import("../utils/interfaces").INostrEvent[]>;
     fetchCommunityPinnedNoteIds(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNoteIds): Promise<any>;
     fetchUserPinnedNotes(options: SocialEventManagerReadOptions.IFetchUserPinnedNotes): Promise<import("../utils/interfaces").INostrEvent>;
     fetchUserBookmarks(options: SocialEventManagerReadOptions.IFetchUserBookmarks): Promise<import("../utils/interfaces").INostrEvent>;

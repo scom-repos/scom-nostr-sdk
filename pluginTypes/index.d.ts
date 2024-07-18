@@ -1728,7 +1728,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
             pubKey: string;
             until?: number;
         }
-        interface IFetchCommunityPinnedNotesEvent {
+        interface IFetchCommunityPinnedNotesEvents {
             creatorId: string;
             communityId: string;
         }
@@ -1796,7 +1796,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         fetchPaymentActivitiesForRecipient(options: SocialEventManagerReadOptions.IFetchPaymentActivitiesForRecipient): Promise<IPaymentActivity[]>;
         fetchPaymentActivitiesForSender(options: SocialEventManagerReadOptions.IFetchPaymentActivitiesForSender): Promise<IPaymentActivity[]>;
         fetchUserFollowingFeed(options: SocialEventManagerReadOptions.IFetchUserFollowingFeed): Promise<INostrEvent[]>;
-        fetchCommunityPinnedNotesEvent(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNotesEvent): Promise<INostrEvent>;
+        fetchCommunityPinnedNotesEvents(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNotesEvents): Promise<INostrEvent[]>;
         fetchCommunityPinnedNoteIds(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNoteIds): Promise<string[]>;
         fetchUserPinnedNotes(options: SocialEventManagerReadOptions.IFetchUserPinnedNotes): Promise<INostrEvent>;
         fetchUserBookmarks(options: SocialEventManagerReadOptions.IFetchUserBookmarks): Promise<INostrEvent>;
@@ -2176,7 +2176,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         fetchPaymentActivitiesForRecipient(options: SocialEventManagerReadOptions.IFetchPaymentActivitiesForRecipient): Promise<IPaymentActivity[]>;
         fetchPaymentActivitiesForSender(options: SocialEventManagerReadOptions.IFetchPaymentActivitiesForSender): Promise<IPaymentActivity[]>;
         fetchUserFollowingFeed(options: SocialEventManagerReadOptions.IFetchUserFollowingFeed): Promise<INostrEvent[]>;
-        fetchCommunityPinnedNotesEvent(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNotesEvent): Promise<INostrEvent>;
+        fetchCommunityPinnedNotesEvents(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNotesEvents): Promise<INostrEvent[]>;
         fetchCommunityPinnedNoteIds(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNoteIds): Promise<string[]>;
         fetchUserPinnedNotes(options: SocialEventManagerReadOptions.IFetchUserPinnedNotes): Promise<INostrEvent>;
         fetchUserBookmarks(options: SocialEventManagerReadOptions.IFetchUserBookmarks): Promise<INostrEvent>;
@@ -2248,7 +2248,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" {
         fetchPaymentActivitiesForRecipient(options: SocialEventManagerReadOptions.IFetchPaymentActivitiesForRecipient): Promise<IPaymentActivity[]>;
         fetchPaymentActivitiesForSender(options: SocialEventManagerReadOptions.IFetchPaymentActivitiesForSender): Promise<IPaymentActivity[]>;
         fetchUserFollowingFeed(options: SocialEventManagerReadOptions.IFetchUserFollowingFeed): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
-        fetchCommunityPinnedNotesEvent(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNotesEvent): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent>;
+        fetchCommunityPinnedNotesEvents(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNotesEvents): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
         fetchCommunityPinnedNoteIds(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNoteIds): Promise<any>;
         fetchUserPinnedNotes(options: SocialEventManagerReadOptions.IFetchUserPinnedNotes): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent>;
         fetchUserBookmarks(options: SocialEventManagerReadOptions.IFetchUserBookmarks): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent>;
@@ -2483,7 +2483,10 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         fetchInstalledByPubKey(pubkey: string): Promise<any>;
         fetchInstalledApps(pubkey: string): Promise<any>;
         installApp(pubkey: string, appId: string, appVersionId: string): Promise<any>;
-        fetchCommunityPinnedNotes(creatorId: string, communityId: string): Promise<INostrEvent[]>;
+        fetchCommunityPinnedNotes(creatorId: string, communityId: string): Promise<{
+            notes: INoteInfo[];
+            metadataByPubKeyMap: Record<string, INostrMetadata>;
+        }>;
         pinCommunityNote(creatorId: string, communityId: string, noteId: string): Promise<void>;
         unpinCommunityNote(creatorId: string, communityId: string, noteId: string): Promise<void>;
         fetchUserPinnedNotes(pubKey: string): Promise<INostrEvent[]>;

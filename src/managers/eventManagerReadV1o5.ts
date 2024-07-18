@@ -111,12 +111,11 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
 
     async fetchUserProfileCacheEvents(options: SocialEventManagerReadOptions.IFetchUserProfileCacheEvents) {
         let {pubKeys} = options;
-        if (!pubKeys) return [];
+        if (!pubKeys || pubKeys.length === 0) return [];
         const decodedPubKeys = pubKeys.map(pubKey => pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey);
         let msg = this.augmentWithAuthInfo({
             pubkeys: decodedPubKeys
         });
-        console.log('fetchUserProfileCacheEvents', msg);
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-profiles', msg);
         return fetchEventsResponse.events || [];
     }
@@ -736,7 +735,7 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         return fetchEventsResponse.events || [];
     }
 
-    async fetchCommunityPinnedNotesEvent(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNotesEvent) {
+    async fetchCommunityPinnedNotesEvents(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNotesEvents) {
         const {communityId, creatorId} = options;
         const communityPubkey = creatorId.startsWith('npub1') ? Nip19.decode(creatorId).data : creatorId;
         let msg = this.augmentWithAuthInfo({
@@ -745,7 +744,7 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
             eventMetadataIncluded: true
         });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-pinned-notes', msg);
-        return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        return fetchEventsResponse.events || [];
     }
     
     async fetchCommunityPinnedNoteIds(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNoteIds) {

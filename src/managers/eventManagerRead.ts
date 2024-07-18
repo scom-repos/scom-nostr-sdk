@@ -118,7 +118,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
 
     async fetchUserProfileCacheEvents(options: SocialEventManagerReadOptions.IFetchUserProfileCacheEvents) {
         const {pubKeys} = options;
-        if (!pubKeys) return [];
+        if (!pubKeys || pubKeys.length === 0) return [];
         const decodedPubKeys = pubKeys.map(pubKey => pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey);
         let msg: any = {
             pubkeys: decodedPubKeys
@@ -920,7 +920,7 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         return fetchEventsResponse.events;
     }
 
-    async fetchCommunityPinnedNotesEvent(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNotesEvent) {
+    async fetchCommunityPinnedNotesEvents(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNotesEvents) {
         const {creatorId, communityId} = options;
         const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
         let request: any = {
@@ -928,11 +928,12 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
             "#a": [communityUri]
         };
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
-        return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        return fetchEventsResponse.events || [];
     }
     
     async fetchCommunityPinnedNoteIds(options: SocialEventManagerReadOptions.IFetchCommunityPinnedNoteIds) {
-        const event = await this.fetchCommunityPinnedNotesEvent(options);
+        const events = await this.fetchCommunityPinnedNotesEvents(options);
+        const event = events[0];
         let noteIds: string[] = [];
         if (event) {
             for (let tag of event.tags) {

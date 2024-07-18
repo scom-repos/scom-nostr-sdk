@@ -201,7 +201,10 @@ declare class SocialDataManager {
     fetchInstalledByPubKey(pubkey: string): Promise<any>;
     fetchInstalledApps(pubkey: string): Promise<any>;
     installApp(pubkey: string, appId: string, appVersionId: string): Promise<any>;
-    fetchCommunityPinnedNotes(creatorId: string, communityId: string): Promise<INostrEvent[]>;
+    fetchCommunityPinnedNotes(creatorId: string, communityId: string): Promise<{
+        notes: INoteInfo[];
+        metadataByPubKeyMap: Record<string, INostrMetadata>;
+    }>;
     pinCommunityNote(creatorId: string, communityId: string, noteId: string): Promise<void>;
     unpinCommunityNote(creatorId: string, communityId: string, noteId: string): Promise<void>;
     fetchUserPinnedNotes(pubKey: string): Promise<INostrEvent[]>;
