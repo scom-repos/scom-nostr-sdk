@@ -1847,31 +1847,9 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         fetchEventsFromAPI(endpoint: string, msg: any): Promise<INostrFetchEventsResponse>;
     }
 }
-/// <amd-module name="@scom/scom-social-sdk/utils/mqtt.ts" />
-declare module "@scom/scom-social-sdk/utils/mqtt.ts" {
-    interface IMqttManagerConfig {
-        brokerUrl: string;
-        subscriptions?: string[];
-        connectCallback?: () => void;
-        errorCallback?: (error: any) => void;
-        messageCallback?: (topic: string, message: string) => void;
-    }
-    class MqttManager {
-        private config;
-        private client;
-        private subscriptions;
-        constructor(config: IMqttManagerConfig);
-        subscribe(topics: string[]): void;
-        unsubscribe(topics: string[]): void;
-        publish(topic: string, message: string): void;
-        disconnect(): void;
-    }
-    export { MqttManager };
-}
 /// <amd-module name="@scom/scom-social-sdk/utils/index.ts" />
 declare module "@scom/scom-social-sdk/utils/index.ts" {
     export { IFetchNotesOptions, INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityCollectible, ICommunityLeaderboard, ICommunityScpData, INoteInfo, INoteInfoExtended, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, INewCommunityInfo, TokenType, MembershipType, ProtectedMembershipPolicyType, IProtectedMembershipPolicy, CommunityRole, ICommunityMember, ICommunity, ITrendingCommunityInfo, CalendarEventType, ICalendarEventInfo, IUpdateCalendarEventInfo, ICalendarEventHost, ICalendarEventAttendee, ICalendarEventDetailInfo, INewCalendarEventPostInfo, ILocationCoordinates, ISocialDataManagerConfig, INostrFetchEventsResponse, IPaymentActivity, ILongFormContentInfo, IEthWalletAccountsInfo, ICommunityStats, ICommunityDetailMetadata, SocialDataManagerOptions, SocialEventManagerReadOptions, ISocialEventManagerReadResult, ISocialEventManagerWriteResult, SocialEventManagerWriteOptions, ISocialEventManagerRead, ISocialEventManagerWrite, IAllUserRelatedChannels } from "@scom/scom-social-sdk/utils/interfaces.ts";
-    export { MqttManager } from "@scom/scom-social-sdk/utils/mqtt.ts";
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/communication.ts" />
 declare module "@scom/scom-social-sdk/managers/communication.ts" {
@@ -2449,8 +2427,8 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
             encryptedMessages: any[];
             metadataByPubKeyMap: Record<string, INostrMetadata>;
         }>;
-        sendDirectMessage(chatId: string, message: string, replyToEventId?: string): Promise<void>;
-        sendTempMessage(chatId: string, message: string, replyToEventId?: string): Promise<void>;
+        sendDirectMessage(chatId: string, message: string, replyToEventId?: string): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").ISocialEventManagerWriteResult>;
+        sendTempMessage(chatId: string, message: string, replyToEventId?: string): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").ISocialEventManagerWriteResult>;
         resetMessageCount(selfPubKey: string, senderPubKey: string): Promise<void>;
         fetchMessageContacts(pubKey: string): Promise<IMessageContactInfo[]>;
         fetchUserGroupInvitations(pubKey: string): Promise<string[]>;
@@ -2526,6 +2504,6 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
 /// <amd-module name="@scom/scom-social-sdk" />
 declare module "@scom/scom-social-sdk" {
     export { Event, Keys, Nip19, Bech32, secp256k1, schnorr } from "@scom/scom-social-sdk/core/index.ts";
-    export { IFetchNotesOptions, INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityCollectible, ICommunityLeaderboard, ICommunityScpData, INoteInfo, INoteInfoExtended, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, INewCommunityInfo, TokenType, MembershipType, ProtectedMembershipPolicyType, IProtectedMembershipPolicy, CommunityRole, ICommunityMember, ICommunity, ITrendingCommunityInfo, CalendarEventType, ICalendarEventInfo, IUpdateCalendarEventInfo, ICalendarEventHost, ICalendarEventAttendee, ICalendarEventDetailInfo, INewCalendarEventPostInfo, ILocationCoordinates, ISocialDataManagerConfig, IPaymentActivity, IEthWalletAccountsInfo, ICommunityStats, ICommunityDetailMetadata, INostrFetchEventsResponse, ILongFormContentInfo, MqttManager, SocialDataManagerOptions, SocialEventManagerReadOptions, ISocialEventManagerReadResult, ISocialEventManagerWriteResult, SocialEventManagerWriteOptions, ISocialEventManagerRead, ISocialEventManagerWrite, IAllUserRelatedChannels } from "@scom/scom-social-sdk/utils/index.ts";
+    export { IFetchNotesOptions, INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityCollectible, ICommunityLeaderboard, ICommunityScpData, INoteInfo, INoteInfoExtended, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, INewCommunityInfo, TokenType, MembershipType, ProtectedMembershipPolicyType, IProtectedMembershipPolicy, CommunityRole, ICommunityMember, ICommunity, ITrendingCommunityInfo, CalendarEventType, ICalendarEventInfo, IUpdateCalendarEventInfo, ICalendarEventHost, ICalendarEventAttendee, ICalendarEventDetailInfo, INewCalendarEventPostInfo, ILocationCoordinates, ISocialDataManagerConfig, IPaymentActivity, IEthWalletAccountsInfo, ICommunityStats, ICommunityDetailMetadata, INostrFetchEventsResponse, ILongFormContentInfo, SocialDataManagerOptions, SocialEventManagerReadOptions, ISocialEventManagerReadResult, ISocialEventManagerWriteResult, SocialEventManagerWriteOptions, ISocialEventManagerRead, ISocialEventManagerWrite, IAllUserRelatedChannels } from "@scom/scom-social-sdk/utils/index.ts";
     export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrWebSocketManager, NostrRestAPIManager, INostrCommunicationManager, INostrRestAPIManager } from "@scom/scom-social-sdk/managers/index.ts";
 }

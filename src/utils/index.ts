@@ -49,7 +49,3 @@ export {
     ISocialEventManagerWrite,
     IAllUserRelatedChannels
 } from "./interfaces";
-
-export {
-    MqttManager
-} from './mqtt';

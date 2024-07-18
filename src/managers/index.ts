@@ -7,7 +7,7 @@ import {
     NostrWebSocketManager,
 } from "./communication";
 import Geohash from '../utils/geohash';
-import { MqttManager } from "../utils/mqtt";
+import { MqttManager } from "@scom/scom-mqtt";
 import { LightningWalletManager } from "../utils/lightningWallet";
 import { SocialUtilsManager } from "./utilsManager";
 import {  NostrEventManagerWrite } from "./eventManagerWrite";
@@ -1632,13 +1632,15 @@ class SocialDataManager {
     async sendDirectMessage(chatId: string, message: string, replyToEventId?: string) {
         const decodedReceiverPubKey = Nip19.decode(chatId).data as string;
         const content = await SocialUtilsManager.encryptMessage(this._privateKey, decodedReceiverPubKey, message);
-        await this._socialEventManagerWrite.sendMessage(decodedReceiverPubKey, content, replyToEventId);
+        const result = await this._socialEventManagerWrite.sendMessage(decodedReceiverPubKey, content, replyToEventId);
+        return result;
     }
 
     async sendTempMessage(chatId: string, message: string, replyToEventId?: string) {
         const decodedReceiverPubKey = Nip19.decode(chatId).data as string;
         const content = await SocialUtilsManager.encryptMessage(this._privateKey, decodedReceiverPubKey, message);
-        await this._socialEventManagerWrite.sendTempMessage(decodedReceiverPubKey, content, replyToEventId);
+        const result = await this._socialEventManagerWrite.sendTempMessage(decodedReceiverPubKey, content, replyToEventId);
+        return result;
     }
 
     async resetMessageCount(selfPubKey: string, senderPubKey: string) {

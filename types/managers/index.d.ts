@@ -145,8 +145,8 @@ declare class SocialDataManager {
         encryptedMessages: any[];
         metadataByPubKeyMap: Record<string, INostrMetadata>;
     }>;
-    sendDirectMessage(chatId: string, message: string, replyToEventId?: string): Promise<void>;
-    sendTempMessage(chatId: string, message: string, replyToEventId?: string): Promise<void>;
+    sendDirectMessage(chatId: string, message: string, replyToEventId?: string): Promise<import("../utils/interfaces").ISocialEventManagerWriteResult>;
+    sendTempMessage(chatId: string, message: string, replyToEventId?: string): Promise<import("../utils/interfaces").ISocialEventManagerWriteResult>;
     resetMessageCount(selfPubKey: string, senderPubKey: string): Promise<void>;
     fetchMessageContacts(pubKey: string): Promise<IMessageContactInfo[]>;
     fetchUserGroupInvitations(pubKey: string): Promise<string[]>;

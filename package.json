@@ -10,7 +10,7 @@
         "@ijstech/eth-wallet": "^0.1.84",
         "@ijstech/ln-wallet": "^0.1.0",
         "@scom/scom-signer": "^0.1.0",
-        "mqtt": "5.3.5",
+        "@scom/scom-mqtt": "https://github.com/scom-repos/scom-mqtt",
         "ws": "8.16.0"
     },
     "devDependencies": {
@@ -23,7 +23,7 @@
         "typescript": "4.3.5"
     },
     "scripts": {
-        "build": "rm -rf dist && rm -rf lib && rm -rf pluginTypes && rm -rf types && npx @ijstech/compiler && bash ./scripts/copy.bash",
+        "build": "rm -rf dist && rm -rf lib && rm -rf pluginTypes && rm -rf types && npx @ijstech/compiler",
         "test": "mocha --ui tdd --exit --require ts-node/register test/*.spec.ts"
     }
 }

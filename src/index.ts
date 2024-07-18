@@ -48,7 +48,6 @@ export {
     ICommunityDetailMetadata,
     INostrFetchEventsResponse,
     ILongFormContentInfo,
-    MqttManager,
     SocialDataManagerOptions,
     SocialEventManagerReadOptions,
     ISocialEventManagerReadResult,
