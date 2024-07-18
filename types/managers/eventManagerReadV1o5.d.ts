@@ -33,6 +33,7 @@ declare class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     }>;
     fetchUserBookmarkedChannelEventIds(options: SocialEventManagerReadOptions.IFetchUserBookmarkedChannelEventIds): Promise<any>;
     fetchEventsByIds(options: SocialEventManagerReadOptions.IFetchEventsByIds): Promise<import("../utils/interfaces").INostrEvent[]>;
+    fetchTempEvents(options: SocialEventManagerReadOptions.IFetchTempEvents): Promise<import("../utils/interfaces").INostrEvent[]>;
     fetchChannelMessages(options: SocialEventManagerReadOptions.IFetchChannelMessages): Promise<import("../utils/interfaces").INostrEvent[]>;
     fetchChannelInfoMessages(options: SocialEventManagerReadOptions.IFetchChannelInfoMessages): Promise<import("../utils/interfaces").INostrEvent[]>;
     fetchMessageContactsCacheEvents(options: SocialEventManagerReadOptions.IFetchMessageContactsCacheEvents): Promise<import("../utils/interfaces").INostrEvent[]>;

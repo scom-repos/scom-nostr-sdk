@@ -59,6 +59,7 @@ declare class SocialDataManager {
         earliest: number;
     }>;
     fetchNotesByIds(ids: string[]): Promise<INostrEvent[]>;
+    fetchTempEvents(ids: string[]): Promise<INostrEvent[]>;
     private getEarliestEventTimestamp;
     fetchHomeFeedInfo(pubKey: string, since?: number, until?: number): Promise<{
         notes: INoteInfo[];
@@ -145,6 +146,7 @@ declare class SocialDataManager {
         metadataByPubKeyMap: Record<string, INostrMetadata>;
     }>;
     sendDirectMessage(chatId: string, message: string, replyToEventId?: string): Promise<void>;
+    sendTempMessage(chatId: string, message: string, replyToEventId?: string): Promise<void>;
     resetMessageCount(selfPubKey: string, senderPubKey: string): Promise<void>;
     fetchMessageContacts(pubKey: string): Promise<IMessageContactInfo[]>;
     fetchUserGroupInvitations(pubKey: string): Promise<string[]>;

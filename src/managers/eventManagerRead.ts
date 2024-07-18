@@ -555,6 +555,10 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         return fetchEventsResponse.events;
     }
 
+    async fetchTempEvents(options: SocialEventManagerReadOptions.IFetchTempEvents) {
+        return []; //Not supported
+    }
+
     async fetchChannelMessages(options: SocialEventManagerReadOptions.IFetchChannelMessages) {
         let {channelId, since, until} = options;
         if (!since) since = 0;

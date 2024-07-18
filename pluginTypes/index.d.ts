@@ -1530,6 +1530,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         stats: ICommunityStats;
     }
     export interface INostrCommunicationManager {
+        url: string;
         fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
         fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
         submitEvent(event: Event.VerifiedEvent<number>): Promise<INostrSubmitResponse>;
@@ -1644,6 +1645,9 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
             options: IFetchNotesOptions;
         }
         interface IFetchEventsByIds {
+            ids: string[];
+        }
+        interface IFetchTempEvents {
             ids: string[];
         }
         interface IFetchAllUserRelatedChannels {
@@ -1771,6 +1775,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         fetchCommunityDetailMetadata(options: SocialEventManagerReadOptions.IFetchCommunityDetailMetadata): Promise<INostrEvent[]>;
         fetchCommunitiesGeneralMembers(options: SocialEventManagerReadOptions.IFetchCommunitiesGeneralMembers): Promise<INostrEvent[]>;
         fetchEventsByIds(options: SocialEventManagerReadOptions.IFetchEventsByIds): Promise<INostrEvent[]>;
+        fetchTempEvents(options: SocialEventManagerReadOptions.IFetchTempEvents): Promise<INostrEvent[]>;
         fetchAllUserRelatedChannels(options: SocialEventManagerReadOptions.IFetchAllUserRelatedChannels): Promise<IAllUserRelatedChannels>;
         fetchUserBookmarkedChannelEventIds(options: SocialEventManagerReadOptions.IFetchUserBookmarkedChannelEventIds): Promise<string[]>;
         fetchChannelMessages(options: SocialEventManagerReadOptions.IFetchChannelMessages): Promise<INostrEvent[]>;
@@ -1822,6 +1827,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         submitCommunityPost(info: INewCommunityPostInfo): Promise<ISocialEventManagerWriteResult>;
         updateUserProfile(content: INostrMetadataContent): Promise<ISocialEventManagerWriteResult>;
         sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<ISocialEventManagerWriteResult>;
+        sendTempMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<ISocialEventManagerWriteResult>;
         updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]): Promise<ISocialEventManagerWriteResult>;
         updateCalendarEvent(info: IUpdateCalendarEventInfo): Promise<ISocialEventManagerWriteResult>;
         createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean): Promise<ISocialEventManagerWriteResult>;
@@ -2014,12 +2020,13 @@ declare module "@scom/scom-social-sdk/managers/utilsManager.ts" {
 /// <amd-module name="@scom/scom-social-sdk/managers/eventManagerWrite.ts" />
 declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
     import { Event } from "@scom/scom-social-sdk/core/index.ts";
-    import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, ILongFormContentInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityPostInfo, INostrMetadataContent, INostrSubmitResponse, IRelayConfig, ISocialEventManagerWrite, IUpdateCalendarEventInfo, SocialEventManagerWriteOptions } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, ILongFormContentInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityPostInfo, INostrMetadataContent, INostrRestAPIManager, INostrSubmitResponse, IRelayConfig, ISocialEventManagerWrite, IUpdateCalendarEventInfo, SocialEventManagerWriteOptions } from "@scom/scom-social-sdk/utils/interfaces.ts";
     import { INostrCommunicationManager } from "@scom/scom-social-sdk/managers/communication.ts";
     class NostrEventManagerWrite implements ISocialEventManagerWrite {
         protected _nostrCommunicationManagers: INostrCommunicationManager[];
         protected _privateKey: string;
-        constructor(managers: INostrCommunicationManager[]);
+        protected _mainNostrRestAPIManager: INostrRestAPIManager;
+        constructor(managers: INostrCommunicationManager[], mainRelay: string);
         set nostrCommunicationManagers(managers: INostrCommunicationManager[]);
         set privateKey(privateKey: string);
         protected calculateConversationPathTags(conversationPath: IConversationPath): string[][];
@@ -2065,6 +2072,10 @@ declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
             relayResponses: INostrSubmitResponse[];
         }>;
         sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<{
+            event: Event.VerifiedEvent<number>;
+            relayResponses: INostrSubmitResponse[];
+        }>;
+        sendTempMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<{
             event: Event.VerifiedEvent<number>;
             relayResponses: INostrSubmitResponse[];
         }>;
@@ -2164,6 +2175,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         }>;
         fetchUserBookmarkedChannelEventIds(options: SocialEventManagerReadOptions.IFetchUserBookmarkedChannelEventIds): Promise<string[]>;
         fetchEventsByIds(options: SocialEventManagerReadOptions.IFetchEventsByIds): Promise<INostrEvent[]>;
+        fetchTempEvents(options: SocialEventManagerReadOptions.IFetchTempEvents): Promise<any[]>;
         fetchChannelMessages(options: SocialEventManagerReadOptions.IFetchChannelMessages): Promise<INostrEvent[]>;
         fetchChannelInfoMessages(options: SocialEventManagerReadOptions.IFetchChannelInfoMessages): Promise<INostrEvent[]>;
         fetchMessageContactsCacheEvents(options: SocialEventManagerReadOptions.IFetchMessageContactsCacheEvents): Promise<INostrEvent[]>;
@@ -2235,6 +2247,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" {
         }>;
         fetchUserBookmarkedChannelEventIds(options: SocialEventManagerReadOptions.IFetchUserBookmarkedChannelEventIds): Promise<any>;
         fetchEventsByIds(options: SocialEventManagerReadOptions.IFetchEventsByIds): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
+        fetchTempEvents(options: SocialEventManagerReadOptions.IFetchTempEvents): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
         fetchChannelMessages(options: SocialEventManagerReadOptions.IFetchChannelMessages): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
         fetchChannelInfoMessages(options: SocialEventManagerReadOptions.IFetchChannelInfoMessages): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
         fetchMessageContactsCacheEvents(options: SocialEventManagerReadOptions.IFetchMessageContactsCacheEvents): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
@@ -2350,6 +2363,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
             earliest: number;
         }>;
         fetchNotesByIds(ids: string[]): Promise<INostrEvent[]>;
+        fetchTempEvents(ids: string[]): Promise<INostrEvent[]>;
         private getEarliestEventTimestamp;
         fetchHomeFeedInfo(pubKey: string, since?: number, until?: number): Promise<{
             notes: INoteInfo[];
@@ -2436,6 +2450,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
             metadataByPubKeyMap: Record<string, INostrMetadata>;
         }>;
         sendDirectMessage(chatId: string, message: string, replyToEventId?: string): Promise<void>;
+        sendTempMessage(chatId: string, message: string, replyToEventId?: string): Promise<void>;
         resetMessageCount(selfPubKey: string, senderPubKey: string): Promise<void>;
         fetchMessageContacts(pubKey: string): Promise<IMessageContactInfo[]>;
         fetchUserGroupInvitations(pubKey: string): Promise<string[]>;

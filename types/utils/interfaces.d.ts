@@ -430,6 +430,7 @@ export interface ICommunityDetailMetadata {
     stats: ICommunityStats;
 }
 export interface INostrCommunicationManager {
+    url: string;
     fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
     fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
     submitEvent(event: Event.VerifiedEvent<number>): Promise<INostrSubmitResponse>;
@@ -544,6 +545,9 @@ export declare namespace SocialEventManagerReadOptions {
         options: IFetchNotesOptions;
     }
     interface IFetchEventsByIds {
+        ids: string[];
+    }
+    interface IFetchTempEvents {
         ids: string[];
     }
     interface IFetchAllUserRelatedChannels {
@@ -671,6 +675,7 @@ export interface ISocialEventManagerRead {
     fetchCommunityDetailMetadata(options: SocialEventManagerReadOptions.IFetchCommunityDetailMetadata): Promise<INostrEvent[]>;
     fetchCommunitiesGeneralMembers(options: SocialEventManagerReadOptions.IFetchCommunitiesGeneralMembers): Promise<INostrEvent[]>;
     fetchEventsByIds(options: SocialEventManagerReadOptions.IFetchEventsByIds): Promise<INostrEvent[]>;
+    fetchTempEvents(options: SocialEventManagerReadOptions.IFetchTempEvents): Promise<INostrEvent[]>;
     fetchAllUserRelatedChannels(options: SocialEventManagerReadOptions.IFetchAllUserRelatedChannels): Promise<IAllUserRelatedChannels>;
     fetchUserBookmarkedChannelEventIds(options: SocialEventManagerReadOptions.IFetchUserBookmarkedChannelEventIds): Promise<string[]>;
     fetchChannelMessages(options: SocialEventManagerReadOptions.IFetchChannelMessages): Promise<INostrEvent[]>;
@@ -722,6 +727,7 @@ export interface ISocialEventManagerWrite {
     submitCommunityPost(info: INewCommunityPostInfo): Promise<ISocialEventManagerWriteResult>;
     updateUserProfile(content: INostrMetadataContent): Promise<ISocialEventManagerWriteResult>;
     sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<ISocialEventManagerWriteResult>;
+    sendTempMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<ISocialEventManagerWriteResult>;
     updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]): Promise<ISocialEventManagerWriteResult>;
     updateCalendarEvent(info: IUpdateCalendarEventInfo): Promise<ISocialEventManagerWriteResult>;
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean): Promise<ISocialEventManagerWriteResult>;

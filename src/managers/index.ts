@@ -55,7 +55,8 @@ class SocialDataManager {
             }
         }
         this._socialEventManagerWrite = new NostrEventManagerWrite(
-            writeRelaysManagers
+            writeRelaysManagers,
+            this._publicIndexingRelay
         );
         if (config.mqttBrokerUrl) {
             try {
@@ -152,10 +153,10 @@ class SocialDataManager {
         if (!communityEvent) throw new Error('No info event found');
         const communityInfo = SocialUtilsManager.extractCommunityInfo(communityEvent);
         if (!communityInfo) throw new Error('No info event found');
-        const notesCountEvent = feedEvents.find(event => event.kind === 10000105);
+        const statsEvent = feedEvents.find(event => event.kind === 10000105);
         let notesCount = notes.length;
-        if (notesCountEvent) {
-            notesCount = JSON.parse(notesCountEvent.content).note_count;
+        if (statsEvent) {
+            notesCount = JSON.parse(statsEvent.content).note_count;
         }
 
         const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
@@ -659,6 +660,11 @@ class SocialDataManager {
 
     async fetchNotesByIds(ids: string[]) {
         const noteEvents = await this._socialEventManagerRead.fetchEventsByIds({ ids });
+        return noteEvents;
+    }
+
+    async fetchTempEvents(ids: string[]) {
+        const noteEvents = await this._socialEventManagerRead.fetchTempEvents({ ids });
         return noteEvents;
     }
 
@@ -1627,6 +1633,12 @@ class SocialDataManager {
         const decodedReceiverPubKey = Nip19.decode(chatId).data as string;
         const content = await SocialUtilsManager.encryptMessage(this._privateKey, decodedReceiverPubKey, message);
         await this._socialEventManagerWrite.sendMessage(decodedReceiverPubKey, content, replyToEventId);
+    }
+
+    async sendTempMessage(chatId: string, message: string, replyToEventId?: string) {
+        const decodedReceiverPubKey = Nip19.decode(chatId).data as string;
+        const content = await SocialUtilsManager.encryptMessage(this._privateKey, decodedReceiverPubKey, message);
+        await this._socialEventManagerWrite.sendTempMessage(decodedReceiverPubKey, content, replyToEventId);
     }
 
     async resetMessageCount(selfPubKey: string, senderPubKey: string) {
@@ -2805,6 +2817,15 @@ class SocialDataManager {
                 subcommunitiesCount: content.subcommunity_count 
             }
         }
+
+        const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
+            identifiers: [communityInfo.communityUri + ':keys']
+        });
+        const keyEvent = keyEvents[0];
+        if (keyEvent) {
+            communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
+        }
+
         let detailMetadata: ICommunityDetailMetadata = {
             info: communityInfo,
             stats

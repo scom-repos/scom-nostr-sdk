@@ -402,6 +402,15 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         return fetchEventsResponse.events || [];
     }
 
+    async fetchTempEvents(options: SocialEventManagerReadOptions.IFetchTempEvents) {
+        const {ids} = options;
+        let msg = this.augmentWithAuthInfo({
+            ids
+        });
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-temp-events', msg);
+        return fetchEventsResponse.events || [];
+    }
+
     async fetchChannelMessages(options: SocialEventManagerReadOptions.IFetchChannelMessages) {
         let {channelId, since, until} = options;
         if (!since) since = 0;

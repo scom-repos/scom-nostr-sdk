@@ -4699,9 +4699,10 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
         return `${year}-${month}-${day}`;
     }
     class NostrEventManagerWrite {
-        constructor(managers) {
+        constructor(managers, mainRelay) {
             this._nostrCommunicationManagers = [];
             this._nostrCommunicationManagers = managers;
+            this._mainNostrRestAPIManager = managers.find(manager => manager.url === mainRelay);
         }
         set nostrCommunicationManagers(managers) {
             this._nostrCommunicationManagers = managers;
@@ -4748,9 +4749,16 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             }
             return tags;
         }
-        async handleEventSubmission(event) {
+        async handleEventSubmission(event, mainRelayOnly = false) {
             const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
-            const relayResponses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            let relayResponses = [];
+            if (mainRelayOnly) {
+                const response = await this._mainNostrRestAPIManager.submitEvent(verifiedEvent);
+                relayResponses.push(response);
+            }
+            else {
+                relayResponses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            }
             return {
                 event: verifiedEvent,
                 relayResponses
@@ -4769,7 +4777,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     contactPubKey
                 ]);
             }
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async postNote(content, conversationPath, createdAt) {
@@ -4785,7 +4793,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             }
             // const noteId = Nip19.noteEncode(verifiedEvent.id);
             // return noteId;
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async deleteEvents(eventIds) {
@@ -4802,7 +4810,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     decodedEventId
                 ]);
             }
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async updateChannel(info) {
@@ -4831,7 +4839,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     encodedScpData
                 ]);
             }
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async updateUserBookmarkedChannels(channelEventIds) {
@@ -4852,7 +4860,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     channelEventId
                 ]);
             }
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async updateCommunity(info) {
@@ -4942,7 +4950,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     info.parentCommunityUri
                 ]);
             }
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async updateUserBookmarkedCommunities(communities) {
@@ -4968,7 +4976,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     communityUri
                 ]);
             }
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async submitCommunityPost(info) {
@@ -5001,7 +5009,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 ]);
             }
             console.log('submitCommunityPost', event);
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async submitChannelMessage(info) {
@@ -5031,7 +5039,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     "root"
                 ]);
             }
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async updateUserProfile(content) {
@@ -5041,7 +5049,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 "content": JSON.stringify(content),
                 "tags": []
             };
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async sendMessage(receiver, encryptedMessage, replyToEventId) {
@@ -5060,7 +5068,26 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             if (replyToEventId) {
                 event.tags.push(['e', replyToEventId]);
             }
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async sendTempMessage(receiver, encryptedMessage, replyToEventId) {
+            const decodedPubKey = receiver.startsWith('npub1') ? index_3.Nip19.decode(receiver).data : receiver;
+            let event = {
+                "kind": 20004,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": encryptedMessage,
+                "tags": [
+                    [
+                        'p',
+                        decodedPubKey
+                    ]
+                ]
+            };
+            if (replyToEventId) {
+                event.tags.push(['e', replyToEventId]);
+            }
+            const result = await this.handleEventSubmission(event, true);
             return result;
         }
         async updateGroupKeys(identifier, groupKind, keys, invitees) {
@@ -5092,7 +5119,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     "invitee"
                 ]);
             }
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async updateCalendarEvent(info) {
@@ -5181,7 +5208,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     info.city
                 ]);
             }
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async createCalendarEventRSVP(rsvpId, calendarEventUri, accepted) {
@@ -5209,7 +5236,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     ]
                 ]
             };
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async submitCalendarEventPost(info) {
@@ -5231,7 +5258,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     "root"
                 ]);
             }
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async submitLongFormContentEvents(info) {
@@ -5283,7 +5310,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     info.publishedAt.toString()
                 ]);
             }
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async submitLike(tags) {
@@ -5293,7 +5320,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 "content": "+",
                 "tags": tags
             };
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async submitRepost(content, tags) {
@@ -5303,7 +5330,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 "content": content,
                 "tags": tags
             };
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async updateRelayList(relays) {
@@ -5325,7 +5352,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     tag.push(read ? 'read' : 'write');
                 event.tags.push(tag);
             }
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async createPaymentRequestEvent(paymentRequest, amount, comment, isLightningInvoice) {
@@ -5349,7 +5376,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     ]
                 ]
             };
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async createPaymentReceiptEvent(requestEventId, recipient, comment, preimage, tx) {
@@ -5380,7 +5407,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     tx
                 ]);
             }
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async updateCommunityPinnedNotes(creatorId, communityId, eventIds) {
@@ -5398,7 +5425,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     ...tags
                 ]
             };
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async updateUserPinnedNotes(eventIds) {
@@ -5409,7 +5436,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 "content": "",
                 "tags": tags
             };
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async updateUserBookmarks(tags) {
@@ -5419,7 +5446,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 "content": "",
                 "tags": [...tags]
             };
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
         async updateUserEthWalletAccountsInfo(options, privateKey) {
@@ -5438,7 +5465,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     ]
                 ]
             };
-            const result = this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event);
             return result;
         }
     }
@@ -5962,6 +5989,9 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             };
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
             return fetchEventsResponse.events;
+        }
+        async fetchTempEvents(options) {
+            return []; //Not supported
         }
         async fetchChannelMessages(options) {
             let { channelId, since, until } = options;
@@ -6867,6 +6897,14 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-events', msg);
             return fetchEventsResponse.events || [];
         }
+        async fetchTempEvents(options) {
+            const { ids } = options;
+            let msg = this.augmentWithAuthInfo({
+                ids
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-temp-events', msg);
+            return fetchEventsResponse.events || [];
+        }
         async fetchChannelMessages(options) {
             let { channelId, since, until } = options;
             if (!since)
@@ -7400,7 +7438,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     this._socialEventManagerRead = new eventManagerRead_1.NostrEventManagerRead(nostrReadRelayManager);
                 }
             }
-            this._socialEventManagerWrite = new eventManagerWrite_1.NostrEventManagerWrite(writeRelaysManagers);
+            this._socialEventManagerWrite = new eventManagerWrite_1.NostrEventManagerWrite(writeRelaysManagers, this._publicIndexingRelay);
             if (config.mqttBrokerUrl) {
                 try {
                     this.mqttManager = new mqtt_2.MqttManager({
@@ -7484,10 +7522,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             const communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(communityEvent);
             if (!communityInfo)
                 throw new Error('No info event found');
-            const notesCountEvent = feedEvents.find(event => event.kind === 10000105);
+            const statsEvent = feedEvents.find(event => event.kind === 10000105);
             let notesCount = notes.length;
-            if (notesCountEvent) {
-                notesCount = JSON.parse(notesCountEvent.content).note_count;
+            if (statsEvent) {
+                notesCount = JSON.parse(statsEvent.content).note_count;
             }
             const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
                 identifiers: [communityInfo.communityUri + ':keys']
@@ -7960,6 +7998,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async fetchNotesByIds(ids) {
             const noteEvents = await this._socialEventManagerRead.fetchEventsByIds({ ids });
+            return noteEvents;
+        }
+        async fetchTempEvents(ids) {
+            const noteEvents = await this._socialEventManagerRead.fetchTempEvents({ ids });
             return noteEvents;
         }
         getEarliestEventTimestamp(events) {
@@ -8854,6 +8896,11 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             const decodedReceiverPubKey = index_6.Nip19.decode(chatId).data;
             const content = await utilsManager_5.SocialUtilsManager.encryptMessage(this._privateKey, decodedReceiverPubKey, message);
             await this._socialEventManagerWrite.sendMessage(decodedReceiverPubKey, content, replyToEventId);
+        }
+        async sendTempMessage(chatId, message, replyToEventId) {
+            const decodedReceiverPubKey = index_6.Nip19.decode(chatId).data;
+            const content = await utilsManager_5.SocialUtilsManager.encryptMessage(this._privateKey, decodedReceiverPubKey, message);
+            await this._socialEventManagerWrite.sendTempMessage(decodedReceiverPubKey, content, replyToEventId);
         }
         async resetMessageCount(selfPubKey, senderPubKey) {
             await this._socialEventManagerRead.resetMessageCount({
@@ -9983,6 +10030,13 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     membersCount: content.member_count,
                     subcommunitiesCount: content.subcommunity_count
                 };
+            }
+            const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
+                identifiers: [communityInfo.communityUri + ':keys']
+            });
+            const keyEvent = keyEvents[0];
+            if (keyEvent) {
+                communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
             }
             let detailMetadata = {
                 info: communityInfo,

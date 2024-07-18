@@ -1,10 +1,11 @@
 import { Event } from "../core/index";
-import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, ILongFormContentInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityPostInfo, INostrMetadataContent, INostrSubmitResponse, IRelayConfig, ISocialEventManagerWrite, IUpdateCalendarEventInfo, SocialEventManagerWriteOptions } from "../utils/interfaces";
+import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, ILongFormContentInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityPostInfo, INostrMetadataContent, INostrRestAPIManager, INostrSubmitResponse, IRelayConfig, ISocialEventManagerWrite, IUpdateCalendarEventInfo, SocialEventManagerWriteOptions } from "../utils/interfaces";
 import { INostrCommunicationManager } from "./communication";
 declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
     protected _nostrCommunicationManagers: INostrCommunicationManager[];
     protected _privateKey: string;
-    constructor(managers: INostrCommunicationManager[]);
+    protected _mainNostrRestAPIManager: INostrRestAPIManager;
+    constructor(managers: INostrCommunicationManager[], mainRelay: string);
     set nostrCommunicationManagers(managers: INostrCommunicationManager[]);
     set privateKey(privateKey: string);
     protected calculateConversationPathTags(conversationPath: IConversationPath): string[][];
@@ -50,6 +51,10 @@ declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
         relayResponses: INostrSubmitResponse[];
     }>;
     sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<{
+        event: Event.VerifiedEvent<number>;
+        relayResponses: INostrSubmitResponse[];
+    }>;
+    sendTempMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<{
         event: Event.VerifiedEvent<number>;
         relayResponses: INostrSubmitResponse[];
     }>;

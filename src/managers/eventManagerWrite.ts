@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, ILongFormContentInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityPostInfo, INostrEvent, INostrMetadataContent, INostrSubmitResponse, IRelayConfig, ISocialEventManagerWrite, IUpdateCalendarEventInfo,  MembershipType,  ScpStandardId, SocialEventManagerWriteOptions } from "../utils/interfaces";
+import { CalendarEventType, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, ILongFormContentInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityPostInfo, INostrEvent, INostrMetadataContent, INostrRestAPIManager, INostrSubmitResponse, IRelayConfig, ISocialEventManagerWrite, IUpdateCalendarEventInfo,  MembershipType,  ScpStandardId, SocialEventManagerWriteOptions } from "../utils/interfaces";
 import {
     INostrCommunicationManager
 } from "./communication";
@@ -16,9 +16,11 @@ function convertUnixTimestampToDate(timestamp: number): string {
 class NostrEventManagerWrite implements ISocialEventManagerWrite {
     protected _nostrCommunicationManagers: INostrCommunicationManager[] = [];
     protected _privateKey: string;
+    protected _mainNostrRestAPIManager: INostrRestAPIManager;
 
-    constructor(managers: INostrCommunicationManager[]) {
+    constructor(managers: INostrCommunicationManager[], mainRelay: string) {
         this._nostrCommunicationManagers = managers;
+        this._mainNostrRestAPIManager = managers.find(manager => manager.url === mainRelay) as INostrRestAPIManager;
     }
 
     set nostrCommunicationManagers(managers: INostrCommunicationManager[]) {
@@ -69,9 +71,16 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         return tags;
     }
 
-    private async handleEventSubmission(event: Event.EventTemplate<number>) {
+    private async handleEventSubmission(event: Event.EventTemplate<number>, mainRelayOnly: boolean = false) {
         const verifiedEvent = Event.finishEvent(event, this._privateKey);
-        const relayResponses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        let relayResponses: INostrSubmitResponse[] = [];
+        if (mainRelayOnly) {
+            const response = await this._mainNostrRestAPIManager.submitEvent(verifiedEvent);
+            relayResponses.push(response);
+        }
+        else {
+            relayResponses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+        }
         return {
             event: verifiedEvent,
             relayResponses
@@ -91,7 +100,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 contactPubKey
             ]);
         }
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }  
 
@@ -108,7 +117,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         }
         // const noteId = Nip19.noteEncode(verifiedEvent.id);
         // return noteId;
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
 
@@ -126,7 +135,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 decodedEventId
             ]);
         }
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
 
@@ -156,7 +165,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 encodedScpData
             ]);
         }
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
 
@@ -178,7 +187,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 channelEventId
             ]);
         }
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
 
@@ -269,7 +278,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 info.parentCommunityUri
             ]);
         }
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
 
@@ -296,7 +305,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 communityUri
             ]);
         }
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
 
@@ -330,7 +339,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             ]);
         }
         console.log('submitCommunityPost', event);
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
 
@@ -361,7 +370,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 "root"
             ]);
         }
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
 
@@ -372,7 +381,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             "content": JSON.stringify(content),
             "tags": []
         };
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
   
@@ -392,7 +401,27 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         if (replyToEventId) {
             event.tags.push(['e', replyToEventId]);
         }
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
+        return result;
+    }
+
+    async sendTempMessage(receiver: string, encryptedMessage: string, replyToEventId?: string) {
+        const decodedPubKey = receiver.startsWith('npub1') ? Nip19.decode(receiver).data : receiver;
+        let event = {
+            "kind": 20004,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": encryptedMessage,
+            "tags": [
+                [
+                    'p',
+                    decodedPubKey as string
+                ]
+            ]
+        }
+        if (replyToEventId) {
+            event.tags.push(['e', replyToEventId]);
+        }
+        const result = await this.handleEventSubmission(event, true);
         return result;
     }
 
@@ -425,7 +454,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 "invitee"
             ]);
         }
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
     
@@ -515,7 +544,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 info.city
             ]);
         }
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
 
@@ -544,7 +573,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 ]
             ]
         };
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
 
@@ -567,7 +596,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 "root"
             ]);
         }
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
 
@@ -620,7 +649,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 info.publishedAt.toString()
             ]);
         }
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
 
@@ -631,7 +660,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             "content": "+",
             "tags": tags
         };
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
 
@@ -642,7 +671,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             "content": content,
             "tags": tags
         };
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
 
@@ -663,7 +692,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             if (!read || !write) tag.push(read ? 'read' : 'write');
             event.tags.push(tag)
         }
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
 
@@ -688,7 +717,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 ]
             ]
         };
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
 
@@ -724,7 +753,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 ]
             );
         }
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
 
@@ -743,7 +772,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 ...tags
             ]
         };
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
 
@@ -755,7 +784,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             "content": "",
             "tags": tags
         };
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
 
@@ -766,7 +795,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             "content": "",
             "tags": [ ...tags ]
         };
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
 
@@ -786,7 +815,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 ]
             ]
         };
-        const result = this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event);
         return result;
     }
 }
