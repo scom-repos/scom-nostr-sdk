@@ -249,7 +249,7 @@ class SocialDataManager {
         if (encryptedKey) {
             communityPrivateKey = await SocialUtilsManager.decryptMessage(selfPrivateKey, creatorPubkey, encryptedKey);
         }
-        else {
+        else if (communityInfo.scpData.gatekeeperPublicKey && communityInfo.scpData.encryptedKey) {
             communityPrivateKey = await SocialUtilsManager.decryptMessage(selfPrivateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
         }
         return communityPrivateKey;
@@ -352,8 +352,9 @@ class SocialDataManager {
         if (noteCommunityMappings.noteCommunityInfoList.length === 0) return noteIdToPrivateKey;
         const communityInfoMap: Record<string, ICommunityInfo> = {};
         for (let communityInfo of noteCommunityMappings.communityInfoList) {
-            if (options.pubKey === communityInfo.creatorId) {
-                let communityPrivateKey = await SocialUtilsManager.decryptMessage(this._privateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
+            const policyTypes = communityInfo.policies?.map(v => v.policyType) || [];  
+            if (options.pubKey === communityInfo.creatorId || policyTypes.includes(ProtectedMembershipPolicyType.Whitelist)) {
+                let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
                 if (communityPrivateKey) {
                     communityPrivateKeyMap[communityInfo.communityUri] = communityPrivateKey;
                 }
@@ -1028,6 +1029,19 @@ class SocialDataManager {
             for (let event of communityEvents) {
                 let communityInfo = SocialUtilsManager.extractCommunityInfo(event);
                 communityInfoList.push(communityInfo);
+            }
+
+            const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
+                identifiers: communityInfoList.map(v => v.communityUri + ':keys')
+            });
+
+            for (let keyEvent of keyEvents) {
+                const identifier = keyEvent.tags.find(tag => tag[0] === 'd')?.[1];
+                const communityUri = identifier.replace(':keys', '');
+                const communityInfo = communityInfoList.find(v => v.communityUri === communityUri);
+                if (communityInfo) {
+                    communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
+                }
             }
         }
 

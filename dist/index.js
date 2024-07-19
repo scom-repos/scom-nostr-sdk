@@ -7524,7 +7524,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             if (encryptedKey) {
                 communityPrivateKey = await utilsManager_5.SocialUtilsManager.decryptMessage(selfPrivateKey, creatorPubkey, encryptedKey);
             }
-            else {
+            else if (communityInfo.scpData.gatekeeperPublicKey && communityInfo.scpData.encryptedKey) {
                 communityPrivateKey = await utilsManager_5.SocialUtilsManager.decryptMessage(selfPrivateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
             }
             return communityPrivateKey;
@@ -7623,8 +7623,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 return noteIdToPrivateKey;
             const communityInfoMap = {};
             for (let communityInfo of noteCommunityMappings.communityInfoList) {
-                if (options.pubKey === communityInfo.creatorId) {
-                    let communityPrivateKey = await utilsManager_5.SocialUtilsManager.decryptMessage(this._privateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
+                const policyTypes = communityInfo.policies?.map(v => v.policyType) || [];
+                if (options.pubKey === communityInfo.creatorId || policyTypes.includes(interfaces_6.ProtectedMembershipPolicyType.Whitelist)) {
+                    let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
                     if (communityPrivateKey) {
                         communityPrivateKeyMap[communityInfo.communityUri] = communityPrivateKey;
                     }
@@ -8263,6 +8264,17 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 for (let event of communityEvents) {
                     let communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(event);
                     communityInfoList.push(communityInfo);
+                }
+                const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
+                    identifiers: communityInfoList.map(v => v.communityUri + ':keys')
+                });
+                for (let keyEvent of keyEvents) {
+                    const identifier = keyEvent.tags.find(tag => tag[0] === 'd')?.[1];
+                    const communityUri = identifier.replace(':keys', '');
+                    const communityInfo = communityInfoList.find(v => v.communityUri === communityUri);
+                    if (communityInfo) {
+                        communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
+                    }
                 }
             }
             return {
