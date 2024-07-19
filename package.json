@@ -1,6 +1,6 @@
 {
     "name": "@scom/scom-social-sdk",
-    "version": "0.1.47",
+    "version": "0.1.49",
     "main": "lib/index.js",
     "plugin": "dist/index.js",
     "pluginTypes": "pluginTypes/index.d.ts",
@@ -10,7 +10,7 @@
         "@ijstech/eth-wallet": "^0.1.84",
         "@ijstech/ln-wallet": "^0.1.0",
         "@scom/scom-signer": "^0.1.0",
-        "@scom/scom-mqtt": "https://github.com/scom-repos/scom-mqtt",
+        "@scom/scom-mqtt": "^0.1.1",
         "ws": "8.16.0"
     },
     "devDependencies": {
