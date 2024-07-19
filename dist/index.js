@@ -7946,6 +7946,19 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             });
             const earliest = this.getEarliestEventTimestamp(events.filter(v => v.kind === 1).filter(v => v.created_at));
             const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(events);
+            for (let note of notes) {
+                if (note.eventData.tags?.length) {
+                    const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
+                    if (communityUri) {
+                        const { creatorId, communityId } = utilsManager_5.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                        note.community = {
+                            communityUri,
+                            communityId,
+                            creatorId: index_6.Nip19.npubEncode(creatorId)
+                        };
+                    }
+                }
+            }
             return {
                 notes,
                 metadataByPubKeyMap,
@@ -7960,6 +7973,19 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             });
             const earliest = this.getEarliestEventTimestamp(events.filter(v => (v.kind === 1 || v.kind === 6) && v.created_at));
             const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(events);
+            for (let note of notes) {
+                if (note.eventData.tags?.length) {
+                    const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
+                    if (communityUri) {
+                        const { creatorId, communityId } = utilsManager_5.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                        note.community = {
+                            communityUri,
+                            communityId,
+                            creatorId: index_6.Nip19.npubEncode(creatorId)
+                        };
+                    }
+                }
+            }
             return {
                 notes,
                 metadataByPubKeyMap,
