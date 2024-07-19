@@ -690,6 +690,19 @@ class SocialDataManager {
             metadataByPubKeyMap,
             quotedNotesMap
         } = this.createNoteEventMappings(events);
+        for (let note of notes as INoteInfoExtended[]) {
+            if (note.eventData.tags?.length) {
+                const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
+                if (communityUri) {
+                    const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                    note.community = {
+                        communityUri,
+                        communityId,
+                        creatorId: Nip19.npubEncode(creatorId)
+                    };
+                }
+            }
+        }
         return {
             notes,
             metadataByPubKeyMap,
@@ -708,6 +721,19 @@ class SocialDataManager {
             metadataByPubKeyMap,
             quotedNotesMap
         } = this.createNoteEventMappings(events);
+        for (let note of notes as INoteInfoExtended[]) {
+            if (note.eventData.tags?.length) {
+                const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
+                if (communityUri) {
+                    const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                    note.community = {
+                        communityUri,
+                        communityId,
+                        creatorId: Nip19.npubEncode(creatorId)
+                    };
+                }
+            }
+        }
         return {
             notes,
             metadataByPubKeyMap,
