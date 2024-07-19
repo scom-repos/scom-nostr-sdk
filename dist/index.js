@@ -7470,7 +7470,11 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 until
             });
             const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(events);
-            return notes;
+            return {
+                notes,
+                metadataByPubKeyMap,
+                quotedNotesMap
+            };
         }
         retrieveCommunityUri(noteEvent, scpData) {
             let communityUri = null;

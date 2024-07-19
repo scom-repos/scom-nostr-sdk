@@ -187,7 +187,11 @@ class SocialDataManager {
             metadataByPubKeyMap,
             quotedNotesMap
         } = this.createNoteEventMappings(events);
-        return notes;
+        return {
+            notes,
+            metadataByPubKeyMap,
+            quotedNotesMap
+        }
     }
 
     retrieveCommunityUri(noteEvent: INostrEvent, scpData: ICommunityPostScpData) {

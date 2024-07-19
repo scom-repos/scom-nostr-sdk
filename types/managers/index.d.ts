@@ -30,7 +30,11 @@ declare class SocialDataManager {
         metadataByPubKeyMap: Record<string, INostrMetadata>;
         notesCount: number;
     }>;
-    fetchCommunityFeedInfo(creatorId: string, communityId: string, since?: number, until?: number): Promise<INoteInfo[]>;
+    fetchCommunityFeedInfo(creatorId: string, communityId: string, since?: number, until?: number): Promise<{
+        notes: INoteInfo[];
+        metadataByPubKeyMap: Record<string, INostrMetadata>;
+        quotedNotesMap: Record<string, INoteInfo>;
+    }>;
     retrieveCommunityUri(noteEvent: INostrEvent, scpData: ICommunityPostScpData): string;
     retrievePostPrivateKey(event: INostrEvent, communityUri: string, communityPrivateKey: string): Promise<string>;
     retrieveChannelMessagePrivateKey(event: INostrEvent, channelId: string, communityPrivateKey: string): Promise<string>;
