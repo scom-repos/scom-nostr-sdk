@@ -4988,7 +4988,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             const result = await this.handleEventSubmission(event);
             return result;
         }
-        async sendTempMessage(receiver, encryptedMessage, replyToEventId) {
+        async sendTempMessage(options) {
+            const { receiver, encryptedMessage, replyToEventId, widgetId } = options;
             const decodedPubKey = receiver.startsWith('npub1') ? index_3.Nip19.decode(receiver).data : receiver;
             let event = {
                 "kind": 20004,
@@ -5003,6 +5004,9 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             };
             if (replyToEventId) {
                 event.tags.push(['e', replyToEventId]);
+            }
+            if (widgetId) {
+                event.tags.push(['w', widgetId]);
             }
             const result = await this.handleEventSubmission(event, true);
             return result;
@@ -8827,10 +8831,16 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             const result = await this._socialEventManagerWrite.sendMessage(decodedReceiverPubKey, content, replyToEventId);
             return result;
         }
-        async sendTempMessage(chatId, message, replyToEventId) {
-            const decodedReceiverPubKey = index_6.Nip19.decode(chatId).data;
+        async sendTempMessage(options) {
+            const { receiverId, message, replyToEventId, widgetId } = options;
+            const decodedReceiverPubKey = index_6.Nip19.decode(receiverId).data;
             const content = await utilsManager_5.SocialUtilsManager.encryptMessage(this._privateKey, decodedReceiverPubKey, message);
-            const result = await this._socialEventManagerWrite.sendTempMessage(decodedReceiverPubKey, content, replyToEventId);
+            const result = await this._socialEventManagerWrite.sendTempMessage({
+                receiver: decodedReceiverPubKey,
+                encryptedMessage: content,
+                replyToEventId,
+                widgetId
+            });
             return result;
         }
         async resetMessageCount(selfPubKey, senderPubKey) {

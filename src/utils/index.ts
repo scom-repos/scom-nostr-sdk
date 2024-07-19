@@ -40,6 +40,7 @@ export {
     IEthWalletAccountsInfo,
     ICommunityStats,
     ICommunityDetailMetadata,
+    ISendTempMessageOptions,
     SocialDataManagerOptions,
     SocialEventManagerReadOptions,
     ISocialEventManagerReadResult,

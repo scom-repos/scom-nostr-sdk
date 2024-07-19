@@ -405,7 +405,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         return result;
     }
 
-    async sendTempMessage(receiver: string, encryptedMessage: string, replyToEventId?: string) {
+    async sendTempMessage(options: SocialEventManagerWriteOptions.ISendTempMessage) {
+        const { receiver, encryptedMessage, replyToEventId, widgetId } = options;
         const decodedPubKey = receiver.startsWith('npub1') ? Nip19.decode(receiver).data : receiver;
         let event = {
             "kind": 20004,
@@ -420,6 +421,9 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         }
         if (replyToEventId) {
             event.tags.push(['e', replyToEventId]);
+        }
+        if (widgetId) {
+            event.tags.push(['w', widgetId]);
         }
         const result = await this.handleEventSubmission(event, true);
         return result;

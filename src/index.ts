@@ -46,6 +46,7 @@ export {
     IEthWalletAccountsInfo,
     ICommunityStats,
     ICommunityDetailMetadata,
+    ISendTempMessageOptions,
     INostrFetchEventsResponse,
     ILongFormContentInfo,
     SocialDataManagerOptions,

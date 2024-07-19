@@ -54,7 +54,7 @@ declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
         event: Event.VerifiedEvent<number>;
         relayResponses: INostrSubmitResponse[];
     }>;
-    sendTempMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<{
+    sendTempMessage(options: SocialEventManagerWriteOptions.ISendTempMessage): Promise<{
         event: Event.VerifiedEvent<number>;
         relayResponses: INostrSubmitResponse[];
     }>;

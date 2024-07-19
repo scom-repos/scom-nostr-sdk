@@ -429,6 +429,12 @@ export interface ICommunityDetailMetadata {
     info: ICommunityInfo;
     stats: ICommunityStats;
 }
+export interface ISendTempMessageOptions {
+    receiverId: string;
+    message: string;
+    replyToEventId?: string;
+    widgetId?: string;
+}
 export interface INostrCommunicationManager {
     url: string;
     fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
@@ -712,6 +718,12 @@ export declare namespace SocialEventManagerWriteOptions {
         encryptedKey: string;
         masterWalletHash: string;
     }
+    interface ISendTempMessage {
+        receiver: string;
+        encryptedMessage: string;
+        replyToEventId?: string;
+        widgetId?: string;
+    }
 }
 export interface ISocialEventManagerWrite {
     nostrCommunicationManagers: INostrCommunicationManager[];
@@ -727,7 +739,7 @@ export interface ISocialEventManagerWrite {
     submitCommunityPost(info: INewCommunityPostInfo): Promise<ISocialEventManagerWriteResult>;
     updateUserProfile(content: INostrMetadataContent): Promise<ISocialEventManagerWriteResult>;
     sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<ISocialEventManagerWriteResult>;
-    sendTempMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<ISocialEventManagerWriteResult>;
+    sendTempMessage(options: SocialEventManagerWriteOptions.ISendTempMessage): Promise<ISocialEventManagerWriteResult>;
     updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]): Promise<ISocialEventManagerWriteResult>;
     updateCalendarEvent(info: IUpdateCalendarEventInfo): Promise<ISocialEventManagerWriteResult>;
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean): Promise<ISocialEventManagerWriteResult>;
