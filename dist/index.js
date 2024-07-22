@@ -8520,7 +8520,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     }
                     else if (policy.policyType === interfaces_6.ProtectedMembershipPolicyType.Whitelist) {
                         for (let memberId of policy.memberIds) {
-                            const memberPublicKey = index_6.Nip19.decode(memberId).data;
+                            const memberPublicKey = memberId.startsWith('npub1') ? index_6.Nip19.decode(memberId).data : memberId;
                             encryptionPublicKeys.push(memberPublicKey);
                         }
                         memberIds = [...memberIds, ...policy.memberIds];
