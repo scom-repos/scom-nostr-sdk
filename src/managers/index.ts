@@ -1298,7 +1298,7 @@ class SocialDataManager {
                 }
                 else if (policy.policyType === ProtectedMembershipPolicyType.Whitelist) {
                     for (let memberId of policy.memberIds) {
-                        const memberPublicKey = Nip19.decode(memberId).data as string;
+                        const memberPublicKey = memberId.startsWith('npub1') ? Nip19.decode(memberId).data as string : memberId;
                         encryptionPublicKeys.push(memberPublicKey);
                     }
                     memberIds = [...memberIds, ...policy.memberIds];
