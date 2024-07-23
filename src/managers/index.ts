@@ -580,17 +580,31 @@ class SocialDataManager {
             notes,
             metadataByPubKeyMap,
             quotedNotesMap,
-            noteToRepostIdMap
+            noteToRepostIdMap,
+            pubkeyToCommunityIdsMap
         } = this.createNoteEventMappings(events);
+        const communityInfoMap: Record<string, ICommunityInfo> = {};
+        if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+            const communityEvents = await this._socialEventManagerRead.fetchCommunities({
+                pubkeyToCommunityIdsMap
+            });
+            for (let event of communityEvents) {
+                let communityInfo = SocialUtilsManager.extractCommunityInfo(event);
+                communityInfoMap[communityInfo.communityUri] = communityInfo;
+            }
+        }
         for (let note of notes as INoteInfoExtended[]) {
             if (note.eventData.tags?.length) {
                 const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
                 if (communityUri) {
+                    const communityInfo = communityInfoMap[communityUri];
                     const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
                     note.community = {
                         communityUri,
-                        communityId,
-                        creatorId: Nip19.npubEncode(creatorId)
+                        communityId: communityInfo?.communityId || communityId,
+                        creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
+                        parentCommunityUri: communityInfo?.parentCommunityUri,
+                        privateRelay: communityInfo?.privateRelay
                     };
                 }
             }
@@ -692,17 +706,31 @@ class SocialDataManager {
         const {
             notes,
             metadataByPubKeyMap,
-            quotedNotesMap
+            quotedNotesMap,
+            pubkeyToCommunityIdsMap
         } = this.createNoteEventMappings(events);
+        const communityInfoMap: Record<string, ICommunityInfo> = {};
+        if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+            const communityEvents = await this._socialEventManagerRead.fetchCommunities({
+                pubkeyToCommunityIdsMap
+            });
+            for (let event of communityEvents) {
+                let communityInfo = SocialUtilsManager.extractCommunityInfo(event);
+                communityInfoMap[communityInfo.communityUri] = communityInfo;
+            }
+        }
         for (let note of notes as INoteInfoExtended[]) {
             if (note.eventData.tags?.length) {
                 const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
                 if (communityUri) {
+                    const communityInfo = communityInfoMap[communityUri];
                     const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
                     note.community = {
                         communityUri,
-                        communityId,
-                        creatorId: Nip19.npubEncode(creatorId)
+                        communityId: communityInfo?.communityId || communityId,
+                        creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
+                        parentCommunityUri: communityInfo?.parentCommunityUri,
+                        privateRelay: communityInfo?.privateRelay
                     };
                 }
             }
@@ -723,17 +751,31 @@ class SocialDataManager {
         const {
             notes,
             metadataByPubKeyMap,
-            quotedNotesMap
+            quotedNotesMap,
+            pubkeyToCommunityIdsMap
         } = this.createNoteEventMappings(events);
+        const communityInfoMap: Record<string, ICommunityInfo> = {};
+        if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+            const communityEvents = await this._socialEventManagerRead.fetchCommunities({
+                pubkeyToCommunityIdsMap
+            });
+            for (let event of communityEvents) {
+                let communityInfo = SocialUtilsManager.extractCommunityInfo(event);
+                communityInfoMap[communityInfo.communityUri] = communityInfo;
+            }
+        }
         for (let note of notes as INoteInfoExtended[]) {
             if (note.eventData.tags?.length) {
                 const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
                 if (communityUri) {
+                    const communityInfo = communityInfoMap[communityUri];
                     const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
                     note.community = {
                         communityUri,
-                        communityId,
-                        creatorId: Nip19.npubEncode(creatorId)
+                        communityId: communityInfo?.communityId || communityId,
+                        creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
+                        parentCommunityUri: communityInfo?.parentCommunityUri,
+                        privateRelay: communityInfo?.privateRelay
                     };
                 }
             }
@@ -752,7 +794,8 @@ class SocialDataManager {
         let noteToParentAuthorIdMap: Record<string, string> = {};
         let noteToRepostIdMap: Record<string, string> = {};
         let noteStatsMap: Record<string, IPostStats> = {};
-        let noteActionsMap: Record<string, INoteActions> = {}
+        let noteActionsMap: Record<string, INoteActions> = {};
+        let pubkeyToCommunityIdsMap: Record<string, string[]> = {};
         for (let event of events) {
             if (event.kind === 0) {
                 metadataByPubKeyMap[event.pubkey] = {
@@ -822,6 +865,16 @@ class SocialDataManager {
             const noteId = note.eventData?.id;
             note.stats = noteStatsMap[noteId];
             note.actions = noteActionsMap[noteId];
+            const communityUri = note.eventData?.tags?.find(tag => tag[0] === 'a')?.[1];
+            if (communityUri) {
+                const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                if (!pubkeyToCommunityIdsMap[creatorId]) {
+                    pubkeyToCommunityIdsMap[creatorId] = [];
+                }
+                if (!pubkeyToCommunityIdsMap[creatorId].includes(communityId)) {
+                    pubkeyToCommunityIdsMap[creatorId].push(communityId);
+                }
+            }
         }
         return {
             notes,
@@ -830,7 +883,8 @@ class SocialDataManager {
             noteToParentAuthorIdMap,
             noteStatsMap,
             noteToRepostIdMap,
-            noteActionsMap
+            noteActionsMap,
+            pubkeyToCommunityIdsMap
         }
     }
 
@@ -982,17 +1036,31 @@ class SocialDataManager {
         const {
             notes,
             metadataByPubKeyMap,
-            quotedNotesMap
+            quotedNotesMap,
+            pubkeyToCommunityIdsMap
         } = this.createNoteEventMappings(threadEvents);
+        const communityInfoMap: Record<string, ICommunityInfo> = {};
+        if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+            const communityEvents = await this._socialEventManagerRead.fetchCommunities({
+                pubkeyToCommunityIdsMap
+            });
+            for (let event of communityEvents) {
+                let communityInfo = SocialUtilsManager.extractCommunityInfo(event);
+                communityInfoMap[communityInfo.communityUri] = communityInfo;
+            }
+        }
         for (let note of notes as INoteInfoExtended[]) {
             if (note.eventData.tags?.length) {
                 const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
                 if (communityUri) {
+                    const communityInfo = communityInfoMap[communityUri];
                     const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
                     note.community = {
                         communityUri,
-                        communityId,
-                        creatorId: Nip19.npubEncode(creatorId)
+                        communityId: communityInfo?.communityId || communityId,
+                        creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
+                        parentCommunityUri: communityInfo?.parentCommunityUri,
+                        privateRelay: communityInfo?.privateRelay
                     };
                 }
             }
@@ -1046,7 +1114,7 @@ class SocialDataManager {
                         eventData: note,
                         communityUri,
                         communityId,
-                        creatorId
+                        creatorId,
                     });
                 }
             }

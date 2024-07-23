@@ -94,7 +94,15 @@ export interface IAuthor {
 export interface INoteInfoExtended extends INoteInfo {
 	parentAuthor?: IAuthor;
 	repost?: IAuthor;
-	community?: Omit<INoteCommunityInfo, "eventData">;
+	community?: INoteCommunity;
+}
+
+interface INoteCommunity {
+	communityUri?: string;
+	creatorId?: string;
+	communityId?: string;
+	privateRelay?: string;
+	parentCommunityUri?: string;
 }
 
 export interface INoteCommunityInfo {

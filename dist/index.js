@@ -7844,16 +7844,29 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 until
             });
             const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
-            const { notes, metadataByPubKeyMap, quotedNotesMap, noteToRepostIdMap } = this.createNoteEventMappings(events);
+            const { notes, metadataByPubKeyMap, quotedNotesMap, noteToRepostIdMap, pubkeyToCommunityIdsMap } = this.createNoteEventMappings(events);
+            const communityInfoMap = {};
+            if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+                const communityEvents = await this._socialEventManagerRead.fetchCommunities({
+                    pubkeyToCommunityIdsMap
+                });
+                for (let event of communityEvents) {
+                    let communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(event);
+                    communityInfoMap[communityInfo.communityUri] = communityInfo;
+                }
+            }
             for (let note of notes) {
                 if (note.eventData.tags?.length) {
                     const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
                     if (communityUri) {
+                        const communityInfo = communityInfoMap[communityUri];
                         const { creatorId, communityId } = utilsManager_5.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
                         note.community = {
                             communityUri,
-                            communityId,
-                            creatorId: index_6.Nip19.npubEncode(creatorId)
+                            communityId: communityInfo?.communityId || communityId,
+                            creatorId: communityInfo?.creatorId || index_6.Nip19.npubEncode(creatorId),
+                            parentCommunityUri: communityInfo?.parentCommunityUri,
+                            privateRelay: communityInfo?.privateRelay
                         };
                     }
                 }
@@ -7945,16 +7958,29 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 until
             });
             const earliest = this.getEarliestEventTimestamp(events.filter(v => v.kind === 1).filter(v => v.created_at));
-            const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(events);
+            const { notes, metadataByPubKeyMap, quotedNotesMap, pubkeyToCommunityIdsMap } = this.createNoteEventMappings(events);
+            const communityInfoMap = {};
+            if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+                const communityEvents = await this._socialEventManagerRead.fetchCommunities({
+                    pubkeyToCommunityIdsMap
+                });
+                for (let event of communityEvents) {
+                    let communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(event);
+                    communityInfoMap[communityInfo.communityUri] = communityInfo;
+                }
+            }
             for (let note of notes) {
                 if (note.eventData.tags?.length) {
                     const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
                     if (communityUri) {
+                        const communityInfo = communityInfoMap[communityUri];
                         const { creatorId, communityId } = utilsManager_5.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
                         note.community = {
                             communityUri,
-                            communityId,
-                            creatorId: index_6.Nip19.npubEncode(creatorId)
+                            communityId: communityInfo?.communityId || communityId,
+                            creatorId: communityInfo?.creatorId || index_6.Nip19.npubEncode(creatorId),
+                            parentCommunityUri: communityInfo?.parentCommunityUri,
+                            privateRelay: communityInfo?.privateRelay
                         };
                     }
                 }
@@ -7972,16 +7998,29 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 until
             });
             const earliest = this.getEarliestEventTimestamp(events.filter(v => (v.kind === 1 || v.kind === 6) && v.created_at));
-            const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(events);
+            const { notes, metadataByPubKeyMap, quotedNotesMap, pubkeyToCommunityIdsMap } = this.createNoteEventMappings(events);
+            const communityInfoMap = {};
+            if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+                const communityEvents = await this._socialEventManagerRead.fetchCommunities({
+                    pubkeyToCommunityIdsMap
+                });
+                for (let event of communityEvents) {
+                    let communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(event);
+                    communityInfoMap[communityInfo.communityUri] = communityInfo;
+                }
+            }
             for (let note of notes) {
                 if (note.eventData.tags?.length) {
                     const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
                     if (communityUri) {
+                        const communityInfo = communityInfoMap[communityUri];
                         const { creatorId, communityId } = utilsManager_5.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
                         note.community = {
                             communityUri,
-                            communityId,
-                            creatorId: index_6.Nip19.npubEncode(creatorId)
+                            communityId: communityInfo?.communityId || communityId,
+                            creatorId: communityInfo?.creatorId || index_6.Nip19.npubEncode(creatorId),
+                            parentCommunityUri: communityInfo?.parentCommunityUri,
+                            privateRelay: communityInfo?.privateRelay
                         };
                     }
                 }
@@ -8001,6 +8040,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             let noteToRepostIdMap = {};
             let noteStatsMap = {};
             let noteActionsMap = {};
+            let pubkeyToCommunityIdsMap = {};
             for (let event of events) {
                 if (event.kind === 0) {
                     metadataByPubKeyMap[event.pubkey] = {
@@ -8074,6 +8114,16 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 const noteId = note.eventData?.id;
                 note.stats = noteStatsMap[noteId];
                 note.actions = noteActionsMap[noteId];
+                const communityUri = note.eventData?.tags?.find(tag => tag[0] === 'a')?.[1];
+                if (communityUri) {
+                    const { creatorId, communityId } = utilsManager_5.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                    if (!pubkeyToCommunityIdsMap[creatorId]) {
+                        pubkeyToCommunityIdsMap[creatorId] = [];
+                    }
+                    if (!pubkeyToCommunityIdsMap[creatorId].includes(communityId)) {
+                        pubkeyToCommunityIdsMap[creatorId].push(communityId);
+                    }
+                }
             }
             return {
                 notes,
@@ -8082,7 +8132,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 noteToParentAuthorIdMap,
                 noteStatsMap,
                 noteToRepostIdMap,
-                noteActionsMap
+                noteActionsMap,
+                pubkeyToCommunityIdsMap
             };
         }
         async fetchCommunityInfo(creatorId, communityId) {
@@ -8224,16 +8275,29 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 id: decodedFocusedNoteId,
                 pubKey: selfPubkey
             });
-            const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(threadEvents);
+            const { notes, metadataByPubKeyMap, quotedNotesMap, pubkeyToCommunityIdsMap } = this.createNoteEventMappings(threadEvents);
+            const communityInfoMap = {};
+            if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+                const communityEvents = await this._socialEventManagerRead.fetchCommunities({
+                    pubkeyToCommunityIdsMap
+                });
+                for (let event of communityEvents) {
+                    let communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(event);
+                    communityInfoMap[communityInfo.communityUri] = communityInfo;
+                }
+            }
             for (let note of notes) {
                 if (note.eventData.tags?.length) {
                     const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
                     if (communityUri) {
+                        const communityInfo = communityInfoMap[communityUri];
                         const { creatorId, communityId } = utilsManager_5.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
                         note.community = {
                             communityUri,
-                            communityId,
-                            creatorId: index_6.Nip19.npubEncode(creatorId)
+                            communityId: communityInfo?.communityId || communityId,
+                            creatorId: communityInfo?.creatorId || index_6.Nip19.npubEncode(creatorId),
+                            parentCommunityUri: communityInfo?.parentCommunityUri,
+                            privateRelay: communityInfo?.privateRelay
                         };
                     }
                 }
@@ -8286,7 +8350,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                             eventData: note,
                             communityUri,
                             communityId,
-                            creatorId
+                            creatorId,
                         });
                     }
                 }

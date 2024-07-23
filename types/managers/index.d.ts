@@ -85,6 +85,7 @@ declare class SocialDataManager {
         noteStatsMap: Record<string, IPostStats>;
         noteToRepostIdMap: Record<string, string>;
         noteActionsMap: Record<string, INoteActions>;
+        pubkeyToCommunityIdsMap: Record<string, string[]>;
     };
     fetchCommunityInfo(creatorId: string, communityId: string): Promise<ICommunityInfo>;
     private getRandomInt;
