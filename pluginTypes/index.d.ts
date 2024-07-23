@@ -1183,7 +1183,14 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     export interface INoteInfoExtended extends INoteInfo {
         parentAuthor?: IAuthor;
         repost?: IAuthor;
-        community?: Omit<INoteCommunityInfo, "eventData">;
+        community?: INoteCommunity;
+    }
+    interface INoteCommunity {
+        communityUri?: string;
+        creatorId?: string;
+        communityId?: string;
+        privateRelay?: string;
+        parentCommunityUri?: string;
     }
     export interface INoteCommunityInfo {
         eventData: INostrEvent;
@@ -2379,6 +2386,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
             noteStatsMap: Record<string, IPostStats>;
             noteToRepostIdMap: Record<string, string>;
             noteActionsMap: Record<string, INoteActions>;
+            pubkeyToCommunityIdsMap: Record<string, string[]>;
         };
         fetchCommunityInfo(creatorId: string, communityId: string): Promise<ICommunityInfo>;
         private getRandomInt;
