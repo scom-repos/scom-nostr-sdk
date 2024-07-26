@@ -104,6 +104,10 @@ class SocialDataManager {
         this._socialEventManagerWrite.nostrCommunicationManagers = writeRelaysManagers;
     }
 
+    get privateKey() {
+        return this._privateKey;
+    }
+
     private _initializeWriteRelaysManagers(relays: string[]) {
         if (!relays || relays.length === 0) {
             this._writeRelays = [];
@@ -843,7 +847,8 @@ class SocialDataManager {
                     upvotes: content.likes,
                     replies: content.replies,
                     reposts: content.reposts,
-                    satszapped: content.satszapped
+                    satszapped: content.satszapped,
+                    status: content.status
                 }
             }
             else if (event.kind === 10000113) {
@@ -2921,7 +2926,6 @@ class SocialDataManager {
         return communities;
     }
 
-
     async fetchCommunityDetailMetadata(creatorId: string, communityId: string) {
         const events = await this._socialEventManagerRead.fetchCommunityDetailMetadata({
             communityCreatorId: creatorId,
@@ -2956,6 +2960,11 @@ class SocialDataManager {
         }
         
         return detailMetadata;
+    }
+
+    async updateNoteStatus(noteId: string, status: string) {
+        const result = await this._socialEventManagerWrite.updateNoteStatus(noteId, status);
+        return result;
     }
 }
 

@@ -208,6 +208,9 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 });
             }
         }
+        if (info.postStatusOptions?.length > 0) {
+            data.postStatuses = info.postStatusOptions;
+        }
         const isEmptyObject = JSON.stringify(data) === "{}";
         const content = isEmptyObject ? "" : JSON.stringify(data);
         let event = {
@@ -278,6 +281,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 info.parentCommunityUri
             ]);
         }
+
         const result = await this.handleEventSubmission(event);
         return result;
     }
@@ -816,6 +820,31 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 [
                     "d",
                     options.masterWalletHash
+                ]
+            ]
+        };
+        const result = await this.handleEventSubmission(event);
+        return result;
+    }
+
+    async updateNoteStatus(noteId: string, status: string) {
+        let event = {
+            "kind": 1985,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": "",
+            "tags": [
+                [
+                    "L",
+                    "status"
+                ],
+                [
+                    "l",
+                    status,
+                    "status"
+                ],
+                [
+                    "e",
+                    noteId
                 ]
             ]
         };

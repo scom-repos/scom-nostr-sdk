@@ -1289,6 +1289,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         collectibles?: ICommunityCollectible[];
         enableLeaderboard?: boolean;
         parentCommunityUri?: string;
+        postStatusOptions?: string[];
     }
     export interface ICommunityLeaderboard {
         npub: string;
@@ -1384,6 +1385,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         downvotes?: number;
         views?: number;
         satszapped?: number;
+        status?: string;
     }
     export interface INoteActions {
         liked?: boolean;
@@ -1861,6 +1863,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         updateUserPinnedNotes(eventIds: string[]): Promise<ISocialEventManagerWriteResult>;
         updateUserBookmarks(tags: string[][]): Promise<ISocialEventManagerWriteResult>;
         updateUserEthWalletAccountsInfo(options: SocialEventManagerWriteOptions.IUpdateUserEthWalletAccountsInfo, privateKey?: string): Promise<ISocialEventManagerWriteResult>;
+        updateNoteStatus(noteId: string, status: string): Promise<ISocialEventManagerWriteResult>;
     }
     export interface INostrRestAPIManager extends INostrCommunicationManager {
         fetchEventsFromAPI(endpoint: string, msg: any): Promise<INostrFetchEventsResponse>;
@@ -2132,6 +2135,10 @@ declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
             event: Event.VerifiedEvent<number>;
             relayResponses: INostrSubmitResponse[];
         }>;
+        updateNoteStatus(noteId: string, status: string): Promise<{
+            event: Event.VerifiedEvent<number>;
+            relayResponses: INostrSubmitResponse[];
+        }>;
     }
     export { NostrEventManagerWrite };
 }
@@ -2321,6 +2328,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         get socialEventManagerRead(): ISocialEventManagerRead;
         get socialEventManagerWrite(): ISocialEventManagerWrite;
         set relays(value: string[]);
+        get privateKey(): string;
         private _initializeWriteRelaysManagers;
         subscribeToMqttTopics(topics: string[]): void;
         unsubscribeFromMqttTopics(topics: string[]): void;
@@ -2525,6 +2533,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         updateUserEthWalletAccountsInfo(info: IEthWalletAccountsInfo, privateKey?: string): Promise<any>;
         fetchSubCommunities(creatorId: string, communityId: string): Promise<ICommunityInfo[]>;
         fetchCommunityDetailMetadata(creatorId: string, communityId: string): Promise<ICommunityDetailMetadata>;
+        updateNoteStatus(noteId: string, status: string): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").ISocialEventManagerWriteResult>;
     }
     export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager, INostrCommunicationManager, INostrRestAPIManager };
 }

@@ -20,6 +20,7 @@ declare class SocialDataManager {
     get socialEventManagerRead(): ISocialEventManagerRead;
     get socialEventManagerWrite(): ISocialEventManagerWrite;
     set relays(value: string[]);
+    get privateKey(): string;
     private _initializeWriteRelaysManagers;
     subscribeToMqttTopics(topics: string[]): void;
     unsubscribeFromMqttTopics(topics: string[]): void;
@@ -224,5 +225,6 @@ declare class SocialDataManager {
     updateUserEthWalletAccountsInfo(info: IEthWalletAccountsInfo, privateKey?: string): Promise<any>;
     fetchSubCommunities(creatorId: string, communityId: string): Promise<ICommunityInfo[]>;
     fetchCommunityDetailMetadata(creatorId: string, communityId: string): Promise<ICommunityDetailMetadata>;
+    updateNoteStatus(noteId: string, status: string): Promise<import("../utils/interfaces").ISocialEventManagerWriteResult>;
 }
 export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager, INostrCommunicationManager, INostrRestAPIManager };

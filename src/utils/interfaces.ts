@@ -222,6 +222,7 @@ export interface ICommunityInfo extends ICommunityBasicInfo {
 	collectibles?: ICommunityCollectible[];
 	enableLeaderboard?: boolean;
 	parentCommunityUri?: string;
+	postStatusOptions?: string[];
 }
 
 export interface ICommunityLeaderboard {
@@ -331,6 +332,7 @@ export interface IPostStats {
 	downvotes?: number;
 	views?: number;
 	satszapped?: number;
+	status?: string;
 }
 
 export interface INoteActions {
@@ -846,6 +848,7 @@ export interface ISocialEventManagerWrite {
     updateUserPinnedNotes(eventIds: string[]): Promise<ISocialEventManagerWriteResult>;
     updateUserBookmarks(tags: string[][]): Promise<ISocialEventManagerWriteResult>;
 	updateUserEthWalletAccountsInfo(options: SocialEventManagerWriteOptions.IUpdateUserEthWalletAccountsInfo, privateKey?: string): Promise<ISocialEventManagerWriteResult>;
+	updateNoteStatus(noteId: string, status: string): Promise<ISocialEventManagerWriteResult>;
 }
 
 export interface INostrRestAPIManager extends INostrCommunicationManager {

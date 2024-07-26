@@ -176,7 +176,7 @@ class SocialUtilsManager {
                 data = {};
             }
         }
-        let pointSystem, collectibles;
+        let pointSystem, collectibles, postStatusOptions;
         if (scpTag && scpTag[1] === '1') {
             membershipType = MembershipType.Protected;
             policies = Array.isArray(data) ? data : data.policies || [];
@@ -190,6 +190,7 @@ class SocialUtilsManager {
         if (!Array.isArray(data)) {
             pointSystem = data.pointSystem;
             collectibles = data.collectibles;
+            postStatusOptions = data.postStatuses;
         }
         const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
         let communityInfo: ICommunityInfo = {
@@ -210,7 +211,8 @@ class SocialUtilsManager {
             pointSystem,
             collectibles,
             enableLeaderboard,
-            parentCommunityUri
+            parentCommunityUri,
+            postStatusOptions
         }
 
         return communityInfo;

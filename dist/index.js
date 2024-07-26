@@ -4458,7 +4458,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                     data = {};
                 }
             }
-            let pointSystem, collectibles;
+            let pointSystem, collectibles, postStatusOptions;
             if (scpTag && scpTag[1] === '1') {
                 membershipType = interfaces_2.MembershipType.Protected;
                 policies = Array.isArray(data) ? data : data.policies || [];
@@ -4473,6 +4473,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             if (!Array.isArray(data)) {
                 pointSystem = data.pointSystem;
                 collectibles = data.collectibles;
+                postStatusOptions = data.postStatuses;
             }
             const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
             let communityInfo = {
@@ -4493,7 +4494,8 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 pointSystem,
                 collectibles,
                 enableLeaderboard,
-                parentCommunityUri
+                parentCommunityUri,
+                postStatusOptions
             };
             return communityInfo;
         }
@@ -4796,6 +4798,9 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                         memberIds
                     });
                 }
+            }
+            if (info.postStatusOptions?.length > 0) {
+                data.postStatuses = info.postStatusOptions;
             }
             const isEmptyObject = JSON.stringify(data) === "{}";
             const content = isEmptyObject ? "" : JSON.stringify(data);
@@ -5383,6 +5388,30 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     [
                         "d",
                         options.masterWalletHash
+                    ]
+                ]
+            };
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async updateNoteStatus(noteId, status) {
+            let event = {
+                "kind": 1985,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": "",
+                "tags": [
+                    [
+                        "L",
+                        "status"
+                    ],
+                    [
+                        "l",
+                        status,
+                        "status"
+                    ],
+                    [
+                        "e",
+                        noteId
                     ]
                 ]
             };
@@ -7400,6 +7429,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             const writeRelaysManagers = this._initializeWriteRelaysManagers(value);
             this._socialEventManagerWrite.nostrCommunicationManagers = writeRelaysManagers;
         }
+        get privateKey() {
+            return this._privateKey;
+        }
         _initializeWriteRelaysManagers(relays) {
             if (!relays || relays.length === 0) {
                 this._writeRelays = [];
@@ -8091,7 +8123,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                         upvotes: content.likes,
                         replies: content.replies,
                         reposts: content.reposts,
-                        satszapped: content.satszapped
+                        satszapped: content.satszapped,
+                        status: content.status
                     };
                 }
                 else if (event.kind === 10000113) {
@@ -10079,6 +10112,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 stats
             };
             return detailMetadata;
+        }
+        async updateNoteStatus(noteId, status) {
+            const result = await this._socialEventManagerWrite.updateNoteStatus(noteId, status);
+            return result;
         }
     }
     exports.SocialDataManager = SocialDataManager;

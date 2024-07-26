@@ -114,5 +114,9 @@ declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
         event: Event.VerifiedEvent<number>;
         relayResponses: INostrSubmitResponse[];
     }>;
+    updateNoteStatus(noteId: string, status: string): Promise<{
+        event: Event.VerifiedEvent<number>;
+        relayResponses: INostrSubmitResponse[];
+    }>;
 }
 export { NostrEventManagerWrite };
