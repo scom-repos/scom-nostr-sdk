@@ -4473,7 +4473,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             if (!Array.isArray(data)) {
                 pointSystem = data.pointSystem;
                 collectibles = data.collectibles;
-                postStatusOptions = data.postStatuses;
+                postStatusOptions = data.postStatuses?.length > 0 && typeof data.postStatuses[0] === 'string' ? data.postStatuses.map(status => ({ status })) : data.postStatuses;
             }
             const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
             let communityInfo = {

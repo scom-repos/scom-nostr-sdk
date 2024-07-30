@@ -203,6 +203,11 @@ export interface ICommunityCollectible {
 	actions?: ICommunityCollectibleAction;
 }
 
+export interface ICommunityPostStatusOption {
+	status: string;
+	isDefault?: boolean;
+}
+
 export interface ICommunityInfo extends ICommunityBasicInfo {
 	communityUri: string;
 	description?: string;
@@ -222,7 +227,7 @@ export interface ICommunityInfo extends ICommunityBasicInfo {
 	collectibles?: ICommunityCollectible[];
 	enableLeaderboard?: boolean;
 	parentCommunityUri?: string;
-	postStatusOptions?: string[];
+	postStatusOptions?: ICommunityPostStatusOption[];
 }
 
 export interface ICommunityLeaderboard {
