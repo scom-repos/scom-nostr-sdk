@@ -12,6 +12,7 @@ export {
     INostrEvent,
     ICommunityBasicInfo,
     ICommunityInfo,
+    ICommunityPostStatusOption,
     ICommunityCollectible,
     ICommunityLeaderboard,
     ICommunityScpData,

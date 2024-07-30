@@ -1,6 +1,6 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, INostrEvent, INostrMetadata, IUserProfile, MembershipType, ScpStandardId } from "../utils/interfaces";
+import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, INostrEvent, INostrMetadata, IUserProfile, MembershipType, ScpStandardId } from "../utils/interfaces";
 import { Signer } from "@scom/scom-signer";
 
 class SocialUtilsManager {
@@ -176,7 +176,7 @@ class SocialUtilsManager {
                 data = {};
             }
         }
-        let pointSystem, collectibles, postStatusOptions;
+        let pointSystem, collectibles, postStatusOptions: ICommunityPostStatusOption[];
         if (scpTag && scpTag[1] === '1') {
             membershipType = MembershipType.Protected;
             policies = Array.isArray(data) ? data : data.policies || [];
@@ -190,7 +190,7 @@ class SocialUtilsManager {
         if (!Array.isArray(data)) {
             pointSystem = data.pointSystem;
             collectibles = data.collectibles;
-            postStatusOptions = data.postStatuses;
+            postStatusOptions = data.postStatuses?.length > 0 && typeof data.postStatuses[0] === 'string' ? data.postStatuses.map(status => ({ status })) : data.postStatuses;
         }
         const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
         let communityInfo: ICommunityInfo = {
