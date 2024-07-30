@@ -2377,36 +2377,6 @@ class SocialDataManager {
         return result;
     }
 
-    async fetchUnreadMessageCounts(pubkey: string) {
-        if (!this._publicIndexingRelay) return null;
-        let url = this._publicIndexingRelay + '/unread-message-counts?pubkey=' + pubkey;
-        const response = await fetch(url);
-        const result = await response.json();
-        return result;
-    }
-
-    async updateMessageLastReadReceipt(pubkey: string, walletAddress: string, signature: string, fromId: string) {
-        if (!this._publicIndexingRelay) return null;
-        let msg = pubkey;
-        const data = {
-            fromId: fromId,
-            msg: msg,
-            signature: signature,
-            pubkey: pubkey,
-            walletAddress: walletAddress
-        };
-        let response = await fetch(this._publicIndexingRelay + '/update-message-last-read-receipt', {
-            method: 'POST',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-        });
-        let result = await response.json();
-        return result;
-    }
-
     async searchUsers(query: string) {
         const events = await this._socialEventManagerRead.searchUsers({ query });
         let metadataArr: INostrMetadata[] = [];

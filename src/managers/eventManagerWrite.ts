@@ -199,7 +199,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         if (info.membershipType === MembershipType.Protected) {
             data.policies = [];
             for (let policy of info.policies) {
-                const memberIds = policy.memberIds.map(memberId => {
+                const memberIds = policy.memberIds?.map(memberId => {
                     return memberId.startsWith('npub1') ? Nip19.decode(memberId).data as string : memberId;
                 });
                 data.policies.push({

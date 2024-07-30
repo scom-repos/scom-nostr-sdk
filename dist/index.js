@@ -4790,7 +4790,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             if (info.membershipType === interfaces_3.MembershipType.Protected) {
                 data.policies = [];
                 for (let policy of info.policies) {
-                    const memberIds = policy.memberIds.map(memberId => {
+                    const memberIds = policy.memberIds?.map(memberId => {
                         return memberId.startsWith('npub1') ? index_3.Nip19.decode(memberId).data : memberId;
                     });
                     data.policies.push({
@@ -9567,36 +9567,6 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             }
             catch (err) {
             }
-            return result;
-        }
-        async fetchUnreadMessageCounts(pubkey) {
-            if (!this._publicIndexingRelay)
-                return null;
-            let url = this._publicIndexingRelay + '/unread-message-counts?pubkey=' + pubkey;
-            const response = await fetch(url);
-            const result = await response.json();
-            return result;
-        }
-        async updateMessageLastReadReceipt(pubkey, walletAddress, signature, fromId) {
-            if (!this._publicIndexingRelay)
-                return null;
-            let msg = pubkey;
-            const data = {
-                fromId: fromId,
-                msg: msg,
-                signature: signature,
-                pubkey: pubkey,
-                walletAddress: walletAddress
-            };
-            let response = await fetch(this._publicIndexingRelay + '/update-message-last-read-receipt', {
-                method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data)
-            });
-            let result = await response.json();
             return result;
         }
         async searchUsers(query) {

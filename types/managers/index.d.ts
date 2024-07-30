@@ -179,8 +179,6 @@ declare class SocialDataManager {
     submitRepost(postEventData: INostrEvent): Promise<void>;
     sendPingRequest(pubkey: string, relayUrl?: string): Promise<any>;
     checkRelayStatus(pubkey: string, relayUrl?: string): Promise<any>;
-    fetchUnreadMessageCounts(pubkey: string): Promise<any>;
-    updateMessageLastReadReceipt(pubkey: string, walletAddress: string, signature: string, fromId: string): Promise<any>;
     searchUsers(query: string): Promise<IUserProfile[]>;
     addRelay(url: string): Promise<void>;
     removeRelay(url: string): Promise<void>;
