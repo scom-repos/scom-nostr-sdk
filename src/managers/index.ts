@@ -1054,6 +1054,29 @@ class SocialDataManager {
                 communityInfoMap[communityInfo.communityUri] = communityInfo;
             }
         }
+        const quotedPubKeys = [];
+        for (let eventId in quotedNotesMap) {
+            const pubKey = quotedNotesMap[eventId].eventData.pubkey;
+            if (!metadataByPubKeyMap[pubKey]) quotedPubKeys.push(pubKey);
+        }
+        if (quotedPubKeys.length > 0) {
+            const metadata = await this._socialEventManagerRead.fetchUserProfileCacheEvents({
+                pubKeys: quotedPubKeys
+            });
+    
+            const _metadataByPubKeyMap: Record<string, INostrMetadata> = metadata.reduce((acc, cur) => {
+                const content = JSON.parse(cur.content);
+                if (cur.pubkey) {
+                    acc[cur.pubkey] = {
+                        ...cur,
+                        content
+                    };
+                }
+                return acc;
+            }, {});
+
+            Object.assign(metadataByPubKeyMap, _metadataByPubKeyMap);
+        }
         for (let note of notes as INoteInfoExtended[]) {
             if (note.eventData.tags?.length) {
                 const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
