@@ -1361,6 +1361,8 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         gatekeeperUrl?: string;
         message?: string;
         signature?: string;
+        since?: number;
+        until?: number;
     }
     export interface ICommunityGatekeeperInfo {
         name: string;
@@ -2337,7 +2339,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         subscribeToMqttTopics(topics: string[]): void;
         unsubscribeFromMqttTopics(topics: string[]): void;
         publishToMqttTopic(topic: string, message: string): void;
-        retrieveCommunityEvents(creatorId: string, communityId: string, statsIncluded?: boolean): Promise<{
+        retrieveCommunityEvents(creatorId: string, communityId: string): Promise<{
             notes: INoteInfo[];
             info: ICommunityInfo;
             metadataByPubKeyMap: Record<string, INostrMetadata>;

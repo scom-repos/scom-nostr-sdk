@@ -304,6 +304,8 @@ export interface IRetrieveCommunityPostKeysOptions {
 	gatekeeperUrl?: string;
 	message?: string;
 	signature?: string;
+	since?: number;
+	until?: number;
 }
 
 export interface ICommunityGatekeeperInfo {

@@ -139,11 +139,11 @@ class SocialDataManager {
         this.mqttManager.publish(topic, message);
     }
 
-    async retrieveCommunityEvents(creatorId: string, communityId: string, statsIncluded: boolean = false) {
+    async retrieveCommunityEvents(creatorId: string, communityId: string) {
         const feedEvents = await this._socialEventManagerRead.fetchCommunityMetadataFeed({
             communityCreatorId: creatorId,
             communityName: communityId,
-            statsIncluded
+            statsIncluded: false
         });
         if (feedEvents.length === 0) {
             return null;
@@ -265,10 +265,18 @@ class SocialDataManager {
 
     private async constructCommunityNoteIdToPrivateKeyMap(communityInfo: ICommunityInfo, noteInfoList: INoteInfo[]) {
         let noteIdToPrivateKey: Record<string, string> = {};
+        const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
         let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
         if (!communityPrivateKey) return noteIdToPrivateKey;
         for (const note of noteInfoList) {
-            const postPrivateKey = await this.retrievePostPrivateKey(note.eventData, communityInfo.communityUri, communityPrivateKey);
+            let postPrivateKey;
+            if (note.eventData.pubkey === pubkey) {
+                let postScpData: ICommunityPostScpData = SocialUtilsManager.extractScpData(note.eventData, ScpStandardId.CommunityPost);
+                postPrivateKey = await SocialUtilsManager.decryptMessage(this._privateKey, communityInfo.scpData.publicKey, postScpData.encryptedKey);
+            }
+            else {
+                postPrivateKey = await this.retrievePostPrivateKey(note.eventData, communityInfo.communityUri, communityPrivateKey);
+            }
             if (postPrivateKey) {
                 noteIdToPrivateKey[note.eventData.id] = postPrivateKey;
             }
@@ -285,7 +293,9 @@ class SocialDataManager {
                 creatorId: communityInfo.creatorId,
                 communityId: communityInfo.communityId,
                 message: options.message,
-                signature: options.signature
+                signature: options.signature,
+                since: options.since,
+                until: options.until
             }, this._privateKey);
             let url = `${options.gatekeeperUrl}/api/communities/v0/post-keys`;
             let response = await fetch(url, {

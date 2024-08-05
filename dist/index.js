@@ -7459,11 +7459,11 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         publishToMqttTopic(topic, message) {
             this.mqttManager.publish(topic, message);
         }
-        async retrieveCommunityEvents(creatorId, communityId, statsIncluded = false) {
+        async retrieveCommunityEvents(creatorId, communityId) {
             const feedEvents = await this._socialEventManagerRead.fetchCommunityMetadataFeed({
                 communityCreatorId: creatorId,
                 communityName: communityId,
-                statsIncluded
+                statsIncluded: false
             });
             if (feedEvents.length === 0) {
                 return null;
@@ -7571,11 +7571,19 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async constructCommunityNoteIdToPrivateKeyMap(communityInfo, noteInfoList) {
             let noteIdToPrivateKey = {};
+            const pubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
             let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
             if (!communityPrivateKey)
                 return noteIdToPrivateKey;
             for (const note of noteInfoList) {
-                const postPrivateKey = await this.retrievePostPrivateKey(note.eventData, communityInfo.communityUri, communityPrivateKey);
+                let postPrivateKey;
+                if (note.eventData.pubkey === pubkey) {
+                    let postScpData = utilsManager_5.SocialUtilsManager.extractScpData(note.eventData, interfaces_6.ScpStandardId.CommunityPost);
+                    postPrivateKey = await utilsManager_5.SocialUtilsManager.decryptMessage(this._privateKey, communityInfo.scpData.publicKey, postScpData.encryptedKey);
+                }
+                else {
+                    postPrivateKey = await this.retrievePostPrivateKey(note.eventData, communityInfo.communityUri, communityPrivateKey);
+                }
                 if (postPrivateKey) {
                     noteIdToPrivateKey[note.eventData.id] = postPrivateKey;
                 }
@@ -7591,7 +7599,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     creatorId: communityInfo.creatorId,
                     communityId: communityInfo.communityId,
                     message: options.message,
-                    signature: options.signature
+                    signature: options.signature,
+                    since: options.since,
+                    until: options.until
                 }, this._privateKey);
                 let url = `${options.gatekeeperUrl}/api/communities/v0/post-keys`;
                 let response = await fetch(url, {
