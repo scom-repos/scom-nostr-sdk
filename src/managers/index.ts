@@ -597,7 +597,8 @@ class SocialDataManager {
                         communityId: communityInfo?.communityId || communityId,
                         creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
                         parentCommunityUri: communityInfo?.parentCommunityUri,
-                        privateRelay: communityInfo?.privateRelay
+                        privateRelay: communityInfo?.privateRelay,
+                        isExclusive: communityInfo?.membershipType === MembershipType.Protected
                     };
                 }
             }
@@ -671,8 +672,46 @@ class SocialDataManager {
     }
 
     async fetchNotesByIds(ids: string[]) {
-        const noteEvents = await this._socialEventManagerRead.fetchEventsByIds({ ids });
-        return noteEvents;
+        const noteEvents = await this._socialEventManagerRead.fetchEventsByIds({ ids });const {
+            notes,
+            quotedNotesMap,
+            pubkeyToCommunityIdsMap
+        } = this.createNoteEventMappings(noteEvents);
+        let metadataByPubKeyMap = await this.constructMetadataByPubKeyMap(noteEvents);
+        const communityInfoMap: Record<string, ICommunityInfo> = {};
+        if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+            const communityEvents = await this._socialEventManagerRead.fetchCommunities({
+                pubkeyToCommunityIdsMap
+            });
+            for (let event of communityEvents) {
+                let communityInfo = SocialUtilsManager.extractCommunityInfo(event);
+                communityInfoMap[communityInfo.communityUri] = communityInfo;
+            }
+        }
+        for (let note of notes as INoteInfoExtended[]) {
+            if (!note.actions) note.actions = {};
+            note.actions.bookmarked = true;
+            if (note.eventData.tags?.length) {
+                const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
+                if (communityUri) {
+                    const communityInfo = communityInfoMap[communityUri];
+                    const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                    note.community = {
+                        communityUri,
+                        communityId: communityInfo?.communityId || communityId,
+                        creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
+                        parentCommunityUri: communityInfo?.parentCommunityUri,
+                        privateRelay: communityInfo?.privateRelay,
+                        isExclusive: communityInfo?.membershipType === MembershipType.Protected
+                    };
+                }
+            }
+        }
+        return {
+            notes,
+            metadataByPubKeyMap,
+            quotedNotesMap
+        }
     }
 
     async fetchTempEvents(ids: string[]) {
@@ -723,7 +762,8 @@ class SocialDataManager {
                         communityId: communityInfo?.communityId || communityId,
                         creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
                         parentCommunityUri: communityInfo?.parentCommunityUri,
-                        privateRelay: communityInfo?.privateRelay
+                        privateRelay: communityInfo?.privateRelay,
+                        isExclusive: communityInfo?.membershipType === MembershipType.Protected
                     };
                 }
             }
@@ -768,7 +808,8 @@ class SocialDataManager {
                         communityId: communityInfo?.communityId || communityId,
                         creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
                         parentCommunityUri: communityInfo?.parentCommunityUri,
-                        privateRelay: communityInfo?.privateRelay
+                        privateRelay: communityInfo?.privateRelay,
+                        isExclusive: communityInfo?.membershipType === MembershipType.Protected
                     };
                 }
             }
@@ -1080,7 +1121,8 @@ class SocialDataManager {
                         communityId: communityInfo?.communityId || communityId,
                         creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
                         parentCommunityUri: communityInfo?.parentCommunityUri,
-                        privateRelay: communityInfo?.privateRelay
+                        privateRelay: communityInfo?.privateRelay,
+                        isExclusive: communityInfo?.membershipType === MembershipType.Protected
                     };
                 }
             }
@@ -1519,7 +1561,7 @@ class SocialDataManager {
         }
     }
 
-    async submitCommunityPost(message: string, info: ICommunityInfo, conversationPath?: IConversationPath, timestamp?: number, isPublicPost: boolean = false) {
+    async submitCommunityPost(message: string, info: ICommunityInfo, conversationPath?: IConversationPath, timestamp?: number, alt?: string, isPublicPost: boolean = false) {
         const messageContent = {
             communityUri: info.communityUri,
             message,
@@ -1549,6 +1591,7 @@ class SocialDataManager {
                 }
             }
         }
+        if (alt) newCommunityPostInfo.alt = alt;
         const responses = await this._socialEventManagerWrite.submitCommunityPost(newCommunityPostInfo);
         return responses;
     }

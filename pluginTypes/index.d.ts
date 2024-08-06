@@ -1191,6 +1191,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         communityId?: string;
         privateRelay?: string;
         parentCommunityUri?: string;
+        isExclusive?: boolean;
     }
     export interface INoteCommunityInfo {
         eventData: INostrEvent;
@@ -1353,6 +1354,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         timestamp?: number;
         conversationPath?: IConversationPath;
         scpData?: ICommunityPostScpData;
+        alt?: string;
     }
     export interface IRetrieveCommunityPostKeysOptions {
         communityInfo: ICommunityInfo;
@@ -2379,7 +2381,11 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
             quotedNotesMap: Record<string, INoteInfo>;
             earliest: number;
         }>;
-        fetchNotesByIds(ids: string[]): Promise<INostrEvent[]>;
+        fetchNotesByIds(ids: string[]): Promise<{
+            notes: INoteInfo[];
+            metadataByPubKeyMap: Record<string, INostrMetadata>;
+            quotedNotesMap: Record<string, INoteInfo>;
+        }>;
         fetchTempEvents(ids: string[]): Promise<INostrEvent[]>;
         private getEarliestEventTimestamp;
         fetchHomeFeedInfo(pubKey: string, since?: number, until?: number): Promise<{
@@ -2453,7 +2459,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         joinCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;
         leaveCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;
         private encryptGroupMessage;
-        submitCommunityPost(message: string, info: ICommunityInfo, conversationPath?: IConversationPath, timestamp?: number, isPublicPost?: boolean): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").ISocialEventManagerWriteResult>;
+        submitCommunityPost(message: string, info: ICommunityInfo, conversationPath?: IConversationPath, timestamp?: number, alt?: string, isPublicPost?: boolean): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").ISocialEventManagerWriteResult>;
         fetchAllUserRelatedChannels(pubKey: string): Promise<IChannelInfo[]>;
         retrieveChannelMessages(channelId: string, since?: number, until?: number): Promise<INostrEvent[]>;
         retrieveChannelEvents(creatorId: string, channelId: string): Promise<{

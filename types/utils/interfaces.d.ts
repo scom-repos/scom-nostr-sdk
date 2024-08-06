@@ -91,6 +91,7 @@ interface INoteCommunity {
     communityId?: string;
     privateRelay?: string;
     parentCommunityUri?: string;
+    isExclusive?: boolean;
 }
 export interface INoteCommunityInfo {
     eventData: INostrEvent;
@@ -253,6 +254,7 @@ export interface INewCommunityPostInfo {
     timestamp?: number;
     conversationPath?: IConversationPath;
     scpData?: ICommunityPostScpData;
+    alt?: string;
 }
 export interface IRetrieveCommunityPostKeysOptions {
     communityInfo: ICommunityInfo;

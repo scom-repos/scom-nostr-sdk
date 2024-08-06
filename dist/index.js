@@ -4930,6 +4930,12 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     "root"
                 ]);
             }
+            if (info.alt) {
+                event.tags.push([
+                    "alt",
+                    info.alt
+                ]);
+            }
             console.log('submitCommunityPost', event);
             const result = await this.handleEventSubmission(event);
             return result;
@@ -7892,7 +7898,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                             communityId: communityInfo?.communityId || communityId,
                             creatorId: communityInfo?.creatorId || index_6.Nip19.npubEncode(creatorId),
                             parentCommunityUri: communityInfo?.parentCommunityUri,
-                            privateRelay: communityInfo?.privateRelay
+                            privateRelay: communityInfo?.privateRelay,
+                            isExclusive: communityInfo?.membershipType === interfaces_6.MembershipType.Protected
                         };
                     }
                 }
@@ -7963,7 +7970,43 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async fetchNotesByIds(ids) {
             const noteEvents = await this._socialEventManagerRead.fetchEventsByIds({ ids });
-            return noteEvents;
+            const { notes, quotedNotesMap, pubkeyToCommunityIdsMap } = this.createNoteEventMappings(noteEvents);
+            let metadataByPubKeyMap = await this.constructMetadataByPubKeyMap(noteEvents);
+            const communityInfoMap = {};
+            if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+                const communityEvents = await this._socialEventManagerRead.fetchCommunities({
+                    pubkeyToCommunityIdsMap
+                });
+                for (let event of communityEvents) {
+                    let communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(event);
+                    communityInfoMap[communityInfo.communityUri] = communityInfo;
+                }
+            }
+            for (let note of notes) {
+                if (!note.actions)
+                    note.actions = {};
+                note.actions.bookmarked = true;
+                if (note.eventData.tags?.length) {
+                    const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
+                    if (communityUri) {
+                        const communityInfo = communityInfoMap[communityUri];
+                        const { creatorId, communityId } = utilsManager_5.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                        note.community = {
+                            communityUri,
+                            communityId: communityInfo?.communityId || communityId,
+                            creatorId: communityInfo?.creatorId || index_6.Nip19.npubEncode(creatorId),
+                            parentCommunityUri: communityInfo?.parentCommunityUri,
+                            privateRelay: communityInfo?.privateRelay,
+                            isExclusive: communityInfo?.membershipType === interfaces_6.MembershipType.Protected
+                        };
+                    }
+                }
+            }
+            return {
+                notes,
+                metadataByPubKeyMap,
+                quotedNotesMap
+            };
         }
         async fetchTempEvents(ids) {
             const noteEvents = await this._socialEventManagerRead.fetchTempEvents({ ids });
@@ -8006,7 +8049,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                             communityId: communityInfo?.communityId || communityId,
                             creatorId: communityInfo?.creatorId || index_6.Nip19.npubEncode(creatorId),
                             parentCommunityUri: communityInfo?.parentCommunityUri,
-                            privateRelay: communityInfo?.privateRelay
+                            privateRelay: communityInfo?.privateRelay,
+                            isExclusive: communityInfo?.membershipType === interfaces_6.MembershipType.Protected
                         };
                     }
                 }
@@ -8046,7 +8090,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                             communityId: communityInfo?.communityId || communityId,
                             creatorId: communityInfo?.creatorId || index_6.Nip19.npubEncode(creatorId),
                             parentCommunityUri: communityInfo?.parentCommunityUri,
-                            privateRelay: communityInfo?.privateRelay
+                            privateRelay: communityInfo?.privateRelay,
+                            isExclusive: communityInfo?.membershipType === interfaces_6.MembershipType.Protected
                         };
                     }
                 }
@@ -8349,7 +8394,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                             communityId: communityInfo?.communityId || communityId,
                             creatorId: communityInfo?.creatorId || index_6.Nip19.npubEncode(creatorId),
                             parentCommunityUri: communityInfo?.parentCommunityUri,
-                            privateRelay: communityInfo?.privateRelay
+                            privateRelay: communityInfo?.privateRelay,
+                            isExclusive: communityInfo?.membershipType === interfaces_6.MembershipType.Protected
                         };
                     }
                 }
@@ -8759,7 +8805,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 encryptedGroupKey
             };
         }
-        async submitCommunityPost(message, info, conversationPath, timestamp, isPublicPost = false) {
+        async submitCommunityPost(message, info, conversationPath, timestamp, alt, isPublicPost = false) {
             const messageContent = {
                 communityUri: info.communityUri,
                 message,
@@ -8786,6 +8832,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     }
                 };
             }
+            if (alt)
+                newCommunityPostInfo.alt = alt;
             const responses = await this._socialEventManagerWrite.submitCommunityPost(newCommunityPostInfo);
             return responses;
         }
