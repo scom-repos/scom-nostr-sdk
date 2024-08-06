@@ -58,7 +58,11 @@ declare class SocialDataManager {
         quotedNotesMap: Record<string, INoteInfo>;
         earliest: number;
     }>;
-    fetchNotesByIds(ids: string[]): Promise<INostrEvent[]>;
+    fetchNotesByIds(ids: string[]): Promise<{
+        notes: INoteInfo[];
+        metadataByPubKeyMap: Record<string, INostrMetadata>;
+        quotedNotesMap: Record<string, INoteInfo>;
+    }>;
     fetchTempEvents(ids: string[]): Promise<INostrEvent[]>;
     private getEarliestEventTimestamp;
     fetchHomeFeedInfo(pubKey: string, since?: number, until?: number): Promise<{
