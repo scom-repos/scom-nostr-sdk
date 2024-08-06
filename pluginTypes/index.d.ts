@@ -1234,6 +1234,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     }
     export interface ICommunityScpData {
         publicKey?: string;
+        encryptedKey?: string;
         gatekeeperPublicKey?: string;
         channelEventId?: string;
     }
@@ -2347,12 +2348,6 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         subscribeToMqttTopics(topics: string[]): void;
         unsubscribeFromMqttTopics(topics: string[]): void;
         publishToMqttTopic(topic: string, message: string): void;
-        retrieveCommunityEvents(creatorId: string, communityId: string): Promise<{
-            notes: INoteInfo[];
-            info: ICommunityInfo;
-            metadataByPubKeyMap: Record<string, INostrMetadata>;
-            notesCount: number;
-        }>;
         fetchCommunityFeedInfo(creatorId: string, communityId: string, since?: number, until?: number): Promise<{
             notes: INoteInfo[];
             metadataByPubKeyMap: Record<string, INostrMetadata>;

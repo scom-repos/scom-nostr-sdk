@@ -134,6 +134,7 @@ export interface IProtectedMembershipPolicy {
 }
 export interface ICommunityScpData {
     publicKey?: string;
+    encryptedKey?: string;
     gatekeeperPublicKey?: string;
     channelEventId?: string;
 }
