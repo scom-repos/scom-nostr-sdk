@@ -154,7 +154,7 @@ export interface IProtectedMembershipPolicy {
 //SCP-1 Kind 34550
 export interface ICommunityScpData {
 	publicKey?: string;
-	// encryptedKey?: string;
+	encryptedKey?: string;
 	gatekeeperPublicKey?: string;
 	channelEventId?: string;
 }

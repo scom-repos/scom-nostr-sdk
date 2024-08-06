@@ -139,45 +139,45 @@ class SocialDataManager {
         this.mqttManager.publish(topic, message);
     }
 
-    async retrieveCommunityEvents(creatorId: string, communityId: string) {
-        const feedEvents = await this._socialEventManagerRead.fetchCommunityMetadataFeed({
-            communityCreatorId: creatorId,
-            communityName: communityId,
-            statsIncluded: false
-        });
-        if (feedEvents.length === 0) {
-            return null;
-        }
-        const {
-            notes,
-            metadataByPubKeyMap,
-            quotedNotesMap
-        } = this.createNoteEventMappings(feedEvents);
-        const communityEvent = feedEvents.find(event => event.kind === 34550);
-        if (!communityEvent) throw new Error('No info event found');
-        const communityInfo = SocialUtilsManager.extractCommunityInfo(communityEvent);
-        if (!communityInfo) throw new Error('No info event found');
-        const statsEvent = feedEvents.find(event => event.kind === 10000105);
-        let notesCount = notes.length;
-        if (statsEvent) {
-            notesCount = JSON.parse(statsEvent.content).note_count;
-        }
+    // async retrieveCommunityEvents(creatorId: string, communityId: string) {
+    //     const feedEvents = await this._socialEventManagerRead.fetchCommunityMetadataFeed({
+    //         communityCreatorId: creatorId,
+    //         communityName: communityId,
+    //         statsIncluded: false
+    //     });
+    //     if (feedEvents.length === 0) {
+    //         return null;
+    //     }
+    //     const {
+    //         notes,
+    //         metadataByPubKeyMap,
+    //         quotedNotesMap
+    //     } = this.createNoteEventMappings(feedEvents);
+    //     const communityEvent = feedEvents.find(event => event.kind === 34550);
+    //     if (!communityEvent) throw new Error('No info event found');
+    //     const communityInfo = SocialUtilsManager.extractCommunityInfo(communityEvent);
+    //     if (!communityInfo) throw new Error('No info event found');
+    //     const statsEvent = feedEvents.find(event => event.kind === 10000105);
+    //     let notesCount = notes.length;
+    //     if (statsEvent) {
+    //         notesCount = JSON.parse(statsEvent.content).note_count;
+    //     }
 
-        const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
-            identifiers: [communityInfo.communityUri + ':keys']
-        });
-        const keyEvent = keyEvents[0];
-        if (keyEvent) {
-            communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
-        }
+    //     const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
+    //         identifiers: [communityInfo.communityUri + ':keys']
+    //     });
+    //     const keyEvent = keyEvents[0];
+    //     if (keyEvent) {
+    //         communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
+    //     }
 
-        return {
-            notes,
-            info: communityInfo,
-            metadataByPubKeyMap,
-            notesCount
-        }
-    }
+    //     return {
+    //         notes,
+    //         info: communityInfo,
+    //         metadataByPubKeyMap,
+    //         notesCount
+    //     }
+    // }
 
     async fetchCommunityFeedInfo(creatorId: string, communityId: string, since?: number, until?: number) {
         const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
@@ -276,15 +276,17 @@ class SocialDataManager {
     }
 
     async retrieveCommunityPrivateKey(communityInfo: ICommunityInfo, selfPrivateKey: string) {
+        if (!communityInfo.scpData.gatekeeperPublicKey) return null;
+        const encryptedKey = communityInfo.scpData.encryptedKey || communityInfo.memberKeyMap?.[communityInfo.scpData.gatekeeperPublicKey];
+        if (!encryptedKey) return null;
         let communityPrivateKey: string;
         const creatorPubkey = communityInfo.eventData.pubkey;
         const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(selfPrivateKey);
-        const encryptedKey = communityInfo.memberKeyMap?.[selfPubkey];
-        if (encryptedKey) {
+        if (selfPubkey === communityInfo.scpData.gatekeeperPublicKey) {
             communityPrivateKey = await SocialUtilsManager.decryptMessage(selfPrivateKey, creatorPubkey, encryptedKey);
         }
-        else if (selfPubkey === creatorPubkey && communityInfo.scpData.gatekeeperPublicKey && communityInfo.scpData.publicKey) {
-            communityPrivateKey = await SocialUtilsManager.decryptMessage(selfPrivateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.publicKey);
+        else if (selfPubkey === creatorPubkey) {
+            communityPrivateKey = await SocialUtilsManager.decryptMessage(selfPrivateKey, communityInfo.scpData.gatekeeperPublicKey, encryptedKey);
         }
         return communityPrivateKey;
     }
@@ -1331,33 +1333,15 @@ class SocialDataManager {
 
         if (communityInfo.membershipType === MembershipType.Protected) {
             const gatekeeperPublicKey = Nip19.decode(communityInfo.gatekeeperNpub).data as string;
-            const creatorPubkey = Nip19.decode(communityInfo.creatorId).data as string;
-            let encryptionPublicKeys = [creatorPubkey, gatekeeperPublicKey];
-            let memberIds: string[] = [communityInfo.creatorId, communityInfo.gatekeeperNpub];
-            for (let policy of communityInfo.policies) {
-                if (policy.policyType === ProtectedMembershipPolicyType.TokenExclusive) {
-                }
-                else if (policy.policyType === ProtectedMembershipPolicyType.Whitelist) {
-                    for (let memberId of policy.memberIds) {
-                        const memberPublicKey = Nip19.decode(memberId).data as string;
-                        encryptionPublicKeys.push(memberPublicKey);
-                    }
-                    memberIds = [...memberIds, ...policy.memberIds];
-                }
-            }
-            const communityKeys = await this.generateGroupKeys(this._privateKey, encryptionPublicKeys);
+            const groupPrivateKey = Keys.generatePrivateKey();
+            const groupPublicKey = Keys.getPublicKey(groupPrivateKey);
+            const encryptedGroupKey = await SocialUtilsManager.encryptMessage(this._privateKey, gatekeeperPublicKey, groupPrivateKey);
             communityInfo.scpData = {
                 ...communityInfo.scpData,
-                publicKey: communityKeys.groupPublicKey,
-                gatekeeperPublicKey
+                publicKey: groupPublicKey,
+                gatekeeperPublicKey,
+                encryptedKey: encryptedGroupKey
             }
-            memberIds = Array.from(new Set(memberIds));
-            await this._socialEventManagerWrite.updateGroupKeys(
-                communityUri + ':keys',
-                34550,
-                JSON.stringify(communityKeys.encryptedGroupKeys),
-                memberIds
-            );
             if (communityInfo.scpData) {
                 const result = await this.updateCommunityChannel(communityInfo);
                 if (result.event.id) {
@@ -1373,43 +1357,25 @@ class SocialDataManager {
     async updateCommunity(info: ICommunityInfo) {
         if (info.membershipType === MembershipType.Protected) {
             const gatekeeperPublicKey = Nip19.decode(info.gatekeeperNpub).data as string;
-            const creatorPubkey = Nip19.decode(info.creatorId).data as string;
-            let encryptionPublicKeys = [creatorPubkey, gatekeeperPublicKey];
-            let memberIds: string[] = [info.creatorId, info.gatekeeperNpub];
-            for (let policy of info.policies) {
-                if (policy.policyType === ProtectedMembershipPolicyType.TokenExclusive) {
-                }
-                else if (policy.policyType === ProtectedMembershipPolicyType.Whitelist) {
-                    for (let memberId of policy.memberIds) {
-                        const memberPublicKey = memberId.startsWith('npub1') ? Nip19.decode(memberId).data as string : memberId;
-                        encryptionPublicKeys.push(memberPublicKey);
-                    }
-                    memberIds = [...memberIds, ...policy.memberIds];
-                }
-            }
-            let encryptedGroupKeys: Record<string, string> = {};
             if (info.scpData) {
                 const groupPrivateKey = await this.retrieveCommunityPrivateKey(info, this._privateKey);
-                for (let encryptionPublicKey of encryptionPublicKeys) {
-                    const encryptedGroupKey = await SocialUtilsManager.encryptMessage(this._privateKey, encryptionPublicKey, groupPrivateKey);
-                    encryptedGroupKeys[encryptionPublicKey] = encryptedGroupKey;
-                }
-            } else {
-                const communityKeys = await this.generateGroupKeys(this._privateKey, encryptionPublicKeys);
+                const encryptedGroupKey = await SocialUtilsManager.encryptMessage(this._privateKey, gatekeeperPublicKey, groupPrivateKey);
                 info.scpData = {
                     ...info.scpData,
-                    publicKey: communityKeys.groupPublicKey,
-                    gatekeeperPublicKey
+                    encryptedKey: encryptedGroupKey
                 }
-                encryptedGroupKeys = communityKeys.encryptedGroupKeys;
+            } 
+            else {
+                const groupPrivateKey = Keys.generatePrivateKey();
+                const groupPublicKey = Keys.getPublicKey(groupPrivateKey);
+                const encryptedGroupKey = await SocialUtilsManager.encryptMessage(this._privateKey, gatekeeperPublicKey, groupPrivateKey);
+                info.scpData = {
+                    ...info.scpData,
+                    publicKey: groupPublicKey,
+                    gatekeeperPublicKey,
+                    encryptedKey: encryptedGroupKey
+                }
             }
-            memberIds = Array.from(new Set(memberIds));
-            const response = await this._socialEventManagerWrite.updateGroupKeys(
-                info.communityUri + ':keys',
-                34550,
-                JSON.stringify(encryptedGroupKeys),
-                memberIds
-            );
         }
         await this._socialEventManagerWrite.updateCommunity(info);
         return info;
