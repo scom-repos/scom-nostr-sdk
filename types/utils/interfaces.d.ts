@@ -91,6 +91,7 @@ interface INoteCommunity {
     communityId?: string;
     privateRelay?: string;
     parentCommunityUri?: string;
+    isExclusive?: boolean;
 }
 export interface INoteCommunityInfo {
     eventData: INostrEvent;

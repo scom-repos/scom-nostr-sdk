@@ -595,7 +595,8 @@ class SocialDataManager {
                         communityId: communityInfo?.communityId || communityId,
                         creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
                         parentCommunityUri: communityInfo?.parentCommunityUri,
-                        privateRelay: communityInfo?.privateRelay
+                        privateRelay: communityInfo?.privateRelay,
+                        isExclusive: communityInfo?.membershipType === MembershipType.Protected
                     };
                 }
             }
@@ -721,7 +722,8 @@ class SocialDataManager {
                         communityId: communityInfo?.communityId || communityId,
                         creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
                         parentCommunityUri: communityInfo?.parentCommunityUri,
-                        privateRelay: communityInfo?.privateRelay
+                        privateRelay: communityInfo?.privateRelay,
+                        isExclusive: communityInfo?.membershipType === MembershipType.Protected
                     };
                 }
             }
@@ -766,7 +768,8 @@ class SocialDataManager {
                         communityId: communityInfo?.communityId || communityId,
                         creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
                         parentCommunityUri: communityInfo?.parentCommunityUri,
-                        privateRelay: communityInfo?.privateRelay
+                        privateRelay: communityInfo?.privateRelay,
+                        isExclusive: communityInfo?.membershipType === MembershipType.Protected
                     };
                 }
             }
@@ -1075,7 +1078,8 @@ class SocialDataManager {
                         communityId: communityInfo?.communityId || communityId,
                         creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
                         parentCommunityUri: communityInfo?.parentCommunityUri,
-                        privateRelay: communityInfo?.privateRelay
+                        privateRelay: communityInfo?.privateRelay,
+                        isExclusive: communityInfo?.membershipType === MembershipType.Protected
                     };
                 }
             }

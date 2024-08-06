@@ -7892,7 +7892,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                             communityId: communityInfo?.communityId || communityId,
                             creatorId: communityInfo?.creatorId || index_6.Nip19.npubEncode(creatorId),
                             parentCommunityUri: communityInfo?.parentCommunityUri,
-                            privateRelay: communityInfo?.privateRelay
+                            privateRelay: communityInfo?.privateRelay,
+                            isExclusive: communityInfo?.membershipType === interfaces_6.MembershipType.Protected
                         };
                     }
                 }
@@ -8006,7 +8007,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                             communityId: communityInfo?.communityId || communityId,
                             creatorId: communityInfo?.creatorId || index_6.Nip19.npubEncode(creatorId),
                             parentCommunityUri: communityInfo?.parentCommunityUri,
-                            privateRelay: communityInfo?.privateRelay
+                            privateRelay: communityInfo?.privateRelay,
+                            isExclusive: communityInfo?.membershipType === interfaces_6.MembershipType.Protected
                         };
                     }
                 }
@@ -8046,7 +8048,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                             communityId: communityInfo?.communityId || communityId,
                             creatorId: communityInfo?.creatorId || index_6.Nip19.npubEncode(creatorId),
                             parentCommunityUri: communityInfo?.parentCommunityUri,
-                            privateRelay: communityInfo?.privateRelay
+                            privateRelay: communityInfo?.privateRelay,
+                            isExclusive: communityInfo?.membershipType === interfaces_6.MembershipType.Protected
                         };
                     }
                 }
@@ -8346,7 +8349,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                             communityId: communityInfo?.communityId || communityId,
                             creatorId: communityInfo?.creatorId || index_6.Nip19.npubEncode(creatorId),
                             parentCommunityUri: communityInfo?.parentCommunityUri,
-                            privateRelay: communityInfo?.privateRelay
+                            privateRelay: communityInfo?.privateRelay,
+                            isExclusive: communityInfo?.membershipType === interfaces_6.MembershipType.Protected
                         };
                     }
                 }
