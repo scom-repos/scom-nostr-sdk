@@ -133,7 +133,6 @@ export interface IProtectedMembershipPolicy {
 }
 export interface ICommunityScpData {
     publicKey?: string;
-    encryptedKey?: string;
     gatekeeperPublicKey?: string;
     channelEventId?: string;
 }
@@ -278,7 +277,7 @@ export interface IRetrieveCommunityPostKeysByNoteEventsOptions {
 }
 export interface IRetrieveCommunityThreadPostKeysOptions {
     communityInfo: ICommunityInfo;
-    noteEvents: INostrEvent[];
+    noteInfoList: INoteInfo[];
     focusedNoteId: string;
     gatekeeperUrl?: string;
     message?: string;

@@ -1233,7 +1233,6 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     }
     export interface ICommunityScpData {
         publicKey?: string;
-        encryptedKey?: string;
         gatekeeperPublicKey?: string;
         channelEventId?: string;
     }
@@ -1378,7 +1377,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     }
     export interface IRetrieveCommunityThreadPostKeysOptions {
         communityInfo: ICommunityInfo;
-        noteEvents: INostrEvent[];
+        noteInfoList: INoteInfo[];
         focusedNoteId: string;
         gatekeeperUrl?: string;
         message?: string;

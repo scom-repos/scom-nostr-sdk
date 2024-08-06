@@ -243,7 +243,7 @@ class SocialDataManager {
             if (selfPubkey && communityPublicKey && event.pubkey === selfPubkey) {
                 key = await SocialUtilsManager.decryptMessage(this._privateKey, communityPublicKey, postScpData.encryptedKey);
             }
-            else {
+            else if (communityPrivateKey) {
                 const postPrivateKey = await SocialUtilsManager.decryptMessage(communityPrivateKey, event.pubkey, postScpData.encryptedKey);
                 const messageContentStr = await SocialUtilsManager.decryptMessage(postPrivateKey, event.pubkey, event.content);
                 const messageContent = JSON.parse(messageContentStr);
@@ -278,13 +278,13 @@ class SocialDataManager {
     async retrieveCommunityPrivateKey(communityInfo: ICommunityInfo, selfPrivateKey: string) {
         let communityPrivateKey: string;
         const creatorPubkey = communityInfo.eventData.pubkey;
-        const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(selfPrivateKey);
-        const encryptedKey = communityInfo.memberKeyMap?.[pubkey];
+        const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(selfPrivateKey);
+        const encryptedKey = communityInfo.memberKeyMap?.[selfPubkey];
         if (encryptedKey) {
             communityPrivateKey = await SocialUtilsManager.decryptMessage(selfPrivateKey, creatorPubkey, encryptedKey);
         }
-        else if (communityInfo.scpData.gatekeeperPublicKey && communityInfo.scpData.encryptedKey) {
-            communityPrivateKey = await SocialUtilsManager.decryptMessage(selfPrivateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.encryptedKey);
+        else if (selfPubkey === creatorPubkey && communityInfo.scpData.gatekeeperPublicKey && communityInfo.scpData.publicKey) {
+            communityPrivateKey = await SocialUtilsManager.decryptMessage(selfPrivateKey, communityInfo.scpData.gatekeeperPublicKey, communityInfo.scpData.publicKey);
         }
         return communityPrivateKey;
     }
@@ -292,7 +292,6 @@ class SocialDataManager {
     private async constructCommunityNoteIdToPrivateKeyMap(communityInfo: ICommunityInfo, noteInfoList: INoteInfo[]) {
         let noteIdToPrivateKey: Record<string, string> = {};
         let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
-        if (!communityPrivateKey) return noteIdToPrivateKey;
         const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
         for (const note of noteInfoList) {
             let postPrivateKey = await this.decryptPostPrivateKeyForCommunity({
@@ -312,7 +311,6 @@ class SocialDataManager {
     async retrieveCommunityPostKeys(options: IRetrieveCommunityPostKeysOptions) {
         const {communityInfo, noteInfoList} = options;
         let noteIdToPrivateKey: Record<string, string> = {};
-        const policyTypes = options.policies?.map(v => v.policyType) || [];  
         if (options.gatekeeperUrl) {
             let bodyData = SocialUtilsManager.augmentWithAuthInfo({
                 creatorId: communityInfo.creatorId,
@@ -337,23 +335,18 @@ class SocialDataManager {
             }
         }
         else {
-            const inviteOnlyNoteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(
+            noteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(
                 communityInfo, 
                 noteInfoList
             );
-            noteIdToPrivateKey = {
-                ...noteIdToPrivateKey,
-                ...inviteOnlyNoteIdToPrivateKey
-            };
         }
         return noteIdToPrivateKey;
     }
 
     async retrieveCommunityThreadPostKeys(options: IRetrieveCommunityThreadPostKeysOptions) {
-        const communityInfo = options.communityInfo;
+        const {communityInfo, noteInfoList} = options;
         let noteIdToPrivateKey: Record<string, string> = {};
-        const policyTypes = communityInfo.policies?.map(v => v.policyType) || [];  
-        if (policyTypes.includes(ProtectedMembershipPolicyType.TokenExclusive) && options.gatekeeperUrl) {
+        if (options.gatekeeperUrl) {
             let bodyData = SocialUtilsManager.augmentWithAuthInfo({
                 creatorId: communityInfo.creatorId,
                 communityId: communityInfo.communityId,
@@ -376,21 +369,10 @@ class SocialDataManager {
             }
         }
         else {
-            let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
-            if (!communityPrivateKey) return noteIdToPrivateKey;
-            const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
-            for (const note of options.noteEvents) {
-                let postPrivateKey = await this.decryptPostPrivateKeyForCommunity({
-                    event: note, 
-                    selfPubkey: pubkey, 
-                    communityUri: communityInfo.communityUri, 
-                    communityPublicKey: communityInfo.scpData.publicKey, 
-                    communityPrivateKey
-                });
-                if (postPrivateKey) {
-                    noteIdToPrivateKey[note.id] = postPrivateKey;
-                }
-            }
+            noteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(
+                communityInfo, 
+                noteInfoList
+            );
         }
         return noteIdToPrivateKey;
     }
@@ -402,34 +384,28 @@ class SocialDataManager {
         if (noteCommunityMappings.noteCommunityInfoList.length === 0) return noteIdToPrivateKey;
         const communityInfoMap: Record<string, ICommunityInfo> = {};
         for (let communityInfo of noteCommunityMappings.communityInfoList) {
-            const policyTypes = communityInfo.policies?.map(v => v.policyType) || [];  
-            if (options.pubKey === communityInfo.creatorId || policyTypes.includes(ProtectedMembershipPolicyType.Whitelist)) {
-                let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
-                if (communityPrivateKey) {
-                    communityPrivateKeyMap[communityInfo.communityUri] = communityPrivateKey;
-                }
+            let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
+            if (communityPrivateKey) {
+                communityPrivateKeyMap[communityInfo.communityUri] = communityPrivateKey;
             }
             communityInfoMap[communityInfo.communityUri] = communityInfo;
         }
-        let gatekeeperNpubToNotesMap: Record<string, INoteCommunityInfo[]> = {};
-        let inviteOnlyCommunityNotesMap: Record<string, INoteCommunityInfo[]> = {};
+        // let inviteOnlyCommunityNotesMap: Record<string, INoteCommunityInfo[]> = {};
         let relayToNotesMap: Record<string, INoteCommunityInfo[]> = {};
         for (let noteCommunityInfo of noteCommunityMappings.noteCommunityInfoList) {
             const communityPrivateKey = communityPrivateKeyMap[noteCommunityInfo.communityUri];
             const communityInfo = communityInfoMap[noteCommunityInfo.communityUri];
             if (!communityInfo) continue;
-            if (communityPrivateKey) {
-                let postPrivateKey = await this.decryptPostPrivateKeyForCommunity({
-                    event: noteCommunityInfo.eventData, 
-                    selfPubkey: options.pubKey, 
-                    communityUri: noteCommunityInfo.communityUri, 
-                    communityPublicKey: communityInfo.scpData.publicKey, 
-                    communityPrivateKey
-                });
-                // const postPrivateKey = await this.retrievePostPrivateKey(noteCommunityInfo.eventData, noteCommunityInfo.communityUri, communityPrivateKey);
-                if (postPrivateKey) {
-                    noteIdToPrivateKey[noteCommunityInfo.eventData.id] = postPrivateKey;
-                }
+            if (communityInfo.membershipType === MembershipType.Open) continue;
+            let postPrivateKey = await this.decryptPostPrivateKeyForCommunity({
+                event: noteCommunityInfo.eventData, 
+                selfPubkey: options.pubKey, 
+                communityUri: noteCommunityInfo.communityUri, 
+                communityPublicKey: communityInfo.scpData.publicKey, 
+                communityPrivateKey
+            });
+            if (postPrivateKey) {
+                noteIdToPrivateKey[noteCommunityInfo.eventData.id] = postPrivateKey;
             }
             else {
                 if (communityInfo.privateRelay) {
@@ -437,25 +413,19 @@ class SocialDataManager {
                     relayToNotesMap[communityInfo.privateRelay].push(noteCommunityInfo);
                 }
                 else if (options.gatekeeperUrl) {
-                    for (let policy of communityInfo.policies) {
-                        if (policy.policyType === ProtectedMembershipPolicyType.Whitelist) {
-                            inviteOnlyCommunityNotesMap[communityInfo.communityUri] = inviteOnlyCommunityNotesMap[communityInfo.communityUri] || [];
-                            inviteOnlyCommunityNotesMap[communityInfo.communityUri].push(noteCommunityInfo);
-                        }
-                        else if (policy.policyType === ProtectedMembershipPolicyType.TokenExclusive) {
-                            relayToNotesMap[options.gatekeeperUrl] = relayToNotesMap[options.gatekeeperUrl] || [];
-                            relayToNotesMap[options.gatekeeperUrl].push(noteCommunityInfo);
-                        }
-                    }
+                    relayToNotesMap[options.gatekeeperUrl] = relayToNotesMap[options.gatekeeperUrl] || [];
+                    relayToNotesMap[options.gatekeeperUrl].push(noteCommunityInfo);
+                    //for (let policy of communityInfo.policies) {
+                        // if (policy.policyType === ProtectedMembershipPolicyType.Whitelist) {
+                        //     inviteOnlyCommunityNotesMap[communityInfo.communityUri] = inviteOnlyCommunityNotesMap[communityInfo.communityUri] || [];
+                        //     inviteOnlyCommunityNotesMap[communityInfo.communityUri].push(noteCommunityInfo);
+                        // }
+                        // else if (policy.policyType === ProtectedMembershipPolicyType.TokenExclusive) {
+                        //     relayToNotesMap[options.gatekeeperUrl] = relayToNotesMap[options.gatekeeperUrl] || [];
+                        //     relayToNotesMap[options.gatekeeperUrl].push(noteCommunityInfo);
+                        // }
+                    //}
                 }
-                // else if (communityInfo.membershipType === MembershipType.InviteOnly) {
-                //     inviteOnlyCommunityNotesMap[communityInfo.communityUri] = inviteOnlyCommunityNotesMap[communityInfo.communityUri] || [];
-                //     inviteOnlyCommunityNotesMap[communityInfo.communityUri].push(noteCommunityInfo);
-                // }
-                // else if (communityInfo.gatekeeperNpub) {
-                //     gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub] = gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub] || [];
-                //     gatekeeperNpubToNotesMap[communityInfo.gatekeeperNpub].push(noteCommunityInfo);
-                // }
             }
         }
         if (Object.keys(relayToNotesMap).length > 0) {
@@ -485,54 +455,22 @@ class SocialDataManager {
                 }
             }
         }
-        // if (Object.keys(gatekeeperNpubToNotesMap).length > 0) {
-        //     for (let gatekeeperNpub in gatekeeperNpubToNotesMap) {
-        //         const gatekeeperUrl = options.gatekeepers.find(v => v.npub === gatekeeperNpub)?.url;
-        //         if (gatekeeperUrl) {
-        //             const noteIds = gatekeeperNpubToNotesMap[gatekeeperNpub].map(v => v.eventData.id);
-        //             const signature = await options.getSignature(options.pubKey);
-        //             let bodyData = {
-        //                 noteIds: noteIds.join(','),
-        //                 message: options.pubKey,
-        //                 signature: signature
-        //             };
-        //             let url = `${gatekeeperUrl}/api/communities/v0/post-keys`;
-        //             let response = await fetch(url, {
-        //                 method: 'POST',
-        //                 headers: {
-        //                     Accept: 'application/json',
-        //                     'Content-Type': 'application/json',
-        //                 },
-        //                 body: JSON.stringify(bodyData)
-        //             });
-        //             let result = await response.json();
-        //             if (result.success) {
-        //                 noteIdToPrivateKey = {
-        //                     ...noteIdToPrivateKey,
-        //                     ...result.data
-        //                 };
-        //             }
+        // for (let communityUri in inviteOnlyCommunityNotesMap) {
+        //     for (let noteCommunityInfo of inviteOnlyCommunityNotesMap[communityUri]) {
+        //         const communityInfo = communityInfoMap[communityUri];
+        //         const noteInfo = {
+        //             eventData: noteCommunityInfo.eventData
         //         }
+        //         const inviteOnlyNoteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(
+        //             communityInfo, 
+        //             [noteInfo]
+        //         );
+        //         noteIdToPrivateKey = {
+        //             ...noteIdToPrivateKey,
+        //             ...inviteOnlyNoteIdToPrivateKey
+        //         };
         //     }
         // }
-        // const noteInfoList = options.notes.map(v => v.eventData);
-
-        for (let communityUri in inviteOnlyCommunityNotesMap) {
-            for (let noteCommunityInfo of inviteOnlyCommunityNotesMap[communityUri]) {
-                const communityInfo = communityInfoMap[communityUri];
-                const noteInfo = {
-                    eventData: noteCommunityInfo.eventData
-                }
-                const inviteOnlyNoteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(
-                    communityInfo, 
-                    [noteInfo]
-                );
-                noteIdToPrivateKey = {
-                    ...noteIdToPrivateKey,
-                    ...inviteOnlyNoteIdToPrivateKey
-                };
-            }
-        }
         return noteIdToPrivateKey;
     }
 
