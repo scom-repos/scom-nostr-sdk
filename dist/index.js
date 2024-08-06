@@ -7524,6 +7524,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             }
             return communityUri;
         }
+        //To be deprecated
         async retrievePostPrivateKey(event, communityUri, communityPrivateKey) {
             let key = null;
             let postScpData = utilsManager_5.SocialUtilsManager.extractScpData(event, interfaces_6.ScpStandardId.CommunityPost);
@@ -7535,6 +7536,30 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 const messageContent = JSON.parse(messageContentStr);
                 if (communityUri === messageContent.communityUri) {
                     key = postPrivateKey;
+                }
+            }
+            catch (e) {
+                // console.error(e);
+            }
+            return key;
+        }
+        async decryptPostPrivateKeyForCommunity(options) {
+            const { event, selfPubkey, communityUri, communityPublicKey, communityPrivateKey } = options;
+            let key = null;
+            let postScpData = utilsManager_5.SocialUtilsManager.extractScpData(event, interfaces_6.ScpStandardId.CommunityPost);
+            if (!postScpData)
+                return key;
+            try {
+                if (selfPubkey && communityPublicKey && event.pubkey === selfPubkey) {
+                    key = await utilsManager_5.SocialUtilsManager.decryptMessage(this._privateKey, communityPublicKey, postScpData.encryptedKey);
+                }
+                else {
+                    const postPrivateKey = await utilsManager_5.SocialUtilsManager.decryptMessage(communityPrivateKey, event.pubkey, postScpData.encryptedKey);
+                    const messageContentStr = await utilsManager_5.SocialUtilsManager.decryptMessage(postPrivateKey, event.pubkey, event.content);
+                    const messageContent = JSON.parse(messageContentStr);
+                    if (communityUri === messageContent.communityUri) {
+                        key = postPrivateKey;
+                    }
                 }
             }
             catch (e) {
@@ -7573,21 +7598,18 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         }
         async constructCommunityNoteIdToPrivateKeyMap(communityInfo, noteInfoList) {
             let noteIdToPrivateKey = {};
-            const pubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
             let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
             if (!communityPrivateKey)
                 return noteIdToPrivateKey;
+            const pubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
             for (const note of noteInfoList) {
-                let postScpData = utilsManager_5.SocialUtilsManager.extractScpData(note.eventData, interfaces_6.ScpStandardId.CommunityPost);
-                if (!postScpData)
-                    continue;
-                let postPrivateKey;
-                if (note.eventData.pubkey === pubkey) {
-                    postPrivateKey = await utilsManager_5.SocialUtilsManager.decryptMessage(this._privateKey, communityInfo.scpData.publicKey, postScpData.encryptedKey);
-                }
-                else {
-                    postPrivateKey = await this.retrievePostPrivateKey(note.eventData, communityInfo.communityUri, communityPrivateKey);
-                }
+                let postPrivateKey = await this.decryptPostPrivateKeyForCommunity({
+                    event: note.eventData,
+                    selfPubkey: pubkey,
+                    communityUri: communityInfo.communityUri,
+                    communityPublicKey: communityInfo.scpData.publicKey,
+                    communityPrivateKey
+                });
                 if (postPrivateKey) {
                     noteIdToPrivateKey[note.eventData.id] = postPrivateKey;
                 }
@@ -7660,8 +7682,15 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
                 if (!communityPrivateKey)
                     return noteIdToPrivateKey;
+                const pubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
                 for (const note of options.noteEvents) {
-                    const postPrivateKey = await this.retrievePostPrivateKey(note, communityInfo.communityUri, communityPrivateKey);
+                    let postPrivateKey = await this.decryptPostPrivateKeyForCommunity({
+                        event: note,
+                        selfPubkey: pubkey,
+                        communityUri: communityInfo.communityUri,
+                        communityPublicKey: communityInfo.scpData.publicKey,
+                        communityPrivateKey
+                    });
                     if (postPrivateKey) {
                         noteIdToPrivateKey[note.id] = postPrivateKey;
                     }
@@ -7691,16 +7720,23 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             let relayToNotesMap = {};
             for (let noteCommunityInfo of noteCommunityMappings.noteCommunityInfoList) {
                 const communityPrivateKey = communityPrivateKeyMap[noteCommunityInfo.communityUri];
+                const communityInfo = communityInfoMap[noteCommunityInfo.communityUri];
+                if (!communityInfo)
+                    continue;
                 if (communityPrivateKey) {
-                    const postPrivateKey = await this.retrievePostPrivateKey(noteCommunityInfo.eventData, noteCommunityInfo.communityUri, communityPrivateKey);
+                    let postPrivateKey = await this.decryptPostPrivateKeyForCommunity({
+                        event: noteCommunityInfo.eventData,
+                        selfPubkey: options.pubKey,
+                        communityUri: noteCommunityInfo.communityUri,
+                        communityPublicKey: communityInfo.scpData.publicKey,
+                        communityPrivateKey
+                    });
+                    // const postPrivateKey = await this.retrievePostPrivateKey(noteCommunityInfo.eventData, noteCommunityInfo.communityUri, communityPrivateKey);
                     if (postPrivateKey) {
                         noteIdToPrivateKey[noteCommunityInfo.eventData.id] = postPrivateKey;
                     }
                 }
                 else {
-                    const communityInfo = communityInfoMap[noteCommunityInfo.communityUri];
-                    if (!communityInfo)
-                        continue;
                     if (communityInfo.privateRelay) {
                         relayToNotesMap[communityInfo.privateRelay] = relayToNotesMap[communityInfo.privateRelay] || [];
                         relayToNotesMap[communityInfo.privateRelay].push(noteCommunityInfo);

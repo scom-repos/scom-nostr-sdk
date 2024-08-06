@@ -523,6 +523,14 @@ export interface ISendTempMessageOptions {
 	widgetId?: string;
 }
 
+export interface IDecryptPostPrivateKeyForCommunityOptions {
+	event: INostrEvent;
+	selfPubkey?: string;
+	communityUri: string;
+	communityPublicKey?: string;
+	communityPrivateKey: string;
+}
+
 export interface INostrCommunicationManager {
 	url: string;
     fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;

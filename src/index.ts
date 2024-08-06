@@ -48,6 +48,7 @@ export {
     ICommunityStats,
     ICommunityDetailMetadata,
     ISendTempMessageOptions,
+    IDecryptPostPrivateKeyForCommunityOptions,
     INostrFetchEventsResponse,
     ILongFormContentInfo,
     SocialDataManagerOptions,
