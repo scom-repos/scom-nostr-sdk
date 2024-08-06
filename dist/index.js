@@ -7527,6 +7527,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         async retrievePostPrivateKey(event, communityUri, communityPrivateKey) {
             let key = null;
             let postScpData = utilsManager_5.SocialUtilsManager.extractScpData(event, interfaces_6.ScpStandardId.CommunityPost);
+            if (!postScpData)
+                return key;
             try {
                 const postPrivateKey = await utilsManager_5.SocialUtilsManager.decryptMessage(communityPrivateKey, event.pubkey, postScpData.encryptedKey);
                 const messageContentStr = await utilsManager_5.SocialUtilsManager.decryptMessage(postPrivateKey, event.pubkey, event.content);
@@ -7576,9 +7578,11 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             if (!communityPrivateKey)
                 return noteIdToPrivateKey;
             for (const note of noteInfoList) {
+                let postScpData = utilsManager_5.SocialUtilsManager.extractScpData(note.eventData, interfaces_6.ScpStandardId.CommunityPost);
+                if (!postScpData)
+                    continue;
                 let postPrivateKey;
                 if (note.eventData.pubkey === pubkey) {
-                    let postScpData = utilsManager_5.SocialUtilsManager.extractScpData(note.eventData, interfaces_6.ScpStandardId.CommunityPost);
                     postPrivateKey = await utilsManager_5.SocialUtilsManager.decryptMessage(this._privateKey, communityInfo.scpData.publicKey, postScpData.encryptedKey);
                 }
                 else {
@@ -7594,7 +7598,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             const { communityInfo, noteInfoList } = options;
             let noteIdToPrivateKey = {};
             const policyTypes = options.policies?.map(v => v.policyType) || [];
-            if (policyTypes.includes(interfaces_6.ProtectedMembershipPolicyType.TokenExclusive) && options.gatekeeperUrl) {
+            if (options.gatekeeperUrl) {
                 let bodyData = utilsManager_5.SocialUtilsManager.augmentWithAuthInfo({
                     creatorId: communityInfo.creatorId,
                     communityId: communityInfo.communityId,

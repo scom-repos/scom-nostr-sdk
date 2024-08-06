@@ -218,6 +218,7 @@ class SocialDataManager {
     async retrievePostPrivateKey(event: INostrEvent, communityUri: string, communityPrivateKey: string) {
         let key: string | null = null;
         let postScpData = SocialUtilsManager.extractScpData(event, ScpStandardId.CommunityPost);
+        if (!postScpData) return key;
         try {
             const postPrivateKey = await SocialUtilsManager.decryptMessage(communityPrivateKey, event.pubkey, postScpData.encryptedKey);
             const messageContentStr = await SocialUtilsManager.decryptMessage(postPrivateKey, event.pubkey, event.content);
@@ -269,9 +270,10 @@ class SocialDataManager {
         let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
         if (!communityPrivateKey) return noteIdToPrivateKey;
         for (const note of noteInfoList) {
+            let postScpData: ICommunityPostScpData = SocialUtilsManager.extractScpData(note.eventData, ScpStandardId.CommunityPost);
+            if (!postScpData) continue;
             let postPrivateKey;
             if (note.eventData.pubkey === pubkey) {
-                let postScpData: ICommunityPostScpData = SocialUtilsManager.extractScpData(note.eventData, ScpStandardId.CommunityPost);
                 postPrivateKey = await SocialUtilsManager.decryptMessage(this._privateKey, communityInfo.scpData.publicKey, postScpData.encryptedKey);
             }
             else {
@@ -288,7 +290,7 @@ class SocialDataManager {
         const {communityInfo, noteInfoList} = options;
         let noteIdToPrivateKey: Record<string, string> = {};
         const policyTypes = options.policies?.map(v => v.policyType) || [];  
-        if (policyTypes.includes(ProtectedMembershipPolicyType.TokenExclusive) && options.gatekeeperUrl) {
+        if (options.gatekeeperUrl) {
             let bodyData = SocialUtilsManager.augmentWithAuthInfo({
                 creatorId: communityInfo.creatorId,
                 communityId: communityInfo.communityId,
