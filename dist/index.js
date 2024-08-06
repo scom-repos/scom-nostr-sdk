@@ -8172,12 +8172,15 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             if (!communityEvent)
                 return null;
             let communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(communityEvent);
-            const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
-                identifiers: [communityInfo.communityUri + ':keys']
-            });
-            const keyEvent = keyEvents[0];
-            if (keyEvent) {
-                communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
+            //Fetch group keys only when scpData.encryptedKey is undefined for backward compatibility
+            if (communityInfo.membershipType === interfaces_6.MembershipType.Protected && !communityInfo.scpData?.encryptedKey) {
+                const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
+                    identifiers: [communityInfo.communityUri + ':keys']
+                });
+                const keyEvent = keyEvents[0];
+                if (keyEvent) {
+                    communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
+                }
             }
             return communityInfo;
         }
@@ -8412,8 +8415,9 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     let communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(event);
                     communityInfoList.push(communityInfo);
                 }
+                //Fetch group keys only when scpData.encryptedKey is undefined for backward compatibility
                 const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
-                    identifiers: communityInfoList.map(v => v.communityUri + ':keys')
+                    identifiers: communityInfoList.filter(v => !v.scpData?.encryptedKey).map(v => v.communityUri + ':keys')
                 });
                 for (let keyEvent of keyEvents) {
                     const identifier = keyEvent.tags.find(tag => tag[0] === 'd')?.[1];
@@ -10059,12 +10063,15 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     subcommunitiesCount: content.subcommunity_count
                 };
             }
-            const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
-                identifiers: [communityInfo.communityUri + ':keys']
-            });
-            const keyEvent = keyEvents[0];
-            if (keyEvent) {
-                communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
+            //Fetch group keys only when scpData.encryptedKey is undefined for backward compatibility
+            if (communityInfo.membershipType === interfaces_6.MembershipType.Protected && !communityInfo.scpData?.encryptedKey) {
+                const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
+                    identifiers: [communityInfo.communityUri + ':keys']
+                });
+                const keyEvent = keyEvents[0];
+                if (keyEvent) {
+                    communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
+                }
             }
             let detailMetadata = {
                 info: communityInfo,
