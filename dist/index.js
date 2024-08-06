@@ -4930,6 +4930,12 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     "root"
                 ]);
             }
+            if (info.alt) {
+                event.tags.push([
+                    "alt",
+                    info.alt
+                ]);
+            }
             console.log('submitCommunityPost', event);
             const result = await this.handleEventSubmission(event);
             return result;
@@ -7671,21 +7677,6 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 }
             }
             else {
-                // let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
-                // if (!communityPrivateKey) return noteIdToPrivateKey;
-                // const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
-                // for (const note of options.noteEvents) {
-                //     let postPrivateKey = await this.decryptPostPrivateKeyForCommunity({
-                //         event: note, 
-                //         selfPubkey: pubkey, 
-                //         communityUri: communityInfo.communityUri, 
-                //         communityPublicKey: communityInfo.scpData.publicKey, 
-                //         communityPrivateKey
-                //     });
-                //     if (postPrivateKey) {
-                //         noteIdToPrivateKey[note.id] = postPrivateKey;
-                //     }
-                // }
                 noteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(communityInfo, noteInfoList);
             }
             return noteIdToPrivateKey;
@@ -8791,7 +8782,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 encryptedGroupKey
             };
         }
-        async submitCommunityPost(message, info, conversationPath, timestamp, isPublicPost = false) {
+        async submitCommunityPost(message, info, conversationPath, timestamp, alt, isPublicPost = false) {
             const messageContent = {
                 communityUri: info.communityUri,
                 message,
@@ -8818,6 +8809,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     }
                 };
             }
+            if (alt)
+                newCommunityPostInfo.alt = alt;
             const responses = await this._socialEventManagerWrite.submitCommunityPost(newCommunityPostInfo);
             return responses;
         }

@@ -138,7 +138,7 @@ declare class SocialDataManager {
     joinCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;
     leaveCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;
     private encryptGroupMessage;
-    submitCommunityPost(message: string, info: ICommunityInfo, conversationPath?: IConversationPath, timestamp?: number, isPublicPost?: boolean): Promise<import("../utils/interfaces").ISocialEventManagerWriteResult>;
+    submitCommunityPost(message: string, info: ICommunityInfo, conversationPath?: IConversationPath, timestamp?: number, alt?: string, isPublicPost?: boolean): Promise<import("../utils/interfaces").ISocialEventManagerWriteResult>;
     fetchAllUserRelatedChannels(pubKey: string): Promise<IChannelInfo[]>;
     retrieveChannelMessages(channelId: string, since?: number, until?: number): Promise<INostrEvent[]>;
     retrieveChannelEvents(creatorId: string, channelId: string): Promise<{

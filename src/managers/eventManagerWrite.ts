@@ -342,6 +342,12 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 "root"
             ]);
         }
+        if (info.alt) {
+            event.tags.push([
+                "alt",
+                info.alt
+            ])
+        }
         console.log('submitCommunityPost', event);
         const result = await this.handleEventSubmission(event);
         return result;

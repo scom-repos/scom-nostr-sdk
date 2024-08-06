@@ -1549,7 +1549,7 @@ class SocialDataManager {
         }
     }
 
-    async submitCommunityPost(message: string, info: ICommunityInfo, conversationPath?: IConversationPath, timestamp?: number, isPublicPost: boolean = false) {
+    async submitCommunityPost(message: string, info: ICommunityInfo, conversationPath?: IConversationPath, timestamp?: number, alt?: string, isPublicPost: boolean = false) {
         const messageContent = {
             communityUri: info.communityUri,
             message,
@@ -1579,6 +1579,7 @@ class SocialDataManager {
                 }
             }
         }
+        if (alt) newCommunityPostInfo.alt = alt;
         const responses = await this._socialEventManagerWrite.submitCommunityPost(newCommunityPostInfo);
         return responses;
     }
