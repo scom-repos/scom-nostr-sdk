@@ -286,6 +286,11 @@ export interface IRetrieveCommunityThreadPostKeysOptions {
     message?: string;
     signature?: string;
 }
+export interface ICheckIfUserHasAccessToCommunityOptions {
+    communityInfo: ICommunityInfo;
+    gatekeeperUrl: string;
+    walletAddresses: string[];
+}
 export interface IPostStats {
     replies?: number;
     reposts?: number;

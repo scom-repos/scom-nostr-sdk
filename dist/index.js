@@ -7786,6 +7786,31 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             // }
             return noteIdToPrivateKey;
         }
+        async checkIfUserHasAccessToCommunity(options) {
+            const { communityInfo, gatekeeperUrl, walletAddresses } = options;
+            let hasAccess = false;
+            const pubkey = index_6.Keys.getPublicKey(this._privateKey);
+            let bodyData = {
+                creatorId: communityInfo.creatorId,
+                communityId: communityInfo.communityId,
+                pubkey,
+                walletAddresses
+            };
+            let url = `${gatekeeperUrl}/api/communities/v0/check-user-access`;
+            let response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(bodyData)
+            });
+            let result = await response.json();
+            if (result.success) {
+                hasAccess = result.data.hasAccess;
+            }
+            return hasAccess;
+        }
         async constructMetadataByPubKeyMap(notes) {
             let mentionAuthorSet = new Set();
             for (let i = 0; i < notes.length; i++) {

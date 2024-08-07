@@ -50,5 +50,6 @@ export {
     SocialEventManagerWriteOptions,
     ISocialEventManagerRead,
     ISocialEventManagerWrite,
-    IAllUserRelatedChannels
+    IAllUserRelatedChannels,
+    ICheckIfUserHasAccessToCommunityOptions
 } from "./interfaces";

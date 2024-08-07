@@ -58,7 +58,8 @@ export {
     SocialEventManagerWriteOptions,
     ISocialEventManagerRead,
     ISocialEventManagerWrite,
-    IAllUserRelatedChannels
+    IAllUserRelatedChannels,
+    ICheckIfUserHasAccessToCommunityOptions
 } from './utils/index'
 
 export {
