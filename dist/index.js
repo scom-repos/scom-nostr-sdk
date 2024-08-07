@@ -7968,6 +7968,10 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 earliest
             };
         }
+        async fetchEventsByIds(ids) {
+            const events = await this._socialEventManagerRead.fetchEventsByIds({ ids });
+            return events;
+        }
         async fetchNotesByIds(ids) {
             const noteEvents = await this._socialEventManagerRead.fetchEventsByIds({ ids });
             const { notes, quotedNotesMap, pubkeyToCommunityIdsMap } = this.createNoteEventMappings(noteEvents);

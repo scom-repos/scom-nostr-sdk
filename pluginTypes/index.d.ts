@@ -2381,6 +2381,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
             quotedNotesMap: Record<string, INoteInfo>;
             earliest: number;
         }>;
+        fetchEventsByIds(ids: string[]): Promise<INostrEvent[]>;
         fetchNotesByIds(ids: string[]): Promise<{
             notes: INoteInfo[];
             metadataByPubKeyMap: Record<string, INostrMetadata>;

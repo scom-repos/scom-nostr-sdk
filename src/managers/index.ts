@@ -671,8 +671,14 @@ class SocialDataManager {
         };
     }
 
+    async fetchEventsByIds(ids: string[]) {
+        const events = await this._socialEventManagerRead.fetchEventsByIds({ ids });
+        return events;
+    }
+
     async fetchNotesByIds(ids: string[]) {
-        const noteEvents = await this._socialEventManagerRead.fetchEventsByIds({ ids });const {
+        const noteEvents = await this._socialEventManagerRead.fetchEventsByIds({ ids });
+        const {
             notes,
             quotedNotesMap,
             pubkeyToCommunityIdsMap
