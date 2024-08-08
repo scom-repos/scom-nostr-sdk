@@ -1192,6 +1192,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         privateRelay?: string;
         parentCommunityUri?: string;
         isExclusive?: boolean;
+        isWhitelist?: boolean;
     }
     export interface INoteCommunityInfo {
         eventData: INostrEvent;
