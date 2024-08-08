@@ -1193,6 +1193,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         parentCommunityUri?: string;
         isExclusive?: boolean;
         isWhitelist?: boolean;
+        policies?: IProtectedMembershipPolicy[];
     }
     export interface INoteCommunityInfo {
         eventData: INostrEvent;

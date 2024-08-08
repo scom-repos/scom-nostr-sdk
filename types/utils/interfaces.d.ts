@@ -93,6 +93,7 @@ interface INoteCommunity {
     parentCommunityUri?: string;
     isExclusive?: boolean;
     isWhitelist?: boolean;
+    policies?: IProtectedMembershipPolicy[];
 }
 export interface INoteCommunityInfo {
     eventData: INostrEvent;

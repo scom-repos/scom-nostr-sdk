@@ -7927,7 +7927,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                             parentCommunityUri: communityInfo?.parentCommunityUri,
                             privateRelay: communityInfo?.privateRelay,
                             isExclusive: communityInfo?.membershipType === interfaces_6.MembershipType.Protected,
-                            isWhitelist: communityInfo?.policies?.[0]?.policyType === interfaces_6.ProtectedMembershipPolicyType.Whitelist
+                            isWhitelist: communityInfo?.policies?.[0]?.policyType === interfaces_6.ProtectedMembershipPolicyType.Whitelist,
+                            policies: communityInfo?.policies
                         };
                     }
                 }
@@ -8030,7 +8031,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                             parentCommunityUri: communityInfo?.parentCommunityUri,
                             privateRelay: communityInfo?.privateRelay,
                             isExclusive: communityInfo?.membershipType === interfaces_6.MembershipType.Protected,
-                            isWhitelist: communityInfo?.policies?.[0]?.policyType === interfaces_6.ProtectedMembershipPolicyType.Whitelist
+                            isWhitelist: communityInfo?.policies?.[0]?.policyType === interfaces_6.ProtectedMembershipPolicyType.Whitelist,
+                            policies: communityInfo?.policies
                         };
                     }
                 }
@@ -8084,7 +8086,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                             parentCommunityUri: communityInfo?.parentCommunityUri,
                             privateRelay: communityInfo?.privateRelay,
                             isExclusive: communityInfo?.membershipType === interfaces_6.MembershipType.Protected,
-                            isWhitelist: communityInfo?.policies?.[0]?.policyType === interfaces_6.ProtectedMembershipPolicyType.Whitelist
+                            isWhitelist: communityInfo?.policies?.[0]?.policyType === interfaces_6.ProtectedMembershipPolicyType.Whitelist,
+                            policies: communityInfo?.policies
                         };
                     }
                 }
@@ -8126,7 +8129,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                             parentCommunityUri: communityInfo?.parentCommunityUri,
                             privateRelay: communityInfo?.privateRelay,
                             isExclusive: communityInfo?.membershipType === interfaces_6.MembershipType.Protected,
-                            isWhitelist: communityInfo?.policies?.[0]?.policyType === interfaces_6.ProtectedMembershipPolicyType.Whitelist
+                            isWhitelist: communityInfo?.policies?.[0]?.policyType === interfaces_6.ProtectedMembershipPolicyType.Whitelist,
+                            policies: communityInfo?.policies
                         };
                     }
                 }
@@ -8431,7 +8435,8 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                             parentCommunityUri: communityInfo?.parentCommunityUri,
                             privateRelay: communityInfo?.privateRelay,
                             isExclusive: communityInfo?.membershipType === interfaces_6.MembershipType.Protected,
-                            isWhitelist: communityInfo?.policies?.[0]?.policyType === interfaces_6.ProtectedMembershipPolicyType.Whitelist
+                            isWhitelist: communityInfo?.policies?.[0]?.policyType === interfaces_6.ProtectedMembershipPolicyType.Whitelist,
+                            policies: communityInfo?.policies
                         };
                     }
                 }

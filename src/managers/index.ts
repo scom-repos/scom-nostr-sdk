@@ -626,7 +626,8 @@ class SocialDataManager {
                         parentCommunityUri: communityInfo?.parentCommunityUri,
                         privateRelay: communityInfo?.privateRelay,
                         isExclusive: communityInfo?.membershipType === MembershipType.Protected,
-                        isWhitelist: communityInfo?.policies?.[0]?.policyType === ProtectedMembershipPolicyType.Whitelist 
+                        isWhitelist: communityInfo?.policies?.[0]?.policyType === ProtectedMembershipPolicyType.Whitelist,
+                        policies: communityInfo?.policies
                     };
                 }
             }
@@ -737,7 +738,8 @@ class SocialDataManager {
                         parentCommunityUri: communityInfo?.parentCommunityUri,
                         privateRelay: communityInfo?.privateRelay,
                         isExclusive: communityInfo?.membershipType === MembershipType.Protected,
-                        isWhitelist: communityInfo?.policies?.[0]?.policyType === ProtectedMembershipPolicyType.Whitelist
+                        isWhitelist: communityInfo?.policies?.[0]?.policyType === ProtectedMembershipPolicyType.Whitelist,
+                        policies: communityInfo?.policies
                     };
                 }
             }
@@ -799,7 +801,8 @@ class SocialDataManager {
                         parentCommunityUri: communityInfo?.parentCommunityUri,
                         privateRelay: communityInfo?.privateRelay,
                         isExclusive: communityInfo?.membershipType === MembershipType.Protected,
-                        isWhitelist: communityInfo?.policies?.[0]?.policyType === ProtectedMembershipPolicyType.Whitelist
+                        isWhitelist: communityInfo?.policies?.[0]?.policyType === ProtectedMembershipPolicyType.Whitelist,
+                        policies: communityInfo?.policies
                     };
                 }
             }
@@ -846,7 +849,8 @@ class SocialDataManager {
                         parentCommunityUri: communityInfo?.parentCommunityUri,
                         privateRelay: communityInfo?.privateRelay,
                         isExclusive: communityInfo?.membershipType === MembershipType.Protected,
-                        isWhitelist: communityInfo?.policies?.[0]?.policyType === ProtectedMembershipPolicyType.Whitelist
+                        isWhitelist: communityInfo?.policies?.[0]?.policyType === ProtectedMembershipPolicyType.Whitelist,
+                        policies: communityInfo?.policies
                     };
                 }
             }
@@ -1160,7 +1164,8 @@ class SocialDataManager {
                         parentCommunityUri: communityInfo?.parentCommunityUri,
                         privateRelay: communityInfo?.privateRelay,
                         isExclusive: communityInfo?.membershipType === MembershipType.Protected,
-                        isWhitelist: communityInfo?.policies?.[0]?.policyType === ProtectedMembershipPolicyType.Whitelist
+                        isWhitelist: communityInfo?.policies?.[0]?.policyType === ProtectedMembershipPolicyType.Whitelist,
+                        policies: communityInfo?.policies
                     };
                 }
             }
