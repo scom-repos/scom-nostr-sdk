@@ -7592,7 +7592,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             return key;
         }
         async retrieveCommunityPrivateKey(communityInfo, selfPrivateKey) {
-            if (!communityInfo.scpData.gatekeeperPublicKey)
+            if (!communityInfo.scpData?.gatekeeperPublicKey)
                 return null;
             const encryptedKey = communityInfo.scpData.encryptedKey || communityInfo.memberKeyMap?.[communityInfo.scpData.gatekeeperPublicKey];
             if (!encryptedKey)
@@ -7695,11 +7695,13 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 return noteIdToPrivateKey;
             const communityInfoMap = {};
             for (let communityInfo of noteCommunityMappings.communityInfoList) {
+                communityInfoMap[communityInfo.communityUri] = communityInfo;
+                if (communityInfo.membershipType === interfaces_6.MembershipType.Open)
+                    continue;
                 let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
                 if (communityPrivateKey) {
                     communityPrivateKeyMap[communityInfo.communityUri] = communityPrivateKey;
                 }
-                communityInfoMap[communityInfo.communityUri] = communityInfo;
             }
             // let inviteOnlyCommunityNotesMap: Record<string, INoteCommunityInfo[]> = {};
             let relayToNotesMap = {};

@@ -276,7 +276,7 @@ class SocialDataManager {
     }
 
     async retrieveCommunityPrivateKey(communityInfo: ICommunityInfo, selfPrivateKey: string) {
-        if (!communityInfo.scpData.gatekeeperPublicKey) return null;
+        if (!communityInfo.scpData?.gatekeeperPublicKey) return null;
         const encryptedKey = communityInfo.scpData.encryptedKey || communityInfo.memberKeyMap?.[communityInfo.scpData.gatekeeperPublicKey];
         if (!encryptedKey) return null;
         let communityPrivateKey: string;
@@ -386,11 +386,12 @@ class SocialDataManager {
         if (noteCommunityMappings.noteCommunityInfoList.length === 0) return noteIdToPrivateKey;
         const communityInfoMap: Record<string, ICommunityInfo> = {};
         for (let communityInfo of noteCommunityMappings.communityInfoList) {
+            communityInfoMap[communityInfo.communityUri] = communityInfo;
+            if (communityInfo.membershipType === MembershipType.Open) continue;
             let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
             if (communityPrivateKey) {
                 communityPrivateKeyMap[communityInfo.communityUri] = communityPrivateKey;
             }
-            communityInfoMap[communityInfo.communityUri] = communityInfo;
         }
         // let inviteOnlyCommunityNotesMap: Record<string, INoteCommunityInfo[]> = {};
         let relayToNotesMap: Record<string, INoteCommunityInfo[]> = {};
