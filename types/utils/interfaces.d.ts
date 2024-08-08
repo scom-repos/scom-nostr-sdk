@@ -92,6 +92,8 @@ interface INoteCommunity {
     privateRelay?: string;
     parentCommunityUri?: string;
     isExclusive?: boolean;
+    isWhitelist?: boolean;
+    policies?: IProtectedMembershipPolicy[];
 }
 export interface INoteCommunityInfo {
     eventData: INostrEvent;

@@ -625,7 +625,9 @@ class SocialDataManager {
                         creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
                         parentCommunityUri: communityInfo?.parentCommunityUri,
                         privateRelay: communityInfo?.privateRelay,
-                        isExclusive: communityInfo?.membershipType === MembershipType.Protected
+                        isExclusive: communityInfo?.membershipType === MembershipType.Protected,
+                        isWhitelist: communityInfo?.policies?.[0]?.policyType === ProtectedMembershipPolicyType.Whitelist,
+                        policies: communityInfo?.policies
                     };
                 }
             }
@@ -735,7 +737,9 @@ class SocialDataManager {
                         creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
                         parentCommunityUri: communityInfo?.parentCommunityUri,
                         privateRelay: communityInfo?.privateRelay,
-                        isExclusive: communityInfo?.membershipType === MembershipType.Protected
+                        isExclusive: communityInfo?.membershipType === MembershipType.Protected,
+                        isWhitelist: communityInfo?.policies?.[0]?.policyType === ProtectedMembershipPolicyType.Whitelist,
+                        policies: communityInfo?.policies
                     };
                 }
             }
@@ -796,7 +800,9 @@ class SocialDataManager {
                         creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
                         parentCommunityUri: communityInfo?.parentCommunityUri,
                         privateRelay: communityInfo?.privateRelay,
-                        isExclusive: communityInfo?.membershipType === MembershipType.Protected
+                        isExclusive: communityInfo?.membershipType === MembershipType.Protected,
+                        isWhitelist: communityInfo?.policies?.[0]?.policyType === ProtectedMembershipPolicyType.Whitelist,
+                        policies: communityInfo?.policies
                     };
                 }
             }
@@ -842,7 +848,9 @@ class SocialDataManager {
                         creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
                         parentCommunityUri: communityInfo?.parentCommunityUri,
                         privateRelay: communityInfo?.privateRelay,
-                        isExclusive: communityInfo?.membershipType === MembershipType.Protected
+                        isExclusive: communityInfo?.membershipType === MembershipType.Protected,
+                        isWhitelist: communityInfo?.policies?.[0]?.policyType === ProtectedMembershipPolicyType.Whitelist,
+                        policies: communityInfo?.policies
                     };
                 }
             }
@@ -1155,7 +1163,9 @@ class SocialDataManager {
                         creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
                         parentCommunityUri: communityInfo?.parentCommunityUri,
                         privateRelay: communityInfo?.privateRelay,
-                        isExclusive: communityInfo?.membershipType === MembershipType.Protected
+                        isExclusive: communityInfo?.membershipType === MembershipType.Protected,
+                        isWhitelist: communityInfo?.policies?.[0]?.policyType === ProtectedMembershipPolicyType.Whitelist,
+                        policies: communityInfo?.policies
                     };
                 }
             }
