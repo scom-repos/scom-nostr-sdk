@@ -4668,8 +4668,10 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             }
             return tags;
         }
-        async handleEventSubmission(event, mainRelayOnly = false) {
-            const verifiedEvent = index_3.Event.finishEvent(event, this._privateKey);
+        async handleEventSubmission(event, options) {
+            let mainRelayOnly = options?.mainRelayOnly;
+            let privateKey = options?.privateKey || this._privateKey;
+            const verifiedEvent = index_3.Event.finishEvent(event, privateKey);
             let relayResponses = [];
             if (mainRelayOnly) {
                 const response = await this._mainNostrRestAPIManager.submitEvent(verifiedEvent);
@@ -5019,7 +5021,9 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             if (widgetId) {
                 event.tags.push(['w', widgetId]);
             }
-            const result = await this.handleEventSubmission(event, true);
+            const result = await this.handleEventSubmission(event, {
+                mainRelayOnly: true
+            });
             return result;
         }
         async updateGroupKeys(identifier, groupKind, keys, invitees) {
@@ -5397,7 +5401,9 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     ]
                 ]
             };
-            const result = await this.handleEventSubmission(event);
+            const result = await this.handleEventSubmission(event, {
+                privateKey
+            });
             return result;
         }
         async updateNoteStatus(noteId, status) {

@@ -71,8 +71,10 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         return tags;
     }
 
-    private async handleEventSubmission(event: Event.EventTemplate<number>, mainRelayOnly: boolean = false) {
-        const verifiedEvent = Event.finishEvent(event, this._privateKey);
+    private async handleEventSubmission(event: Event.EventTemplate<number>, options?: {privateKey?: string, mainRelayOnly?: boolean}) {
+        let mainRelayOnly = options?.mainRelayOnly;
+        let privateKey = options?.privateKey || this._privateKey;
+        const verifiedEvent = Event.finishEvent(event, privateKey);
         let relayResponses: INostrSubmitResponse[] = [];
         if (mainRelayOnly) {
             const response = await this._mainNostrRestAPIManager.submitEvent(verifiedEvent);
@@ -435,7 +437,9 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         if (widgetId) {
             event.tags.push(['w', widgetId]);
         }
-        const result = await this.handleEventSubmission(event, true);
+        const result = await this.handleEventSubmission(event, {
+            mainRelayOnly: true
+        });
         return result;
     }
 
@@ -829,7 +833,9 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 ]
             ]
         };
-        const result = await this.handleEventSubmission(event);
+        const result = await this.handleEventSubmission(event, {
+            privateKey
+        });
         return result;
     }
 
