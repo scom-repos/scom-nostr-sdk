@@ -97,7 +97,7 @@ export interface INoteInfoExtended extends INoteInfo {
 	community?: INoteCommunity;
 }
 
-interface INoteCommunity {
+export interface INoteCommunity {
 	communityUri?: string;
 	creatorId?: string;
 	communityId?: string;

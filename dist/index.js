@@ -7900,6 +7900,28 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 metadataByPubKeyMap
             };
         }
+        constructNoteCommunity(noteEvent, communityInfoMap) {
+            let community;
+            if (noteEvent.tags?.length) {
+                let scpData = utilsManager_5.SocialUtilsManager.extractScpData(noteEvent, interfaces_6.ScpStandardId.CommunityPost);
+                let communityUri = this.retrieveCommunityUri(noteEvent, scpData);
+                if (communityUri) {
+                    const communityInfo = communityInfoMap[communityUri];
+                    const { creatorId, communityId } = utilsManager_5.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                    community = {
+                        communityUri,
+                        communityId: communityInfo?.communityId || communityId,
+                        creatorId: communityInfo?.creatorId || index_6.Nip19.npubEncode(creatorId),
+                        parentCommunityUri: communityInfo?.parentCommunityUri,
+                        privateRelay: communityInfo?.privateRelay,
+                        isExclusive: communityInfo?.membershipType === interfaces_6.MembershipType.Protected,
+                        isWhitelist: communityInfo?.policies?.[0]?.policyType === interfaces_6.ProtectedMembershipPolicyType.Whitelist,
+                        policies: communityInfo?.policies
+                    };
+                }
+            }
+            return community;
+        }
         async fetchProfileFeedInfo(pubKey, since = 0, until) {
             const selfPubkey = this._privateKey ? utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
             const events = await this._socialEventManagerRead.fetchProfileFeedCacheEvents({
@@ -7921,23 +7943,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 }
             }
             for (let note of notes) {
-                if (note.eventData.tags?.length) {
-                    const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
-                    if (communityUri) {
-                        const communityInfo = communityInfoMap[communityUri];
-                        const { creatorId, communityId } = utilsManager_5.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
-                        note.community = {
-                            communityUri,
-                            communityId: communityInfo?.communityId || communityId,
-                            creatorId: communityInfo?.creatorId || index_6.Nip19.npubEncode(creatorId),
-                            parentCommunityUri: communityInfo?.parentCommunityUri,
-                            privateRelay: communityInfo?.privateRelay,
-                            isExclusive: communityInfo?.membershipType === interfaces_6.MembershipType.Protected,
-                            isWhitelist: communityInfo?.policies?.[0]?.policyType === interfaces_6.ProtectedMembershipPolicyType.Whitelist,
-                            policies: communityInfo?.policies
-                        };
-                    }
-                }
+                note.community = this.constructNoteCommunity(note.eventData, communityInfoMap);
                 const noteId = note.eventData.id;
                 const repostId = noteToRepostIdMap[noteId];
                 if (!repostId)
@@ -8025,23 +8031,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 if (!note.actions)
                     note.actions = {};
                 note.actions.bookmarked = true;
-                if (note.eventData.tags?.length) {
-                    const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
-                    if (communityUri) {
-                        const communityInfo = communityInfoMap[communityUri];
-                        const { creatorId, communityId } = utilsManager_5.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
-                        note.community = {
-                            communityUri,
-                            communityId: communityInfo?.communityId || communityId,
-                            creatorId: communityInfo?.creatorId || index_6.Nip19.npubEncode(creatorId),
-                            parentCommunityUri: communityInfo?.parentCommunityUri,
-                            privateRelay: communityInfo?.privateRelay,
-                            isExclusive: communityInfo?.membershipType === interfaces_6.MembershipType.Protected,
-                            isWhitelist: communityInfo?.policies?.[0]?.policyType === interfaces_6.ProtectedMembershipPolicyType.Whitelist,
-                            policies: communityInfo?.policies
-                        };
-                    }
-                }
+                note.community = this.constructNoteCommunity(note.eventData, communityInfoMap);
             }
             return {
                 notes,
@@ -8080,23 +8070,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 }
             }
             for (let note of notes) {
-                if (note.eventData.tags?.length) {
-                    const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
-                    if (communityUri) {
-                        const communityInfo = communityInfoMap[communityUri];
-                        const { creatorId, communityId } = utilsManager_5.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
-                        note.community = {
-                            communityUri,
-                            communityId: communityInfo?.communityId || communityId,
-                            creatorId: communityInfo?.creatorId || index_6.Nip19.npubEncode(creatorId),
-                            parentCommunityUri: communityInfo?.parentCommunityUri,
-                            privateRelay: communityInfo?.privateRelay,
-                            isExclusive: communityInfo?.membershipType === interfaces_6.MembershipType.Protected,
-                            isWhitelist: communityInfo?.policies?.[0]?.policyType === interfaces_6.ProtectedMembershipPolicyType.Whitelist,
-                            policies: communityInfo?.policies
-                        };
-                    }
-                }
+                note.community = this.constructNoteCommunity(note.eventData, communityInfoMap);
             }
             return {
                 notes,
@@ -8123,23 +8097,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 }
             }
             for (let note of notes) {
-                if (note.eventData.tags?.length) {
-                    const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
-                    if (communityUri) {
-                        const communityInfo = communityInfoMap[communityUri];
-                        const { creatorId, communityId } = utilsManager_5.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
-                        note.community = {
-                            communityUri,
-                            communityId: communityInfo?.communityId || communityId,
-                            creatorId: communityInfo?.creatorId || index_6.Nip19.npubEncode(creatorId),
-                            parentCommunityUri: communityInfo?.parentCommunityUri,
-                            privateRelay: communityInfo?.privateRelay,
-                            isExclusive: communityInfo?.membershipType === interfaces_6.MembershipType.Protected,
-                            isWhitelist: communityInfo?.policies?.[0]?.policyType === interfaces_6.ProtectedMembershipPolicyType.Whitelist,
-                            policies: communityInfo?.policies
-                        };
-                    }
-                }
+                note.community = this.constructNoteCommunity(note.eventData, communityInfoMap);
             }
             return {
                 notes,
@@ -8429,23 +8387,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 Object.assign(metadataByPubKeyMap, _metadataByPubKeyMap);
             }
             for (let note of notes) {
-                if (note.eventData.tags?.length) {
-                    const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
-                    if (communityUri) {
-                        const communityInfo = communityInfoMap[communityUri];
-                        const { creatorId, communityId } = utilsManager_5.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
-                        note.community = {
-                            communityUri,
-                            communityId: communityInfo?.communityId || communityId,
-                            creatorId: communityInfo?.creatorId || index_6.Nip19.npubEncode(creatorId),
-                            parentCommunityUri: communityInfo?.parentCommunityUri,
-                            privateRelay: communityInfo?.privateRelay,
-                            isExclusive: communityInfo?.membershipType === interfaces_6.MembershipType.Protected,
-                            isWhitelist: communityInfo?.policies?.[0]?.policyType === interfaces_6.ProtectedMembershipPolicyType.Whitelist,
-                            policies: communityInfo?.policies
-                        };
-                    }
-                }
+                note.community = this.constructNoteCommunity(note.eventData, communityInfoMap);
                 if (note.eventData.id === decodedFocusedNoteId) {
                     focusedNote = note;
                 }

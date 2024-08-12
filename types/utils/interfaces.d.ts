@@ -85,7 +85,7 @@ export interface INoteInfoExtended extends INoteInfo {
     repost?: IAuthor;
     community?: INoteCommunity;
 }
-interface INoteCommunity {
+export interface INoteCommunity {
     communityUri?: string;
     creatorId?: string;
     communityId?: string;
