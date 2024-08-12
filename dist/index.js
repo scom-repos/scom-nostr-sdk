@@ -8714,6 +8714,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     const encryptedGroupKey = await utilsManager_5.SocialUtilsManager.encryptMessage(this._privateKey, gatekeeperPublicKey, groupPrivateKey);
                     info.scpData = {
                         ...info.scpData,
+                        gatekeeperPublicKey,
                         encryptedKey: encryptedGroupKey
                     };
                 }

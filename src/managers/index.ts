@@ -1451,6 +1451,7 @@ class SocialDataManager {
                 const encryptedGroupKey = await SocialUtilsManager.encryptMessage(this._privateKey, gatekeeperPublicKey, groupPrivateKey);
                 info.scpData = {
                     ...info.scpData,
+                    gatekeeperPublicKey,
                     encryptedKey: encryptedGroupKey
                 }
             } 
