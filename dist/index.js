@@ -8710,13 +8710,15 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             if (info.membershipType === interfaces_6.MembershipType.Protected) {
                 const gatekeeperPublicKey = index_6.Nip19.decode(info.gatekeeperNpub).data;
                 if (info.scpData) {
-                    const groupPrivateKey = await this.retrieveCommunityPrivateKey(info, this._privateKey);
-                    const encryptedGroupKey = await utilsManager_5.SocialUtilsManager.encryptMessage(this._privateKey, gatekeeperPublicKey, groupPrivateKey);
-                    info.scpData = {
-                        ...info.scpData,
-                        gatekeeperPublicKey,
-                        encryptedKey: encryptedGroupKey
-                    };
+                    if (!info.scpData.encryptedKey || !info.scpData.gatekeeperPublicKey) {
+                        const groupPrivateKey = await this.retrieveCommunityPrivateKey(info, this._privateKey);
+                        const encryptedGroupKey = await utilsManager_5.SocialUtilsManager.encryptMessage(this._privateKey, gatekeeperPublicKey, groupPrivateKey);
+                        info.scpData = {
+                            ...info.scpData,
+                            gatekeeperPublicKey,
+                            encryptedKey: encryptedGroupKey
+                        };
+                    }
                 }
                 else {
                     const groupPrivateKey = index_6.Keys.generatePrivateKey();

@@ -1447,12 +1447,14 @@ class SocialDataManager {
         if (info.membershipType === MembershipType.Protected) {
             const gatekeeperPublicKey = Nip19.decode(info.gatekeeperNpub).data as string;
             if (info.scpData) {
-                const groupPrivateKey = await this.retrieveCommunityPrivateKey(info, this._privateKey);
-                const encryptedGroupKey = await SocialUtilsManager.encryptMessage(this._privateKey, gatekeeperPublicKey, groupPrivateKey);
-                info.scpData = {
-                    ...info.scpData,
-                    gatekeeperPublicKey,
-                    encryptedKey: encryptedGroupKey
+                if (!info.scpData.encryptedKey || !info.scpData.gatekeeperPublicKey) {
+                    const groupPrivateKey = await this.retrieveCommunityPrivateKey(info, this._privateKey);
+                    const encryptedGroupKey = await SocialUtilsManager.encryptMessage(this._privateKey, gatekeeperPublicKey, groupPrivateKey);
+                    info.scpData = {
+                        ...info.scpData,
+                        gatekeeperPublicKey,
+                        encryptedKey: encryptedGroupKey
+                    }
                 }
             } 
             else {
