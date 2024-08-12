@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityBasicInfo, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunityStats, IConversationPath, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId, SocialDataManagerOptions } from "../utils/interfaces";
+import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityBasicInfo, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunityStats, IConversationPath, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunity, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId, SocialDataManagerOptions } from "../utils/interfaces";
 import {
     INostrCommunicationManager,
     INostrRestAPIManager,
@@ -587,6 +587,29 @@ class SocialDataManager {
         };
     }
 
+    private constructNoteCommunity(noteEvent: INostrEvent, communityInfoMap: Record<string, ICommunityInfo>) {
+        let community: INoteCommunity;
+        if (noteEvent.tags?.length) {
+            let scpData = SocialUtilsManager.extractScpData(noteEvent, ScpStandardId.CommunityPost);
+            let communityUri = this.retrieveCommunityUri(noteEvent, scpData);
+            if (communityUri) {
+                const communityInfo = communityInfoMap[communityUri];
+                const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                community = {
+                    communityUri,
+                    communityId: communityInfo?.communityId || communityId,
+                    creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
+                    parentCommunityUri: communityInfo?.parentCommunityUri,
+                    privateRelay: communityInfo?.privateRelay,
+                    isExclusive: communityInfo?.membershipType === MembershipType.Protected,
+                    isWhitelist: communityInfo?.policies?.[0]?.policyType === ProtectedMembershipPolicyType.Whitelist,
+                    policies: communityInfo?.policies
+                };
+            }
+        }
+        return community;
+    }
+
     async fetchProfileFeedInfo(pubKey: string, since: number = 0, until?: number) {
         const selfPubkey = this._privateKey ? SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
         const events = await this._socialEventManagerRead.fetchProfileFeedCacheEvents({
@@ -614,23 +637,7 @@ class SocialDataManager {
             }
         }
         for (let note of notes as INoteInfoExtended[]) {
-            if (note.eventData.tags?.length) {
-                const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
-                if (communityUri) {
-                    const communityInfo = communityInfoMap[communityUri];
-                    const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
-                    note.community = {
-                        communityUri,
-                        communityId: communityInfo?.communityId || communityId,
-                        creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
-                        parentCommunityUri: communityInfo?.parentCommunityUri,
-                        privateRelay: communityInfo?.privateRelay,
-                        isExclusive: communityInfo?.membershipType === MembershipType.Protected,
-                        isWhitelist: communityInfo?.policies?.[0]?.policyType === ProtectedMembershipPolicyType.Whitelist,
-                        policies: communityInfo?.policies
-                    };
-                }
-            }
+            note.community = this.constructNoteCommunity(note.eventData, communityInfoMap);
             const noteId = note.eventData.id;
             const repostId = noteToRepostIdMap[noteId];
             if (!repostId) continue;
@@ -726,23 +733,7 @@ class SocialDataManager {
         for (let note of notes as INoteInfoExtended[]) {
             if (!note.actions) note.actions = {};
             note.actions.bookmarked = true;
-            if (note.eventData.tags?.length) {
-                const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
-                if (communityUri) {
-                    const communityInfo = communityInfoMap[communityUri];
-                    const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
-                    note.community = {
-                        communityUri,
-                        communityId: communityInfo?.communityId || communityId,
-                        creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
-                        parentCommunityUri: communityInfo?.parentCommunityUri,
-                        privateRelay: communityInfo?.privateRelay,
-                        isExclusive: communityInfo?.membershipType === MembershipType.Protected,
-                        isWhitelist: communityInfo?.policies?.[0]?.policyType === ProtectedMembershipPolicyType.Whitelist,
-                        policies: communityInfo?.policies
-                    };
-                }
-            }
+            note.community = this.constructNoteCommunity(note.eventData, communityInfoMap);
         }
         return {
             notes,
@@ -789,23 +780,7 @@ class SocialDataManager {
             }
         }
         for (let note of notes as INoteInfoExtended[]) {
-            if (note.eventData.tags?.length) {
-                const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
-                if (communityUri) {
-                    const communityInfo = communityInfoMap[communityUri];
-                    const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
-                    note.community = {
-                        communityUri,
-                        communityId: communityInfo?.communityId || communityId,
-                        creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
-                        parentCommunityUri: communityInfo?.parentCommunityUri,
-                        privateRelay: communityInfo?.privateRelay,
-                        isExclusive: communityInfo?.membershipType === MembershipType.Protected,
-                        isWhitelist: communityInfo?.policies?.[0]?.policyType === ProtectedMembershipPolicyType.Whitelist,
-                        policies: communityInfo?.policies
-                    };
-                }
-            }
+            note.community = this.constructNoteCommunity(note.eventData, communityInfoMap);
         }
         return {
             notes,
@@ -837,23 +812,7 @@ class SocialDataManager {
             }
         }
         for (let note of notes as INoteInfoExtended[]) {
-            if (note.eventData.tags?.length) {
-                const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
-                if (communityUri) {
-                    const communityInfo = communityInfoMap[communityUri];
-                    const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
-                    note.community = {
-                        communityUri,
-                        communityId: communityInfo?.communityId || communityId,
-                        creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
-                        parentCommunityUri: communityInfo?.parentCommunityUri,
-                        privateRelay: communityInfo?.privateRelay,
-                        isExclusive: communityInfo?.membershipType === MembershipType.Protected,
-                        isWhitelist: communityInfo?.policies?.[0]?.policyType === ProtectedMembershipPolicyType.Whitelist,
-                        policies: communityInfo?.policies
-                    };
-                }
-            }
+            note.community = this.constructNoteCommunity(note.eventData, communityInfoMap);
         }
         return {
             notes,
@@ -1152,23 +1111,7 @@ class SocialDataManager {
             Object.assign(metadataByPubKeyMap, _metadataByPubKeyMap);
         }
         for (let note of notes as INoteInfoExtended[]) {
-            if (note.eventData.tags?.length) {
-                const communityUri = note.eventData.tags.find(tag => tag[0] === 'a')?.[1];
-                if (communityUri) {
-                    const communityInfo = communityInfoMap[communityUri];
-                    const { creatorId, communityId } = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
-                    note.community = {
-                        communityUri,
-                        communityId: communityInfo?.communityId || communityId,
-                        creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
-                        parentCommunityUri: communityInfo?.parentCommunityUri,
-                        privateRelay: communityInfo?.privateRelay,
-                        isExclusive: communityInfo?.membershipType === MembershipType.Protected,
-                        isWhitelist: communityInfo?.policies?.[0]?.policyType === ProtectedMembershipPolicyType.Whitelist,
-                        policies: communityInfo?.policies
-                    };
-                }
-            }
+            note.community = this.constructNoteCommunity(note.eventData, communityInfoMap);
             if (note.eventData.id === decodedFocusedNoteId) {
                 focusedNote = note;
             }

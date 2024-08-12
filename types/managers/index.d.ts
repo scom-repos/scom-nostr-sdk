@@ -47,6 +47,7 @@ declare class SocialDataManager {
         notes: INoteInfo[];
         metadataByPubKeyMap: Record<string, INostrMetadata>;
     }>;
+    private constructNoteCommunity;
     fetchProfileFeedInfo(pubKey: string, since?: number, until?: number): Promise<{
         notes: INoteInfo[];
         metadataByPubKeyMap: Record<string, INostrMetadata>;
