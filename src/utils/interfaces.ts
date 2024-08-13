@@ -459,6 +459,11 @@ export interface ILocationCoordinates {
 	longitude: number;
 }
 
+export interface IMqttClientOptions {
+	username: string;
+	password: string;
+}
+
 export interface ISocialDataManagerConfig {
 	version?: 1 | 1.5 | 2;
 	writeRelays?: string[];
@@ -469,6 +474,7 @@ export interface ISocialDataManagerConfig {
 	ipLocationServiceBaseUrl?: string;
 	ipLocationServiceApiKey?: string;
 	mqttBrokerUrl?: string;
+	mqttClientOptions?: IMqttClientOptions;
 	mqttSubscriptions?: string[];
 	mqttMessageCallback?: (topic: string, message: string) => void;
 	enableLightningWallet?: boolean;

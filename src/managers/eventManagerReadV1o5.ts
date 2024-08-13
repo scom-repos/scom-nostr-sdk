@@ -590,11 +590,11 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
 
     async searchUsers(options: SocialEventManagerReadOptions.ISearchUsers) {
         const {query} = options;
-        const req: any = {
-            query: query,
+        let msg = this.augmentWithAuthInfo({
+            query,
             limit: 10
-        };
-        const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_search', req);
+        });
+        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('search-users', msg);
         return fetchEventsResponse.events || [];
     }
 

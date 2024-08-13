@@ -62,6 +62,7 @@ class SocialDataManager {
             try {
                 this.mqttManager = new MqttManager({
                     brokerUrl: config.mqttBrokerUrl,
+                    mqttClientOptions: config.mqttClientOptions,
                     subscriptions: config.mqttSubscriptions,
                     messageCallback: config.mqttMessageCallback
                 });

@@ -3725,6 +3725,7 @@ define("@scom/scom-social-sdk/managers/communication.ts", ["require", "exports"]
                     this.ws.addEventListener('open', openListener);
                     this.ws.addEventListener('message', this.messageListenerBound);
                     this.ws.addEventListener('close', () => {
+                        this.requestCallbackMap = {};
                         resolve({ ws: null, error: 'Disconnected from server' });
                     });
                     this.ws.addEventListener('error', (error) => {
@@ -7041,11 +7042,11 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
         }
         async searchUsers(options) {
             const { query } = options;
-            const req = {
-                query: query,
+            let msg = this.augmentWithAuthInfo({
+                query,
                 limit: 10
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_search', req);
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('search-users', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchPaymentRequestEvent(options) {
@@ -7405,6 +7406,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 try {
                     this.mqttManager = new scom_mqtt_1.MqttManager({
                         brokerUrl: config.mqttBrokerUrl,
+                        mqttClientOptions: config.mqttClientOptions,
                         subscriptions: config.mqttSubscriptions,
                         messageCallback: config.mqttMessageCallback
                     });

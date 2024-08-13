@@ -150,6 +150,7 @@ class NostrWebSocketManager implements INostrCommunicationManager {
                 this.ws.addEventListener('message', this.messageListenerBound);
 
                 this.ws.addEventListener('close', () => {
+                    this.requestCallbackMap = {};
                     resolve({ ws: null, error: 'Disconnected from server' });
                 });
 

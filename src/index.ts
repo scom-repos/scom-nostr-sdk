@@ -42,6 +42,7 @@ export {
     ICalendarEventDetailInfo,
     INewCalendarEventPostInfo,
     ILocationCoordinates,
+    IMqttClientOptions,
     ISocialDataManagerConfig,
     IPaymentActivity,
     IEthWalletAccountsInfo,
