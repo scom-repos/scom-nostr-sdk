@@ -28,6 +28,7 @@ export {
     INewCommunityInfo,
     TokenType,
     MembershipType,
+    PaymentModel,
     ProtectedMembershipPolicyType,
     IProtectedMembershipPolicy,
     CommunityRole,

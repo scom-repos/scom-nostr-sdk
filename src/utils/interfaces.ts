@@ -144,8 +144,14 @@ export enum ProtectedMembershipPolicyType {
 	Whitelist = 'Whitelist'
 }
 
+export enum PaymentModel {
+	OneTimePurchase = 'OneTimePurchase',
+	Subscription = 'Subscription'
+}
+
 export interface IProtectedMembershipPolicy {
 	policyType: ProtectedMembershipPolicyType;
+	paymentModel?: PaymentModel;
 	chainId?: number;
 	tokenAddress?: string;
 	tokenType?: TokenType;

@@ -394,7 +394,6 @@ class SocialDataManager {
                 communityPrivateKeyMap[communityInfo.communityUri] = communityPrivateKey;
             }
         }
-        // let inviteOnlyCommunityNotesMap: Record<string, INoteCommunityInfo[]> = {};
         let relayToNotesMap: Record<string, INoteCommunityInfo[]> = {};
         for (let noteCommunityInfo of noteCommunityMappings.noteCommunityInfoList) {
             const communityPrivateKey = communityPrivateKeyMap[noteCommunityInfo.communityUri];
@@ -419,16 +418,6 @@ class SocialDataManager {
                 else if (options.gatekeeperUrl) {
                     relayToNotesMap[options.gatekeeperUrl] = relayToNotesMap[options.gatekeeperUrl] || [];
                     relayToNotesMap[options.gatekeeperUrl].push(noteCommunityInfo);
-                    //for (let policy of communityInfo.policies) {
-                        // if (policy.policyType === ProtectedMembershipPolicyType.Whitelist) {
-                        //     inviteOnlyCommunityNotesMap[communityInfo.communityUri] = inviteOnlyCommunityNotesMap[communityInfo.communityUri] || [];
-                        //     inviteOnlyCommunityNotesMap[communityInfo.communityUri].push(noteCommunityInfo);
-                        // }
-                        // else if (policy.policyType === ProtectedMembershipPolicyType.TokenExclusive) {
-                        //     relayToNotesMap[options.gatekeeperUrl] = relayToNotesMap[options.gatekeeperUrl] || [];
-                        //     relayToNotesMap[options.gatekeeperUrl].push(noteCommunityInfo);
-                        // }
-                    //}
                 }
             }
         }
@@ -459,22 +448,6 @@ class SocialDataManager {
                 }
             }
         }
-        // for (let communityUri in inviteOnlyCommunityNotesMap) {
-        //     for (let noteCommunityInfo of inviteOnlyCommunityNotesMap[communityUri]) {
-        //         const communityInfo = communityInfoMap[communityUri];
-        //         const noteInfo = {
-        //             eventData: noteCommunityInfo.eventData
-        //         }
-        //         const inviteOnlyNoteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(
-        //             communityInfo, 
-        //             [noteInfo]
-        //         );
-        //         noteIdToPrivateKey = {
-        //             ...noteIdToPrivateKey,
-        //             ...inviteOnlyNoteIdToPrivateKey
-        //         };
-        //     }
-        // }
         return noteIdToPrivateKey;
     }
 

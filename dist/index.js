@@ -3530,7 +3530,7 @@ define("@scom/scom-social-sdk/core/index.ts", ["require", "exports", "@scom/scom
 define("@scom/scom-social-sdk/utils/interfaces.ts", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.CalendarEventType = exports.CommunityRole = exports.ProtectedMembershipPolicyType = exports.MembershipType = exports.ScpStandardId = exports.TokenType = exports.NftType = void 0;
+    exports.CalendarEventType = exports.CommunityRole = exports.PaymentModel = exports.ProtectedMembershipPolicyType = exports.MembershipType = exports.ScpStandardId = exports.TokenType = exports.NftType = void 0;
     var NftType;
     (function (NftType) {
         NftType["ERC721"] = "ERC721";
@@ -3560,6 +3560,11 @@ define("@scom/scom-social-sdk/utils/interfaces.ts", ["require", "exports"], func
         ProtectedMembershipPolicyType["TokenExclusive"] = "TokenExclusive";
         ProtectedMembershipPolicyType["Whitelist"] = "Whitelist";
     })(ProtectedMembershipPolicyType = exports.ProtectedMembershipPolicyType || (exports.ProtectedMembershipPolicyType = {}));
+    var PaymentModel;
+    (function (PaymentModel) {
+        PaymentModel["OneTimePurchase"] = "OneTimePurchase";
+        PaymentModel["Subscription"] = "Subscription";
+    })(PaymentModel = exports.PaymentModel || (exports.PaymentModel = {}));
     var CommunityRole;
     (function (CommunityRole) {
         CommunityRole["Creator"] = "creator";
@@ -3576,9 +3581,10 @@ define("@scom/scom-social-sdk/utils/interfaces.ts", ["require", "exports"], func
 define("@scom/scom-social-sdk/utils/index.ts", ["require", "exports", "@scom/scom-social-sdk/utils/interfaces.ts"], function (require, exports, interfaces_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.CalendarEventType = exports.CommunityRole = exports.ProtectedMembershipPolicyType = exports.MembershipType = exports.TokenType = void 0;
+    exports.CalendarEventType = exports.CommunityRole = exports.ProtectedMembershipPolicyType = exports.PaymentModel = exports.MembershipType = exports.TokenType = void 0;
     Object.defineProperty(exports, "TokenType", { enumerable: true, get: function () { return interfaces_1.TokenType; } });
     Object.defineProperty(exports, "MembershipType", { enumerable: true, get: function () { return interfaces_1.MembershipType; } });
+    Object.defineProperty(exports, "PaymentModel", { enumerable: true, get: function () { return interfaces_1.PaymentModel; } });
     Object.defineProperty(exports, "ProtectedMembershipPolicyType", { enumerable: true, get: function () { return interfaces_1.ProtectedMembershipPolicyType; } });
     Object.defineProperty(exports, "CommunityRole", { enumerable: true, get: function () { return interfaces_1.CommunityRole; } });
     Object.defineProperty(exports, "CalendarEventType", { enumerable: true, get: function () { return interfaces_1.CalendarEventType; } });
@@ -7711,7 +7717,6 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     communityPrivateKeyMap[communityInfo.communityUri] = communityPrivateKey;
                 }
             }
-            // let inviteOnlyCommunityNotesMap: Record<string, INoteCommunityInfo[]> = {};
             let relayToNotesMap = {};
             for (let noteCommunityInfo of noteCommunityMappings.noteCommunityInfoList) {
                 const communityPrivateKey = communityPrivateKeyMap[noteCommunityInfo.communityUri];
@@ -7738,16 +7743,6 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     else if (options.gatekeeperUrl) {
                         relayToNotesMap[options.gatekeeperUrl] = relayToNotesMap[options.gatekeeperUrl] || [];
                         relayToNotesMap[options.gatekeeperUrl].push(noteCommunityInfo);
-                        //for (let policy of communityInfo.policies) {
-                        // if (policy.policyType === ProtectedMembershipPolicyType.Whitelist) {
-                        //     inviteOnlyCommunityNotesMap[communityInfo.communityUri] = inviteOnlyCommunityNotesMap[communityInfo.communityUri] || [];
-                        //     inviteOnlyCommunityNotesMap[communityInfo.communityUri].push(noteCommunityInfo);
-                        // }
-                        // else if (policy.policyType === ProtectedMembershipPolicyType.TokenExclusive) {
-                        //     relayToNotesMap[options.gatekeeperUrl] = relayToNotesMap[options.gatekeeperUrl] || [];
-                        //     relayToNotesMap[options.gatekeeperUrl].push(noteCommunityInfo);
-                        // }
-                        //}
                     }
                 }
             }
@@ -7778,22 +7773,6 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     }
                 }
             }
-            // for (let communityUri in inviteOnlyCommunityNotesMap) {
-            //     for (let noteCommunityInfo of inviteOnlyCommunityNotesMap[communityUri]) {
-            //         const communityInfo = communityInfoMap[communityUri];
-            //         const noteInfo = {
-            //             eventData: noteCommunityInfo.eventData
-            //         }
-            //         const inviteOnlyNoteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(
-            //             communityInfo, 
-            //             [noteInfo]
-            //         );
-            //         noteIdToPrivateKey = {
-            //             ...noteIdToPrivateKey,
-            //             ...inviteOnlyNoteIdToPrivateKey
-            //         };
-            //     }
-            // }
             return noteIdToPrivateKey;
         }
         async checkIfUserHasAccessToCommunity(options) {
@@ -10131,7 +10110,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
 define("@scom/scom-social-sdk", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/index.ts", "@scom/scom-social-sdk/managers/index.ts"], function (require, exports, index_7, index_8, managers_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.NostrRestAPIManager = exports.NostrWebSocketManager = exports.SocialDataManager = exports.SocialUtilsManager = exports.NostrEventManagerWrite = exports.NostrEventManagerReadV2 = exports.NostrEventManagerRead = exports.CalendarEventType = exports.CommunityRole = exports.ProtectedMembershipPolicyType = exports.MembershipType = exports.TokenType = exports.schnorr = exports.secp256k1 = exports.Bech32 = exports.Nip19 = exports.Keys = exports.Event = void 0;
+    exports.NostrRestAPIManager = exports.NostrWebSocketManager = exports.SocialDataManager = exports.SocialUtilsManager = exports.NostrEventManagerWrite = exports.NostrEventManagerReadV2 = exports.NostrEventManagerRead = exports.CalendarEventType = exports.CommunityRole = exports.ProtectedMembershipPolicyType = exports.PaymentModel = exports.MembershipType = exports.TokenType = exports.schnorr = exports.secp256k1 = exports.Bech32 = exports.Nip19 = exports.Keys = exports.Event = void 0;
     Object.defineProperty(exports, "Event", { enumerable: true, get: function () { return index_7.Event; } });
     Object.defineProperty(exports, "Keys", { enumerable: true, get: function () { return index_7.Keys; } });
     Object.defineProperty(exports, "Nip19", { enumerable: true, get: function () { return index_7.Nip19; } });
@@ -10140,6 +10119,7 @@ define("@scom/scom-social-sdk", ["require", "exports", "@scom/scom-social-sdk/co
     Object.defineProperty(exports, "schnorr", { enumerable: true, get: function () { return index_7.schnorr; } });
     Object.defineProperty(exports, "TokenType", { enumerable: true, get: function () { return index_8.TokenType; } });
     Object.defineProperty(exports, "MembershipType", { enumerable: true, get: function () { return index_8.MembershipType; } });
+    Object.defineProperty(exports, "PaymentModel", { enumerable: true, get: function () { return index_8.PaymentModel; } });
     Object.defineProperty(exports, "ProtectedMembershipPolicyType", { enumerable: true, get: function () { return index_8.ProtectedMembershipPolicyType; } });
     Object.defineProperty(exports, "CommunityRole", { enumerable: true, get: function () { return index_8.CommunityRole; } });
     Object.defineProperty(exports, "CalendarEventType", { enumerable: true, get: function () { return index_8.CalendarEventType; } });

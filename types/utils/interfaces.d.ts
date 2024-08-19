@@ -125,8 +125,13 @@ export declare enum ProtectedMembershipPolicyType {
     TokenExclusive = "TokenExclusive",
     Whitelist = "Whitelist"
 }
+export declare enum PaymentModel {
+    OneTimePurchase = "OneTimePurchase",
+    Subscription = "Subscription"
+}
 export interface IProtectedMembershipPolicy {
     policyType: ProtectedMembershipPolicyType;
+    paymentModel?: PaymentModel;
     chainId?: number;
     tokenAddress?: string;
     tokenType?: TokenType;
