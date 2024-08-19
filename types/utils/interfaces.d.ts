@@ -137,6 +137,7 @@ export interface IProtectedMembershipPolicy {
     tokenType?: TokenType;
     tokenId?: number;
     tokenAmount?: string;
+    currency?: string;
     memberIds?: string[];
 }
 export interface ICommunityScpData {
