@@ -1238,6 +1238,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         tokenId?: number;
         tokenAmount?: string;
         currency?: string;
+        durationInDays?: number;
         memberIds?: string[];
     }
     export interface ICommunityScpData {
