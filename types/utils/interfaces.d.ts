@@ -138,6 +138,7 @@ export interface IProtectedMembershipPolicy {
     tokenId?: number;
     tokenAmount?: string;
     currency?: string;
+    durationInDays?: number;
     memberIds?: string[];
 }
 export interface ICommunityScpData {
