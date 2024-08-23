@@ -1231,6 +1231,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     }
     export interface IProtectedMembershipPolicy {
         policyType: ProtectedMembershipPolicyType;
+        name?: string;
         paymentModel?: PaymentModel;
         chainId?: number;
         tokenAddress?: string;

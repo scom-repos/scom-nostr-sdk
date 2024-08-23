@@ -131,6 +131,7 @@ export declare enum PaymentModel {
 }
 export interface IProtectedMembershipPolicy {
     policyType: ProtectedMembershipPolicyType;
+    name?: string;
     paymentModel?: PaymentModel;
     chainId?: number;
     tokenAddress?: string;
