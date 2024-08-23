@@ -7800,6 +7800,29 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             }
             return hasAccess;
         }
+        async checkNftSubscriptions(options) {
+            const { chainId, nftAddress, walletAddresses, gatekeeperUrl } = options;
+            let subscriptions = [];
+            let url = `${gatekeeperUrl}/api/communities/v0/check-nft-subscriptions`;
+            let bodyData = {
+                chainId,
+                nftAddress,
+                walletAddresses
+            };
+            let response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(bodyData)
+            });
+            let result = await response.json();
+            if (result.success) {
+                subscriptions = result.data.subscriptions;
+            }
+            return subscriptions;
+        }
         async constructMetadataByPubKeyMap(notes) {
             let mentionAuthorSet = new Set();
             for (let i = 0; i < notes.length; i++) {

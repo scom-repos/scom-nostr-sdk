@@ -40,6 +40,12 @@ declare class SocialDataManager {
     retrieveCommunityThreadPostKeys(options: IRetrieveCommunityThreadPostKeysOptions): Promise<Record<string, string>>;
     retrieveCommunityPostKeysByNoteEvents(options: IRetrieveCommunityPostKeysByNoteEventsOptions): Promise<Record<string, string>>;
     checkIfUserHasAccessToCommunity(options: ICheckIfUserHasAccessToCommunityOptions): Promise<boolean>;
+    checkNftSubscriptions(options: {
+        chainId: number;
+        nftAddress: string;
+        walletAddresses: string[];
+        gatekeeperUrl: string;
+    }): Promise<any[]>;
     constructMetadataByPubKeyMap(notes: INostrEvent[]): Promise<Record<string, INostrMetadata>>;
     fetchUserProfiles(pubKeys: string[]): Promise<IUserProfile[]>;
     updateUserProfile(content: INostrMetadataContent): Promise<void>;
