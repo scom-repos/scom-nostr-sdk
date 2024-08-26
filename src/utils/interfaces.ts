@@ -556,6 +556,12 @@ export interface IDecryptPostPrivateKeyForCommunityOptions {
 	communityPrivateKey: string;
 }
 
+export interface INftSubscription {
+	nftId: number;
+	startTime: number;
+	endTime: number;
+}
+
 export interface INostrCommunicationManager {
 	url: string;
     fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
