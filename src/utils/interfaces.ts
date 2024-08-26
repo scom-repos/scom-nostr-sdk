@@ -149,6 +149,18 @@ export enum PaymentModel {
 	Subscription = 'Subscription'
 }
 
+export interface ISubscriptionDiscountRule {
+	id: number;
+	name: string;
+	startTime: number;
+	endTime: number;
+	minDuration?: number;
+	discountType: 'Percentage' | 'FixedAmount';
+	discountPercentage?: number;
+	fixedPrice?: number;
+	discountApplication: number; // 0: FirstTimeOnly, 1: RenewalsOnly, 2: All
+}
+
 export interface IProtectedMembershipPolicy {
 	policyType: ProtectedMembershipPolicyType;
 	name?: string;
@@ -161,6 +173,7 @@ export interface IProtectedMembershipPolicy {
 	currency?: string;
 	durationInDays?: number;
 	memberIds?: string[];
+	discountRules?: ISubscriptionDiscountRule[];
 }
 
 //SCP-1 Kind 34550
