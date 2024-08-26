@@ -23,6 +23,7 @@ export {
     MembershipType,
     PaymentModel,
     ProtectedMembershipPolicyType,
+    ISubscriptionDiscountRule,
     IProtectedMembershipPolicy,
     CommunityRole,
     ICommunityMember,

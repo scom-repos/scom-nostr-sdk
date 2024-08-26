@@ -129,6 +129,17 @@ export declare enum PaymentModel {
     OneTimePurchase = "OneTimePurchase",
     Subscription = "Subscription"
 }
+export interface ISubscriptionDiscountRule {
+    id: number;
+    name: string;
+    startTime: number;
+    endTime: number;
+    minDuration?: number;
+    discountType: 'Percentage' | 'FixedAmount';
+    discountPercentage?: number;
+    fixedPrice?: number;
+    discountApplication: number;
+}
 export interface IProtectedMembershipPolicy {
     policyType: ProtectedMembershipPolicyType;
     name?: string;
@@ -141,6 +152,7 @@ export interface IProtectedMembershipPolicy {
     currency?: string;
     durationInDays?: number;
     memberIds?: string[];
+    discountRules?: ISubscriptionDiscountRule[];
 }
 export interface ICommunityScpData {
     publicKey?: string;
