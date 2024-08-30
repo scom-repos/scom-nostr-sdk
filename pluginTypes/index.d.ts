@@ -1253,8 +1253,8 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         durationInDays?: number;
         memberIds?: string[];
         discountRules?: ISubscriptionDiscountRule[];
-        affiliateFeePercentage?: number;
-        affiliateReferrers?: string[];
+        commissionRate?: number;
+        affiliates?: string[];
     }
     export interface ICommunityScpData {
         publicKey?: string;

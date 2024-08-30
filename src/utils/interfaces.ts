@@ -174,8 +174,8 @@ export interface IProtectedMembershipPolicy {
 	durationInDays?: number;
 	memberIds?: string[];
 	discountRules?: ISubscriptionDiscountRule[];
-	affiliateFeePercentage?: number;
-	affiliateReferrers?: string[];
+	commissionRate?: number;
+	affiliates?: string[];
 }
 
 //SCP-1 Kind 34550

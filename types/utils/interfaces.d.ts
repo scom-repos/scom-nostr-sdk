@@ -153,8 +153,8 @@ export interface IProtectedMembershipPolicy {
     durationInDays?: number;
     memberIds?: string[];
     discountRules?: ISubscriptionDiscountRule[];
-    affiliateFeePercentage?: number;
-    affiliateReferrers?: string[];
+    commissionRate?: number;
+    affiliates?: string[];
 }
 export interface ICommunityScpData {
     publicKey?: string;
