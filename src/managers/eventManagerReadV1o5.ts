@@ -248,45 +248,6 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         return fetchEventsResponse.events || [];        
     }
 
-    async fetchCommunitiesMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesMetadataFeed) {
-        const {communities, since, until, noteCountsIncluded} = options;
-        let identifiers: any[] = [];
-        if (communities) {
-            for (let community of communities) {
-                const decodedCreatorId = community.creatorId.startsWith('npub1') ? Nip19.decode(community.creatorId).data : community.creatorId;
-                let identifier: any = {
-                    pubkey: decodedCreatorId,
-                    names: [community.communityId]
-                };
-                identifiers.push(identifier);
-            }
-        }
-        let msg = this.augmentWithAuthInfo({
-            identifiers,
-            limit: 20,
-            since,
-            until,
-            noteCountsIncluded
-        });
-        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities-metadata-feed', msg);
-        return fetchEventsResponse.events || [];        
-    }
-
-    async fetchCommunityMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunityMetadataFeed) {
-        const {communityCreatorId, communityName, since, until, statsIncluded} = options;
-        const communityPubkey = communityCreatorId.startsWith('npub1') ? Nip19.decode(communityCreatorId).data : communityCreatorId;
-        let msg = this.augmentWithAuthInfo({
-            communityPubkey,
-            communityName,
-            limit: 20,
-            since,
-            until,
-            statsIncluded
-        });
-        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-metadata-feed', msg);
-        return fetchEventsResponse.events || [];
-    }
-
     async fetchCommunityFeed(options: SocialEventManagerReadOptions.IFetchCommunityFeed) {
         const {communityUri, since, until} = options;
         const {creatorId, communityId} = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
@@ -302,23 +263,6 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         });
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-feed', msg);
         return fetchEventsResponse.events || [];  
-    }
-
-    async fetchCommunitiesGeneralMembers(options: SocialEventManagerReadOptions.IFetchCommunitiesGeneralMembers) {
-        const {communities} = options;
-        let msg = this.augmentWithAuthInfo({
-            identifiers: []
-        });
-        for (let community of communities) {
-            const decodedCreatorId = community.creatorId.startsWith('npub1') ? Nip19.decode(community.creatorId).data : community.creatorId;
-            let request: any = {
-                pubkey: decodedCreatorId,
-                names: [community.communityId]
-            };
-            msg.identifiers.push(request);
-        }
-        const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities-general-members', msg);
-        return fetchEventsResponse.events || [];    
     }
 
     // async fetchNotes(options: IFetchNotesOptions) {

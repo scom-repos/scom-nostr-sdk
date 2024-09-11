@@ -5715,58 +5715,6 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(infoMsg);
             return fetchEventsResponse.events;
         }
-        async fetchCommunitiesMetadataFeed(options) {
-            const { communities, since, until } = options;
-            let requests = [];
-            const communityUriArr = [];
-            for (let community of communities) {
-                const decodedCreatorId = community.creatorId.startsWith('npub1') ? index_4.Nip19.decode(community.creatorId).data : community.creatorId;
-                const communityUri = utilsManager_2.SocialUtilsManager.getCommunityUri(community.creatorId, community.communityId);
-                communityUriArr.push(communityUri);
-                let infoMsg = {
-                    kinds: [34550],
-                    authors: [decodedCreatorId],
-                    "#d": [community.communityId]
-                };
-                requests.push(infoMsg);
-            }
-            let notesMsg = {
-                kinds: [1],
-                "#a": communityUriArr,
-                limit: 20
-            };
-            if (since != null) {
-                notesMsg.since = since;
-            }
-            if (until != null) {
-                notesMsg.until = until;
-            }
-            requests.push(notesMsg);
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(...requests);
-            return fetchEventsResponse.events;
-        }
-        async fetchCommunityMetadataFeed(options) {
-            const { communityCreatorId, communityName, since, until } = options;
-            const decodedCreatorId = communityCreatorId.startsWith('npub1') ? index_4.Nip19.decode(communityCreatorId).data : communityCreatorId;
-            let infoMsg = {
-                kinds: [34550],
-                authors: [decodedCreatorId],
-                "#d": [communityName]
-            };
-            let notesMsg = {
-                kinds: [1],
-                "#a": [utilsManager_2.SocialUtilsManager.getCommunityUri(communityCreatorId, communityName)],
-                limit: 20
-            };
-            if (since != null) {
-                notesMsg.since = since;
-            }
-            if (until != null) {
-                notesMsg.until = until;
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(infoMsg, notesMsg);
-            return fetchEventsResponse.events;
-        }
         async fetchCommunityFeed(options) {
             const { communityUri, since, until } = options;
             let request = {
@@ -6721,43 +6669,6 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchCommunitiesMetadataFeed(options) {
-            const { communities, since, until, noteCountsIncluded } = options;
-            let identifiers = [];
-            if (communities) {
-                for (let community of communities) {
-                    const decodedCreatorId = community.creatorId.startsWith('npub1') ? index_5.Nip19.decode(community.creatorId).data : community.creatorId;
-                    let identifier = {
-                        pubkey: decodedCreatorId,
-                        names: [community.communityId]
-                    };
-                    identifiers.push(identifier);
-                }
-            }
-            let msg = this.augmentWithAuthInfo({
-                identifiers,
-                limit: 20,
-                since,
-                until,
-                noteCountsIncluded
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities-metadata-feed', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchCommunityMetadataFeed(options) {
-            const { communityCreatorId, communityName, since, until, statsIncluded } = options;
-            const communityPubkey = communityCreatorId.startsWith('npub1') ? index_5.Nip19.decode(communityCreatorId).data : communityCreatorId;
-            let msg = this.augmentWithAuthInfo({
-                communityPubkey,
-                communityName,
-                limit: 20,
-                since,
-                until,
-                statsIncluded
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-metadata-feed', msg);
-            return fetchEventsResponse.events || [];
-        }
         async fetchCommunityFeed(options) {
             const { communityUri, since, until } = options;
             const { creatorId, communityId } = utilsManager_3.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
@@ -6772,22 +6683,6 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 until
             });
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-feed', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchCommunitiesGeneralMembers(options) {
-            const { communities } = options;
-            let msg = this.augmentWithAuthInfo({
-                identifiers: []
-            });
-            for (let community of communities) {
-                const decodedCreatorId = community.creatorId.startsWith('npub1') ? index_5.Nip19.decode(community.creatorId).data : community.creatorId;
-                let request = {
-                    pubkey: decodedCreatorId,
-                    names: [community.communityId]
-                };
-                msg.identifiers.push(request);
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities-general-members', msg);
             return fetchEventsResponse.events || [];
         }
         // async fetchNotes(options: IFetchNotesOptions) {
@@ -7479,43 +7374,6 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         publishToMqttTopic(topic, message) {
             this.mqttManager.publish(topic, message);
         }
-        // async retrieveCommunityEvents(creatorId: string, communityId: string) {
-        //     const feedEvents = await this._socialEventManagerRead.fetchCommunityMetadataFeed({
-        //         communityCreatorId: creatorId,
-        //         communityName: communityId,
-        //         statsIncluded: false
-        //     });
-        //     if (feedEvents.length === 0) {
-        //         return null;
-        //     }
-        //     const {
-        //         notes,
-        //         metadataByPubKeyMap,
-        //         quotedNotesMap
-        //     } = this.createNoteEventMappings(feedEvents);
-        //     const communityEvent = feedEvents.find(event => event.kind === 34550);
-        //     if (!communityEvent) throw new Error('No info event found');
-        //     const communityInfo = SocialUtilsManager.extractCommunityInfo(communityEvent);
-        //     if (!communityInfo) throw new Error('No info event found');
-        //     const statsEvent = feedEvents.find(event => event.kind === 10000105);
-        //     let notesCount = notes.length;
-        //     if (statsEvent) {
-        //         notesCount = JSON.parse(statsEvent.content).note_count;
-        //     }
-        //     const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
-        //         identifiers: [communityInfo.communityUri + ':keys']
-        //     });
-        //     const keyEvent = keyEvents[0];
-        //     if (keyEvent) {
-        //         communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
-        //     }
-        //     return {
-        //         notes,
-        //         info: communityInfo,
-        //         metadataByPubKeyMap,
-        //         notesCount
-        //     }
-        // }
         async fetchCommunityFeedInfo(creatorId, communityId, since, until) {
             const communityUri = utilsManager_5.SocialUtilsManager.getCommunityUri(creatorId, communityId);
             const events = await this._socialEventManagerRead.fetchCommunityFeed({
@@ -8263,46 +8121,6 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 monthly,
                 weekly
             };
-        }
-        async fetchCommunitiesFeedInfo(since, until) {
-            let result = [];
-            const communitiesMetadataFeedResult = await this._socialEventManagerRead.fetchCommunitiesMetadataFeed({
-                since,
-                until,
-                noteCountsIncluded: false
-            });
-            const statsEvents = communitiesMetadataFeedResult.filter(event => event.kind === 10000100);
-            let noteStatsMap = {};
-            for (let event of statsEvents) {
-                const content = utilsManager_5.SocialUtilsManager.parseContent(event.content);
-                noteStatsMap[content.event_id] = {
-                    upvotes: content.likes,
-                    replies: content.replies,
-                    reposts: content.reposts,
-                    satszapped: content.satszapped
-                };
-            }
-            const notesEvents = communitiesMetadataFeedResult.filter(event => event.kind === 1);
-            for (let noteEvent of notesEvents) {
-                if (noteEvent.tags?.length) {
-                    const communityUri = noteEvent.tags.find(tag => tag[0] === 'a')?.[1];
-                    if (communityUri) {
-                        const { creatorId, communityId } = utilsManager_5.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
-                        const stats = noteStatsMap[noteEvent.id];
-                        const noteInfo = {
-                            eventData: noteEvent,
-                            stats,
-                            community: {
-                                communityUri,
-                                communityId,
-                                creatorId: index_6.Nip19.npubEncode(creatorId)
-                            }
-                        };
-                        result.push(noteInfo);
-                    }
-                }
-            }
-            return result;
         }
         async fetchUserRelatedCommunityFeedInfo(pubKey, since, until) {
             let result = [];
@@ -9080,94 +8898,6 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             }
             return identifiers;
         }
-        // private async getCommunityUriToMembersMap(communities: ICommunityInfo[]) {
-        //     const communityUriToMemberIdRoleComboMap: Record<string, { id: string; role: CommunityRole }[]> = {};
-        //     const communityUriToCreatorOrModeratorIdsMap: Record<string, Set<string>> = {};
-        //     for (let community of communities) {
-        //         const communityUri = community.communityUri;
-        //         communityUriToMemberIdRoleComboMap[communityUri] = [];
-        //         communityUriToMemberIdRoleComboMap[communityUri].push({
-        //             id: community.creatorId,
-        //             role: CommunityRole.Creator
-        //         });
-        //         communityUriToCreatorOrModeratorIdsMap[communityUri] = new Set<string>();
-        //         communityUriToCreatorOrModeratorIdsMap[communityUri].add(community.creatorId);
-        //         if (community.moderatorIds) {
-        //             for (let moderator of community.moderatorIds) {
-        //                 if (moderator === community.creatorId) continue;
-        //                 communityUriToMemberIdRoleComboMap[communityUri].push({
-        //                     id: moderator,
-        //                     role: CommunityRole.Moderator
-        //                 });
-        //                 communityUriToCreatorOrModeratorIdsMap[communityUri].add(moderator);
-        //             }
-        //         }
-        //     }
-        //     const generalMembersEvents = await this._socialEventManagerRead.fetchCommunitiesGeneralMembers({ communities });
-        //     for (let event of generalMembersEvents) {
-        //         const communityUriArr = event.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
-        //         for (let communityUri of communityUriArr) {
-        //             if (!communityUriToMemberIdRoleComboMap[communityUri]) continue;
-        //             const pubkey = Nip19.npubEncode(event.pubkey);
-        //             if (communityUriToCreatorOrModeratorIdsMap[communityUri].has(pubkey)) continue;
-        //             communityUriToMemberIdRoleComboMap[communityUri].push({
-        //                 id: pubkey,
-        //                 role: CommunityRole.GeneralMember
-        //             });
-        //         }
-        //     }
-        //     let pubkeys = new Set(SocialUtilsManager.flatMap(Object.values(communityUriToMemberIdRoleComboMap), combo => combo.map(c => c.id)));
-        //     const communityUriToMembersMap: Record<string, ICommunityMember[]> = {};
-        //     if (pubkeys.size > 0) {
-        //         let metadataArr: INostrMetadata[] = [];
-        //         let followersCountMap: Record<string, number> = {};
-        //         try {
-        //             const events = await this._socialEventManagerRead.fetchUserProfileCacheEvents({ pubKeys: Array.from(pubkeys) });
-        //             for (let event of events) {
-        //                 if (event.kind === 0) {
-        //                     metadataArr.push({
-        //                         ...event,
-        //                         content: SocialUtilsManager.parseContent(event.content)
-        //                     });
-        //                 }
-        //                 else if (event.kind === 10000108) {
-        //                     followersCountMap = SocialUtilsManager.parseContent(event.content);
-        //                 }
-        //             }
-        //         }
-        //         catch (error) {
-        //             console.error('fetchUserProfiles', error);
-        //         }
-        //         if (metadataArr.length == 0) return null;
-        //         const userProfiles: IUserProfile[] = [];
-        //         for (let metadata of metadataArr) {
-        //             let userProfile = SocialUtilsManager.constructUserProfile(metadata, followersCountMap);
-        //             userProfiles.push(userProfile);
-        //         }
-        //         // const userProfiles = await this.fetchUserProfiles(Array.from(pubkeys));
-        //         if (!userProfiles) return communityUriToMembersMap;
-        //         for (let community of communities) {
-        //             const memberIds = communityUriToMemberIdRoleComboMap[community.communityUri];
-        //             if (!memberIds) continue;
-        //             const communityMembers: ICommunityMember[] = [];
-        //             for (let memberIdRoleCombo of memberIds) {
-        //                 const userProfile = userProfiles.find(profile => profile.npub === memberIdRoleCombo.id);
-        //                 if (!userProfile) continue;
-        //                 let communityMember: ICommunityMember = {
-        //                     id: userProfile.npub,
-        //                     name: userProfile.displayName,
-        //                     profileImageUrl: userProfile.avatar,
-        //                     username: userProfile.username,
-        //                     internetIdentifier: userProfile.internetIdentifier,
-        //                     role: memberIdRoleCombo.role
-        //                 }
-        //                 communityMembers.push(communityMember);
-        //             }
-        //             communityUriToMembersMap[community.communityUri] = communityMembers;
-        //         }
-        //     }
-        //     return communityUriToMembersMap;
-        // }
         extractCalendarEventInfo(event) {
             const description = event.content;
             const id = event.tags.find(tag => tag[0] === 'd')?.[1];

@@ -1680,19 +1680,6 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
             creatorId: string;
             communityId: string;
         }
-        interface IFetchCommunitiesMetadataFeed {
-            communities?: ICommunityBasicInfo[];
-            since?: number;
-            until?: number;
-            noteCountsIncluded?: boolean;
-        }
-        interface IFetchCommunityMetadataFeed {
-            since?: number;
-            until?: number;
-            statsIncluded?: boolean;
-            communityCreatorId?: string;
-            communityName?: string;
-        }
         interface IFetchCommunityFeed {
             communityUri: string;
             since?: number;
@@ -1838,11 +1825,8 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         fetchAllUserRelatedCommunitiesFeed(options: SocialEventManagerReadOptions.IFetchAllUserRelatedCommunitiesFeed): Promise<INostrEvent[]>;
         fetchUserBookmarkedCommunities(options: SocialEventManagerReadOptions.IFetchUserBookmarkedCommunities): Promise<ICommunityBasicInfo[]>;
         fetchCommunity(options: SocialEventManagerReadOptions.IFetchCommunity): Promise<INostrEvent[]>;
-        fetchCommunitiesMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesMetadataFeed): Promise<INostrEvent[]>;
-        fetchCommunityMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunityMetadataFeed): Promise<INostrEvent[]>;
         fetchCommunityFeed(options: SocialEventManagerReadOptions.IFetchCommunityFeed): Promise<INostrEvent[]>;
         fetchCommunityDetailMetadata(options: SocialEventManagerReadOptions.IFetchCommunityDetailMetadata): Promise<INostrEvent[]>;
-        fetchCommunitiesGeneralMembers(options: SocialEventManagerReadOptions.IFetchCommunitiesGeneralMembers): Promise<INostrEvent[]>;
         fetchEventsByIds(options: SocialEventManagerReadOptions.IFetchEventsByIds): Promise<INostrEvent[]>;
         fetchTempEvents(options: SocialEventManagerReadOptions.IFetchTempEvents): Promise<INostrEvent[]>;
         fetchAllUserRelatedChannels(options: SocialEventManagerReadOptions.IFetchAllUserRelatedChannels): Promise<IAllUserRelatedChannels>;
@@ -2221,11 +2205,9 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         fetchAllUserRelatedCommunitiesFeed(options: SocialEventManagerReadOptions.IFetchAllUserRelatedCommunitiesFeed): Promise<INostrEvent[]>;
         fetchUserBookmarkedCommunities(options: SocialEventManagerReadOptions.IFetchUserBookmarkedCommunities): Promise<ICommunityBasicInfo[]>;
         fetchCommunity(options: SocialEventManagerReadOptions.IFetchCommunity): Promise<INostrEvent[]>;
-        fetchCommunitiesMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesMetadataFeed): Promise<INostrEvent[]>;
-        fetchCommunityMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunityMetadataFeed): Promise<INostrEvent[]>;
         fetchCommunityFeed(options: SocialEventManagerReadOptions.IFetchCommunityFeed): Promise<INostrEvent[]>;
         private fetchCommunitiesFeed;
-        fetchCommunitiesGeneralMembers(options: SocialEventManagerReadOptions.IFetchCommunitiesGeneralMembers): Promise<INostrEvent[]>;
+        private fetchCommunitiesGeneralMembers;
         fetchAllUserRelatedChannels(options: SocialEventManagerReadOptions.IFetchAllUserRelatedChannels): Promise<{
             channels: IChannelInfo[];
             channelMetadataMap: Record<string, IChannelInfo>;
@@ -2294,10 +2276,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" {
         fetchAllUserRelatedCommunitiesFeed(options: SocialEventManagerReadOptions.IFetchAllUserRelatedCommunitiesFeed): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
         fetchUserBookmarkedCommunities(options: SocialEventManagerReadOptions.IFetchUserBookmarkedCommunities): Promise<ICommunityBasicInfo[]>;
         fetchCommunity(options: SocialEventManagerReadOptions.IFetchCommunity): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
-        fetchCommunitiesMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesMetadataFeed): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
-        fetchCommunityMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunityMetadataFeed): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
         fetchCommunityFeed(options: SocialEventManagerReadOptions.IFetchCommunityFeed): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
-        fetchCommunitiesGeneralMembers(options: SocialEventManagerReadOptions.IFetchCommunitiesGeneralMembers): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
         fetchAllUserRelatedChannels(options: SocialEventManagerReadOptions.IFetchAllUserRelatedChannels): Promise<{
             channels: IChannelInfo[];
             channelMetadataMap: Record<string, IChannelInfo>;
@@ -2466,7 +2445,6 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
             monthly: ICommunityLeaderboard[];
             weekly: ICommunityLeaderboard[];
         }>;
-        fetchCommunitiesFeedInfo(since?: number, until?: number): Promise<INoteInfoExtended[]>;
         fetchUserRelatedCommunityFeedInfo(pubKey: string, since?: number, until?: number): Promise<INoteInfoExtended[]>;
         fetchThreadNotesInfo(focusedNoteId: string): Promise<{
             focusedNote: INoteInfo;

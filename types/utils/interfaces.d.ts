@@ -580,19 +580,6 @@ export declare namespace SocialEventManagerReadOptions {
         creatorId: string;
         communityId: string;
     }
-    interface IFetchCommunitiesMetadataFeed {
-        communities?: ICommunityBasicInfo[];
-        since?: number;
-        until?: number;
-        noteCountsIncluded?: boolean;
-    }
-    interface IFetchCommunityMetadataFeed {
-        since?: number;
-        until?: number;
-        statsIncluded?: boolean;
-        communityCreatorId?: string;
-        communityName?: string;
-    }
     interface IFetchCommunityFeed {
         communityUri: string;
         since?: number;
@@ -738,11 +725,8 @@ export interface ISocialEventManagerRead {
     fetchAllUserRelatedCommunitiesFeed(options: SocialEventManagerReadOptions.IFetchAllUserRelatedCommunitiesFeed): Promise<INostrEvent[]>;
     fetchUserBookmarkedCommunities(options: SocialEventManagerReadOptions.IFetchUserBookmarkedCommunities): Promise<ICommunityBasicInfo[]>;
     fetchCommunity(options: SocialEventManagerReadOptions.IFetchCommunity): Promise<INostrEvent[]>;
-    fetchCommunitiesMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesMetadataFeed): Promise<INostrEvent[]>;
-    fetchCommunityMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunityMetadataFeed): Promise<INostrEvent[]>;
     fetchCommunityFeed(options: SocialEventManagerReadOptions.IFetchCommunityFeed): Promise<INostrEvent[]>;
     fetchCommunityDetailMetadata(options: SocialEventManagerReadOptions.IFetchCommunityDetailMetadata): Promise<INostrEvent[]>;
-    fetchCommunitiesGeneralMembers(options: SocialEventManagerReadOptions.IFetchCommunitiesGeneralMembers): Promise<INostrEvent[]>;
     fetchEventsByIds(options: SocialEventManagerReadOptions.IFetchEventsByIds): Promise<INostrEvent[]>;
     fetchTempEvents(options: SocialEventManagerReadOptions.IFetchTempEvents): Promise<INostrEvent[]>;
     fetchAllUserRelatedChannels(options: SocialEventManagerReadOptions.IFetchAllUserRelatedChannels): Promise<IAllUserRelatedChannels>;

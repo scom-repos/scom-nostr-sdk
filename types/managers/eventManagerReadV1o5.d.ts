@@ -22,10 +22,7 @@ declare class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     fetchAllUserRelatedCommunitiesFeed(options: SocialEventManagerReadOptions.IFetchAllUserRelatedCommunitiesFeed): Promise<import("../utils/interfaces").INostrEvent[]>;
     fetchUserBookmarkedCommunities(options: SocialEventManagerReadOptions.IFetchUserBookmarkedCommunities): Promise<ICommunityBasicInfo[]>;
     fetchCommunity(options: SocialEventManagerReadOptions.IFetchCommunity): Promise<import("../utils/interfaces").INostrEvent[]>;
-    fetchCommunitiesMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunitiesMetadataFeed): Promise<import("../utils/interfaces").INostrEvent[]>;
-    fetchCommunityMetadataFeed(options: SocialEventManagerReadOptions.IFetchCommunityMetadataFeed): Promise<import("../utils/interfaces").INostrEvent[]>;
     fetchCommunityFeed(options: SocialEventManagerReadOptions.IFetchCommunityFeed): Promise<import("../utils/interfaces").INostrEvent[]>;
-    fetchCommunitiesGeneralMembers(options: SocialEventManagerReadOptions.IFetchCommunitiesGeneralMembers): Promise<import("../utils/interfaces").INostrEvent[]>;
     fetchAllUserRelatedChannels(options: SocialEventManagerReadOptions.IFetchAllUserRelatedChannels): Promise<{
         channels: IChannelInfo[];
         channelMetadataMap: Record<string, IChannelInfo>;
