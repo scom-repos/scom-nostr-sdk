@@ -7510,7 +7510,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     since: options.since,
                     until: options.until
                 }, this._privateKey);
-                let url = `${options.gatekeeperUrl}/api/communities/v0/post-keys`;
+                let url = `${options.gatekeeperUrl}/communities/post-keys`;
                 let response = await fetch(url, {
                     method: 'POST',
                     headers: {
@@ -7540,7 +7540,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     message: options.message,
                     signature: options.signature
                 }, this._privateKey);
-                let url = `${options.gatekeeperUrl}/api/communities/v0/post-keys`;
+                let url = `${options.gatekeeperUrl}/communities/post-keys`;
                 let response = await fetch(url, {
                     method: 'POST',
                     headers: {
@@ -7613,7 +7613,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                         message: options.message,
                         signature: signature
                     }, this._privateKey);
-                    let url = `${relay}/api/communities/v0/post-keys`;
+                    let url = `${relay}/communities/post-keys`;
                     let response = await fetch(url, {
                         method: 'POST',
                         headers: {
@@ -7643,7 +7643,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                 pubkey,
                 walletAddresses
             };
-            let url = `${gatekeeperUrl}/api/communities/v0/check-user-access`;
+            let url = `${gatekeeperUrl}/communities/check-user-access`;
             let response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -7661,7 +7661,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
         async checkNftSubscriptions(options) {
             const { chainId, nftAddress, walletAddresses, gatekeeperUrl } = options;
             let subscriptions = [];
-            let url = `${gatekeeperUrl}/api/communities/v0/check-nft-subscriptions`;
+            let url = `${gatekeeperUrl}/communities/check-nft-subscriptions`;
             let bodyData = {
                 chainId,
                 nftAddress,
@@ -8712,7 +8712,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
                     message: options.message,
                     signature: options.signature
                 }, this._privateKey);
-                let url = `${options.gatekeeperUrl}/api/channels/v0/message-keys`;
+                let url = `${options.gatekeeperUrl}/channels/message-keys`;
                 let response = await fetch(url, {
                     method: 'POST',
                     headers: {
