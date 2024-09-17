@@ -176,6 +176,7 @@ export interface IProtectedMembershipPolicy {
 	discountRules?: ISubscriptionDiscountRule[];
 	commissionRate?: number;
 	affiliates?: string[];
+    recipient?: string;
 }
 
 //SCP-1 Kind 34550

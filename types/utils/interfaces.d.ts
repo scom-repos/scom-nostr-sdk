@@ -155,6 +155,7 @@ export interface IProtectedMembershipPolicy {
     discountRules?: ISubscriptionDiscountRule[];
     commissionRate?: number;
     affiliates?: string[];
+    recipient?: string;
 }
 export interface ICommunityScpData {
     publicKey?: string;
