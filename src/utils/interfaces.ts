@@ -578,6 +578,15 @@ export interface INftSubscription {
 	endTime: number;
 }
 
+export interface IUpdateCommunitySubscription {
+	communityCreatorId: string;
+	communityId: string;
+	start: number;
+	end: number;
+	chainId?: string;
+	txHash: string;
+}
+
 export interface INostrCommunicationManager {
 	url: string;
     fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;

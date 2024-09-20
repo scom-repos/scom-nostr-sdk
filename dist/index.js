@@ -9857,6 +9857,32 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
             const result = await this._socialEventManagerWrite.updateNoteStatus(noteId, status);
             return result;
         }
+        async updateCommunitySubscription(options) {
+            const selfPubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
+            const communityPubkey = options.communityCreatorId.startsWith('npub1') ? index_6.Nip19.decode(options.communityCreatorId).data : options.communityCreatorId;
+            let bodyData = utilsManager_5.SocialUtilsManager.augmentWithAuthInfo({
+                communityPubkey: communityPubkey,
+                communityD: options.communityId,
+                pubkey: selfPubkey,
+                start: options.start,
+                end: options.end,
+                chainId: options.chainId || 'TON',
+                txHash: options.txHash,
+                timeCreated: Math.round(Date.now() / 1000)
+            }, this._privateKey);
+            const relayUrl = this._publicIndexingRelay;
+            let url = `${relayUrl}/update-community-subscription`;
+            let response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(bodyData)
+            });
+            let result = await response.json();
+            return result;
+        }
     }
     exports.SocialDataManager = SocialDataManager;
 });
