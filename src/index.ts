@@ -53,6 +53,7 @@ export {
     ISendTempMessageOptions,
     IDecryptPostPrivateKeyForCommunityOptions,
     INftSubscription,
+    ICommunitySubscription,
     IUpdateCommunitySubscription,
     INostrFetchEventsResponse,
     ILongFormContentInfo,

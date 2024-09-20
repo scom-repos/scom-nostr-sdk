@@ -578,6 +578,13 @@ export interface INftSubscription {
 	endTime: number;
 }
 
+export interface ICommunitySubscription {
+	start: number;
+	end: number;
+	chainId: string;
+	txHash: string;
+}
+
 export interface IUpdateCommunitySubscription {
 	communityCreatorId: string;
 	communityId: string;
