@@ -1,6 +1,6 @@
 {
     "name": "@scom/scom-social-sdk",
-    "version": "0.1.61",
+    "version": "0.1.62",
     "main": "lib/index.js",
     "plugin": "dist/index.js",
     "pluginTypes": "pluginTypes/index.d.ts",
