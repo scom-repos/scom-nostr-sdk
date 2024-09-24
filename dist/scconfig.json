@@ -3,9 +3,9 @@
     "type": "sdk",
     "version": "0.1.62",
     "dependencies": [
-        "@scom/scom-mqtt",
-        "@ijstech/ln-wallet",
         "@ijstech/eth-wallet",
-        "@scom/scom-signer"
+        "@scom/scom-signer",
+        "@scom/scom-mqtt",
+        "@ijstech/ln-wallet"
     ]
 }

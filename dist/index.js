@@ -3817,6 +3817,2975 @@ define("@scom/scom-social-sdk/managers/communication.ts", ["require", "exports"]
     }
     exports.NostrWebSocketManager = NostrWebSocketManager;
 });
+define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", "@ijstech/eth-wallet", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-signer"], function (require, exports, eth_wallet_1, index_1, interfaces_2, scom_signer_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.SocialUtilsManager = void 0;
+    class SocialUtilsManager {
+        static hexStringToUint8Array(hexString) {
+            return new Uint8Array(hexString.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+        }
+        static base64ToUtf8(base64) {
+            if (typeof window !== "undefined") {
+                return atob(base64);
+            }
+            else {
+                // @ts-ignore
+                return Buffer.from(base64, 'base64').toString('utf8');
+            }
+        }
+        static utf8ToBase64(utf8) {
+            if (typeof window !== "undefined") {
+                return btoa(utf8);
+            }
+            else {
+                // @ts-ignore
+                return Buffer.from(utf8).toString('base64');
+            }
+        }
+        static convertPrivateKeyToPubkey(privateKey) {
+            if (privateKey.startsWith('0x'))
+                privateKey = privateKey.replace('0x', '');
+            let pub = eth_wallet_1.Utils.padLeft(index_1.Keys.getPublicKey(privateKey), 64);
+            return pub;
+        }
+        static async encryptMessage(ourPrivateKey, theirPublicKey, text) {
+            const sharedSecret = index_1.Keys.getSharedSecret(ourPrivateKey, '02' + theirPublicKey);
+            const sharedX = SocialUtilsManager.hexStringToUint8Array(sharedSecret.slice(2));
+            let encryptedMessage;
+            let ivBase64;
+            if (typeof window !== "undefined") {
+                const iv = crypto.getRandomValues(new Uint8Array(16));
+                const key = await crypto.subtle.importKey('raw', sharedX, { name: 'AES-CBC' }, false, ['encrypt']);
+                const encryptedBuffer = await crypto.subtle.encrypt({ name: 'AES-CBC', iv }, key, new TextEncoder().encode(text));
+                encryptedMessage = btoa(String.fromCharCode(...new Uint8Array(encryptedBuffer)));
+                ivBase64 = btoa(String.fromCharCode(...iv));
+            }
+            else {
+                // @ts-ignore
+                const crypto = require('crypto');
+                const iv = crypto.randomBytes(16);
+                const cipher = crypto.createCipheriv('aes-256-cbc', sharedX, iv);
+                encryptedMessage = cipher.update(text, 'utf8', 'base64');
+                encryptedMessage += cipher.final('base64');
+                ivBase64 = iv.toString('base64');
+            }
+            return `${encryptedMessage}?iv=${ivBase64}`;
+        }
+        static async decryptMessage(ourPrivateKey, theirPublicKey, encryptedData) {
+            let decryptedMessage = null;
+            try {
+                const [encryptedMessage, ivBase64] = encryptedData.split('?iv=');
+                const sharedSecret = index_1.Keys.getSharedSecret(ourPrivateKey, '02' + theirPublicKey);
+                const sharedX = SocialUtilsManager.hexStringToUint8Array(sharedSecret.slice(2));
+                if (typeof window !== "undefined") {
+                    const iv = Uint8Array.from(atob(ivBase64), c => c.charCodeAt(0));
+                    const key = await crypto.subtle.importKey('raw', sharedX, { name: 'AES-CBC' }, false, ['decrypt']);
+                    const decryptedBuffer = await crypto.subtle.decrypt({ name: 'AES-CBC', iv }, key, Uint8Array.from(atob(encryptedMessage), c => c.charCodeAt(0)));
+                    decryptedMessage = new TextDecoder().decode(decryptedBuffer);
+                }
+                else {
+                    // @ts-ignore
+                    const crypto = require('crypto');
+                    // @ts-ignore
+                    const iv = Buffer.from(ivBase64, 'base64');
+                    const decipher = crypto.createDecipheriv('aes-256-cbc', sharedX, iv);
+                    // @ts-ignore
+                    let decrypted = decipher.update(Buffer.from(encryptedMessage, 'base64'));
+                    // @ts-ignore
+                    decrypted = Buffer.concat([decrypted, decipher.final()]);
+                    decryptedMessage = decrypted.toString('utf8');
+                }
+            }
+            catch (e) {
+            }
+            return decryptedMessage;
+        }
+        static pad(number) {
+            return number < 10 ? '0' + number : number.toString();
+        }
+        static getGMTOffset(timezone) {
+            let gmtOffset;
+            try {
+                const date = new Date();
+                const utcDate = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
+                const tzDate = new Date(date.toLocaleString('en-US', { timeZone: timezone }));
+                const offset = (tzDate.getTime() - utcDate.getTime()) / (1000 * 60 * 60);
+                const sign = offset < 0 ? '-' : '+';
+                const absoluteOffset = Math.abs(offset);
+                const hours = Math.floor(absoluteOffset);
+                const minutes = (absoluteOffset - hours) * 60;
+                gmtOffset = `GMT${sign}${this.pad(hours)}:${this.pad(minutes)}`;
+            }
+            catch (err) {
+                console.error(err);
+            }
+            return gmtOffset;
+        }
+        static async exponentialBackoffRetry(fn, // Function to retry
+        retries, // Maximum number of retries
+        delay, // Initial delay duration in milliseconds
+        maxDelay, // Maximum delay duration in milliseconds
+        factor // Exponential backoff factor
+        ) {
+            let currentDelay = delay;
+            for (let i = 0; i < retries; i++) {
+                try {
+                    return await fn();
+                }
+                catch (error) {
+                    console.error(`Attempt ${i + 1} failed. Retrying in ${currentDelay}ms...`);
+                    // Wait for the current delay period
+                    await new Promise(resolve => setTimeout(resolve, currentDelay));
+                    // Update delay for the next iteration, capped at maxDelay
+                    currentDelay = Math.min(maxDelay, currentDelay * factor);
+                }
+            }
+            // If all retries have been exhausted, throw an error
+            throw new Error(`Failed after ${retries} retries`);
+        }
+        static getCommunityUri(creatorId, communityId) {
+            const decodedPubkey = creatorId.startsWith('npub1') ? index_1.Nip19.decode(creatorId).data : creatorId;
+            return `34550:${decodedPubkey}:${communityId}`;
+        }
+        static getCommunityBasicInfoFromUri(communityUri) {
+            const parts = communityUri.split(':');
+            return {
+                creatorId: parts[1],
+                communityId: parts[2]
+            };
+        }
+        static extractCommunityInfo(event) {
+            const communityId = event.tags.find(tag => tag[0] === 'd')?.[1];
+            const description = event.tags.find(tag => tag[0] === 'description')?.[1];
+            const rules = event.tags.find(tag => tag[0] === 'rules')?.[1];
+            const image = event.tags.find(tag => tag[0] === 'image')?.[1];
+            const avatar = event.tags.find(tag => tag[0] === 'avatar')?.[1];
+            const privateRelay = event.tags.find(tag => tag[0] === 'private_relay')?.[1];
+            const creatorId = index_1.Nip19.npubEncode(event.pubkey);
+            const moderatorIds = event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'moderator').map(tag => index_1.Nip19.npubEncode(tag[1]));
+            const scpTag = event.tags.find(tag => tag[0] === 'scp');
+            const enableLeaderboard = event.tags.some(tag => tag[0] === 'leaderboard');
+            const parentCommunityUri = event.tags.find(tag => tag[0] === 'a')?.[1];
+            let policies = [];
+            let scpData;
+            let gatekeeperNpub;
+            let membershipType = interfaces_2.MembershipType.Open;
+            let data = {};
+            if (event.content) {
+                try {
+                    data = JSON.parse(event.content);
+                }
+                catch {
+                    data = {};
+                }
+            }
+            let pointSystem, collectibles, postStatusOptions;
+            if (scpTag && scpTag[1] === '1') {
+                membershipType = interfaces_2.MembershipType.Protected;
+                policies = Array.isArray(data) ? data : data.policies || [];
+                const scpDataStr = SocialUtilsManager.base64ToUtf8(scpTag[2]);
+                if (!scpDataStr.startsWith('$scp:'))
+                    return null;
+                scpData = JSON.parse(scpDataStr.substring(5));
+                if (scpData.gatekeeperPublicKey) {
+                    gatekeeperNpub = index_1.Nip19.npubEncode(scpData.gatekeeperPublicKey);
+                }
+            }
+            if (!Array.isArray(data)) {
+                pointSystem = data.pointSystem;
+                collectibles = data.collectibles;
+                postStatusOptions = data.postStatuses?.length > 0 && typeof data.postStatuses[0] === 'string' ? data.postStatuses.map(status => ({ status })) : data.postStatuses;
+            }
+            const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
+            let communityInfo = {
+                creatorId,
+                moderatorIds,
+                communityUri,
+                communityId,
+                description,
+                rules,
+                bannerImgUrl: image,
+                avatarImgUrl: avatar,
+                scpData,
+                eventData: event,
+                gatekeeperNpub,
+                membershipType,
+                privateRelay,
+                policies,
+                pointSystem,
+                collectibles,
+                enableLeaderboard,
+                parentCommunityUri,
+                postStatusOptions
+            };
+            return communityInfo;
+        }
+        static extractBookmarkedCommunities(event, excludedCommunity) {
+            const communities = [];
+            const communityUriArr = event?.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
+            for (let communityUri of communityUriArr) {
+                const basicInfo = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                if (excludedCommunity) {
+                    const decodedPubkey = index_1.Nip19.decode(excludedCommunity.creatorId).data;
+                    if (basicInfo.communityId === excludedCommunity.communityId && basicInfo.creatorId === decodedPubkey)
+                        continue;
+                }
+                communities.push({
+                    communityId: basicInfo.communityId,
+                    creatorId: basicInfo.creatorId
+                });
+            }
+            return communities;
+        }
+        static extractBookmarkedChannels(event) {
+            const channelEventIds = event?.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
+            return channelEventIds;
+        }
+        static extractScpData(event, standardId) {
+            const scpTag = event.tags.find(tag => tag[0] === 'scp');
+            let scpData;
+            if (scpTag && scpTag[1] === standardId) {
+                const scpDataStr = SocialUtilsManager.base64ToUtf8(scpTag[2]);
+                if (!scpDataStr.startsWith('$scp:'))
+                    return null;
+                scpData = JSON.parse(scpDataStr.substring(5));
+            }
+            return scpData;
+        }
+        static parseContent(content) {
+            try {
+                return JSON.parse(content);
+            }
+            catch (err) {
+                console.log('Error parsing content', content);
+            }
+            ;
+        }
+        static extractChannelInfo(event) {
+            const content = this.parseContent(event.content);
+            let eventId;
+            if (event.kind === 40) {
+                eventId = event.id;
+            }
+            else if (event.kind === 41) {
+                eventId = event.tags.find(tag => tag[0] === 'e')?.[1];
+            }
+            if (!eventId)
+                return null;
+            let scpData = this.extractScpData(event, interfaces_2.ScpStandardId.Channel);
+            let channelInfo = {
+                id: eventId,
+                name: content.name,
+                about: content.about,
+                picture: content.picture,
+                scpData,
+                eventData: event,
+            };
+            return channelInfo;
+        }
+        static augmentWithAuthInfo(obj, privateKey) {
+            if (!privateKey)
+                return obj;
+            const pubkey = index_1.Keys.getPublicKey(privateKey);
+            let signature = scom_signer_1.Signer.getSignature({ pubkey: pubkey }, privateKey, { pubkey: 'string' });
+            return {
+                ...obj,
+                auth: {
+                    pubkey,
+                    signature
+                }
+            };
+        }
+        static constructUserProfile(metadata, followersCountMap) {
+            const followersCount = followersCountMap?.[metadata.pubkey] || 0;
+            const encodedPubkey = index_1.Nip19.npubEncode(metadata.pubkey);
+            const metadataContent = metadata.content;
+            const internetIdentifier = typeof metadataContent.nip05 === 'string' ? metadataContent.nip05?.replace('_@', '') || '' : '';
+            let userProfile = {
+                id: encodedPubkey,
+                username: metadataContent.username || metadataContent.name,
+                description: metadataContent.about,
+                avatar: metadataContent.picture,
+                npub: encodedPubkey,
+                pubkey: metadata.pubkey,
+                displayName: metadataContent.display_name || metadataContent.displayName || metadataContent.name,
+                internetIdentifier,
+                website: metadataContent.website,
+                banner: metadataContent.banner,
+                followers: followersCount,
+                lud16: metadataContent.lud16,
+                metadata,
+            };
+            return userProfile;
+        }
+        //FIXME: remove this when compiler is fixed
+        static flatMap(array, callback) {
+            return array.reduce((acc, item) => {
+                return acc.concat(callback(item));
+            }, []);
+        }
+    }
+    exports.SocialUtilsManager = SocialUtilsManager;
+});
+define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/managers/utilsManager.ts"], function (require, exports, index_2, interfaces_3, utilsManager_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.NostrEventManagerWrite = void 0;
+    function convertUnixTimestampToDate(timestamp) {
+        const date = new Date(timestamp * 1000);
+        const year = date.getFullYear();
+        const month = ("0" + (date.getMonth() + 1)).slice(-2);
+        const day = ("0" + date.getDate()).slice(-2);
+        return `${year}-${month}-${day}`;
+    }
+    class NostrEventManagerWrite {
+        constructor(managers, mainRelay) {
+            this._nostrCommunicationManagers = [];
+            this._nostrCommunicationManagers = managers;
+            this._mainNostrRestAPIManager = managers.find(manager => manager.url === mainRelay);
+        }
+        set nostrCommunicationManagers(managers) {
+            this._nostrCommunicationManagers = managers;
+        }
+        set privateKey(privateKey) {
+            this._privateKey = privateKey;
+        }
+        calculateConversationPathTags(conversationPath) {
+            let tags = [];
+            for (let i = 0; i < conversationPath.noteIds.length; i++) {
+                const noteId = conversationPath.noteIds[i];
+                const decodedNoteId = noteId.startsWith('note1') ? index_2.Nip19.decode(noteId).data : noteId;
+                let tagItem;
+                if (i === 0) {
+                    tagItem = [
+                        "e",
+                        decodedNoteId,
+                        "",
+                        "root"
+                    ];
+                }
+                else if (i === conversationPath.noteIds.length - 1) {
+                    tagItem = [
+                        "e",
+                        decodedNoteId,
+                        "",
+                        "reply"
+                    ];
+                }
+                else {
+                    tagItem = [
+                        "e",
+                        decodedNoteId
+                    ];
+                }
+                tags.push(tagItem);
+            }
+            for (let authorId of conversationPath.authorIds) {
+                const decodedAuthorId = authorId.startsWith('npub1') ? index_2.Nip19.decode(authorId).data : authorId;
+                tags.push([
+                    "p",
+                    decodedAuthorId
+                ]);
+            }
+            return tags;
+        }
+        async handleEventSubmission(event, options) {
+            let mainRelayOnly = options?.mainRelayOnly;
+            let privateKey = options?.privateKey || this._privateKey;
+            const verifiedEvent = index_2.Event.finishEvent(event, privateKey);
+            let relayResponses = [];
+            if (mainRelayOnly) {
+                const response = await this._mainNostrRestAPIManager.submitEvent(verifiedEvent);
+                relayResponses.push(response);
+            }
+            else {
+                relayResponses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
+            }
+            return {
+                event: verifiedEvent,
+                relayResponses
+            };
+        }
+        async updateContactList(content, contactPubKeys) {
+            let event = {
+                "kind": 3,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": content,
+                "tags": []
+            };
+            for (let contactPubKey of contactPubKeys) {
+                event.tags.push([
+                    "p",
+                    contactPubKey
+                ]);
+            }
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async postNote(content, conversationPath, createdAt) {
+            let event = {
+                "kind": 1,
+                "created_at": createdAt !== undefined ? createdAt : Math.round(Date.now() / 1000),
+                "content": content,
+                "tags": []
+            };
+            if (conversationPath) {
+                const conversationPathTags = this.calculateConversationPathTags(conversationPath);
+                event.tags = conversationPathTags;
+            }
+            // const noteId = Nip19.noteEncode(verifiedEvent.id);
+            // return noteId;
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async deleteEvents(eventIds) {
+            let event = {
+                "kind": 5,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": "",
+                "tags": []
+            };
+            for (let eventId of eventIds) {
+                const decodedEventId = eventId.startsWith('note1') ? index_2.Nip19.decode(eventId).data : eventId;
+                event.tags.push([
+                    "e",
+                    decodedEventId
+                ]);
+            }
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async updateChannel(info) {
+            let kind = info.id ? 41 : 40;
+            let event = {
+                "kind": kind,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": JSON.stringify({
+                    name: info.name,
+                    about: info.about,
+                    picture: info.picture
+                }),
+                "tags": []
+            };
+            if (info.id) {
+                event.tags.push([
+                    "e",
+                    info.id
+                ]);
+            }
+            if (info.scpData) {
+                let encodedScpData = utilsManager_1.SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
+                event.tags.push([
+                    "scp",
+                    interfaces_3.ScpStandardId.Channel,
+                    encodedScpData
+                ]);
+            }
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async updateUserBookmarkedChannels(channelEventIds) {
+            let event = {
+                "kind": 30001,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": '',
+                "tags": [
+                    [
+                        "d",
+                        "channels"
+                    ]
+                ]
+            };
+            for (let channelEventId of channelEventIds) {
+                event.tags.push([
+                    "a",
+                    channelEventId
+                ]);
+            }
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async updateCommunity(info) {
+            const data = {
+                pointSystem: info.pointSystem,
+                collectibles: info.collectibles
+            };
+            if (info.membershipType === interfaces_3.MembershipType.Protected) {
+                data.policies = [];
+                for (let policy of info.policies) {
+                    const memberIds = policy.memberIds?.map(memberId => {
+                        return memberId.startsWith('npub1') ? index_2.Nip19.decode(memberId).data : memberId;
+                    });
+                    data.policies.push({
+                        ...policy,
+                        memberIds
+                    });
+                }
+            }
+            if (info.postStatusOptions?.length > 0) {
+                data.postStatuses = info.postStatusOptions;
+            }
+            const isEmptyObject = JSON.stringify(data) === "{}";
+            const content = isEmptyObject ? "" : JSON.stringify(data);
+            let event = {
+                "kind": 34550,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": content,
+                "tags": [
+                    [
+                        "d",
+                        info.communityId
+                    ],
+                    [
+                        "description",
+                        info.description
+                    ]
+                ]
+            };
+            if (info.bannerImgUrl) {
+                event.tags.push([
+                    "image",
+                    info.bannerImgUrl
+                ]);
+            }
+            if (info.avatarImgUrl) {
+                event.tags.push([
+                    "avatar",
+                    info.avatarImgUrl
+                ]);
+            }
+            if (info.rules) {
+                event.tags.push([
+                    "rules",
+                    info.rules
+                ]);
+            }
+            if (info.privateRelay) {
+                event.tags.push([
+                    "private_relay",
+                    info.privateRelay
+                ]);
+            }
+            if (info.scpData) {
+                let encodedScpData = utilsManager_1.SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
+                event.tags.push([
+                    "scp",
+                    interfaces_3.ScpStandardId.Community,
+                    encodedScpData
+                ]);
+            }
+            for (let moderatorId of info.moderatorIds) {
+                const decodedModeratorId = moderatorId.startsWith('npub1') ? index_2.Nip19.decode(moderatorId).data : moderatorId;
+                event.tags.push([
+                    "p",
+                    decodedModeratorId,
+                    "",
+                    "moderator"
+                ]);
+            }
+            if (info.enableLeaderboard) {
+                event.tags.push([
+                    "leaderboard",
+                    "true"
+                ]);
+            }
+            if (info.parentCommunityUri) {
+                event.tags.push([
+                    "a",
+                    info.parentCommunityUri
+                ]);
+            }
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async updateUserBookmarkedCommunities(communities) {
+            let communityUriArr = [];
+            for (let community of communities) {
+                const communityUri = utilsManager_1.SocialUtilsManager.getCommunityUri(community.creatorId, community.communityId);
+                communityUriArr.push(communityUri);
+            }
+            let event = {
+                "kind": 30001,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": '',
+                "tags": [
+                    [
+                        "d",
+                        "communities"
+                    ]
+                ]
+            };
+            for (let communityUri of communityUriArr) {
+                event.tags.push([
+                    "a",
+                    communityUri
+                ]);
+            }
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async submitCommunityPost(info) {
+            const community = info.community;
+            const communityUri = utilsManager_1.SocialUtilsManager.getCommunityUri(community.creatorId, community.communityId);
+            let event = {
+                "kind": 1,
+                "created_at": info.timestamp || Math.round(Date.now() / 1000),
+                "content": info.message,
+                "tags": []
+            };
+            if (info.scpData) {
+                let encodedScpData = utilsManager_1.SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
+                event.tags.push([
+                    "scp",
+                    interfaces_3.ScpStandardId.CommunityPost,
+                    encodedScpData
+                ]);
+            }
+            if (info.conversationPath) {
+                const conversationPathTags = this.calculateConversationPathTags(info.conversationPath);
+                event.tags.push(...conversationPathTags);
+            }
+            else {
+                event.tags.push([
+                    "a",
+                    communityUri,
+                    "",
+                    "root"
+                ]);
+            }
+            if (info.alt) {
+                event.tags.push([
+                    "alt",
+                    info.alt
+                ]);
+            }
+            console.log('submitCommunityPost', event);
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async submitChannelMessage(info) {
+            let event = {
+                "kind": 42,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": info.message,
+                "tags": []
+            };
+            if (info.scpData) {
+                let encodedScpData = utilsManager_1.SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
+                event.tags.push([
+                    "scp",
+                    interfaces_3.ScpStandardId.ChannelMessage,
+                    encodedScpData
+                ]);
+            }
+            if (info.conversationPath) {
+                const conversationPathTags = this.calculateConversationPathTags(info.conversationPath);
+                event.tags.push(...conversationPathTags);
+            }
+            else {
+                event.tags.push([
+                    "e",
+                    info.channelId,
+                    "",
+                    "root"
+                ]);
+            }
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async updateUserProfile(content) {
+            let event = {
+                "kind": 0,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": JSON.stringify(content),
+                "tags": []
+            };
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async sendMessage(receiver, encryptedMessage, replyToEventId) {
+            const decodedPubKey = receiver.startsWith('npub1') ? index_2.Nip19.decode(receiver).data : receiver;
+            let event = {
+                "kind": 4,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": encryptedMessage,
+                "tags": [
+                    [
+                        'p',
+                        decodedPubKey
+                    ]
+                ]
+            };
+            if (replyToEventId) {
+                event.tags.push(['e', replyToEventId]);
+            }
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async sendTempMessage(options) {
+            const { receiver, encryptedMessage, replyToEventId, widgetId } = options;
+            const decodedPubKey = receiver.startsWith('npub1') ? index_2.Nip19.decode(receiver).data : receiver;
+            let event = {
+                "kind": 20004,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": encryptedMessage,
+                "tags": [
+                    [
+                        'p',
+                        decodedPubKey
+                    ]
+                ]
+            };
+            if (replyToEventId) {
+                event.tags.push(['e', replyToEventId]);
+            }
+            if (widgetId) {
+                event.tags.push(['w', widgetId]);
+            }
+            const result = await this.handleEventSubmission(event, {
+                mainRelayOnly: true
+            });
+            return result;
+        }
+        async updateGroupKeys(identifier, groupKind, keys, invitees) {
+            let event = {
+                "kind": 30078,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": keys,
+                "tags": [
+                    [
+                        "d",
+                        identifier
+                    ],
+                    [
+                        "k",
+                        groupKind.toString()
+                    ],
+                    [
+                        "scp",
+                        interfaces_3.ScpStandardId.GroupKeys
+                    ]
+                ]
+            };
+            for (let invitee of invitees) {
+                const decodedInvitee = invitee.startsWith('npub1') ? index_2.Nip19.decode(invitee).data : invitee;
+                event.tags.push([
+                    "p",
+                    decodedInvitee,
+                    "",
+                    "invitee"
+                ]);
+            }
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async updateCalendarEvent(info) {
+            let kind;
+            let start;
+            let end;
+            if (info.type === interfaces_3.CalendarEventType.DateBased) {
+                kind = 31922;
+                start = convertUnixTimestampToDate(info.start);
+            }
+            else {
+                kind = 31923;
+                start = info.start.toString();
+            }
+            let event = {
+                "kind": kind,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": info.description,
+                "tags": [
+                    [
+                        "d",
+                        info.id
+                    ],
+                    [
+                        "title",
+                        info.title
+                    ],
+                    [
+                        "start",
+                        start
+                    ],
+                    [
+                        "location",
+                        info.location
+                    ],
+                    [
+                        "g",
+                        info.geohash
+                    ]
+                ]
+            };
+            if (info.image) {
+                event.tags.push([
+                    "image",
+                    info.image
+                ]);
+            }
+            if (info.end) {
+                if (info.type === interfaces_3.CalendarEventType.DateBased) {
+                    end = convertUnixTimestampToDate(info.end);
+                }
+                else {
+                    end = info.end.toString();
+                }
+                event.tags.push([
+                    "end",
+                    end
+                ]);
+            }
+            if (info.startTzid) {
+                event.tags.push([
+                    "start_tzid",
+                    info.startTzid
+                ]);
+            }
+            if (info.endTzid) {
+                event.tags.push([
+                    "end_tzid",
+                    info.endTzid
+                ]);
+            }
+            if (info.hostIds) {
+                for (let hostId of info.hostIds) {
+                    const decodedHostId = hostId.startsWith('npub1') ? index_2.Nip19.decode(hostId).data : hostId;
+                    event.tags.push([
+                        "p",
+                        decodedHostId,
+                        "",
+                        "host"
+                    ]);
+                }
+            }
+            if (info.city) {
+                event.tags.push([
+                    "city",
+                    info.city
+                ]);
+            }
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async createCalendarEventRSVP(rsvpId, calendarEventUri, accepted) {
+            let event = {
+                "kind": 31925,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": "",
+                "tags": [
+                    [
+                        "d",
+                        rsvpId
+                    ],
+                    [
+                        "a",
+                        calendarEventUri
+                    ],
+                    [
+                        "L",
+                        "status"
+                    ],
+                    [
+                        "l",
+                        accepted ? "accepted" : "declined",
+                        "status"
+                    ]
+                ]
+            };
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async submitCalendarEventPost(info) {
+            let event = {
+                "kind": 1,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": info.message,
+                "tags": []
+            };
+            if (info.conversationPath) {
+                const conversationPathTags = this.calculateConversationPathTags(info.conversationPath);
+                event.tags.push(...conversationPathTags);
+            }
+            else {
+                event.tags.push([
+                    "a",
+                    info.calendarEventUri,
+                    "",
+                    "root"
+                ]);
+            }
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async submitLongFormContentEvents(info) {
+            let hashtags = [];
+            if (info.hashtags?.length > 0) {
+                hashtags = info.hashtags.map(tag => ["t", tag]);
+            }
+            let event = {
+                "kind": 1,
+                "created_at": info.createdAt || Math.round(Date.now() / 1000),
+                "content": info.content,
+                "tags": [
+                    [
+                        "d",
+                        info.id
+                    ],
+                    [
+                        "c",
+                        "md"
+                    ],
+                    [
+                        "content",
+                        info.markdownContent
+                    ],
+                    ...hashtags
+                ]
+            };
+            if (info.title) {
+                event.tags.push([
+                    "title",
+                    info.title
+                ]);
+            }
+            if (info.image) {
+                event.tags.push([
+                    "image",
+                    info.image
+                ]);
+            }
+            if (info.summary) {
+                event.tags.push([
+                    "summary",
+                    info.summary
+                ]);
+            }
+            if (info.publishedAt) {
+                event.tags.push([
+                    "published_at",
+                    info.publishedAt.toString()
+                ]);
+            }
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async submitLike(tags) {
+            let event = {
+                "kind": 7,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": "+",
+                "tags": tags
+            };
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async submitRepost(content, tags) {
+            let event = {
+                "kind": 6,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": content,
+                "tags": tags
+            };
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async updateRelayList(relays) {
+            let event = {
+                "kind": 10002,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": "",
+                "tags": []
+            };
+            for (let url in relays) {
+                const { read, write } = relays[url];
+                if (!read && !write)
+                    continue;
+                const tag = [
+                    "r",
+                    url
+                ];
+                if (!read || !write)
+                    tag.push(read ? 'read' : 'write');
+                event.tags.push(tag);
+            }
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async createPaymentRequestEvent(paymentRequest, amount, comment, isLightningInvoice) {
+            let hash = index_2.Event.getPaymentRequestHash(paymentRequest);
+            let event = {
+                "kind": 9739,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": comment,
+                "tags": [
+                    [
+                        "r",
+                        hash
+                    ],
+                    [
+                        isLightningInvoice ? "bolt11" : "payreq",
+                        paymentRequest
+                    ],
+                    [
+                        "amount",
+                        amount
+                    ]
+                ]
+            };
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async createPaymentReceiptEvent(requestEventId, recipient, comment, preimage, tx) {
+            let event = {
+                "kind": 9740,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": comment,
+                "tags": [
+                    [
+                        "e",
+                        requestEventId
+                    ],
+                    [
+                        "p",
+                        recipient
+                    ],
+                ]
+            };
+            if (preimage) {
+                event.tags.push([
+                    "preimage",
+                    preimage
+                ]);
+            }
+            if (tx) {
+                event.tags.push([
+                    "tx",
+                    tx
+                ]);
+            }
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async updateCommunityPinnedNotes(creatorId, communityId, eventIds) {
+            const communityUri = utilsManager_1.SocialUtilsManager.getCommunityUri(creatorId, communityId);
+            let tags = eventIds.map(id => ["e", id]);
+            let event = {
+                "kind": 9741,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": "",
+                "tags": [
+                    [
+                        "a",
+                        communityUri
+                    ],
+                    ...tags
+                ]
+            };
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async updateUserPinnedNotes(eventIds) {
+            let tags = eventIds.map(id => ["e", id]);
+            let event = {
+                "kind": 10001,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": "",
+                "tags": tags
+            };
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async updateUserBookmarks(tags) {
+            let event = {
+                "kind": 10003,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": "",
+                "tags": [...tags]
+            };
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async updateUserEthWalletAccountsInfo(options, privateKey) {
+            let event = {
+                "kind": 9742,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": JSON.stringify({
+                    "master_wallet_signature": options.masterWalletSignature,
+                    "social_wallet_signature": options.socialWalletSignature,
+                    "encrypted_key": options.encryptedKey
+                }),
+                "tags": [
+                    [
+                        "d",
+                        options.masterWalletHash
+                    ]
+                ]
+            };
+            const result = await this.handleEventSubmission(event, {
+                privateKey
+            });
+            return result;
+        }
+        async updateNoteStatus(noteId, status) {
+            let event = {
+                "kind": 1985,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": "",
+                "tags": [
+                    [
+                        "L",
+                        "status"
+                    ],
+                    [
+                        "l",
+                        status,
+                        "status"
+                    ],
+                    [
+                        "e",
+                        noteId
+                    ]
+                ]
+            };
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+    }
+    exports.NostrEventManagerWrite = NostrEventManagerWrite;
+});
+define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/managers/utilsManager.ts"], function (require, exports, index_3, interfaces_4, utilsManager_2) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.NostrEventManagerRead = void 0;
+    class NostrEventManagerRead {
+        constructor(manager) {
+            this._nostrCommunicationManager = manager;
+        }
+        set nostrCommunicationManager(manager) {
+            this._nostrCommunicationManager = manager;
+        }
+        set privateKey(privateKey) {
+            this._privateKey = privateKey;
+        }
+        async fetchThreadCacheEvents(options) {
+            const { id, pubKey } = options;
+            let decodedId = id.startsWith('note1') ? index_3.Nip19.decode(id).data : id;
+            let msg = {
+                event_id: decodedId,
+                limit: 100
+            };
+            if (pubKey) {
+                const decodedPubKey = pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey;
+                msg.user_pubkey = decodedPubKey;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('thread_view', msg);
+            return fetchEventsResponse.events;
+        }
+        async fetchTrendingCacheEvents(options) {
+            const { pubKey } = options;
+            let msg = {};
+            if (pubKey) {
+                const decodedPubKey = pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey;
+                msg.user_pubkey = decodedPubKey;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('explore_global_trending_24h', msg);
+            return fetchEventsResponse.events;
+        }
+        async fetchProfileFeedCacheEvents(options) {
+            let { pubKey, since, until, userPubkey } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey;
+            let msg = {
+                limit: 20,
+                notes: "authored",
+                pubkey: decodedPubKey
+            };
+            if (until === 0) {
+                msg.since = since;
+            }
+            else {
+                msg.until = until;
+            }
+            if (userPubkey) {
+                const decodedUserPubKey = userPubkey.startsWith('npub1') ? index_3.Nip19.decode(userPubkey).data : userPubkey;
+                msg.user_pubkey = decodedUserPubKey;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('feed', msg);
+            return fetchEventsResponse.events;
+        }
+        async fetchProfileRepliesCacheEvents(options) {
+            let { pubKey, since, until, userPubkey } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey;
+            let msg = {
+                limit: 20,
+                notes: "replies",
+                pubkey: decodedPubKey
+            };
+            if (until === 0) {
+                msg.since = since;
+            }
+            else {
+                msg.until = until;
+            }
+            if (userPubkey) {
+                const decodedUserPubKey = userPubkey.startsWith('npub1') ? index_3.Nip19.decode(userPubkey).data : userPubkey;
+                msg.user_pubkey = decodedUserPubKey;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('feed', msg);
+            return fetchEventsResponse.events;
+        }
+        async fetchHomeFeedCacheEvents(options) {
+            let { since, until, pubKey } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
+            let msg = {
+                limit: 20
+            };
+            if (until === 0) {
+                msg.since = since;
+            }
+            else {
+                msg.until = until;
+            }
+            msg.pubkey = index_3.Nip19.decode('npub1nfgqmnxqsjsnsvc2r5djhcx4ap3egcjryhf9ppxnajskfel2dx9qq6mnsp').data; //FIXME: Account to show Nostr highlights 
+            if (pubKey) {
+                const decodedPubKey = pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey;
+                msg.user_pubkey = decodedPubKey;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('feed', msg);
+            return fetchEventsResponse.events;
+        }
+        async fetchUserProfileCacheEvents(options) {
+            const { pubKeys } = options;
+            if (!pubKeys || pubKeys.length === 0)
+                return [];
+            const decodedPubKeys = pubKeys.map(pubKey => pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey);
+            let msg = {
+                pubkeys: decodedPubKeys
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_infos', msg);
+            return fetchEventsResponse.events;
+        }
+        async fetchUserProfileDetailCacheEvents(options) {
+            const { pubKey } = options;
+            if (!pubKey)
+                return [];
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey;
+            let msg = {
+                pubkey: decodedPubKey,
+                user_pubkey: decodedPubKey
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_profile', msg);
+            return fetchEventsResponse.events;
+        }
+        async fetchContactListCacheEvents(options) {
+            const { pubKey, detailIncluded } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey;
+            let msg = {
+                extended_response: detailIncluded,
+                pubkey: decodedPubKey
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('contact_list', msg);
+            return fetchEventsResponse.events;
+        }
+        async fetchUserRelays(options) {
+            const { pubKey } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey;
+            let msg = {
+                pubkey: decodedPubKey
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('get_user_relays', msg);
+            return fetchEventsResponse.events;
+        }
+        async fetchFollowersCacheEvents(options) {
+            const { pubKey } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey;
+            let msg = {
+                pubkey: decodedPubKey
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_followers', msg);
+            return fetchEventsResponse.events;
+        }
+        async fetchCommunities(options) {
+            const { pubkeyToCommunityIdsMap } = options;
+            let events;
+            if (pubkeyToCommunityIdsMap && Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+                let requests = [];
+                for (let pubkey in pubkeyToCommunityIdsMap) {
+                    const decodedPubKey = pubkey.startsWith('npub1') ? index_3.Nip19.decode(pubkey).data : pubkey;
+                    const communityIds = pubkeyToCommunityIdsMap[pubkey];
+                    let request = {
+                        kinds: [34550],
+                        authors: [decodedPubKey],
+                        "#d": communityIds
+                    };
+                    requests.push(request);
+                }
+                const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(...requests);
+                events = fetchEventsResponse.events;
+            }
+            else {
+                let request = {
+                    kinds: [34550],
+                    limit: 50
+                };
+                const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+                events = fetchEventsResponse.events;
+            }
+            return events;
+        }
+        async fetchAllUserRelatedCommunities(options) {
+            const { pubKey } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey;
+            let requestForCreatedCommunities = {
+                kinds: [34550],
+                authors: [decodedPubKey]
+            };
+            let requestForFollowedCommunities = {
+                kinds: [30001],
+                "#d": ["communities"],
+                authors: [decodedPubKey]
+            };
+            let requestForModeratedCommunities = {
+                kinds: [34550],
+                "#p": [decodedPubKey]
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(requestForCreatedCommunities, requestForFollowedCommunities, requestForModeratedCommunities);
+            let communitiesEvents = [];
+            const pubkeyToCommunityIdsMap = {};
+            for (let event of fetchEventsResponse.events) {
+                if (event.kind === 34550) {
+                    communitiesEvents.push(event);
+                }
+                else if (event.kind === 30001) {
+                    const bookmarkedCommunities = utilsManager_2.SocialUtilsManager.extractBookmarkedCommunities(event);
+                    for (let community of bookmarkedCommunities) {
+                        const pubkey = community.creatorId;
+                        const communityId = community.communityId;
+                        if (!pubkeyToCommunityIdsMap[pubkey]) {
+                            pubkeyToCommunityIdsMap[pubkey] = [];
+                        }
+                        pubkeyToCommunityIdsMap[pubkey].push(communityId);
+                    }
+                }
+            }
+            if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+                const bookmarkedCommunitiesEvents = await this.fetchCommunities({ pubkeyToCommunityIdsMap });
+                for (let event of bookmarkedCommunitiesEvents) {
+                    communitiesEvents.push(event);
+                }
+            }
+            return communitiesEvents;
+        }
+        async fetchAllUserRelatedCommunitiesFeed(options) {
+            const { since, until } = options;
+            const communitiesEvents = await this.fetchAllUserRelatedCommunities(options);
+            let communityUriArr = [];
+            let identifiers = [];
+            for (let event of communitiesEvents) {
+                if (event.kind === 34550) {
+                    const communityInfo = utilsManager_2.SocialUtilsManager.extractCommunityInfo(event);
+                    identifiers.push(communityInfo.communityUri + ':keys');
+                    communityUriArr.push(communityInfo.communityUri);
+                }
+            }
+            let feedEvents = [];
+            if (communityUriArr.length > 0) {
+                feedEvents = await this.fetchCommunitiesFeed({ communityUriArr, since, until });
+            }
+            return feedEvents;
+        }
+        async fetchUserBookmarkedCommunities(options) {
+            const { pubKey, excludedCommunity } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey;
+            let request = {
+                kinds: [30001],
+                "#d": ["communities"],
+                authors: [decodedPubKey]
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            const bookmarkedCommunitiesEvent = fetchEventsResponse.events.find(event => event.kind === 30001);
+            const communities = utilsManager_2.SocialUtilsManager.extractBookmarkedCommunities(bookmarkedCommunitiesEvent, excludedCommunity);
+            return communities;
+        }
+        async fetchCommunity(options) {
+            const { communityId, creatorId } = options;
+            const decodedCreatorId = creatorId.startsWith('npub1') ? index_3.Nip19.decode(creatorId).data : creatorId;
+            let infoMsg = {
+                kinds: [34550],
+                authors: [decodedCreatorId],
+                "#d": [communityId]
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(infoMsg);
+            return fetchEventsResponse.events;
+        }
+        async fetchCommunityFeed(options) {
+            const { communityUri, since, until } = options;
+            let request = {
+                kinds: [1],
+                "#a": [communityUri],
+                limit: 20
+            };
+            if (since != null) {
+                request.since = since;
+            }
+            if (until != null) {
+                request.until = until;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            return fetchEventsResponse.events;
+        }
+        async fetchCommunitiesFeed(options) {
+            const { communityUriArr, since, until } = options;
+            let request = {
+                kinds: [1],
+                "#a": communityUriArr,
+                limit: 20
+            };
+            if (since != null) {
+                request.since = since;
+            }
+            if (until != null) {
+                request.until = until;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            return fetchEventsResponse.events;
+        }
+        async fetchCommunitiesGeneralMembers(options) {
+            const { communities } = options;
+            const communityUriArr = [];
+            for (let community of communities) {
+                const communityUri = utilsManager_2.SocialUtilsManager.getCommunityUri(community.creatorId, community.communityId);
+                communityUriArr.push(communityUri);
+            }
+            let request = {
+                kinds: [30001],
+                "#d": ["communities"],
+                "#a": communityUriArr
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            return fetchEventsResponse.events;
+        }
+        // async fetchNotes(options: IFetchNotesOptions) {
+        //     const decodedNpubs = options.authors?.map(npub => Nip19.decode(npub).data);
+        //     let decodedIds = options.ids?.map(id => id.startsWith('note1') ? Nip19.decode(id).data : id);
+        //     let msg: any = {
+        //         kinds: [1],
+        //         limit: 20
+        //     };
+        //     if (decodedNpubs) msg.authors = decodedNpubs;
+        //     if (decodedIds) msg.ids = decodedIds;
+        //     const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(msg);
+        //     return fetchEventsResponse.events;
+        // }
+        // async fetchMetadata(options: IFetchMetadataOptions) {
+        //     let decodedNpubs;
+        //     if (options.decodedAuthors) {
+        //         decodedNpubs = options.decodedAuthors;
+        //     }
+        //     else {
+        //         decodedNpubs = options.authors?.map(npub => Nip19.decode(npub).data) || [];
+        //     }
+        //     const msg = {
+        //         authors: decodedNpubs,
+        //         kinds: [0]
+        //     };
+        //     const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(msg);
+        //     return fetchEventsResponse.events;
+        // }
+        // async fetchReplies(options: IFetchRepliesOptions) {
+        //     let decodedNoteIds;
+        //     if (options.decodedIds) {
+        //         decodedNoteIds = options.decodedIds;
+        //     }
+        //     else {
+        //         decodedNoteIds = options.noteIds?.map(id => id.startsWith('note1') ? Nip19.decode(id).data : id);
+        //     }
+        //     const msg = {
+        //         "#e": decodedNoteIds,
+        //         kinds: [1],
+        //         limit: 20,
+        //     }
+        //     const events = await this._nostrCommunicationManager.fetchEvents(msg);
+        //     return events;
+        // }
+        // async fetchFollowing(npubs: string[]) {
+        //     const decodedNpubs = npubs.map(npub => Nip19.decode(npub).data);
+        //     const msg = {
+        //         authors: decodedNpubs,
+        //         kinds: [3]
+        //     }
+        //     const events = await this._nostrCommunicationManager.fetchEvents(msg);
+        //     return events;
+        // }
+        async fetchAllUserRelatedChannels(options) {
+            const { pubKey } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey;
+            let requestForCreatedChannels = {
+                kinds: [40, 41],
+                authors: [decodedPubKey]
+            };
+            let requestForJoinedChannels = {
+                kinds: [30001],
+                "#d": ["channels"],
+                authors: [decodedPubKey]
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(requestForCreatedChannels, requestForJoinedChannels);
+            let channels = [];
+            let bookmarkedChannelEventIds = [];
+            const channelMetadataMap = {};
+            const handleChannelEvent = (event) => {
+                if (event.kind === 40) {
+                    const channelInfo = utilsManager_2.SocialUtilsManager.extractChannelInfo(event);
+                    if (channelInfo) {
+                        channels.push(channelInfo);
+                    }
+                }
+                else if (event.kind === 41) {
+                    const channelInfo = utilsManager_2.SocialUtilsManager.extractChannelInfo(event);
+                    if (channelInfo) {
+                        channelMetadataMap[channelInfo.id] = channelInfo;
+                    }
+                }
+            };
+            for (let event of fetchEventsResponse.events) {
+                if (event.kind === 30001) {
+                    bookmarkedChannelEventIds = utilsManager_2.SocialUtilsManager.extractBookmarkedChannels(event);
+                }
+                else {
+                    handleChannelEvent(event);
+                }
+            }
+            if (bookmarkedChannelEventIds.length > 0) {
+                const bookmarkedChannelEvents = await this.fetchEventsByIds({
+                    ids: bookmarkedChannelEventIds
+                });
+                for (let event of bookmarkedChannelEvents) {
+                    handleChannelEvent(event);
+                }
+            }
+            const pubkeyToCommunityIdsMap = {};
+            for (let channel of channels) {
+                const scpData = channel.scpData;
+                if (!scpData?.communityUri)
+                    continue;
+                const { communityId } = utilsManager_2.SocialUtilsManager.getCommunityBasicInfoFromUri(scpData.communityUri);
+                pubkeyToCommunityIdsMap[channel.eventData.pubkey] = pubkeyToCommunityIdsMap[channel.eventData.pubkey] || [];
+                if (!pubkeyToCommunityIdsMap[channel.eventData.pubkey].includes(communityId)) {
+                    pubkeyToCommunityIdsMap[channel.eventData.pubkey].push(communityId);
+                }
+            }
+            let channelIdToCommunityMap = {};
+            const communityEvents = await this.fetchCommunities(pubkeyToCommunityIdsMap);
+            for (let event of communityEvents) {
+                const communityInfo = utilsManager_2.SocialUtilsManager.extractCommunityInfo(event);
+                const channelId = communityInfo.scpData?.channelEventId;
+                if (!channelId)
+                    continue;
+                channelIdToCommunityMap[channelId] = communityInfo;
+            }
+            return {
+                channels,
+                channelMetadataMap,
+                channelIdToCommunityMap
+            };
+        }
+        async fetchUserBookmarkedChannelEventIds(options) {
+            const { pubKey } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey;
+            let requestForJoinedChannels = {
+                kinds: [30001],
+                "#d": ["channels"],
+                authors: [decodedPubKey]
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(requestForJoinedChannels);
+            const bookmarkedChannelsEvent = fetchEventsResponse.events.find(event => event.kind === 30001);
+            const channelEventIds = utilsManager_2.SocialUtilsManager.extractBookmarkedChannels(bookmarkedChannelsEvent);
+            return channelEventIds;
+        }
+        async fetchEventsByIds(options) {
+            const { ids } = options;
+            let request = {
+                ids: ids
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            return fetchEventsResponse.events;
+        }
+        async fetchTempEvents(options) {
+            return []; //Not supported
+        }
+        async fetchChannelMessages(options) {
+            let { channelId, since, until } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
+            const decodedChannelId = channelId.startsWith('npub1') ? index_3.Nip19.decode(channelId).data : channelId;
+            let messagesReq = {
+                kinds: [42],
+                "#e": [decodedChannelId],
+                limit: 20
+            };
+            if (until === 0) {
+                messagesReq.since = since;
+            }
+            else {
+                messagesReq.until = until;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(messagesReq);
+            return fetchEventsResponse.events;
+        }
+        async fetchChannelInfoMessages(options) {
+            const { channelId } = options;
+            const decodedChannelId = channelId.startsWith('npub1') ? index_3.Nip19.decode(channelId).data : channelId;
+            let channelCreationEventReq = {
+                kinds: [40],
+                ids: [decodedChannelId],
+            };
+            let channelMetadataEventReq = {
+                kinds: [41],
+                "#e": [decodedChannelId]
+            };
+            let messagesReq = {
+                kinds: [42],
+                "#e": [decodedChannelId],
+                limit: 20
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(channelCreationEventReq, channelMetadataEventReq, messagesReq);
+            return fetchEventsResponse.events;
+        }
+        async fetchMessageContactsCacheEvents(options) {
+            const { pubKey } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey;
+            let msg = {
+                user_pubkey: decodedPubKey,
+                relation: 'follows'
+            };
+            const followsEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('get_directmsg_contacts', msg);
+            msg = {
+                user_pubkey: decodedPubKey,
+                relation: 'other'
+            };
+            const otherEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('get_directmsg_contacts', msg);
+            return [...followsEventsResponse.events, ...otherEventsResponse.events];
+        }
+        async fetchDirectMessages(options) {
+            let { pubKey, sender, since, until } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey;
+            const decodedSenderPubKey = sender.startsWith('npub1') ? index_3.Nip19.decode(sender).data : sender;
+            const req = {
+                receiver: decodedPubKey,
+                sender: decodedSenderPubKey,
+                limit: 20
+            };
+            if (until === 0) {
+                req.since = since;
+            }
+            else {
+                req.until = until;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('get_directmsgs', req);
+            return fetchEventsResponse.events;
+        }
+        async resetMessageCount(options) {
+            const { pubKey, sender } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey;
+            const decodedSenderPubKey = sender.startsWith('npub1') ? index_3.Nip19.decode(sender).data : sender;
+            const createAt = Math.ceil(Date.now() / 1000);
+            let event = {
+                "content": JSON.stringify({ "description": `reset messages from '${decodedSenderPubKey}'` }),
+                "kind": 30078,
+                "tags": [
+                    [
+                        "d",
+                        "Scom Social"
+                    ]
+                ],
+                "created_at": createAt,
+                "pubkey": decodedPubKey
+            };
+            event.id = index_3.Event.getEventHash(event);
+            event.sig = index_3.Event.getSignature(event, this._privateKey);
+            const msg = {
+                event_from_user: event,
+                sender: decodedSenderPubKey
+            };
+            await this._nostrCommunicationManager.fetchCachedEvents('reset_directmsg_count', msg);
+        }
+        async fetchGroupKeys(options) {
+            const { identifiers } = options;
+            let req = {
+                kinds: [30078],
+                "#d": identifiers
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchUserGroupInvitations(options) {
+            const { pubKey, groupKinds } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey;
+            let req = {
+                kinds: [30078],
+                "#p": [decodedPubKey],
+                "#k": groupKinds.map(kind => kind.toString())
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
+            let events = fetchEventsResponse.events?.filter(event => event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'invitee').map(tag => tag[1]).includes(decodedPubKey));
+            return events;
+        }
+        async fetchCalendarEvents(options) {
+            const { limit } = options;
+            let req = {
+                kinds: [31922, 31923],
+                limit: limit || 10
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
+            return {
+                events: fetchEventsResponse.events,
+                data: fetchEventsResponse.data
+            };
+        }
+        async fetchCalendarEvent(options) {
+            const { address } = options;
+            let req = {
+                kinds: [address.kind],
+                "#d": [address.identifier],
+                authors: [address.pubkey]
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
+            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        }
+        async fetchCalendarEventPosts(options) {
+            const { calendarEventUri } = options;
+            let request = {
+                kinds: [1],
+                "#a": [calendarEventUri],
+                limit: 50
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            return fetchEventsResponse.events;
+        }
+        async fetchCalendarEventRSVPs(options) {
+            const { calendarEventUri, pubkey } = options;
+            let req = {
+                kinds: [31925],
+                "#a": [calendarEventUri]
+            };
+            if (pubkey) {
+                const decodedPubKey = pubkey.startsWith('npub1') ? index_3.Nip19.decode(pubkey).data : pubkey;
+                req.authors = [decodedPubKey];
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
+            return fetchEventsResponse.events;
+        }
+        async fetchLongFormContentEvents(options) {
+            let { pubKey, since, until } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
+            let req = {
+                kinds: [30023],
+                limit: 20
+            };
+            if (pubKey) {
+                const decodedPubKey = pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey;
+                req.authors = [decodedPubKey];
+            }
+            if (until === 0) {
+                req.since = since;
+            }
+            else {
+                req.until = until;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
+            return fetchEventsResponse.events;
+        }
+        // async fetchLikes(eventId: string) {
+        //     let req: any = {
+        //         kinds: [7],
+        //         "#e": [eventId]
+        //     };
+        //     const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
+        //     return fetchEventsResponse.events;
+        // }
+        async searchUsers(options) {
+            const { query } = options;
+            const req = {
+                query: query,
+                limit: 10
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_search', req);
+            return fetchEventsResponse.events;
+        }
+        async fetchPaymentRequestEvent(options) {
+            const { paymentRequest } = options;
+            let hash = index_3.Event.getPaymentRequestHash(paymentRequest);
+            let req = {
+                kinds: [9739],
+                "#r": [hash]
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
+            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        }
+        async fetchPaymentReceiptEvent(options) {
+            const { requestEventId } = options;
+            let req = {
+                kinds: [9740],
+                "#e": [requestEventId]
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
+            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        }
+        getPaymentHash(tags) {
+            let tagsMap = {};
+            for (let _t of tags) {
+                tagsMap[_t[0]] = _t.slice(1);
+            }
+            return tagsMap['bolt11']?.[0] || tagsMap['payreq']?.[0] || tagsMap['r']?.[0];
+        }
+        async fetchPaymentActivitiesForRecipient(options) {
+            let { pubkey, since, until } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
+            let paymentRequestEventsReq = {
+                kinds: [9739],
+                authors: [pubkey],
+                limit: 10
+            };
+            if (until === 0) {
+                paymentRequestEventsReq.since = since;
+            }
+            else {
+                paymentRequestEventsReq.until = until;
+            }
+            const paymentRequestEvents = await this._nostrCommunicationManager.fetchEvents(paymentRequestEventsReq);
+            const requestEventIds = paymentRequestEvents.events.map(event => event.id);
+            let paymentReceiptEventsReq = {
+                kinds: [9740],
+                "#e": requestEventIds
+            };
+            const paymentReceiptEvents = await this._nostrCommunicationManager.fetchEvents(paymentReceiptEventsReq);
+            let paymentActivity = [];
+            for (let requestEvent of paymentRequestEvents.events) {
+                const paymentHash = this.getPaymentHash(requestEvent.tags);
+                const amount = requestEvent.tags.find(tag => tag[0] === 'amount')?.[1];
+                const receiptEvent = paymentReceiptEvents.events.find(event => event.tags.find(tag => tag[0] === 'e')?.[1] === requestEvent.id);
+                let status = 'pending';
+                let sender;
+                if (receiptEvent) {
+                    status = 'completed';
+                    sender = receiptEvent.pubkey;
+                }
+                paymentActivity.push({
+                    paymentHash,
+                    sender,
+                    recipient: pubkey,
+                    amount,
+                    status,
+                    createdAt: requestEvent.created_at
+                });
+            }
+            return paymentActivity;
+        }
+        async fetchPaymentActivitiesForSender(options) {
+            let { pubkey, since, until } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
+            let paymentReceiptEventsReq = {
+                kinds: [9740],
+                authors: [pubkey],
+                limit: 10
+            };
+            if (until === 0) {
+                paymentReceiptEventsReq.since = since;
+            }
+            else {
+                paymentReceiptEventsReq.until = until;
+            }
+            const paymentReceiptEvents = await this._nostrCommunicationManager.fetchEvents(paymentReceiptEventsReq);
+            let requestEventIds = [];
+            for (let event of paymentReceiptEvents.events) {
+                const requestEventId = event.tags.find(tag => tag[0] === 'e')?.[1];
+                if (requestEventId) {
+                    requestEventIds.push(requestEventId);
+                }
+            }
+            let paymentRequestEventsReq = {
+                kinds: [9739],
+                ids: requestEventIds
+            };
+            const paymentRequestEvents = await this._nostrCommunicationManager.fetchEvents(paymentRequestEventsReq);
+            let paymentActivity = [];
+            for (let receiptEvent of paymentReceiptEvents.events) {
+                const requestEventId = receiptEvent.tags.find(tag => tag[0] === 'e')?.[1];
+                const requestEvent = paymentRequestEvents.events.find(event => event.id === requestEventId);
+                if (requestEvent) {
+                    const paymentHash = this.getPaymentHash(requestEvent.tags);
+                    const amount = requestEvent.tags.find(tag => tag[0] === 'amount')?.[1];
+                    paymentActivity.push({
+                        paymentHash,
+                        sender: pubkey,
+                        recipient: requestEvent.pubkey,
+                        amount,
+                        status: 'completed',
+                        createdAt: receiptEvent.created_at
+                    });
+                }
+            }
+            return paymentActivity;
+        }
+        async fetchUserFollowingFeed(options) {
+            let { pubKey, until } = options;
+            if (!until)
+                until = 0;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey;
+            let msg = {
+                user_pubkey: decodedPubKey,
+                timeframe: 'latest',
+                scope: 'follows',
+                limit: 20
+            };
+            if (until > 0) {
+                msg.until = until;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('explore', msg);
+            return fetchEventsResponse.events;
+        }
+        async fetchCommunityPinnedNotesEvents(options) {
+            const { creatorId, communityId } = options;
+            const communityUri = utilsManager_2.SocialUtilsManager.getCommunityUri(creatorId, communityId);
+            let request = {
+                kinds: [9741],
+                "#a": [communityUri]
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchCommunityPinnedNoteIds(options) {
+            const events = await this.fetchCommunityPinnedNotesEvents(options);
+            const event = events[0];
+            let noteIds = [];
+            if (event) {
+                for (let tag of event.tags) {
+                    if (tag[0] === 'e') {
+                        noteIds.push(tag[1]);
+                    }
+                }
+            }
+            return noteIds;
+        }
+        async fetchUserPinnedNotes(options) {
+            const { pubKey } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey;
+            let request = {
+                kinds: [10001],
+                authors: [decodedPubKey]
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        }
+        async fetchUserBookmarks(options) {
+            const { pubKey } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey;
+            let request = {
+                kinds: [10003],
+                authors: [decodedPubKey]
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        }
+        async fetchTrendingCommunities() {
+            const pubkeyToCommunityIdsMap = {
+                "npub1rjc54ve4sahunm7r0kpchg58eut7ttwvevst7m2fl8dfd9w4y33q0w0qw2": ["Photography"],
+                "npub1c6dhrhzkflwr2zkdmlujnujawgp2c9rsep6gscyt6mvcusnt5a3srnzmx3": ["Vegan_Consciousness"]
+            };
+            const events = this.fetchCommunities({
+                pubkeyToCommunityIdsMap
+            });
+            return events || [];
+        }
+        async fetchUserEthWalletAccountsInfo(options) {
+            const { pubKey, walletHash } = options;
+            let request = {
+                kinds: [9742]
+            };
+            if (pubKey) {
+                const decodedPubKey = pubKey.startsWith('npub1') ? index_3.Nip19.decode(pubKey).data : pubKey;
+                request.authors = [decodedPubKey];
+            }
+            else if (walletHash) {
+                request["#d"] = [walletHash];
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        }
+        async fetchSubcommunites(options) {
+            return []; // Not supported
+        }
+        async fetchCommunityDetailMetadata(options) {
+            const { communityCreatorId, communityName } = options;
+            const decodedCreatorId = communityCreatorId.startsWith('npub1') ? index_3.Nip19.decode(communityCreatorId).data : communityCreatorId;
+            let request = {
+                kinds: [34550],
+                authors: [decodedCreatorId],
+                "#d": communityName
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            return fetchEventsResponse.events;
+        }
+        async getCommunityUriToMembersMap(communities) {
+            const communityUriToMemberIdRoleComboMap = {};
+            const communityUriToCreatorOrModeratorIdsMap = {};
+            for (let community of communities) {
+                const communityUri = community.communityUri;
+                communityUriToMemberIdRoleComboMap[communityUri] = [];
+                communityUriToMemberIdRoleComboMap[communityUri].push({
+                    id: community.creatorId,
+                    role: interfaces_4.CommunityRole.Creator
+                });
+                communityUriToCreatorOrModeratorIdsMap[communityUri] = new Set();
+                communityUriToCreatorOrModeratorIdsMap[communityUri].add(community.creatorId);
+                if (community.moderatorIds) {
+                    for (let moderator of community.moderatorIds) {
+                        if (moderator === community.creatorId)
+                            continue;
+                        communityUriToMemberIdRoleComboMap[communityUri].push({
+                            id: moderator,
+                            role: interfaces_4.CommunityRole.Moderator
+                        });
+                        communityUriToCreatorOrModeratorIdsMap[communityUri].add(moderator);
+                    }
+                }
+            }
+            const generalMembersEvents = await this.fetchCommunitiesGeneralMembers({ communities });
+            for (let event of generalMembersEvents) {
+                const communityUriArr = event.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
+                for (let communityUri of communityUriArr) {
+                    if (!communityUriToMemberIdRoleComboMap[communityUri])
+                        continue;
+                    const pubkey = index_3.Nip19.npubEncode(event.pubkey);
+                    if (communityUriToCreatorOrModeratorIdsMap[communityUri].has(pubkey))
+                        continue;
+                    communityUriToMemberIdRoleComboMap[communityUri].push({
+                        id: pubkey,
+                        role: interfaces_4.CommunityRole.GeneralMember
+                    });
+                }
+            }
+            let pubkeys = new Set(utilsManager_2.SocialUtilsManager.flatMap(Object.values(communityUriToMemberIdRoleComboMap), combo => combo.map(c => c.id)));
+            const communityUriToMembersMap = {};
+            if (pubkeys.size > 0) {
+                let metadataArr = [];
+                let followersCountMap = {};
+                try {
+                    const events = await this.fetchUserProfileCacheEvents({ pubKeys: Array.from(pubkeys) });
+                    for (let event of events) {
+                        if (event.kind === 0) {
+                            metadataArr.push({
+                                ...event,
+                                content: utilsManager_2.SocialUtilsManager.parseContent(event.content)
+                            });
+                        }
+                        else if (event.kind === 10000108) {
+                            followersCountMap = utilsManager_2.SocialUtilsManager.parseContent(event.content);
+                        }
+                    }
+                }
+                catch (error) {
+                    console.error('fetchUserProfiles', error);
+                }
+                if (metadataArr.length == 0)
+                    return null;
+                const userProfiles = [];
+                for (let metadata of metadataArr) {
+                    let userProfile = utilsManager_2.SocialUtilsManager.constructUserProfile(metadata, followersCountMap);
+                    userProfiles.push(userProfile);
+                }
+                if (!userProfiles)
+                    return communityUriToMembersMap;
+                for (let community of communities) {
+                    const memberIds = communityUriToMemberIdRoleComboMap[community.communityUri];
+                    if (!memberIds)
+                        continue;
+                    const communityMembers = [];
+                    for (let memberIdRoleCombo of memberIds) {
+                        const userProfile = userProfiles.find(profile => profile.npub === memberIdRoleCombo.id);
+                        if (!userProfile)
+                            continue;
+                        let communityMember = {
+                            id: userProfile.npub,
+                            name: userProfile.displayName,
+                            profileImageUrl: userProfile.avatar,
+                            username: userProfile.username,
+                            internetIdentifier: userProfile.internetIdentifier,
+                            role: memberIdRoleCombo.role
+                        };
+                        communityMembers.push(communityMember);
+                    }
+                    communityUriToMembersMap[community.communityUri] = communityMembers;
+                }
+            }
+            return communityUriToMembersMap;
+        }
+    }
+    exports.NostrEventManagerRead = NostrEventManagerRead;
+});
+define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/managers/utilsManager.ts"], function (require, exports, index_4, interfaces_5, utilsManager_3) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.NostrEventManagerReadV1o5 = void 0;
+    class NostrEventManagerReadV1o5 {
+        constructor(manager) {
+            this._nostrCommunicationManager = manager;
+        }
+        set nostrCommunicationManager(manager) {
+            this._nostrCommunicationManager = manager;
+        }
+        set privateKey(privateKey) {
+            this._privateKey = privateKey;
+        }
+        augmentWithAuthInfo(obj) {
+            return utilsManager_3.SocialUtilsManager.augmentWithAuthInfo(obj, this._privateKey);
+        }
+        async fetchThreadCacheEvents(options) {
+            const { id } = options;
+            let decodedId = id.startsWith('note1') ? index_4.Nip19.decode(id).data : id;
+            let msg = this.augmentWithAuthInfo({
+                eventId: decodedId,
+                limit: 100
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-thread-posts', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchTrendingCacheEvents(options) {
+            let msg = this.augmentWithAuthInfo({});
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-trending-posts', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchProfileFeedCacheEvents(options) {
+            let { pubKey, since, until, userPubkey } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
+            let msg = this.augmentWithAuthInfo({
+                limit: 20,
+                pubkey: decodedPubKey
+            });
+            if (until === 0) {
+                msg.since = since;
+            }
+            else {
+                msg.until = until;
+            }
+            if (userPubkey) {
+                const decodedUserPubKey = userPubkey.startsWith('npub1') ? index_4.Nip19.decode(userPubkey).data : userPubkey;
+                msg.user_pubkey = decodedUserPubKey;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-profile-feed', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchProfileRepliesCacheEvents(options) {
+            let { pubKey, since, until, userPubkey } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
+            let msg = this.augmentWithAuthInfo({
+                limit: 20,
+                pubkey: decodedPubKey
+            });
+            if (until === 0) {
+                msg.since = since;
+            }
+            else {
+                msg.until = until;
+            }
+            if (userPubkey) {
+                const decodedUserPubKey = userPubkey.startsWith('npub1') ? index_4.Nip19.decode(userPubkey).data : userPubkey;
+                msg.user_pubkey = decodedUserPubKey;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-profile-replies', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchHomeFeedCacheEvents(options) {
+            let { since, until, pubKey } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
+            let msg = {
+                limit: 20
+            };
+            if (until === 0) {
+                msg.since = since;
+            }
+            else {
+                msg.until = until;
+            }
+            if (pubKey) {
+                const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
+                msg.pubKey = decodedPubKey;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-home-feed', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchUserProfileCacheEvents(options) {
+            let { pubKeys } = options;
+            if (!pubKeys || pubKeys.length === 0)
+                return [];
+            const decodedPubKeys = pubKeys.map(pubKey => pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey);
+            let msg = this.augmentWithAuthInfo({
+                pubkeys: decodedPubKeys
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-profiles', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchUserProfileDetailCacheEvents(options) {
+            let { pubKey } = options;
+            if (!pubKey)
+                return [];
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
+            let msg = this.augmentWithAuthInfo({
+                pubkey: decodedPubKey
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-profile-detail', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchContactListCacheEvents(options) {
+            let { pubKey, detailIncluded } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
+            let msg = this.augmentWithAuthInfo({
+                pubkey: decodedPubKey,
+                detailIncluded: detailIncluded,
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-contact-list', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchUserRelays(options) {
+            const { pubKey } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
+            let msg = this.augmentWithAuthInfo({
+                pubkey: decodedPubKey
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-relays', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchFollowersCacheEvents(options) {
+            const { pubKey } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
+            let msg = this.augmentWithAuthInfo({
+                pubkey: decodedPubKey
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-followers', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchCommunities(options) {
+            const { pubkeyToCommunityIdsMap, query } = options;
+            let events;
+            if (pubkeyToCommunityIdsMap && Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+                let msg = this.augmentWithAuthInfo({
+                    identifiers: []
+                });
+                for (let pubkey in pubkeyToCommunityIdsMap) {
+                    const decodedPubKey = pubkey.startsWith('npub1') ? index_4.Nip19.decode(pubkey).data : pubkey;
+                    const communityIds = pubkeyToCommunityIdsMap[pubkey];
+                    let request = {
+                        pubkey: decodedPubKey,
+                        names: communityIds
+                    };
+                    msg.identifiers.push(request);
+                }
+                let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities', msg);
+                events = response.events;
+            }
+            else {
+                let msg = this.augmentWithAuthInfo({
+                    limit: 50,
+                    query
+                });
+                let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities', msg);
+                events = response.events;
+            }
+            return events;
+        }
+        async fetchAllUserRelatedCommunities(options) {
+            const { pubKey } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
+            let msg = this.augmentWithAuthInfo({
+                pubkey: decodedPubKey
+            });
+            let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-communities', msg);
+            return response.events || [];
+        }
+        async fetchAllUserRelatedCommunitiesFeed(options) {
+            const { pubKey, since, until } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
+            let msg = this.augmentWithAuthInfo({
+                pubkey: decodedPubKey,
+                since,
+                until,
+                limit: 20
+            });
+            let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-communities-feed', msg);
+            return response.events || [];
+        }
+        async fetchUserBookmarkedCommunities(options) {
+            const { pubKey, excludedCommunity } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
+            let msg = this.augmentWithAuthInfo({
+                pubkey: decodedPubKey
+            });
+            let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-bookmarked-communities', msg);
+            let communities = [];
+            for (let community of response.data) {
+                if (excludedCommunity) {
+                    const decodedPubkey = index_4.Nip19.decode(excludedCommunity.creatorId).data;
+                    if (community.communityId === excludedCommunity.communityId && community.creatorId === decodedPubkey)
+                        continue;
+                }
+                communities.push(community);
+            }
+            return communities;
+        }
+        async fetchCommunity(options) {
+            const { communityId, creatorId } = options;
+            const decodedCreatorId = creatorId.startsWith('npub1') ? index_4.Nip19.decode(creatorId).data : creatorId;
+            let msg = this.augmentWithAuthInfo({
+                identifiers: [
+                    {
+                        pubkey: decodedCreatorId,
+                        names: [communityId]
+                    }
+                ]
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchCommunityFeed(options) {
+            const { communityUri, since, until } = options;
+            const { creatorId, communityId } = utilsManager_3.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+            let identifier = {
+                pubkey: creatorId,
+                names: [communityId]
+            };
+            let msg = this.augmentWithAuthInfo({
+                identifiers: [identifier],
+                limit: 50,
+                since,
+                until
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-feed', msg);
+            return fetchEventsResponse.events || [];
+        }
+        // async fetchNotes(options: IFetchNotesOptions) {
+        //     const decodedNpubs = options.authors?.map(npub => Nip19.decode(npub).data);
+        //     let decodedIds = options.ids?.map(id => id.startsWith('note1') ? Nip19.decode(id).data : id);
+        //     let msg: any = {
+        //         kinds: [1],
+        //         limit: 20
+        //     };
+        //     if (decodedNpubs) msg.authors = decodedNpubs;
+        //     if (decodedIds) msg.ids = decodedIds;
+        //     const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(msg);
+        //     return fetchEventsResponse.events || [];
+        // }
+        async fetchAllUserRelatedChannels(options) {
+            const { pubKey } = options;
+            let msg = this.augmentWithAuthInfo({
+                pubKey
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-related-channels', msg);
+            let channels = [];
+            const channelMetadataMap = {};
+            for (let event of fetchEventsResponse.events) {
+                if (event.kind === 40) {
+                    const channelInfo = utilsManager_3.SocialUtilsManager.extractChannelInfo(event);
+                    if (channelInfo) {
+                        channels.push(channelInfo);
+                    }
+                }
+                else if (event.kind === 41) {
+                    const channelInfo = utilsManager_3.SocialUtilsManager.extractChannelInfo(event);
+                    if (channelInfo) {
+                        channelMetadataMap[channelInfo.id] = channelInfo;
+                    }
+                }
+            }
+            const pubkeyToCommunityIdsMap = {};
+            for (let channel of channels) {
+                const scpData = channel.scpData;
+                if (!scpData?.communityUri)
+                    continue;
+                const { communityId } = utilsManager_3.SocialUtilsManager.getCommunityBasicInfoFromUri(scpData.communityUri);
+                pubkeyToCommunityIdsMap[channel.eventData.pubkey] = pubkeyToCommunityIdsMap[channel.eventData.pubkey] || [];
+                if (!pubkeyToCommunityIdsMap[channel.eventData.pubkey].includes(communityId)) {
+                    pubkeyToCommunityIdsMap[channel.eventData.pubkey].push(communityId);
+                }
+            }
+            let channelIdToCommunityMap = {};
+            const communityEvents = await this.fetchCommunities({ pubkeyToCommunityIdsMap });
+            for (let event of communityEvents) {
+                const communityInfo = utilsManager_3.SocialUtilsManager.extractCommunityInfo(event);
+                const channelId = communityInfo.scpData?.channelEventId;
+                if (!channelId)
+                    continue;
+                channelIdToCommunityMap[channelId] = communityInfo;
+            }
+            return {
+                channels,
+                channelMetadataMap,
+                channelIdToCommunityMap
+            };
+        }
+        async fetchUserBookmarkedChannelEventIds(options) {
+            const { pubKey } = options;
+            let msg = this.augmentWithAuthInfo({
+                pubKey
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-bookmarked-channel-event-ids', msg);
+            return fetchEventsResponse.data;
+        }
+        async fetchEventsByIds(options) {
+            const { ids } = options;
+            let msg = this.augmentWithAuthInfo({
+                ids
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-events', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchTempEvents(options) {
+            const { ids } = options;
+            let msg = this.augmentWithAuthInfo({
+                ids
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-temp-events', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchChannelMessages(options) {
+            let { channelId, since, until } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
+            const decodedChannelId = channelId.startsWith('npub1') ? index_4.Nip19.decode(channelId).data : channelId;
+            let msg = this.augmentWithAuthInfo({
+                channelId: decodedChannelId,
+                limit: 20
+            });
+            if (until === 0) {
+                msg.since = since;
+            }
+            else {
+                msg.until = until;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-channel-messages', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchChannelInfoMessages(options) {
+            const { channelId } = options;
+            const decodedChannelId = channelId.startsWith('npub1') ? index_4.Nip19.decode(channelId).data : channelId;
+            let msg = this.augmentWithAuthInfo({
+                channelId: decodedChannelId,
+                limit: 20
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-channel-info-messages', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchMessageContactsCacheEvents(options) {
+            const { pubKey } = options;
+            const senderToLastReadMap = {};
+            //FIXME: Implement a better way to get last read messages
+            if (localStorage) {
+                const lastReadsStr = localStorage.getItem('lastReads');
+                if (lastReadsStr) {
+                    const lastReads = JSON.parse(lastReadsStr);
+                    for (let sender in lastReads) {
+                        const decodedSender = sender.startsWith('npub1') ? index_4.Nip19.decode(sender).data : sender;
+                        senderToLastReadMap[decodedSender] = lastReads[sender];
+                    }
+                }
+            }
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
+            const msg = this.augmentWithAuthInfo({
+                receiver: decodedPubKey,
+                senderToLastReadMap: senderToLastReadMap
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-direct-messages-stats', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchDirectMessages(options) {
+            let { pubKey, since, until, sender } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
+            const decodedSenderPubKey = sender.startsWith('npub1') ? index_4.Nip19.decode(sender).data : sender;
+            const msg = this.augmentWithAuthInfo({
+                receiver: decodedPubKey,
+                sender: decodedSenderPubKey,
+                limit: 20
+            });
+            if (until === 0) {
+                msg.since = since;
+            }
+            else {
+                msg.until = until;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-direct-messages', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async resetMessageCount(options) {
+            const { sender } = options;
+            //FIXME: Implement a better way to set last read messages
+            if (localStorage) {
+                const lastReadsStr = localStorage.getItem('lastReads');
+                let lastReads = {};
+                if (lastReadsStr) {
+                    lastReads = JSON.parse(lastReadsStr);
+                }
+                lastReads[sender] = Math.ceil(Date.now() / 1000);
+                localStorage.setItem('lastReads', JSON.stringify(lastReads));
+            }
+        }
+        async fetchGroupKeys(options) {
+            const { identifiers } = options;
+            let msg = this.augmentWithAuthInfo({
+                identifiers
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-application-specific', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchUserGroupInvitations(options) {
+            const { pubKey, groupKinds } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
+            let msg = this.augmentWithAuthInfo({
+                pubKey: decodedPubKey,
+                groupKinds: groupKinds
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-group-invitations', msg);
+            let events = fetchEventsResponse.events?.filter(event => event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'invitee').map(tag => tag[1]).includes(decodedPubKey));
+            return events;
+        }
+        async fetchCalendarEvents(options) {
+            const { start, end, limit, previousEventId } = options;
+            let msg = this.augmentWithAuthInfo({
+                start: start,
+                end: end,
+                limit: limit || 10,
+                previousEventId
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-events', msg);
+            return {
+                events: fetchEventsResponse.events || [],
+                data: fetchEventsResponse.data
+            };
+        }
+        async fetchCalendarEvent(options) {
+            const { address } = options;
+            const key = `${address.kind}:${address.pubkey}:${address.identifier}`;
+            let msg = this.augmentWithAuthInfo({
+                key
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-events', msg);
+            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        }
+        async fetchCalendarEventPosts(options) {
+            const { calendarEventUri } = options;
+            let msg = this.augmentWithAuthInfo({
+                eventUri: calendarEventUri,
+                limit: 50
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-posts', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchCalendarEventRSVPs(options) {
+            const { calendarEventUri, pubkey } = options;
+            let msg = this.augmentWithAuthInfo({
+                eventUri: calendarEventUri
+            });
+            if (pubkey) {
+                const decodedPubKey = pubkey.startsWith('npub1') ? index_4.Nip19.decode(pubkey).data : pubkey;
+                msg.pubkey = decodedPubKey;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-rsvps', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchLongFormContentEvents(options) {
+            let { pubKey, since, until } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
+            let msg = this.augmentWithAuthInfo({
+                limit: 20
+            });
+            if (pubKey) {
+                const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
+                msg.pubKey = decodedPubKey;
+            }
+            if (until === 0) {
+                msg.since = since;
+            }
+            else {
+                msg.until = until;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-long-form-content', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async searchUsers(options) {
+            const { query } = options;
+            let msg = this.augmentWithAuthInfo({
+                query,
+                limit: 10
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('search-users', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchPaymentRequestEvent(options) {
+            const { paymentRequest } = options;
+            let hash = index_4.Event.getPaymentRequestHash(paymentRequest);
+            let req = {
+                kinds: [9739],
+                "#r": [hash]
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
+            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        }
+        async fetchPaymentReceiptEvent(options) {
+            const { requestEventId } = options;
+            let req = {
+                kinds: [9740],
+                "#e": [requestEventId]
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
+            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        }
+        getPaymentHash(tags) {
+            let tagsMap = {};
+            for (let _t of tags) {
+                tagsMap[_t[0]] = _t.slice(1);
+            }
+            return tagsMap['bolt11']?.[0] || tagsMap['payreq']?.[0] || tagsMap['r']?.[0];
+        }
+        async fetchPaymentActivitiesForRecipient(options) {
+            let { pubkey, since, until } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
+            let paymentRequestEventsReq = {
+                kinds: [9739],
+                authors: [pubkey],
+                limit: 10
+            };
+            if (until === 0) {
+                paymentRequestEventsReq.since = since;
+            }
+            else {
+                paymentRequestEventsReq.until = until;
+            }
+            const paymentRequestEvents = await this._nostrCommunicationManager.fetchEvents(paymentRequestEventsReq);
+            const requestEventIds = paymentRequestEvents.events.map(event => event.id);
+            let paymentReceiptEventsReq = {
+                kinds: [9740],
+                "#e": requestEventIds
+            };
+            const paymentReceiptEvents = await this._nostrCommunicationManager.fetchEvents(paymentReceiptEventsReq);
+            let paymentActivity = [];
+            for (let requestEvent of paymentRequestEvents.events) {
+                const paymentHash = this.getPaymentHash(requestEvent.tags);
+                const amount = requestEvent.tags.find(tag => tag[0] === 'amount')?.[1];
+                const receiptEvent = paymentReceiptEvents.events.find(event => event.tags.find(tag => tag[0] === 'e')?.[1] === requestEvent.id);
+                let status = 'pending';
+                let sender;
+                if (receiptEvent) {
+                    status = 'completed';
+                    sender = receiptEvent.pubkey;
+                }
+                paymentActivity.push({
+                    paymentHash,
+                    sender,
+                    recipient: pubkey,
+                    amount,
+                    status,
+                    createdAt: requestEvent.created_at
+                });
+            }
+            return paymentActivity;
+        }
+        async fetchPaymentActivitiesForSender(options) {
+            let { pubkey, since, until } = options;
+            if (!since)
+                since = 0;
+            if (!until)
+                until = 0;
+            let paymentReceiptEventsReq = {
+                kinds: [9740],
+                authors: [pubkey],
+                limit: 10
+            };
+            if (until === 0) {
+                paymentReceiptEventsReq.since = since;
+            }
+            else {
+                paymentReceiptEventsReq.until = until;
+            }
+            const paymentReceiptEvents = await this._nostrCommunicationManager.fetchEvents(paymentReceiptEventsReq);
+            let requestEventIds = [];
+            for (let event of paymentReceiptEvents.events) {
+                const requestEventId = event.tags.find(tag => tag[0] === 'e')?.[1];
+                if (requestEventId) {
+                    requestEventIds.push(requestEventId);
+                }
+            }
+            let paymentRequestEventsReq = {
+                kinds: [9739],
+                ids: requestEventIds
+            };
+            const paymentRequestEvents = await this._nostrCommunicationManager.fetchEvents(paymentRequestEventsReq);
+            let paymentActivity = [];
+            for (let receiptEvent of paymentReceiptEvents.events) {
+                const requestEventId = receiptEvent.tags.find(tag => tag[0] === 'e')?.[1];
+                const requestEvent = paymentRequestEvents.events.find(event => event.id === requestEventId);
+                if (requestEvent) {
+                    const paymentHash = this.getPaymentHash(requestEvent.tags);
+                    const amount = requestEvent.tags.find(tag => tag[0] === 'amount')?.[1];
+                    paymentActivity.push({
+                        paymentHash,
+                        sender: pubkey,
+                        recipient: requestEvent.pubkey,
+                        amount,
+                        status: 'completed',
+                        createdAt: receiptEvent.created_at
+                    });
+                }
+            }
+            return paymentActivity;
+        }
+        async fetchUserFollowingFeed(options) {
+            let { pubKey, until } = options;
+            if (!until)
+                until = 0;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
+            let msg = this.augmentWithAuthInfo({
+                pubkey: decodedPubKey,
+                limit: 20
+            });
+            if (until > 0) {
+                msg.until = until;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-following-feed', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchCommunityPinnedNotesEvents(options) {
+            const { communityId, creatorId } = options;
+            const communityPubkey = creatorId.startsWith('npub1') ? index_4.Nip19.decode(creatorId).data : creatorId;
+            let msg = this.augmentWithAuthInfo({
+                communityPubkey,
+                communityName: communityId,
+                eventMetadataIncluded: true
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-pinned-notes', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchCommunityPinnedNoteIds(options) {
+            const { communityId, creatorId } = options;
+            const communityPubkey = creatorId.startsWith('npub1') ? index_4.Nip19.decode(creatorId).data : creatorId;
+            let msg = this.augmentWithAuthInfo({
+                communityPubkey,
+                communityName: communityId,
+                eventMetadataIncluded: false
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-pinned-notes', msg);
+            return fetchEventsResponse.data?.ids || [];
+        }
+        async fetchUserPinnedNotes(options) {
+            const { pubKey } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
+            let msg = this.augmentWithAuthInfo({
+                pubkey: decodedPubKey
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-pinned-notes', msg);
+            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        }
+        async fetchUserBookmarks(options) {
+            const { pubKey } = options;
+            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
+            let msg = this.augmentWithAuthInfo({
+                pubkey: decodedPubKey
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-bookmarks', msg);
+            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        }
+        async fetchTrendingCommunities() {
+            let msg = this.augmentWithAuthInfo({});
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-trending-communities', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchUserEthWalletAccountsInfo(options) {
+            const { pubKey, walletHash } = options;
+            let msg = this.augmentWithAuthInfo({});
+            if (pubKey) {
+                const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
+                msg.pubkey = decodedPubKey;
+            }
+            else if (walletHash) {
+                msg.walletHash = walletHash;
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-eth-wallet-info', msg);
+            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
+        }
+        async fetchSubcommunites(options) {
+            const { communityCreatorId, communityName } = options;
+            const communityPubkey = communityCreatorId.startsWith('npub1') ? index_4.Nip19.decode(communityCreatorId).data : communityCreatorId;
+            let msg = this.augmentWithAuthInfo({
+                communityPubkey,
+                communityName
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-subcommunities', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchCommunityDetailMetadata(options) {
+            const { communityCreatorId, communityName } = options;
+            const communityPubkey = communityCreatorId.startsWith('npub1') ? index_4.Nip19.decode(communityCreatorId).data : communityCreatorId;
+            let msg = this.augmentWithAuthInfo({
+                communityPubkey,
+                communityName
+            });
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-detail-metadata', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async getCommunityUriToMembersMap(communities) {
+            let msg = this.augmentWithAuthInfo({
+                identifiers: []
+            });
+            for (let community of communities) {
+                const decodedCreatorId = community.creatorId.startsWith('npub1') ? index_4.Nip19.decode(community.creatorId).data : community.creatorId;
+                let request = {
+                    pubkey: decodedCreatorId,
+                    names: [community.communityId]
+                };
+                msg.identifiers.push(request);
+            }
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities-members', msg);
+            const events = fetchEventsResponse.events || [];
+            const communityMemberEvents = events.filter(event => event.kind === 10000112);
+            const nonCommunityMemberEvents = events.filter(event => event.kind !== 10000112);
+            let metadataArr = [];
+            let followersCountMap = {};
+            for (let event of nonCommunityMemberEvents) {
+                if (event.kind === 0) {
+                    metadataArr.push({
+                        ...event,
+                        content: utilsManager_3.SocialUtilsManager.parseContent(event.content)
+                    });
+                }
+                else if (event.kind === 10000108) {
+                    followersCountMap = utilsManager_3.SocialUtilsManager.parseContent(event.content);
+                }
+            }
+            const pubkeyToProfileMap = {};
+            for (let metadata of metadataArr) {
+                let userProfile = utilsManager_3.SocialUtilsManager.constructUserProfile(metadata, followersCountMap);
+                pubkeyToProfileMap[metadata.pubkey] = userProfile;
+            }
+            const communityUriToMembersMap = {};
+            const mapProfileToCommunityMember = (profile, role) => {
+                return {
+                    id: profile.npub,
+                    name: profile.displayName,
+                    profileImageUrl: profile.avatar,
+                    username: profile.username,
+                    internetIdentifier: profile.internetIdentifier,
+                    role
+                };
+            };
+            for (let event of communityMemberEvents) {
+                const content = utilsManager_3.SocialUtilsManager.parseContent(event.content);
+                const communityUri = utilsManager_3.SocialUtilsManager.getCommunityUri(content.communities_pubkey, content.communities_d);
+                const communityMembers = [];
+                const creatorProfile = pubkeyToProfileMap[content.communities_pubkey];
+                if (!creatorProfile)
+                    continue;
+                let creator = mapProfileToCommunityMember(creatorProfile, interfaces_5.CommunityRole.Creator);
+                communityMembers.push(creator);
+                for (let moderator of content.moderators) {
+                    const userProfile = pubkeyToProfileMap[moderator];
+                    if (!userProfile)
+                        continue;
+                    let communityMember = mapProfileToCommunityMember(userProfile, interfaces_5.CommunityRole.Moderator);
+                    communityMembers.push(communityMember);
+                }
+                for (let member of content.general_members) {
+                    const userProfile = pubkeyToProfileMap[member];
+                    if (!userProfile)
+                        continue;
+                    let communityMember = mapProfileToCommunityMember(userProfile, interfaces_5.CommunityRole.GeneralMember);
+                    communityMembers.push(communityMember);
+                }
+                communityUriToMembersMap[communityUri] = communityMembers;
+            }
+            return communityUriToMembersMap;
+        }
+    }
+    exports.NostrEventManagerReadV1o5 = NostrEventManagerReadV1o5;
+});
+define("@scom/scom-social-sdk/managers/eventManagerReadV2.ts", ["require", "exports", "@scom/scom-social-sdk/managers/utilsManager.ts", "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts"], function (require, exports, utilsManager_4, eventManagerReadV1o5_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.NostrEventManagerReadV2 = void 0;
+    class NostrEventManagerReadV2 extends eventManagerReadV1o5_1.NostrEventManagerReadV1o5 {
+        constructor(manager) {
+            super(manager);
+        }
+        set nostrCommunicationManager(manager) {
+            this._nostrCommunicationManager = manager;
+        }
+        augmentWithAuthInfo(obj) {
+            return utilsManager_4.SocialUtilsManager.augmentWithAuthInfo(obj, this._privateKey);
+        }
+        async searchUsers(options) {
+            return [];
+        }
+        async fetchPaymentRequestEvent(options) {
+            return null;
+        }
+        async fetchPaymentActivitiesForRecipient(options) {
+            return [];
+        }
+        async fetchPaymentActivitiesForSender(options) {
+            return [];
+        }
+        async fetchUserFollowingFeed(options) {
+            return [];
+        }
+    }
+    exports.NostrEventManagerReadV2 = NostrEventManagerReadV2;
+});
 ///<amd-module name='@scom/scom-social-sdk/utils/geohash.ts'/> 
 /**
  * Portions of this file are derived from [node-geohash](https://github.com/sunng87/node-geohash)
@@ -4190,7 +7159,7 @@ define("@scom/scom-social-sdk/utils/geohash.ts", ["require", "exports"], functio
     };
     exports.default = Geohash;
 });
-define("@scom/scom-social-sdk/utils/lightningWallet.ts", ["require", "exports", "@ijstech/ln-wallet", "@scom/scom-social-sdk/core/index.ts"], function (require, exports, ln_wallet_1, index_1) {
+define("@scom/scom-social-sdk/utils/lightningWallet.ts", ["require", "exports", "@ijstech/ln-wallet", "@scom/scom-social-sdk/core/index.ts"], function (require, exports, ln_wallet_1, index_5) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.LightningWalletManager = void 0;
@@ -4253,7 +7222,7 @@ define("@scom/scom-social-sdk/utils/lightningWallet.ts", ["require", "exports", 
                 // }
                 nip57.tags.push(["e", eventId /*event.pubkey*/]);
             }
-            nip57 = index_1.Event.finishEvent(nip57, this._privateKey);
+            nip57 = index_5.Event.finishEvent(nip57, this._privateKey);
             return nip57;
         }
         async getZapEndpoint(lnAddress) {
@@ -4302,2985 +7271,10 @@ define("@scom/scom-social-sdk/utils/lightningWallet.ts", ["require", "exports", 
     }
     exports.LightningWalletManager = LightningWalletManager;
 });
-define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", "@ijstech/eth-wallet", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-signer"], function (require, exports, eth_wallet_1, index_2, interfaces_2, scom_signer_1) {
+define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/managers/communication.ts", "@scom/scom-social-sdk/utils/geohash.ts", "@scom/scom-mqtt", "@scom/scom-social-sdk/utils/lightningWallet.ts", "@scom/scom-social-sdk/managers/utilsManager.ts", "@scom/scom-social-sdk/managers/eventManagerWrite.ts", "@scom/scom-social-sdk/managers/eventManagerRead.ts", "@scom/scom-social-sdk/managers/eventManagerReadV2.ts", "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", "@scom/scom-signer", "@ijstech/eth-wallet"], function (require, exports, index_6, interfaces_6, communication_1, geohash_1, scom_mqtt_1, lightningWallet_1, utilsManager_5, eventManagerWrite_1, eventManagerRead_1, eventManagerReadV2_1, eventManagerReadV1o5_2, scom_signer_2, eth_wallet_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.SocialUtilsManager = void 0;
-    class SocialUtilsManager {
-        static hexStringToUint8Array(hexString) {
-            return new Uint8Array(hexString.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-        }
-        static base64ToUtf8(base64) {
-            if (typeof window !== "undefined") {
-                return atob(base64);
-            }
-            else {
-                // @ts-ignore
-                return Buffer.from(base64, 'base64').toString('utf8');
-            }
-        }
-        static utf8ToBase64(utf8) {
-            if (typeof window !== "undefined") {
-                return btoa(utf8);
-            }
-            else {
-                // @ts-ignore
-                return Buffer.from(utf8).toString('base64');
-            }
-        }
-        static convertPrivateKeyToPubkey(privateKey) {
-            if (privateKey.startsWith('0x'))
-                privateKey = privateKey.replace('0x', '');
-            let pub = eth_wallet_1.Utils.padLeft(index_2.Keys.getPublicKey(privateKey), 64);
-            return pub;
-        }
-        static async encryptMessage(ourPrivateKey, theirPublicKey, text) {
-            const sharedSecret = index_2.Keys.getSharedSecret(ourPrivateKey, '02' + theirPublicKey);
-            const sharedX = SocialUtilsManager.hexStringToUint8Array(sharedSecret.slice(2));
-            let encryptedMessage;
-            let ivBase64;
-            if (typeof window !== "undefined") {
-                const iv = crypto.getRandomValues(new Uint8Array(16));
-                const key = await crypto.subtle.importKey('raw', sharedX, { name: 'AES-CBC' }, false, ['encrypt']);
-                const encryptedBuffer = await crypto.subtle.encrypt({ name: 'AES-CBC', iv }, key, new TextEncoder().encode(text));
-                encryptedMessage = btoa(String.fromCharCode(...new Uint8Array(encryptedBuffer)));
-                ivBase64 = btoa(String.fromCharCode(...iv));
-            }
-            else {
-                // @ts-ignore
-                const crypto = require('crypto');
-                const iv = crypto.randomBytes(16);
-                const cipher = crypto.createCipheriv('aes-256-cbc', sharedX, iv);
-                encryptedMessage = cipher.update(text, 'utf8', 'base64');
-                encryptedMessage += cipher.final('base64');
-                ivBase64 = iv.toString('base64');
-            }
-            return `${encryptedMessage}?iv=${ivBase64}`;
-        }
-        static async decryptMessage(ourPrivateKey, theirPublicKey, encryptedData) {
-            let decryptedMessage = null;
-            try {
-                const [encryptedMessage, ivBase64] = encryptedData.split('?iv=');
-                const sharedSecret = index_2.Keys.getSharedSecret(ourPrivateKey, '02' + theirPublicKey);
-                const sharedX = SocialUtilsManager.hexStringToUint8Array(sharedSecret.slice(2));
-                if (typeof window !== "undefined") {
-                    const iv = Uint8Array.from(atob(ivBase64), c => c.charCodeAt(0));
-                    const key = await crypto.subtle.importKey('raw', sharedX, { name: 'AES-CBC' }, false, ['decrypt']);
-                    const decryptedBuffer = await crypto.subtle.decrypt({ name: 'AES-CBC', iv }, key, Uint8Array.from(atob(encryptedMessage), c => c.charCodeAt(0)));
-                    decryptedMessage = new TextDecoder().decode(decryptedBuffer);
-                }
-                else {
-                    // @ts-ignore
-                    const crypto = require('crypto');
-                    // @ts-ignore
-                    const iv = Buffer.from(ivBase64, 'base64');
-                    const decipher = crypto.createDecipheriv('aes-256-cbc', sharedX, iv);
-                    // @ts-ignore
-                    let decrypted = decipher.update(Buffer.from(encryptedMessage, 'base64'));
-                    // @ts-ignore
-                    decrypted = Buffer.concat([decrypted, decipher.final()]);
-                    decryptedMessage = decrypted.toString('utf8');
-                }
-            }
-            catch (e) {
-            }
-            return decryptedMessage;
-        }
-        static pad(number) {
-            return number < 10 ? '0' + number : number.toString();
-        }
-        static getGMTOffset(timezone) {
-            let gmtOffset;
-            try {
-                const date = new Date();
-                const utcDate = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
-                const tzDate = new Date(date.toLocaleString('en-US', { timeZone: timezone }));
-                const offset = (tzDate.getTime() - utcDate.getTime()) / (1000 * 60 * 60);
-                const sign = offset < 0 ? '-' : '+';
-                const absoluteOffset = Math.abs(offset);
-                const hours = Math.floor(absoluteOffset);
-                const minutes = (absoluteOffset - hours) * 60;
-                gmtOffset = `GMT${sign}${this.pad(hours)}:${this.pad(minutes)}`;
-            }
-            catch (err) {
-                console.error(err);
-            }
-            return gmtOffset;
-        }
-        static async exponentialBackoffRetry(fn, // Function to retry
-        retries, // Maximum number of retries
-        delay, // Initial delay duration in milliseconds
-        maxDelay, // Maximum delay duration in milliseconds
-        factor // Exponential backoff factor
-        ) {
-            let currentDelay = delay;
-            for (let i = 0; i < retries; i++) {
-                try {
-                    return await fn();
-                }
-                catch (error) {
-                    console.error(`Attempt ${i + 1} failed. Retrying in ${currentDelay}ms...`);
-                    // Wait for the current delay period
-                    await new Promise(resolve => setTimeout(resolve, currentDelay));
-                    // Update delay for the next iteration, capped at maxDelay
-                    currentDelay = Math.min(maxDelay, currentDelay * factor);
-                }
-            }
-            // If all retries have been exhausted, throw an error
-            throw new Error(`Failed after ${retries} retries`);
-        }
-        static getCommunityUri(creatorId, communityId) {
-            const decodedPubkey = creatorId.startsWith('npub1') ? index_2.Nip19.decode(creatorId).data : creatorId;
-            return `34550:${decodedPubkey}:${communityId}`;
-        }
-        static getCommunityBasicInfoFromUri(communityUri) {
-            const parts = communityUri.split(':');
-            return {
-                creatorId: parts[1],
-                communityId: parts[2]
-            };
-        }
-        static extractCommunityInfo(event) {
-            const communityId = event.tags.find(tag => tag[0] === 'd')?.[1];
-            const description = event.tags.find(tag => tag[0] === 'description')?.[1];
-            const rules = event.tags.find(tag => tag[0] === 'rules')?.[1];
-            const image = event.tags.find(tag => tag[0] === 'image')?.[1];
-            const avatar = event.tags.find(tag => tag[0] === 'avatar')?.[1];
-            const privateRelay = event.tags.find(tag => tag[0] === 'private_relay')?.[1];
-            const creatorId = index_2.Nip19.npubEncode(event.pubkey);
-            const moderatorIds = event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'moderator').map(tag => index_2.Nip19.npubEncode(tag[1]));
-            const scpTag = event.tags.find(tag => tag[0] === 'scp');
-            const enableLeaderboard = event.tags.some(tag => tag[0] === 'leaderboard');
-            const parentCommunityUri = event.tags.find(tag => tag[0] === 'a')?.[1];
-            let policies = [];
-            let scpData;
-            let gatekeeperNpub;
-            let membershipType = interfaces_2.MembershipType.Open;
-            let data = {};
-            if (event.content) {
-                try {
-                    data = JSON.parse(event.content);
-                }
-                catch {
-                    data = {};
-                }
-            }
-            let pointSystem, collectibles, postStatusOptions;
-            if (scpTag && scpTag[1] === '1') {
-                membershipType = interfaces_2.MembershipType.Protected;
-                policies = Array.isArray(data) ? data : data.policies || [];
-                const scpDataStr = SocialUtilsManager.base64ToUtf8(scpTag[2]);
-                if (!scpDataStr.startsWith('$scp:'))
-                    return null;
-                scpData = JSON.parse(scpDataStr.substring(5));
-                if (scpData.gatekeeperPublicKey) {
-                    gatekeeperNpub = index_2.Nip19.npubEncode(scpData.gatekeeperPublicKey);
-                }
-            }
-            if (!Array.isArray(data)) {
-                pointSystem = data.pointSystem;
-                collectibles = data.collectibles;
-                postStatusOptions = data.postStatuses?.length > 0 && typeof data.postStatuses[0] === 'string' ? data.postStatuses.map(status => ({ status })) : data.postStatuses;
-            }
-            const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
-            let communityInfo = {
-                creatorId,
-                moderatorIds,
-                communityUri,
-                communityId,
-                description,
-                rules,
-                bannerImgUrl: image,
-                avatarImgUrl: avatar,
-                scpData,
-                eventData: event,
-                gatekeeperNpub,
-                membershipType,
-                privateRelay,
-                policies,
-                pointSystem,
-                collectibles,
-                enableLeaderboard,
-                parentCommunityUri,
-                postStatusOptions
-            };
-            return communityInfo;
-        }
-        static extractBookmarkedCommunities(event, excludedCommunity) {
-            const communities = [];
-            const communityUriArr = event?.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
-            for (let communityUri of communityUriArr) {
-                const basicInfo = SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
-                if (excludedCommunity) {
-                    const decodedPubkey = index_2.Nip19.decode(excludedCommunity.creatorId).data;
-                    if (basicInfo.communityId === excludedCommunity.communityId && basicInfo.creatorId === decodedPubkey)
-                        continue;
-                }
-                communities.push({
-                    communityId: basicInfo.communityId,
-                    creatorId: basicInfo.creatorId
-                });
-            }
-            return communities;
-        }
-        static extractBookmarkedChannels(event) {
-            const channelEventIds = event?.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
-            return channelEventIds;
-        }
-        static extractScpData(event, standardId) {
-            const scpTag = event.tags.find(tag => tag[0] === 'scp');
-            let scpData;
-            if (scpTag && scpTag[1] === standardId) {
-                const scpDataStr = SocialUtilsManager.base64ToUtf8(scpTag[2]);
-                if (!scpDataStr.startsWith('$scp:'))
-                    return null;
-                scpData = JSON.parse(scpDataStr.substring(5));
-            }
-            return scpData;
-        }
-        static parseContent(content) {
-            try {
-                return JSON.parse(content);
-            }
-            catch (err) {
-                console.log('Error parsing content', content);
-            }
-            ;
-        }
-        static extractChannelInfo(event) {
-            const content = this.parseContent(event.content);
-            let eventId;
-            if (event.kind === 40) {
-                eventId = event.id;
-            }
-            else if (event.kind === 41) {
-                eventId = event.tags.find(tag => tag[0] === 'e')?.[1];
-            }
-            if (!eventId)
-                return null;
-            let scpData = this.extractScpData(event, interfaces_2.ScpStandardId.Channel);
-            let channelInfo = {
-                id: eventId,
-                name: content.name,
-                about: content.about,
-                picture: content.picture,
-                scpData,
-                eventData: event,
-            };
-            return channelInfo;
-        }
-        static augmentWithAuthInfo(obj, privateKey) {
-            if (!privateKey)
-                return obj;
-            const pubkey = index_2.Keys.getPublicKey(privateKey);
-            let signature = scom_signer_1.Signer.getSignature({ pubkey: pubkey }, privateKey, { pubkey: 'string' });
-            return {
-                ...obj,
-                auth: {
-                    pubkey,
-                    signature
-                }
-            };
-        }
-        static constructUserProfile(metadata, followersCountMap) {
-            const followersCount = followersCountMap?.[metadata.pubkey] || 0;
-            const encodedPubkey = index_2.Nip19.npubEncode(metadata.pubkey);
-            const metadataContent = metadata.content;
-            const internetIdentifier = typeof metadataContent.nip05 === 'string' ? metadataContent.nip05?.replace('_@', '') || '' : '';
-            let userProfile = {
-                id: encodedPubkey,
-                username: metadataContent.username || metadataContent.name,
-                description: metadataContent.about,
-                avatar: metadataContent.picture,
-                npub: encodedPubkey,
-                pubkey: metadata.pubkey,
-                displayName: metadataContent.display_name || metadataContent.displayName || metadataContent.name,
-                internetIdentifier,
-                website: metadataContent.website,
-                banner: metadataContent.banner,
-                followers: followersCount,
-                lud16: metadataContent.lud16,
-                metadata,
-            };
-            return userProfile;
-        }
-        //FIXME: remove this when compiler is fixed
-        static flatMap(array, callback) {
-            return array.reduce((acc, item) => {
-                return acc.concat(callback(item));
-            }, []);
-        }
-    }
-    exports.SocialUtilsManager = SocialUtilsManager;
-});
-define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/managers/utilsManager.ts"], function (require, exports, index_3, interfaces_3, utilsManager_1) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.NostrEventManagerWrite = void 0;
-    function convertUnixTimestampToDate(timestamp) {
-        const date = new Date(timestamp * 1000);
-        const year = date.getFullYear();
-        const month = ("0" + (date.getMonth() + 1)).slice(-2);
-        const day = ("0" + date.getDate()).slice(-2);
-        return `${year}-${month}-${day}`;
-    }
-    class NostrEventManagerWrite {
-        constructor(managers, mainRelay) {
-            this._nostrCommunicationManagers = [];
-            this._nostrCommunicationManagers = managers;
-            this._mainNostrRestAPIManager = managers.find(manager => manager.url === mainRelay);
-        }
-        set nostrCommunicationManagers(managers) {
-            this._nostrCommunicationManagers = managers;
-        }
-        set privateKey(privateKey) {
-            this._privateKey = privateKey;
-        }
-        calculateConversationPathTags(conversationPath) {
-            let tags = [];
-            for (let i = 0; i < conversationPath.noteIds.length; i++) {
-                const noteId = conversationPath.noteIds[i];
-                const decodedNoteId = noteId.startsWith('note1') ? index_3.Nip19.decode(noteId).data : noteId;
-                let tagItem;
-                if (i === 0) {
-                    tagItem = [
-                        "e",
-                        decodedNoteId,
-                        "",
-                        "root"
-                    ];
-                }
-                else if (i === conversationPath.noteIds.length - 1) {
-                    tagItem = [
-                        "e",
-                        decodedNoteId,
-                        "",
-                        "reply"
-                    ];
-                }
-                else {
-                    tagItem = [
-                        "e",
-                        decodedNoteId
-                    ];
-                }
-                tags.push(tagItem);
-            }
-            for (let authorId of conversationPath.authorIds) {
-                const decodedAuthorId = authorId.startsWith('npub1') ? index_3.Nip19.decode(authorId).data : authorId;
-                tags.push([
-                    "p",
-                    decodedAuthorId
-                ]);
-            }
-            return tags;
-        }
-        async handleEventSubmission(event, options) {
-            let mainRelayOnly = options?.mainRelayOnly;
-            let privateKey = options?.privateKey || this._privateKey;
-            const verifiedEvent = index_3.Event.finishEvent(event, privateKey);
-            let relayResponses = [];
-            if (mainRelayOnly) {
-                const response = await this._mainNostrRestAPIManager.submitEvent(verifiedEvent);
-                relayResponses.push(response);
-            }
-            else {
-                relayResponses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent)));
-            }
-            return {
-                event: verifiedEvent,
-                relayResponses
-            };
-        }
-        async updateContactList(content, contactPubKeys) {
-            let event = {
-                "kind": 3,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": content,
-                "tags": []
-            };
-            for (let contactPubKey of contactPubKeys) {
-                event.tags.push([
-                    "p",
-                    contactPubKey
-                ]);
-            }
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async postNote(content, conversationPath, createdAt) {
-            let event = {
-                "kind": 1,
-                "created_at": createdAt !== undefined ? createdAt : Math.round(Date.now() / 1000),
-                "content": content,
-                "tags": []
-            };
-            if (conversationPath) {
-                const conversationPathTags = this.calculateConversationPathTags(conversationPath);
-                event.tags = conversationPathTags;
-            }
-            // const noteId = Nip19.noteEncode(verifiedEvent.id);
-            // return noteId;
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async deleteEvents(eventIds) {
-            let event = {
-                "kind": 5,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": "",
-                "tags": []
-            };
-            for (let eventId of eventIds) {
-                const decodedEventId = eventId.startsWith('note1') ? index_3.Nip19.decode(eventId).data : eventId;
-                event.tags.push([
-                    "e",
-                    decodedEventId
-                ]);
-            }
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async updateChannel(info) {
-            let kind = info.id ? 41 : 40;
-            let event = {
-                "kind": kind,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": JSON.stringify({
-                    name: info.name,
-                    about: info.about,
-                    picture: info.picture
-                }),
-                "tags": []
-            };
-            if (info.id) {
-                event.tags.push([
-                    "e",
-                    info.id
-                ]);
-            }
-            if (info.scpData) {
-                let encodedScpData = utilsManager_1.SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
-                event.tags.push([
-                    "scp",
-                    interfaces_3.ScpStandardId.Channel,
-                    encodedScpData
-                ]);
-            }
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async updateUserBookmarkedChannels(channelEventIds) {
-            let event = {
-                "kind": 30001,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": '',
-                "tags": [
-                    [
-                        "d",
-                        "channels"
-                    ]
-                ]
-            };
-            for (let channelEventId of channelEventIds) {
-                event.tags.push([
-                    "a",
-                    channelEventId
-                ]);
-            }
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async updateCommunity(info) {
-            const data = {
-                pointSystem: info.pointSystem,
-                collectibles: info.collectibles
-            };
-            if (info.membershipType === interfaces_3.MembershipType.Protected) {
-                data.policies = [];
-                for (let policy of info.policies) {
-                    const memberIds = policy.memberIds?.map(memberId => {
-                        return memberId.startsWith('npub1') ? index_3.Nip19.decode(memberId).data : memberId;
-                    });
-                    data.policies.push({
-                        ...policy,
-                        memberIds
-                    });
-                }
-            }
-            if (info.postStatusOptions?.length > 0) {
-                data.postStatuses = info.postStatusOptions;
-            }
-            const isEmptyObject = JSON.stringify(data) === "{}";
-            const content = isEmptyObject ? "" : JSON.stringify(data);
-            let event = {
-                "kind": 34550,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": content,
-                "tags": [
-                    [
-                        "d",
-                        info.communityId
-                    ],
-                    [
-                        "description",
-                        info.description
-                    ]
-                ]
-            };
-            if (info.bannerImgUrl) {
-                event.tags.push([
-                    "image",
-                    info.bannerImgUrl
-                ]);
-            }
-            if (info.avatarImgUrl) {
-                event.tags.push([
-                    "avatar",
-                    info.avatarImgUrl
-                ]);
-            }
-            if (info.rules) {
-                event.tags.push([
-                    "rules",
-                    info.rules
-                ]);
-            }
-            if (info.privateRelay) {
-                event.tags.push([
-                    "private_relay",
-                    info.privateRelay
-                ]);
-            }
-            if (info.scpData) {
-                let encodedScpData = utilsManager_1.SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
-                event.tags.push([
-                    "scp",
-                    interfaces_3.ScpStandardId.Community,
-                    encodedScpData
-                ]);
-            }
-            for (let moderatorId of info.moderatorIds) {
-                const decodedModeratorId = moderatorId.startsWith('npub1') ? index_3.Nip19.decode(moderatorId).data : moderatorId;
-                event.tags.push([
-                    "p",
-                    decodedModeratorId,
-                    "",
-                    "moderator"
-                ]);
-            }
-            if (info.enableLeaderboard) {
-                event.tags.push([
-                    "leaderboard",
-                    "true"
-                ]);
-            }
-            if (info.parentCommunityUri) {
-                event.tags.push([
-                    "a",
-                    info.parentCommunityUri
-                ]);
-            }
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async updateUserBookmarkedCommunities(communities) {
-            let communityUriArr = [];
-            for (let community of communities) {
-                const communityUri = utilsManager_1.SocialUtilsManager.getCommunityUri(community.creatorId, community.communityId);
-                communityUriArr.push(communityUri);
-            }
-            let event = {
-                "kind": 30001,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": '',
-                "tags": [
-                    [
-                        "d",
-                        "communities"
-                    ]
-                ]
-            };
-            for (let communityUri of communityUriArr) {
-                event.tags.push([
-                    "a",
-                    communityUri
-                ]);
-            }
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async submitCommunityPost(info) {
-            const community = info.community;
-            const communityUri = utilsManager_1.SocialUtilsManager.getCommunityUri(community.creatorId, community.communityId);
-            let event = {
-                "kind": 1,
-                "created_at": info.timestamp || Math.round(Date.now() / 1000),
-                "content": info.message,
-                "tags": []
-            };
-            if (info.scpData) {
-                let encodedScpData = utilsManager_1.SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
-                event.tags.push([
-                    "scp",
-                    interfaces_3.ScpStandardId.CommunityPost,
-                    encodedScpData
-                ]);
-            }
-            if (info.conversationPath) {
-                const conversationPathTags = this.calculateConversationPathTags(info.conversationPath);
-                event.tags.push(...conversationPathTags);
-            }
-            else {
-                event.tags.push([
-                    "a",
-                    communityUri,
-                    "",
-                    "root"
-                ]);
-            }
-            if (info.alt) {
-                event.tags.push([
-                    "alt",
-                    info.alt
-                ]);
-            }
-            console.log('submitCommunityPost', event);
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async submitChannelMessage(info) {
-            let event = {
-                "kind": 42,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": info.message,
-                "tags": []
-            };
-            if (info.scpData) {
-                let encodedScpData = utilsManager_1.SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
-                event.tags.push([
-                    "scp",
-                    interfaces_3.ScpStandardId.ChannelMessage,
-                    encodedScpData
-                ]);
-            }
-            if (info.conversationPath) {
-                const conversationPathTags = this.calculateConversationPathTags(info.conversationPath);
-                event.tags.push(...conversationPathTags);
-            }
-            else {
-                event.tags.push([
-                    "e",
-                    info.channelId,
-                    "",
-                    "root"
-                ]);
-            }
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async updateUserProfile(content) {
-            let event = {
-                "kind": 0,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": JSON.stringify(content),
-                "tags": []
-            };
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async sendMessage(receiver, encryptedMessage, replyToEventId) {
-            const decodedPubKey = receiver.startsWith('npub1') ? index_3.Nip19.decode(receiver).data : receiver;
-            let event = {
-                "kind": 4,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": encryptedMessage,
-                "tags": [
-                    [
-                        'p',
-                        decodedPubKey
-                    ]
-                ]
-            };
-            if (replyToEventId) {
-                event.tags.push(['e', replyToEventId]);
-            }
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async sendTempMessage(options) {
-            const { receiver, encryptedMessage, replyToEventId, widgetId } = options;
-            const decodedPubKey = receiver.startsWith('npub1') ? index_3.Nip19.decode(receiver).data : receiver;
-            let event = {
-                "kind": 20004,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": encryptedMessage,
-                "tags": [
-                    [
-                        'p',
-                        decodedPubKey
-                    ]
-                ]
-            };
-            if (replyToEventId) {
-                event.tags.push(['e', replyToEventId]);
-            }
-            if (widgetId) {
-                event.tags.push(['w', widgetId]);
-            }
-            const result = await this.handleEventSubmission(event, {
-                mainRelayOnly: true
-            });
-            return result;
-        }
-        async updateGroupKeys(identifier, groupKind, keys, invitees) {
-            let event = {
-                "kind": 30078,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": keys,
-                "tags": [
-                    [
-                        "d",
-                        identifier
-                    ],
-                    [
-                        "k",
-                        groupKind.toString()
-                    ],
-                    [
-                        "scp",
-                        interfaces_3.ScpStandardId.GroupKeys
-                    ]
-                ]
-            };
-            for (let invitee of invitees) {
-                const decodedInvitee = invitee.startsWith('npub1') ? index_3.Nip19.decode(invitee).data : invitee;
-                event.tags.push([
-                    "p",
-                    decodedInvitee,
-                    "",
-                    "invitee"
-                ]);
-            }
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async updateCalendarEvent(info) {
-            let kind;
-            let start;
-            let end;
-            if (info.type === interfaces_3.CalendarEventType.DateBased) {
-                kind = 31922;
-                start = convertUnixTimestampToDate(info.start);
-            }
-            else {
-                kind = 31923;
-                start = info.start.toString();
-            }
-            let event = {
-                "kind": kind,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": info.description,
-                "tags": [
-                    [
-                        "d",
-                        info.id
-                    ],
-                    [
-                        "title",
-                        info.title
-                    ],
-                    [
-                        "start",
-                        start
-                    ],
-                    [
-                        "location",
-                        info.location
-                    ],
-                    [
-                        "g",
-                        info.geohash
-                    ]
-                ]
-            };
-            if (info.image) {
-                event.tags.push([
-                    "image",
-                    info.image
-                ]);
-            }
-            if (info.end) {
-                if (info.type === interfaces_3.CalendarEventType.DateBased) {
-                    end = convertUnixTimestampToDate(info.end);
-                }
-                else {
-                    end = info.end.toString();
-                }
-                event.tags.push([
-                    "end",
-                    end
-                ]);
-            }
-            if (info.startTzid) {
-                event.tags.push([
-                    "start_tzid",
-                    info.startTzid
-                ]);
-            }
-            if (info.endTzid) {
-                event.tags.push([
-                    "end_tzid",
-                    info.endTzid
-                ]);
-            }
-            if (info.hostIds) {
-                for (let hostId of info.hostIds) {
-                    const decodedHostId = hostId.startsWith('npub1') ? index_3.Nip19.decode(hostId).data : hostId;
-                    event.tags.push([
-                        "p",
-                        decodedHostId,
-                        "",
-                        "host"
-                    ]);
-                }
-            }
-            if (info.city) {
-                event.tags.push([
-                    "city",
-                    info.city
-                ]);
-            }
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async createCalendarEventRSVP(rsvpId, calendarEventUri, accepted) {
-            let event = {
-                "kind": 31925,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": "",
-                "tags": [
-                    [
-                        "d",
-                        rsvpId
-                    ],
-                    [
-                        "a",
-                        calendarEventUri
-                    ],
-                    [
-                        "L",
-                        "status"
-                    ],
-                    [
-                        "l",
-                        accepted ? "accepted" : "declined",
-                        "status"
-                    ]
-                ]
-            };
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async submitCalendarEventPost(info) {
-            let event = {
-                "kind": 1,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": info.message,
-                "tags": []
-            };
-            if (info.conversationPath) {
-                const conversationPathTags = this.calculateConversationPathTags(info.conversationPath);
-                event.tags.push(...conversationPathTags);
-            }
-            else {
-                event.tags.push([
-                    "a",
-                    info.calendarEventUri,
-                    "",
-                    "root"
-                ]);
-            }
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async submitLongFormContentEvents(info) {
-            let hashtags = [];
-            if (info.hashtags?.length > 0) {
-                hashtags = info.hashtags.map(tag => ["t", tag]);
-            }
-            let event = {
-                "kind": 1,
-                "created_at": info.createdAt || Math.round(Date.now() / 1000),
-                "content": info.content,
-                "tags": [
-                    [
-                        "d",
-                        info.id
-                    ],
-                    [
-                        "c",
-                        "md"
-                    ],
-                    [
-                        "content",
-                        info.markdownContent
-                    ],
-                    ...hashtags
-                ]
-            };
-            if (info.title) {
-                event.tags.push([
-                    "title",
-                    info.title
-                ]);
-            }
-            if (info.image) {
-                event.tags.push([
-                    "image",
-                    info.image
-                ]);
-            }
-            if (info.summary) {
-                event.tags.push([
-                    "summary",
-                    info.summary
-                ]);
-            }
-            if (info.publishedAt) {
-                event.tags.push([
-                    "published_at",
-                    info.publishedAt.toString()
-                ]);
-            }
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async submitLike(tags) {
-            let event = {
-                "kind": 7,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": "+",
-                "tags": tags
-            };
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async submitRepost(content, tags) {
-            let event = {
-                "kind": 6,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": content,
-                "tags": tags
-            };
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async updateRelayList(relays) {
-            let event = {
-                "kind": 10002,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": "",
-                "tags": []
-            };
-            for (let url in relays) {
-                const { read, write } = relays[url];
-                if (!read && !write)
-                    continue;
-                const tag = [
-                    "r",
-                    url
-                ];
-                if (!read || !write)
-                    tag.push(read ? 'read' : 'write');
-                event.tags.push(tag);
-            }
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async createPaymentRequestEvent(paymentRequest, amount, comment, isLightningInvoice) {
-            let hash = index_3.Event.getPaymentRequestHash(paymentRequest);
-            let event = {
-                "kind": 9739,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": comment,
-                "tags": [
-                    [
-                        "r",
-                        hash
-                    ],
-                    [
-                        isLightningInvoice ? "bolt11" : "payreq",
-                        paymentRequest
-                    ],
-                    [
-                        "amount",
-                        amount
-                    ]
-                ]
-            };
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async createPaymentReceiptEvent(requestEventId, recipient, comment, preimage, tx) {
-            let event = {
-                "kind": 9740,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": comment,
-                "tags": [
-                    [
-                        "e",
-                        requestEventId
-                    ],
-                    [
-                        "p",
-                        recipient
-                    ],
-                ]
-            };
-            if (preimage) {
-                event.tags.push([
-                    "preimage",
-                    preimage
-                ]);
-            }
-            if (tx) {
-                event.tags.push([
-                    "tx",
-                    tx
-                ]);
-            }
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async updateCommunityPinnedNotes(creatorId, communityId, eventIds) {
-            const communityUri = utilsManager_1.SocialUtilsManager.getCommunityUri(creatorId, communityId);
-            let tags = eventIds.map(id => ["e", id]);
-            let event = {
-                "kind": 9741,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": "",
-                "tags": [
-                    [
-                        "a",
-                        communityUri
-                    ],
-                    ...tags
-                ]
-            };
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async updateUserPinnedNotes(eventIds) {
-            let tags = eventIds.map(id => ["e", id]);
-            let event = {
-                "kind": 10001,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": "",
-                "tags": tags
-            };
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async updateUserBookmarks(tags) {
-            let event = {
-                "kind": 10003,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": "",
-                "tags": [...tags]
-            };
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-        async updateUserEthWalletAccountsInfo(options, privateKey) {
-            let event = {
-                "kind": 9742,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": JSON.stringify({
-                    "master_wallet_signature": options.masterWalletSignature,
-                    "social_wallet_signature": options.socialWalletSignature,
-                    "encrypted_key": options.encryptedKey
-                }),
-                "tags": [
-                    [
-                        "d",
-                        options.masterWalletHash
-                    ]
-                ]
-            };
-            const result = await this.handleEventSubmission(event, {
-                privateKey
-            });
-            return result;
-        }
-        async updateNoteStatus(noteId, status) {
-            let event = {
-                "kind": 1985,
-                "created_at": Math.round(Date.now() / 1000),
-                "content": "",
-                "tags": [
-                    [
-                        "L",
-                        "status"
-                    ],
-                    [
-                        "l",
-                        status,
-                        "status"
-                    ],
-                    [
-                        "e",
-                        noteId
-                    ]
-                ]
-            };
-            const result = await this.handleEventSubmission(event);
-            return result;
-        }
-    }
-    exports.NostrEventManagerWrite = NostrEventManagerWrite;
-});
-define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/managers/utilsManager.ts"], function (require, exports, index_4, interfaces_4, utilsManager_2) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.NostrEventManagerRead = void 0;
-    class NostrEventManagerRead {
-        constructor(manager) {
-            this._nostrCommunicationManager = manager;
-        }
-        set nostrCommunicationManager(manager) {
-            this._nostrCommunicationManager = manager;
-        }
-        set privateKey(privateKey) {
-            this._privateKey = privateKey;
-        }
-        async fetchThreadCacheEvents(options) {
-            const { id, pubKey } = options;
-            let decodedId = id.startsWith('note1') ? index_4.Nip19.decode(id).data : id;
-            let msg = {
-                event_id: decodedId,
-                limit: 100
-            };
-            if (pubKey) {
-                const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
-                msg.user_pubkey = decodedPubKey;
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('thread_view', msg);
-            return fetchEventsResponse.events;
-        }
-        async fetchTrendingCacheEvents(options) {
-            const { pubKey } = options;
-            let msg = {};
-            if (pubKey) {
-                const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
-                msg.user_pubkey = decodedPubKey;
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('explore_global_trending_24h', msg);
-            return fetchEventsResponse.events;
-        }
-        async fetchProfileFeedCacheEvents(options) {
-            let { pubKey, since, until, userPubkey } = options;
-            if (!since)
-                since = 0;
-            if (!until)
-                until = 0;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
-            let msg = {
-                limit: 20,
-                notes: "authored",
-                pubkey: decodedPubKey
-            };
-            if (until === 0) {
-                msg.since = since;
-            }
-            else {
-                msg.until = until;
-            }
-            if (userPubkey) {
-                const decodedUserPubKey = userPubkey.startsWith('npub1') ? index_4.Nip19.decode(userPubkey).data : userPubkey;
-                msg.user_pubkey = decodedUserPubKey;
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('feed', msg);
-            return fetchEventsResponse.events;
-        }
-        async fetchProfileRepliesCacheEvents(options) {
-            let { pubKey, since, until, userPubkey } = options;
-            if (!since)
-                since = 0;
-            if (!until)
-                until = 0;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
-            let msg = {
-                limit: 20,
-                notes: "replies",
-                pubkey: decodedPubKey
-            };
-            if (until === 0) {
-                msg.since = since;
-            }
-            else {
-                msg.until = until;
-            }
-            if (userPubkey) {
-                const decodedUserPubKey = userPubkey.startsWith('npub1') ? index_4.Nip19.decode(userPubkey).data : userPubkey;
-                msg.user_pubkey = decodedUserPubKey;
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('feed', msg);
-            return fetchEventsResponse.events;
-        }
-        async fetchHomeFeedCacheEvents(options) {
-            let { since, until, pubKey } = options;
-            if (!since)
-                since = 0;
-            if (!until)
-                until = 0;
-            let msg = {
-                limit: 20
-            };
-            if (until === 0) {
-                msg.since = since;
-            }
-            else {
-                msg.until = until;
-            }
-            msg.pubkey = index_4.Nip19.decode('npub1nfgqmnxqsjsnsvc2r5djhcx4ap3egcjryhf9ppxnajskfel2dx9qq6mnsp').data; //FIXME: Account to show Nostr highlights 
-            if (pubKey) {
-                const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
-                msg.user_pubkey = decodedPubKey;
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('feed', msg);
-            return fetchEventsResponse.events;
-        }
-        async fetchUserProfileCacheEvents(options) {
-            const { pubKeys } = options;
-            if (!pubKeys || pubKeys.length === 0)
-                return [];
-            const decodedPubKeys = pubKeys.map(pubKey => pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey);
-            let msg = {
-                pubkeys: decodedPubKeys
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_infos', msg);
-            return fetchEventsResponse.events;
-        }
-        async fetchUserProfileDetailCacheEvents(options) {
-            const { pubKey } = options;
-            if (!pubKey)
-                return [];
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
-            let msg = {
-                pubkey: decodedPubKey,
-                user_pubkey: decodedPubKey
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_profile', msg);
-            return fetchEventsResponse.events;
-        }
-        async fetchContactListCacheEvents(options) {
-            const { pubKey, detailIncluded } = options;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
-            let msg = {
-                extended_response: detailIncluded,
-                pubkey: decodedPubKey
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('contact_list', msg);
-            return fetchEventsResponse.events;
-        }
-        async fetchUserRelays(options) {
-            const { pubKey } = options;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
-            let msg = {
-                pubkey: decodedPubKey
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('get_user_relays', msg);
-            return fetchEventsResponse.events;
-        }
-        async fetchFollowersCacheEvents(options) {
-            const { pubKey } = options;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
-            let msg = {
-                pubkey: decodedPubKey
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_followers', msg);
-            return fetchEventsResponse.events;
-        }
-        async fetchCommunities(options) {
-            const { pubkeyToCommunityIdsMap } = options;
-            let events;
-            if (pubkeyToCommunityIdsMap && Object.keys(pubkeyToCommunityIdsMap).length > 0) {
-                let requests = [];
-                for (let pubkey in pubkeyToCommunityIdsMap) {
-                    const decodedPubKey = pubkey.startsWith('npub1') ? index_4.Nip19.decode(pubkey).data : pubkey;
-                    const communityIds = pubkeyToCommunityIdsMap[pubkey];
-                    let request = {
-                        kinds: [34550],
-                        authors: [decodedPubKey],
-                        "#d": communityIds
-                    };
-                    requests.push(request);
-                }
-                const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(...requests);
-                events = fetchEventsResponse.events;
-            }
-            else {
-                let request = {
-                    kinds: [34550],
-                    limit: 50
-                };
-                const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
-                events = fetchEventsResponse.events;
-            }
-            return events;
-        }
-        async fetchAllUserRelatedCommunities(options) {
-            const { pubKey } = options;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
-            let requestForCreatedCommunities = {
-                kinds: [34550],
-                authors: [decodedPubKey]
-            };
-            let requestForFollowedCommunities = {
-                kinds: [30001],
-                "#d": ["communities"],
-                authors: [decodedPubKey]
-            };
-            let requestForModeratedCommunities = {
-                kinds: [34550],
-                "#p": [decodedPubKey]
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(requestForCreatedCommunities, requestForFollowedCommunities, requestForModeratedCommunities);
-            let communitiesEvents = [];
-            const pubkeyToCommunityIdsMap = {};
-            for (let event of fetchEventsResponse.events) {
-                if (event.kind === 34550) {
-                    communitiesEvents.push(event);
-                }
-                else if (event.kind === 30001) {
-                    const bookmarkedCommunities = utilsManager_2.SocialUtilsManager.extractBookmarkedCommunities(event);
-                    for (let community of bookmarkedCommunities) {
-                        const pubkey = community.creatorId;
-                        const communityId = community.communityId;
-                        if (!pubkeyToCommunityIdsMap[pubkey]) {
-                            pubkeyToCommunityIdsMap[pubkey] = [];
-                        }
-                        pubkeyToCommunityIdsMap[pubkey].push(communityId);
-                    }
-                }
-            }
-            if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
-                const bookmarkedCommunitiesEvents = await this.fetchCommunities({ pubkeyToCommunityIdsMap });
-                for (let event of bookmarkedCommunitiesEvents) {
-                    communitiesEvents.push(event);
-                }
-            }
-            return communitiesEvents;
-        }
-        async fetchAllUserRelatedCommunitiesFeed(options) {
-            const { since, until } = options;
-            const communitiesEvents = await this.fetchAllUserRelatedCommunities(options);
-            let communityUriArr = [];
-            let identifiers = [];
-            for (let event of communitiesEvents) {
-                if (event.kind === 34550) {
-                    const communityInfo = utilsManager_2.SocialUtilsManager.extractCommunityInfo(event);
-                    identifiers.push(communityInfo.communityUri + ':keys');
-                    communityUriArr.push(communityInfo.communityUri);
-                }
-            }
-            let feedEvents = [];
-            if (communityUriArr.length > 0) {
-                feedEvents = await this.fetchCommunitiesFeed({ communityUriArr, since, until });
-            }
-            return feedEvents;
-        }
-        async fetchUserBookmarkedCommunities(options) {
-            const { pubKey, excludedCommunity } = options;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
-            let request = {
-                kinds: [30001],
-                "#d": ["communities"],
-                authors: [decodedPubKey]
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
-            const bookmarkedCommunitiesEvent = fetchEventsResponse.events.find(event => event.kind === 30001);
-            const communities = utilsManager_2.SocialUtilsManager.extractBookmarkedCommunities(bookmarkedCommunitiesEvent, excludedCommunity);
-            return communities;
-        }
-        async fetchCommunity(options) {
-            const { communityId, creatorId } = options;
-            const decodedCreatorId = creatorId.startsWith('npub1') ? index_4.Nip19.decode(creatorId).data : creatorId;
-            let infoMsg = {
-                kinds: [34550],
-                authors: [decodedCreatorId],
-                "#d": [communityId]
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(infoMsg);
-            return fetchEventsResponse.events;
-        }
-        async fetchCommunityFeed(options) {
-            const { communityUri, since, until } = options;
-            let request = {
-                kinds: [1],
-                "#a": [communityUri],
-                limit: 20
-            };
-            if (since != null) {
-                request.since = since;
-            }
-            if (until != null) {
-                request.until = until;
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
-            return fetchEventsResponse.events;
-        }
-        async fetchCommunitiesFeed(options) {
-            const { communityUriArr, since, until } = options;
-            let request = {
-                kinds: [1],
-                "#a": communityUriArr,
-                limit: 20
-            };
-            if (since != null) {
-                request.since = since;
-            }
-            if (until != null) {
-                request.until = until;
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
-            return fetchEventsResponse.events;
-        }
-        async fetchCommunitiesGeneralMembers(options) {
-            const { communities } = options;
-            const communityUriArr = [];
-            for (let community of communities) {
-                const communityUri = utilsManager_2.SocialUtilsManager.getCommunityUri(community.creatorId, community.communityId);
-                communityUriArr.push(communityUri);
-            }
-            let request = {
-                kinds: [30001],
-                "#d": ["communities"],
-                "#a": communityUriArr
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
-            return fetchEventsResponse.events;
-        }
-        // async fetchNotes(options: IFetchNotesOptions) {
-        //     const decodedNpubs = options.authors?.map(npub => Nip19.decode(npub).data);
-        //     let decodedIds = options.ids?.map(id => id.startsWith('note1') ? Nip19.decode(id).data : id);
-        //     let msg: any = {
-        //         kinds: [1],
-        //         limit: 20
-        //     };
-        //     if (decodedNpubs) msg.authors = decodedNpubs;
-        //     if (decodedIds) msg.ids = decodedIds;
-        //     const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(msg);
-        //     return fetchEventsResponse.events;
-        // }
-        // async fetchMetadata(options: IFetchMetadataOptions) {
-        //     let decodedNpubs;
-        //     if (options.decodedAuthors) {
-        //         decodedNpubs = options.decodedAuthors;
-        //     }
-        //     else {
-        //         decodedNpubs = options.authors?.map(npub => Nip19.decode(npub).data) || [];
-        //     }
-        //     const msg = {
-        //         authors: decodedNpubs,
-        //         kinds: [0]
-        //     };
-        //     const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(msg);
-        //     return fetchEventsResponse.events;
-        // }
-        // async fetchReplies(options: IFetchRepliesOptions) {
-        //     let decodedNoteIds;
-        //     if (options.decodedIds) {
-        //         decodedNoteIds = options.decodedIds;
-        //     }
-        //     else {
-        //         decodedNoteIds = options.noteIds?.map(id => id.startsWith('note1') ? Nip19.decode(id).data : id);
-        //     }
-        //     const msg = {
-        //         "#e": decodedNoteIds,
-        //         kinds: [1],
-        //         limit: 20,
-        //     }
-        //     const events = await this._nostrCommunicationManager.fetchEvents(msg);
-        //     return events;
-        // }
-        // async fetchFollowing(npubs: string[]) {
-        //     const decodedNpubs = npubs.map(npub => Nip19.decode(npub).data);
-        //     const msg = {
-        //         authors: decodedNpubs,
-        //         kinds: [3]
-        //     }
-        //     const events = await this._nostrCommunicationManager.fetchEvents(msg);
-        //     return events;
-        // }
-        async fetchAllUserRelatedChannels(options) {
-            const { pubKey } = options;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
-            let requestForCreatedChannels = {
-                kinds: [40, 41],
-                authors: [decodedPubKey]
-            };
-            let requestForJoinedChannels = {
-                kinds: [30001],
-                "#d": ["channels"],
-                authors: [decodedPubKey]
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(requestForCreatedChannels, requestForJoinedChannels);
-            let channels = [];
-            let bookmarkedChannelEventIds = [];
-            const channelMetadataMap = {};
-            const handleChannelEvent = (event) => {
-                if (event.kind === 40) {
-                    const channelInfo = utilsManager_2.SocialUtilsManager.extractChannelInfo(event);
-                    if (channelInfo) {
-                        channels.push(channelInfo);
-                    }
-                }
-                else if (event.kind === 41) {
-                    const channelInfo = utilsManager_2.SocialUtilsManager.extractChannelInfo(event);
-                    if (channelInfo) {
-                        channelMetadataMap[channelInfo.id] = channelInfo;
-                    }
-                }
-            };
-            for (let event of fetchEventsResponse.events) {
-                if (event.kind === 30001) {
-                    bookmarkedChannelEventIds = utilsManager_2.SocialUtilsManager.extractBookmarkedChannels(event);
-                }
-                else {
-                    handleChannelEvent(event);
-                }
-            }
-            if (bookmarkedChannelEventIds.length > 0) {
-                const bookmarkedChannelEvents = await this.fetchEventsByIds({
-                    ids: bookmarkedChannelEventIds
-                });
-                for (let event of bookmarkedChannelEvents) {
-                    handleChannelEvent(event);
-                }
-            }
-            const pubkeyToCommunityIdsMap = {};
-            for (let channel of channels) {
-                const scpData = channel.scpData;
-                if (!scpData?.communityUri)
-                    continue;
-                const { communityId } = utilsManager_2.SocialUtilsManager.getCommunityBasicInfoFromUri(scpData.communityUri);
-                pubkeyToCommunityIdsMap[channel.eventData.pubkey] = pubkeyToCommunityIdsMap[channel.eventData.pubkey] || [];
-                if (!pubkeyToCommunityIdsMap[channel.eventData.pubkey].includes(communityId)) {
-                    pubkeyToCommunityIdsMap[channel.eventData.pubkey].push(communityId);
-                }
-            }
-            let channelIdToCommunityMap = {};
-            const communityEvents = await this.fetchCommunities(pubkeyToCommunityIdsMap);
-            for (let event of communityEvents) {
-                const communityInfo = utilsManager_2.SocialUtilsManager.extractCommunityInfo(event);
-                const channelId = communityInfo.scpData?.channelEventId;
-                if (!channelId)
-                    continue;
-                channelIdToCommunityMap[channelId] = communityInfo;
-            }
-            return {
-                channels,
-                channelMetadataMap,
-                channelIdToCommunityMap
-            };
-        }
-        async fetchUserBookmarkedChannelEventIds(options) {
-            const { pubKey } = options;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
-            let requestForJoinedChannels = {
-                kinds: [30001],
-                "#d": ["channels"],
-                authors: [decodedPubKey]
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(requestForJoinedChannels);
-            const bookmarkedChannelsEvent = fetchEventsResponse.events.find(event => event.kind === 30001);
-            const channelEventIds = utilsManager_2.SocialUtilsManager.extractBookmarkedChannels(bookmarkedChannelsEvent);
-            return channelEventIds;
-        }
-        async fetchEventsByIds(options) {
-            const { ids } = options;
-            let request = {
-                ids: ids
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
-            return fetchEventsResponse.events;
-        }
-        async fetchTempEvents(options) {
-            return []; //Not supported
-        }
-        async fetchChannelMessages(options) {
-            let { channelId, since, until } = options;
-            if (!since)
-                since = 0;
-            if (!until)
-                until = 0;
-            const decodedChannelId = channelId.startsWith('npub1') ? index_4.Nip19.decode(channelId).data : channelId;
-            let messagesReq = {
-                kinds: [42],
-                "#e": [decodedChannelId],
-                limit: 20
-            };
-            if (until === 0) {
-                messagesReq.since = since;
-            }
-            else {
-                messagesReq.until = until;
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(messagesReq);
-            return fetchEventsResponse.events;
-        }
-        async fetchChannelInfoMessages(options) {
-            const { channelId } = options;
-            const decodedChannelId = channelId.startsWith('npub1') ? index_4.Nip19.decode(channelId).data : channelId;
-            let channelCreationEventReq = {
-                kinds: [40],
-                ids: [decodedChannelId],
-            };
-            let channelMetadataEventReq = {
-                kinds: [41],
-                "#e": [decodedChannelId]
-            };
-            let messagesReq = {
-                kinds: [42],
-                "#e": [decodedChannelId],
-                limit: 20
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(channelCreationEventReq, channelMetadataEventReq, messagesReq);
-            return fetchEventsResponse.events;
-        }
-        async fetchMessageContactsCacheEvents(options) {
-            const { pubKey } = options;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
-            let msg = {
-                user_pubkey: decodedPubKey,
-                relation: 'follows'
-            };
-            const followsEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('get_directmsg_contacts', msg);
-            msg = {
-                user_pubkey: decodedPubKey,
-                relation: 'other'
-            };
-            const otherEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('get_directmsg_contacts', msg);
-            return [...followsEventsResponse.events, ...otherEventsResponse.events];
-        }
-        async fetchDirectMessages(options) {
-            let { pubKey, sender, since, until } = options;
-            if (!since)
-                since = 0;
-            if (!until)
-                until = 0;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
-            const decodedSenderPubKey = sender.startsWith('npub1') ? index_4.Nip19.decode(sender).data : sender;
-            const req = {
-                receiver: decodedPubKey,
-                sender: decodedSenderPubKey,
-                limit: 20
-            };
-            if (until === 0) {
-                req.since = since;
-            }
-            else {
-                req.until = until;
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('get_directmsgs', req);
-            return fetchEventsResponse.events;
-        }
-        async resetMessageCount(options) {
-            const { pubKey, sender } = options;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
-            const decodedSenderPubKey = sender.startsWith('npub1') ? index_4.Nip19.decode(sender).data : sender;
-            const createAt = Math.ceil(Date.now() / 1000);
-            let event = {
-                "content": JSON.stringify({ "description": `reset messages from '${decodedSenderPubKey}'` }),
-                "kind": 30078,
-                "tags": [
-                    [
-                        "d",
-                        "Scom Social"
-                    ]
-                ],
-                "created_at": createAt,
-                "pubkey": decodedPubKey
-            };
-            event.id = index_4.Event.getEventHash(event);
-            event.sig = index_4.Event.getSignature(event, this._privateKey);
-            const msg = {
-                event_from_user: event,
-                sender: decodedSenderPubKey
-            };
-            await this._nostrCommunicationManager.fetchCachedEvents('reset_directmsg_count', msg);
-        }
-        async fetchGroupKeys(options) {
-            const { identifiers } = options;
-            let req = {
-                kinds: [30078],
-                "#d": identifiers
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchUserGroupInvitations(options) {
-            const { pubKey, groupKinds } = options;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
-            let req = {
-                kinds: [30078],
-                "#p": [decodedPubKey],
-                "#k": groupKinds.map(kind => kind.toString())
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
-            let events = fetchEventsResponse.events?.filter(event => event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'invitee').map(tag => tag[1]).includes(decodedPubKey));
-            return events;
-        }
-        async fetchCalendarEvents(options) {
-            const { limit } = options;
-            let req = {
-                kinds: [31922, 31923],
-                limit: limit || 10
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
-            return {
-                events: fetchEventsResponse.events,
-                data: fetchEventsResponse.data
-            };
-        }
-        async fetchCalendarEvent(options) {
-            const { address } = options;
-            let req = {
-                kinds: [address.kind],
-                "#d": [address.identifier],
-                authors: [address.pubkey]
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
-            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
-        }
-        async fetchCalendarEventPosts(options) {
-            const { calendarEventUri } = options;
-            let request = {
-                kinds: [1],
-                "#a": [calendarEventUri],
-                limit: 50
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
-            return fetchEventsResponse.events;
-        }
-        async fetchCalendarEventRSVPs(options) {
-            const { calendarEventUri, pubkey } = options;
-            let req = {
-                kinds: [31925],
-                "#a": [calendarEventUri]
-            };
-            if (pubkey) {
-                const decodedPubKey = pubkey.startsWith('npub1') ? index_4.Nip19.decode(pubkey).data : pubkey;
-                req.authors = [decodedPubKey];
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
-            return fetchEventsResponse.events;
-        }
-        async fetchLongFormContentEvents(options) {
-            let { pubKey, since, until } = options;
-            if (!since)
-                since = 0;
-            if (!until)
-                until = 0;
-            let req = {
-                kinds: [30023],
-                limit: 20
-            };
-            if (pubKey) {
-                const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
-                req.authors = [decodedPubKey];
-            }
-            if (until === 0) {
-                req.since = since;
-            }
-            else {
-                req.until = until;
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
-            return fetchEventsResponse.events;
-        }
-        // async fetchLikes(eventId: string) {
-        //     let req: any = {
-        //         kinds: [7],
-        //         "#e": [eventId]
-        //     };
-        //     const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
-        //     return fetchEventsResponse.events;
-        // }
-        async searchUsers(options) {
-            const { query } = options;
-            const req = {
-                query: query,
-                limit: 10
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('user_search', req);
-            return fetchEventsResponse.events;
-        }
-        async fetchPaymentRequestEvent(options) {
-            const { paymentRequest } = options;
-            let hash = index_4.Event.getPaymentRequestHash(paymentRequest);
-            let req = {
-                kinds: [9739],
-                "#r": [hash]
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
-            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
-        }
-        async fetchPaymentReceiptEvent(options) {
-            const { requestEventId } = options;
-            let req = {
-                kinds: [9740],
-                "#e": [requestEventId]
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
-            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
-        }
-        getPaymentHash(tags) {
-            let tagsMap = {};
-            for (let _t of tags) {
-                tagsMap[_t[0]] = _t.slice(1);
-            }
-            return tagsMap['bolt11']?.[0] || tagsMap['payreq']?.[0] || tagsMap['r']?.[0];
-        }
-        async fetchPaymentActivitiesForRecipient(options) {
-            let { pubkey, since, until } = options;
-            if (!since)
-                since = 0;
-            if (!until)
-                until = 0;
-            let paymentRequestEventsReq = {
-                kinds: [9739],
-                authors: [pubkey],
-                limit: 10
-            };
-            if (until === 0) {
-                paymentRequestEventsReq.since = since;
-            }
-            else {
-                paymentRequestEventsReq.until = until;
-            }
-            const paymentRequestEvents = await this._nostrCommunicationManager.fetchEvents(paymentRequestEventsReq);
-            const requestEventIds = paymentRequestEvents.events.map(event => event.id);
-            let paymentReceiptEventsReq = {
-                kinds: [9740],
-                "#e": requestEventIds
-            };
-            const paymentReceiptEvents = await this._nostrCommunicationManager.fetchEvents(paymentReceiptEventsReq);
-            let paymentActivity = [];
-            for (let requestEvent of paymentRequestEvents.events) {
-                const paymentHash = this.getPaymentHash(requestEvent.tags);
-                const amount = requestEvent.tags.find(tag => tag[0] === 'amount')?.[1];
-                const receiptEvent = paymentReceiptEvents.events.find(event => event.tags.find(tag => tag[0] === 'e')?.[1] === requestEvent.id);
-                let status = 'pending';
-                let sender;
-                if (receiptEvent) {
-                    status = 'completed';
-                    sender = receiptEvent.pubkey;
-                }
-                paymentActivity.push({
-                    paymentHash,
-                    sender,
-                    recipient: pubkey,
-                    amount,
-                    status,
-                    createdAt: requestEvent.created_at
-                });
-            }
-            return paymentActivity;
-        }
-        async fetchPaymentActivitiesForSender(options) {
-            let { pubkey, since, until } = options;
-            if (!since)
-                since = 0;
-            if (!until)
-                until = 0;
-            let paymentReceiptEventsReq = {
-                kinds: [9740],
-                authors: [pubkey],
-                limit: 10
-            };
-            if (until === 0) {
-                paymentReceiptEventsReq.since = since;
-            }
-            else {
-                paymentReceiptEventsReq.until = until;
-            }
-            const paymentReceiptEvents = await this._nostrCommunicationManager.fetchEvents(paymentReceiptEventsReq);
-            let requestEventIds = [];
-            for (let event of paymentReceiptEvents.events) {
-                const requestEventId = event.tags.find(tag => tag[0] === 'e')?.[1];
-                if (requestEventId) {
-                    requestEventIds.push(requestEventId);
-                }
-            }
-            let paymentRequestEventsReq = {
-                kinds: [9739],
-                ids: requestEventIds
-            };
-            const paymentRequestEvents = await this._nostrCommunicationManager.fetchEvents(paymentRequestEventsReq);
-            let paymentActivity = [];
-            for (let receiptEvent of paymentReceiptEvents.events) {
-                const requestEventId = receiptEvent.tags.find(tag => tag[0] === 'e')?.[1];
-                const requestEvent = paymentRequestEvents.events.find(event => event.id === requestEventId);
-                if (requestEvent) {
-                    const paymentHash = this.getPaymentHash(requestEvent.tags);
-                    const amount = requestEvent.tags.find(tag => tag[0] === 'amount')?.[1];
-                    paymentActivity.push({
-                        paymentHash,
-                        sender: pubkey,
-                        recipient: requestEvent.pubkey,
-                        amount,
-                        status: 'completed',
-                        createdAt: receiptEvent.created_at
-                    });
-                }
-            }
-            return paymentActivity;
-        }
-        async fetchUserFollowingFeed(options) {
-            let { pubKey, until } = options;
-            if (!until)
-                until = 0;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
-            let msg = {
-                user_pubkey: decodedPubKey,
-                timeframe: 'latest',
-                scope: 'follows',
-                limit: 20
-            };
-            if (until > 0) {
-                msg.until = until;
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchCachedEvents('explore', msg);
-            return fetchEventsResponse.events;
-        }
-        async fetchCommunityPinnedNotesEvents(options) {
-            const { creatorId, communityId } = options;
-            const communityUri = utilsManager_2.SocialUtilsManager.getCommunityUri(creatorId, communityId);
-            let request = {
-                kinds: [9741],
-                "#a": [communityUri]
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchCommunityPinnedNoteIds(options) {
-            const events = await this.fetchCommunityPinnedNotesEvents(options);
-            const event = events[0];
-            let noteIds = [];
-            if (event) {
-                for (let tag of event.tags) {
-                    if (tag[0] === 'e') {
-                        noteIds.push(tag[1]);
-                    }
-                }
-            }
-            return noteIds;
-        }
-        async fetchUserPinnedNotes(options) {
-            const { pubKey } = options;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
-            let request = {
-                kinds: [10001],
-                authors: [decodedPubKey]
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
-            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
-        }
-        async fetchUserBookmarks(options) {
-            const { pubKey } = options;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
-            let request = {
-                kinds: [10003],
-                authors: [decodedPubKey]
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
-            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
-        }
-        async fetchTrendingCommunities() {
-            const pubkeyToCommunityIdsMap = {
-                "npub1rjc54ve4sahunm7r0kpchg58eut7ttwvevst7m2fl8dfd9w4y33q0w0qw2": ["Photography"],
-                "npub1c6dhrhzkflwr2zkdmlujnujawgp2c9rsep6gscyt6mvcusnt5a3srnzmx3": ["Vegan_Consciousness"]
-            };
-            const events = this.fetchCommunities({
-                pubkeyToCommunityIdsMap
-            });
-            return events || [];
-        }
-        async fetchUserEthWalletAccountsInfo(options) {
-            const { pubKey, walletHash } = options;
-            let request = {
-                kinds: [9742]
-            };
-            if (pubKey) {
-                const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
-                request.authors = [decodedPubKey];
-            }
-            else if (walletHash) {
-                request["#d"] = [walletHash];
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
-            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
-        }
-        async fetchSubcommunites(options) {
-            return []; // Not supported
-        }
-        async fetchCommunityDetailMetadata(options) {
-            const { communityCreatorId, communityName } = options;
-            const decodedCreatorId = communityCreatorId.startsWith('npub1') ? index_4.Nip19.decode(communityCreatorId).data : communityCreatorId;
-            let request = {
-                kinds: [34550],
-                authors: [decodedCreatorId],
-                "#d": communityName
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
-            return fetchEventsResponse.events;
-        }
-        async getCommunityUriToMembersMap(communities) {
-            const communityUriToMemberIdRoleComboMap = {};
-            const communityUriToCreatorOrModeratorIdsMap = {};
-            for (let community of communities) {
-                const communityUri = community.communityUri;
-                communityUriToMemberIdRoleComboMap[communityUri] = [];
-                communityUriToMemberIdRoleComboMap[communityUri].push({
-                    id: community.creatorId,
-                    role: interfaces_4.CommunityRole.Creator
-                });
-                communityUriToCreatorOrModeratorIdsMap[communityUri] = new Set();
-                communityUriToCreatorOrModeratorIdsMap[communityUri].add(community.creatorId);
-                if (community.moderatorIds) {
-                    for (let moderator of community.moderatorIds) {
-                        if (moderator === community.creatorId)
-                            continue;
-                        communityUriToMemberIdRoleComboMap[communityUri].push({
-                            id: moderator,
-                            role: interfaces_4.CommunityRole.Moderator
-                        });
-                        communityUriToCreatorOrModeratorIdsMap[communityUri].add(moderator);
-                    }
-                }
-            }
-            const generalMembersEvents = await this.fetchCommunitiesGeneralMembers({ communities });
-            for (let event of generalMembersEvents) {
-                const communityUriArr = event.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
-                for (let communityUri of communityUriArr) {
-                    if (!communityUriToMemberIdRoleComboMap[communityUri])
-                        continue;
-                    const pubkey = index_4.Nip19.npubEncode(event.pubkey);
-                    if (communityUriToCreatorOrModeratorIdsMap[communityUri].has(pubkey))
-                        continue;
-                    communityUriToMemberIdRoleComboMap[communityUri].push({
-                        id: pubkey,
-                        role: interfaces_4.CommunityRole.GeneralMember
-                    });
-                }
-            }
-            let pubkeys = new Set(utilsManager_2.SocialUtilsManager.flatMap(Object.values(communityUriToMemberIdRoleComboMap), combo => combo.map(c => c.id)));
-            const communityUriToMembersMap = {};
-            if (pubkeys.size > 0) {
-                let metadataArr = [];
-                let followersCountMap = {};
-                try {
-                    const events = await this.fetchUserProfileCacheEvents({ pubKeys: Array.from(pubkeys) });
-                    for (let event of events) {
-                        if (event.kind === 0) {
-                            metadataArr.push({
-                                ...event,
-                                content: utilsManager_2.SocialUtilsManager.parseContent(event.content)
-                            });
-                        }
-                        else if (event.kind === 10000108) {
-                            followersCountMap = utilsManager_2.SocialUtilsManager.parseContent(event.content);
-                        }
-                    }
-                }
-                catch (error) {
-                    console.error('fetchUserProfiles', error);
-                }
-                if (metadataArr.length == 0)
-                    return null;
-                const userProfiles = [];
-                for (let metadata of metadataArr) {
-                    let userProfile = utilsManager_2.SocialUtilsManager.constructUserProfile(metadata, followersCountMap);
-                    userProfiles.push(userProfile);
-                }
-                if (!userProfiles)
-                    return communityUriToMembersMap;
-                for (let community of communities) {
-                    const memberIds = communityUriToMemberIdRoleComboMap[community.communityUri];
-                    if (!memberIds)
-                        continue;
-                    const communityMembers = [];
-                    for (let memberIdRoleCombo of memberIds) {
-                        const userProfile = userProfiles.find(profile => profile.npub === memberIdRoleCombo.id);
-                        if (!userProfile)
-                            continue;
-                        let communityMember = {
-                            id: userProfile.npub,
-                            name: userProfile.displayName,
-                            profileImageUrl: userProfile.avatar,
-                            username: userProfile.username,
-                            internetIdentifier: userProfile.internetIdentifier,
-                            role: memberIdRoleCombo.role
-                        };
-                        communityMembers.push(communityMember);
-                    }
-                    communityUriToMembersMap[community.communityUri] = communityMembers;
-                }
-            }
-            return communityUriToMembersMap;
-        }
-    }
-    exports.NostrEventManagerRead = NostrEventManagerRead;
-});
-define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/managers/utilsManager.ts"], function (require, exports, index_5, interfaces_5, utilsManager_3) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.NostrEventManagerReadV1o5 = void 0;
-    class NostrEventManagerReadV1o5 {
-        constructor(manager) {
-            this._nostrCommunicationManager = manager;
-        }
-        set nostrCommunicationManager(manager) {
-            this._nostrCommunicationManager = manager;
-        }
-        set privateKey(privateKey) {
-            this._privateKey = privateKey;
-        }
-        augmentWithAuthInfo(obj) {
-            return utilsManager_3.SocialUtilsManager.augmentWithAuthInfo(obj, this._privateKey);
-        }
-        async fetchThreadCacheEvents(options) {
-            const { id } = options;
-            let decodedId = id.startsWith('note1') ? index_5.Nip19.decode(id).data : id;
-            let msg = this.augmentWithAuthInfo({
-                eventId: decodedId,
-                limit: 100
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-thread-posts', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchTrendingCacheEvents(options) {
-            let msg = this.augmentWithAuthInfo({});
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-trending-posts', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchProfileFeedCacheEvents(options) {
-            let { pubKey, since, until, userPubkey } = options;
-            if (!since)
-                since = 0;
-            if (!until)
-                until = 0;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
-            let msg = this.augmentWithAuthInfo({
-                limit: 20,
-                pubkey: decodedPubKey
-            });
-            if (until === 0) {
-                msg.since = since;
-            }
-            else {
-                msg.until = until;
-            }
-            if (userPubkey) {
-                const decodedUserPubKey = userPubkey.startsWith('npub1') ? index_5.Nip19.decode(userPubkey).data : userPubkey;
-                msg.user_pubkey = decodedUserPubKey;
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-profile-feed', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchProfileRepliesCacheEvents(options) {
-            let { pubKey, since, until, userPubkey } = options;
-            if (!since)
-                since = 0;
-            if (!until)
-                until = 0;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
-            let msg = this.augmentWithAuthInfo({
-                limit: 20,
-                pubkey: decodedPubKey
-            });
-            if (until === 0) {
-                msg.since = since;
-            }
-            else {
-                msg.until = until;
-            }
-            if (userPubkey) {
-                const decodedUserPubKey = userPubkey.startsWith('npub1') ? index_5.Nip19.decode(userPubkey).data : userPubkey;
-                msg.user_pubkey = decodedUserPubKey;
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-profile-replies', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchHomeFeedCacheEvents(options) {
-            let { since, until, pubKey } = options;
-            if (!since)
-                since = 0;
-            if (!until)
-                until = 0;
-            let msg = {
-                limit: 20
-            };
-            if (until === 0) {
-                msg.since = since;
-            }
-            else {
-                msg.until = until;
-            }
-            if (pubKey) {
-                const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
-                msg.pubKey = decodedPubKey;
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-home-feed', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchUserProfileCacheEvents(options) {
-            let { pubKeys } = options;
-            if (!pubKeys || pubKeys.length === 0)
-                return [];
-            const decodedPubKeys = pubKeys.map(pubKey => pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey);
-            let msg = this.augmentWithAuthInfo({
-                pubkeys: decodedPubKeys
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-profiles', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchUserProfileDetailCacheEvents(options) {
-            let { pubKey } = options;
-            if (!pubKey)
-                return [];
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
-            let msg = this.augmentWithAuthInfo({
-                pubkey: decodedPubKey
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-profile-detail', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchContactListCacheEvents(options) {
-            let { pubKey, detailIncluded } = options;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
-            let msg = this.augmentWithAuthInfo({
-                pubkey: decodedPubKey,
-                detailIncluded: detailIncluded,
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-contact-list', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchUserRelays(options) {
-            const { pubKey } = options;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
-            let msg = this.augmentWithAuthInfo({
-                pubkey: decodedPubKey
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-relays', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchFollowersCacheEvents(options) {
-            const { pubKey } = options;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
-            let msg = this.augmentWithAuthInfo({
-                pubkey: decodedPubKey
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-followers', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchCommunities(options) {
-            const { pubkeyToCommunityIdsMap, query } = options;
-            let events;
-            if (pubkeyToCommunityIdsMap && Object.keys(pubkeyToCommunityIdsMap).length > 0) {
-                let msg = this.augmentWithAuthInfo({
-                    identifiers: []
-                });
-                for (let pubkey in pubkeyToCommunityIdsMap) {
-                    const decodedPubKey = pubkey.startsWith('npub1') ? index_5.Nip19.decode(pubkey).data : pubkey;
-                    const communityIds = pubkeyToCommunityIdsMap[pubkey];
-                    let request = {
-                        pubkey: decodedPubKey,
-                        names: communityIds
-                    };
-                    msg.identifiers.push(request);
-                }
-                let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities', msg);
-                events = response.events;
-            }
-            else {
-                let msg = this.augmentWithAuthInfo({
-                    limit: 50,
-                    query
-                });
-                let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities', msg);
-                events = response.events;
-            }
-            return events;
-        }
-        async fetchAllUserRelatedCommunities(options) {
-            const { pubKey } = options;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
-            let msg = this.augmentWithAuthInfo({
-                pubkey: decodedPubKey
-            });
-            let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-communities', msg);
-            return response.events || [];
-        }
-        async fetchAllUserRelatedCommunitiesFeed(options) {
-            const { pubKey, since, until } = options;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
-            let msg = this.augmentWithAuthInfo({
-                pubkey: decodedPubKey,
-                since,
-                until,
-                limit: 20
-            });
-            let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-communities-feed', msg);
-            return response.events || [];
-        }
-        async fetchUserBookmarkedCommunities(options) {
-            const { pubKey, excludedCommunity } = options;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
-            let msg = this.augmentWithAuthInfo({
-                pubkey: decodedPubKey
-            });
-            let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-bookmarked-communities', msg);
-            let communities = [];
-            for (let community of response.data) {
-                if (excludedCommunity) {
-                    const decodedPubkey = index_5.Nip19.decode(excludedCommunity.creatorId).data;
-                    if (community.communityId === excludedCommunity.communityId && community.creatorId === decodedPubkey)
-                        continue;
-                }
-                communities.push(community);
-            }
-            return communities;
-        }
-        async fetchCommunity(options) {
-            const { communityId, creatorId } = options;
-            const decodedCreatorId = creatorId.startsWith('npub1') ? index_5.Nip19.decode(creatorId).data : creatorId;
-            let msg = this.augmentWithAuthInfo({
-                identifiers: [
-                    {
-                        pubkey: decodedCreatorId,
-                        names: [communityId]
-                    }
-                ]
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchCommunityFeed(options) {
-            const { communityUri, since, until } = options;
-            const { creatorId, communityId } = utilsManager_3.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
-            let identifier = {
-                pubkey: creatorId,
-                names: [communityId]
-            };
-            let msg = this.augmentWithAuthInfo({
-                identifiers: [identifier],
-                limit: 50,
-                since,
-                until
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-feed', msg);
-            return fetchEventsResponse.events || [];
-        }
-        // async fetchNotes(options: IFetchNotesOptions) {
-        //     const decodedNpubs = options.authors?.map(npub => Nip19.decode(npub).data);
-        //     let decodedIds = options.ids?.map(id => id.startsWith('note1') ? Nip19.decode(id).data : id);
-        //     let msg: any = {
-        //         kinds: [1],
-        //         limit: 20
-        //     };
-        //     if (decodedNpubs) msg.authors = decodedNpubs;
-        //     if (decodedIds) msg.ids = decodedIds;
-        //     const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(msg);
-        //     return fetchEventsResponse.events || [];
-        // }
-        async fetchAllUserRelatedChannels(options) {
-            const { pubKey } = options;
-            let msg = this.augmentWithAuthInfo({
-                pubKey
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-related-channels', msg);
-            let channels = [];
-            const channelMetadataMap = {};
-            for (let event of fetchEventsResponse.events) {
-                if (event.kind === 40) {
-                    const channelInfo = utilsManager_3.SocialUtilsManager.extractChannelInfo(event);
-                    if (channelInfo) {
-                        channels.push(channelInfo);
-                    }
-                }
-                else if (event.kind === 41) {
-                    const channelInfo = utilsManager_3.SocialUtilsManager.extractChannelInfo(event);
-                    if (channelInfo) {
-                        channelMetadataMap[channelInfo.id] = channelInfo;
-                    }
-                }
-            }
-            const pubkeyToCommunityIdsMap = {};
-            for (let channel of channels) {
-                const scpData = channel.scpData;
-                if (!scpData?.communityUri)
-                    continue;
-                const { communityId } = utilsManager_3.SocialUtilsManager.getCommunityBasicInfoFromUri(scpData.communityUri);
-                pubkeyToCommunityIdsMap[channel.eventData.pubkey] = pubkeyToCommunityIdsMap[channel.eventData.pubkey] || [];
-                if (!pubkeyToCommunityIdsMap[channel.eventData.pubkey].includes(communityId)) {
-                    pubkeyToCommunityIdsMap[channel.eventData.pubkey].push(communityId);
-                }
-            }
-            let channelIdToCommunityMap = {};
-            const communityEvents = await this.fetchCommunities({ pubkeyToCommunityIdsMap });
-            for (let event of communityEvents) {
-                const communityInfo = utilsManager_3.SocialUtilsManager.extractCommunityInfo(event);
-                const channelId = communityInfo.scpData?.channelEventId;
-                if (!channelId)
-                    continue;
-                channelIdToCommunityMap[channelId] = communityInfo;
-            }
-            return {
-                channels,
-                channelMetadataMap,
-                channelIdToCommunityMap
-            };
-        }
-        async fetchUserBookmarkedChannelEventIds(options) {
-            const { pubKey } = options;
-            let msg = this.augmentWithAuthInfo({
-                pubKey
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-bookmarked-channel-event-ids', msg);
-            return fetchEventsResponse.data;
-        }
-        async fetchEventsByIds(options) {
-            const { ids } = options;
-            let msg = this.augmentWithAuthInfo({
-                ids
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-events', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchTempEvents(options) {
-            const { ids } = options;
-            let msg = this.augmentWithAuthInfo({
-                ids
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-temp-events', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchChannelMessages(options) {
-            let { channelId, since, until } = options;
-            if (!since)
-                since = 0;
-            if (!until)
-                until = 0;
-            const decodedChannelId = channelId.startsWith('npub1') ? index_5.Nip19.decode(channelId).data : channelId;
-            let msg = this.augmentWithAuthInfo({
-                channelId: decodedChannelId,
-                limit: 20
-            });
-            if (until === 0) {
-                msg.since = since;
-            }
-            else {
-                msg.until = until;
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-channel-messages', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchChannelInfoMessages(options) {
-            const { channelId } = options;
-            const decodedChannelId = channelId.startsWith('npub1') ? index_5.Nip19.decode(channelId).data : channelId;
-            let msg = this.augmentWithAuthInfo({
-                channelId: decodedChannelId,
-                limit: 20
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-channel-info-messages', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchMessageContactsCacheEvents(options) {
-            const { pubKey } = options;
-            const senderToLastReadMap = {};
-            //FIXME: Implement a better way to get last read messages
-            if (localStorage) {
-                const lastReadsStr = localStorage.getItem('lastReads');
-                if (lastReadsStr) {
-                    const lastReads = JSON.parse(lastReadsStr);
-                    for (let sender in lastReads) {
-                        const decodedSender = sender.startsWith('npub1') ? index_5.Nip19.decode(sender).data : sender;
-                        senderToLastReadMap[decodedSender] = lastReads[sender];
-                    }
-                }
-            }
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
-            const msg = this.augmentWithAuthInfo({
-                receiver: decodedPubKey,
-                senderToLastReadMap: senderToLastReadMap
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-direct-messages-stats', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchDirectMessages(options) {
-            let { pubKey, since, until, sender } = options;
-            if (!since)
-                since = 0;
-            if (!until)
-                until = 0;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
-            const decodedSenderPubKey = sender.startsWith('npub1') ? index_5.Nip19.decode(sender).data : sender;
-            const msg = this.augmentWithAuthInfo({
-                receiver: decodedPubKey,
-                sender: decodedSenderPubKey,
-                limit: 20
-            });
-            if (until === 0) {
-                msg.since = since;
-            }
-            else {
-                msg.until = until;
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-direct-messages', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async resetMessageCount(options) {
-            const { sender } = options;
-            //FIXME: Implement a better way to set last read messages
-            if (localStorage) {
-                const lastReadsStr = localStorage.getItem('lastReads');
-                let lastReads = {};
-                if (lastReadsStr) {
-                    lastReads = JSON.parse(lastReadsStr);
-                }
-                lastReads[sender] = Math.ceil(Date.now() / 1000);
-                localStorage.setItem('lastReads', JSON.stringify(lastReads));
-            }
-        }
-        async fetchGroupKeys(options) {
-            const { identifiers } = options;
-            let msg = this.augmentWithAuthInfo({
-                identifiers
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-application-specific', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchUserGroupInvitations(options) {
-            const { pubKey, groupKinds } = options;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
-            let msg = this.augmentWithAuthInfo({
-                pubKey: decodedPubKey,
-                groupKinds: groupKinds
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-group-invitations', msg);
-            let events = fetchEventsResponse.events?.filter(event => event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'invitee').map(tag => tag[1]).includes(decodedPubKey));
-            return events;
-        }
-        async fetchCalendarEvents(options) {
-            const { start, end, limit, previousEventId } = options;
-            let msg = this.augmentWithAuthInfo({
-                start: start,
-                end: end,
-                limit: limit || 10,
-                previousEventId
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-events', msg);
-            return {
-                events: fetchEventsResponse.events || [],
-                data: fetchEventsResponse.data
-            };
-        }
-        async fetchCalendarEvent(options) {
-            const { address } = options;
-            const key = `${address.kind}:${address.pubkey}:${address.identifier}`;
-            let msg = this.augmentWithAuthInfo({
-                key
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-events', msg);
-            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
-        }
-        async fetchCalendarEventPosts(options) {
-            const { calendarEventUri } = options;
-            let msg = this.augmentWithAuthInfo({
-                eventUri: calendarEventUri,
-                limit: 50
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-posts', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchCalendarEventRSVPs(options) {
-            const { calendarEventUri, pubkey } = options;
-            let msg = this.augmentWithAuthInfo({
-                eventUri: calendarEventUri
-            });
-            if (pubkey) {
-                const decodedPubKey = pubkey.startsWith('npub1') ? index_5.Nip19.decode(pubkey).data : pubkey;
-                msg.pubkey = decodedPubKey;
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-rsvps', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchLongFormContentEvents(options) {
-            let { pubKey, since, until } = options;
-            if (!since)
-                since = 0;
-            if (!until)
-                until = 0;
-            let msg = this.augmentWithAuthInfo({
-                limit: 20
-            });
-            if (pubKey) {
-                const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
-                msg.pubKey = decodedPubKey;
-            }
-            if (until === 0) {
-                msg.since = since;
-            }
-            else {
-                msg.until = until;
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-long-form-content', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async searchUsers(options) {
-            const { query } = options;
-            let msg = this.augmentWithAuthInfo({
-                query,
-                limit: 10
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('search-users', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchPaymentRequestEvent(options) {
-            const { paymentRequest } = options;
-            let hash = index_5.Event.getPaymentRequestHash(paymentRequest);
-            let req = {
-                kinds: [9739],
-                "#r": [hash]
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
-            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
-        }
-        async fetchPaymentReceiptEvent(options) {
-            const { requestEventId } = options;
-            let req = {
-                kinds: [9740],
-                "#e": [requestEventId]
-            };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(req);
-            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
-        }
-        getPaymentHash(tags) {
-            let tagsMap = {};
-            for (let _t of tags) {
-                tagsMap[_t[0]] = _t.slice(1);
-            }
-            return tagsMap['bolt11']?.[0] || tagsMap['payreq']?.[0] || tagsMap['r']?.[0];
-        }
-        async fetchPaymentActivitiesForRecipient(options) {
-            let { pubkey, since, until } = options;
-            if (!since)
-                since = 0;
-            if (!until)
-                until = 0;
-            let paymentRequestEventsReq = {
-                kinds: [9739],
-                authors: [pubkey],
-                limit: 10
-            };
-            if (until === 0) {
-                paymentRequestEventsReq.since = since;
-            }
-            else {
-                paymentRequestEventsReq.until = until;
-            }
-            const paymentRequestEvents = await this._nostrCommunicationManager.fetchEvents(paymentRequestEventsReq);
-            const requestEventIds = paymentRequestEvents.events.map(event => event.id);
-            let paymentReceiptEventsReq = {
-                kinds: [9740],
-                "#e": requestEventIds
-            };
-            const paymentReceiptEvents = await this._nostrCommunicationManager.fetchEvents(paymentReceiptEventsReq);
-            let paymentActivity = [];
-            for (let requestEvent of paymentRequestEvents.events) {
-                const paymentHash = this.getPaymentHash(requestEvent.tags);
-                const amount = requestEvent.tags.find(tag => tag[0] === 'amount')?.[1];
-                const receiptEvent = paymentReceiptEvents.events.find(event => event.tags.find(tag => tag[0] === 'e')?.[1] === requestEvent.id);
-                let status = 'pending';
-                let sender;
-                if (receiptEvent) {
-                    status = 'completed';
-                    sender = receiptEvent.pubkey;
-                }
-                paymentActivity.push({
-                    paymentHash,
-                    sender,
-                    recipient: pubkey,
-                    amount,
-                    status,
-                    createdAt: requestEvent.created_at
-                });
-            }
-            return paymentActivity;
-        }
-        async fetchPaymentActivitiesForSender(options) {
-            let { pubkey, since, until } = options;
-            if (!since)
-                since = 0;
-            if (!until)
-                until = 0;
-            let paymentReceiptEventsReq = {
-                kinds: [9740],
-                authors: [pubkey],
-                limit: 10
-            };
-            if (until === 0) {
-                paymentReceiptEventsReq.since = since;
-            }
-            else {
-                paymentReceiptEventsReq.until = until;
-            }
-            const paymentReceiptEvents = await this._nostrCommunicationManager.fetchEvents(paymentReceiptEventsReq);
-            let requestEventIds = [];
-            for (let event of paymentReceiptEvents.events) {
-                const requestEventId = event.tags.find(tag => tag[0] === 'e')?.[1];
-                if (requestEventId) {
-                    requestEventIds.push(requestEventId);
-                }
-            }
-            let paymentRequestEventsReq = {
-                kinds: [9739],
-                ids: requestEventIds
-            };
-            const paymentRequestEvents = await this._nostrCommunicationManager.fetchEvents(paymentRequestEventsReq);
-            let paymentActivity = [];
-            for (let receiptEvent of paymentReceiptEvents.events) {
-                const requestEventId = receiptEvent.tags.find(tag => tag[0] === 'e')?.[1];
-                const requestEvent = paymentRequestEvents.events.find(event => event.id === requestEventId);
-                if (requestEvent) {
-                    const paymentHash = this.getPaymentHash(requestEvent.tags);
-                    const amount = requestEvent.tags.find(tag => tag[0] === 'amount')?.[1];
-                    paymentActivity.push({
-                        paymentHash,
-                        sender: pubkey,
-                        recipient: requestEvent.pubkey,
-                        amount,
-                        status: 'completed',
-                        createdAt: receiptEvent.created_at
-                    });
-                }
-            }
-            return paymentActivity;
-        }
-        async fetchUserFollowingFeed(options) {
-            let { pubKey, until } = options;
-            if (!until)
-                until = 0;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
-            let msg = this.augmentWithAuthInfo({
-                pubkey: decodedPubKey,
-                limit: 20
-            });
-            if (until > 0) {
-                msg.until = until;
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-following-feed', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchCommunityPinnedNotesEvents(options) {
-            const { communityId, creatorId } = options;
-            const communityPubkey = creatorId.startsWith('npub1') ? index_5.Nip19.decode(creatorId).data : creatorId;
-            let msg = this.augmentWithAuthInfo({
-                communityPubkey,
-                communityName: communityId,
-                eventMetadataIncluded: true
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-pinned-notes', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchCommunityPinnedNoteIds(options) {
-            const { communityId, creatorId } = options;
-            const communityPubkey = creatorId.startsWith('npub1') ? index_5.Nip19.decode(creatorId).data : creatorId;
-            let msg = this.augmentWithAuthInfo({
-                communityPubkey,
-                communityName: communityId,
-                eventMetadataIncluded: false
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-pinned-notes', msg);
-            return fetchEventsResponse.data?.ids || [];
-        }
-        async fetchUserPinnedNotes(options) {
-            const { pubKey } = options;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
-            let msg = this.augmentWithAuthInfo({
-                pubkey: decodedPubKey
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-pinned-notes', msg);
-            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
-        }
-        async fetchUserBookmarks(options) {
-            const { pubKey } = options;
-            const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
-            let msg = this.augmentWithAuthInfo({
-                pubkey: decodedPubKey
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-bookmarks', msg);
-            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
-        }
-        async fetchTrendingCommunities() {
-            let msg = this.augmentWithAuthInfo({});
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-trending-communities', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchUserEthWalletAccountsInfo(options) {
-            const { pubKey, walletHash } = options;
-            let msg = this.augmentWithAuthInfo({});
-            if (pubKey) {
-                const decodedPubKey = pubKey.startsWith('npub1') ? index_5.Nip19.decode(pubKey).data : pubKey;
-                msg.pubkey = decodedPubKey;
-            }
-            else if (walletHash) {
-                msg.walletHash = walletHash;
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-eth-wallet-info', msg);
-            return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
-        }
-        async fetchSubcommunites(options) {
-            const { communityCreatorId, communityName } = options;
-            const communityPubkey = communityCreatorId.startsWith('npub1') ? index_5.Nip19.decode(communityCreatorId).data : communityCreatorId;
-            let msg = this.augmentWithAuthInfo({
-                communityPubkey,
-                communityName
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-subcommunities', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async fetchCommunityDetailMetadata(options) {
-            const { communityCreatorId, communityName } = options;
-            const communityPubkey = communityCreatorId.startsWith('npub1') ? index_5.Nip19.decode(communityCreatorId).data : communityCreatorId;
-            let msg = this.augmentWithAuthInfo({
-                communityPubkey,
-                communityName
-            });
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-detail-metadata', msg);
-            return fetchEventsResponse.events || [];
-        }
-        async getCommunityUriToMembersMap(communities) {
-            let msg = this.augmentWithAuthInfo({
-                identifiers: []
-            });
-            for (let community of communities) {
-                const decodedCreatorId = community.creatorId.startsWith('npub1') ? index_5.Nip19.decode(community.creatorId).data : community.creatorId;
-                let request = {
-                    pubkey: decodedCreatorId,
-                    names: [community.communityId]
-                };
-                msg.identifiers.push(request);
-            }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities-members', msg);
-            const events = fetchEventsResponse.events || [];
-            const communityMemberEvents = events.filter(event => event.kind === 10000112);
-            const nonCommunityMemberEvents = events.filter(event => event.kind !== 10000112);
-            let metadataArr = [];
-            let followersCountMap = {};
-            for (let event of nonCommunityMemberEvents) {
-                if (event.kind === 0) {
-                    metadataArr.push({
-                        ...event,
-                        content: utilsManager_3.SocialUtilsManager.parseContent(event.content)
-                    });
-                }
-                else if (event.kind === 10000108) {
-                    followersCountMap = utilsManager_3.SocialUtilsManager.parseContent(event.content);
-                }
-            }
-            const pubkeyToProfileMap = {};
-            for (let metadata of metadataArr) {
-                let userProfile = utilsManager_3.SocialUtilsManager.constructUserProfile(metadata, followersCountMap);
-                pubkeyToProfileMap[metadata.pubkey] = userProfile;
-            }
-            const communityUriToMembersMap = {};
-            const mapProfileToCommunityMember = (profile, role) => {
-                return {
-                    id: profile.npub,
-                    name: profile.displayName,
-                    profileImageUrl: profile.avatar,
-                    username: profile.username,
-                    internetIdentifier: profile.internetIdentifier,
-                    role
-                };
-            };
-            for (let event of communityMemberEvents) {
-                const content = utilsManager_3.SocialUtilsManager.parseContent(event.content);
-                const communityUri = utilsManager_3.SocialUtilsManager.getCommunityUri(content.communities_pubkey, content.communities_d);
-                const communityMembers = [];
-                const creatorProfile = pubkeyToProfileMap[content.communities_pubkey];
-                if (!creatorProfile)
-                    continue;
-                let creator = mapProfileToCommunityMember(creatorProfile, interfaces_5.CommunityRole.Creator);
-                communityMembers.push(creator);
-                for (let moderator of content.moderators) {
-                    const userProfile = pubkeyToProfileMap[moderator];
-                    if (!userProfile)
-                        continue;
-                    let communityMember = mapProfileToCommunityMember(userProfile, interfaces_5.CommunityRole.Moderator);
-                    communityMembers.push(communityMember);
-                }
-                for (let member of content.general_members) {
-                    const userProfile = pubkeyToProfileMap[member];
-                    if (!userProfile)
-                        continue;
-                    let communityMember = mapProfileToCommunityMember(userProfile, interfaces_5.CommunityRole.GeneralMember);
-                    communityMembers.push(communityMember);
-                }
-                communityUriToMembersMap[communityUri] = communityMembers;
-            }
-            return communityUriToMembersMap;
-        }
-    }
-    exports.NostrEventManagerReadV1o5 = NostrEventManagerReadV1o5;
-});
-define("@scom/scom-social-sdk/managers/eventManagerReadV2.ts", ["require", "exports", "@scom/scom-social-sdk/managers/utilsManager.ts", "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts"], function (require, exports, utilsManager_4, eventManagerReadV1o5_1) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.NostrEventManagerReadV2 = void 0;
-    class NostrEventManagerReadV2 extends eventManagerReadV1o5_1.NostrEventManagerReadV1o5 {
-        constructor(manager) {
-            super(manager);
-        }
-        set nostrCommunicationManager(manager) {
-            this._nostrCommunicationManager = manager;
-        }
-        augmentWithAuthInfo(obj) {
-            return utilsManager_4.SocialUtilsManager.augmentWithAuthInfo(obj, this._privateKey);
-        }
-        async searchUsers(options) {
-            return [];
-        }
-        async fetchPaymentRequestEvent(options) {
-            return null;
-        }
-        async fetchPaymentActivitiesForRecipient(options) {
-            return [];
-        }
-        async fetchPaymentActivitiesForSender(options) {
-            return [];
-        }
-        async fetchUserFollowingFeed(options) {
-            return [];
-        }
-    }
-    exports.NostrEventManagerReadV2 = NostrEventManagerReadV2;
-});
-define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/managers/communication.ts", "@scom/scom-social-sdk/utils/geohash.ts", "@scom/scom-mqtt", "@scom/scom-social-sdk/utils/lightningWallet.ts", "@scom/scom-social-sdk/managers/utilsManager.ts", "@scom/scom-social-sdk/managers/eventManagerWrite.ts", "@scom/scom-social-sdk/managers/eventManagerRead.ts", "@scom/scom-social-sdk/managers/eventManagerReadV2.ts", "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", "@scom/scom-signer", "@ijstech/eth-wallet"], function (require, exports, index_6, interfaces_6, communication_1, geohash_1, scom_mqtt_1, lightningWallet_1, utilsManager_5, eventManagerWrite_1, eventManagerRead_1, eventManagerReadV2_1, eventManagerReadV1o5_2, scom_signer_2, eth_wallet_2) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.NostrWebSocketManager = exports.NostrRestAPIManager = exports.SocialDataManager = exports.SocialUtilsManager = exports.NostrEventManagerWrite = exports.NostrEventManagerReadV2 = exports.NostrEventManagerRead = void 0;
-    Object.defineProperty(exports, "NostrRestAPIManager", { enumerable: true, get: function () { return communication_1.NostrRestAPIManager; } });
-    Object.defineProperty(exports, "NostrWebSocketManager", { enumerable: true, get: function () { return communication_1.NostrWebSocketManager; } });
-    Object.defineProperty(exports, "SocialUtilsManager", { enumerable: true, get: function () { return utilsManager_5.SocialUtilsManager; } });
-    Object.defineProperty(exports, "NostrEventManagerWrite", { enumerable: true, get: function () { return eventManagerWrite_1.NostrEventManagerWrite; } });
-    Object.defineProperty(exports, "NostrEventManagerRead", { enumerable: true, get: function () { return eventManagerRead_1.NostrEventManagerRead; } });
-    Object.defineProperty(exports, "NostrEventManagerReadV2", { enumerable: true, get: function () { return eventManagerReadV2_1.NostrEventManagerReadV2; } });
+    exports.SocialDataManager = void 0;
     class SocialDataManager {
         constructor(config) {
             this._apiBaseUrl = config.apiBaseUrl || '';
@@ -9911,22 +9905,1686 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
     }
     exports.SocialDataManager = SocialDataManager;
 });
-define("@scom/scom-social-sdk", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/index.ts", "@scom/scom-social-sdk/managers/index.ts"], function (require, exports, index_7, index_8, managers_1) {
+define("@scom/scom-social-sdk/managers/dataManagerTG.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/managers/communication.ts", "@scom/scom-social-sdk/managers/utilsManager.ts", "@scom/scom-social-sdk/managers/eventManagerWrite.ts", "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts"], function (require, exports, index_7, interfaces_7, communication_2, utilsManager_6, eventManagerWrite_2, eventManagerReadV1o5_3) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.SocialDataManagerTG = void 0;
+    class SocialDataManagerTG {
+        constructor(config) {
+            this._publicIndexingRelay = config.publicIndexingRelay;
+            const writeRelaysManagers = this._initializeWriteRelaysManagers(config.writeRelays);
+            if (config.readManager) {
+                this._socialEventManagerRead = config.readManager;
+            }
+            else {
+                let nostrReadRelayManager = new communication_2.NostrRestAPIManager(config.readRelay);
+                this._socialEventManagerRead = new eventManagerReadV1o5_3.NostrEventManagerReadV1o5(nostrReadRelayManager);
+            }
+            this._socialEventManagerWrite = new eventManagerWrite_2.NostrEventManagerWrite(writeRelaysManagers, this._publicIndexingRelay);
+        }
+        async dispose() {
+        }
+        set privateKey(privateKey) {
+            this._privateKey = privateKey;
+            this._socialEventManagerRead.privateKey = privateKey;
+            this._socialEventManagerWrite.privateKey = privateKey;
+        }
+        get socialEventManagerRead() {
+            return this._socialEventManagerRead;
+        }
+        get socialEventManagerWrite() {
+            return this._socialEventManagerWrite;
+        }
+        set relays(value) {
+            const writeRelaysManagers = this._initializeWriteRelaysManagers(value);
+            this._socialEventManagerWrite.nostrCommunicationManagers = writeRelaysManagers;
+        }
+        get privateKey() {
+            return this._privateKey;
+        }
+        _initializeWriteRelaysManagers(relays) {
+            if (!relays || relays.length === 0) {
+                this._writeRelays = [];
+                return [];
+            }
+            this._writeRelays = [this._publicIndexingRelay, ...relays];
+            this._writeRelays = Array.from(new Set(this._writeRelays));
+            let nostrCommunicationManagers = [];
+            for (let relay of this._writeRelays) {
+                if (relay.startsWith('wss://')) {
+                    nostrCommunicationManagers.push(new communication_2.NostrWebSocketManager(relay));
+                }
+                else {
+                    nostrCommunicationManagers.push(new communication_2.NostrRestAPIManager(relay));
+                }
+            }
+            return nostrCommunicationManagers;
+        }
+        async fetchCommunityFeedInfo(creatorId, communityId, since, until) {
+            const communityUri = utilsManager_6.SocialUtilsManager.getCommunityUri(creatorId, communityId);
+            const events = await this._socialEventManagerRead.fetchCommunityFeed({
+                communityUri,
+                since,
+                until
+            });
+            const { notes, metadataByPubKeyMap, quotedNotesMap } = this.createNoteEventMappings(events);
+            return {
+                notes,
+                metadataByPubKeyMap,
+                quotedNotesMap
+            };
+        }
+        retrieveCommunityUri(noteEvent, scpData) {
+            let communityUri = null;
+            if (scpData?.communityUri) {
+                communityUri = scpData.communityUri;
+            }
+            else {
+                const replaceableTag = noteEvent.tags.find(tag => tag[0] === 'a');
+                if (replaceableTag) {
+                    const replaceableTagArr = replaceableTag[1].split(':');
+                    if (replaceableTagArr[0] === '34550') {
+                        communityUri = replaceableTag[1];
+                    }
+                }
+            }
+            return communityUri;
+        }
+        async decryptPostPrivateKeyForCommunity(options) {
+            const { event, selfPubkey, communityUri, communityPublicKey, communityPrivateKey } = options;
+            let key = null;
+            let postScpData = utilsManager_6.SocialUtilsManager.extractScpData(event, interfaces_7.ScpStandardId.CommunityPost);
+            if (!postScpData)
+                return key;
+            try {
+                if (selfPubkey && communityPublicKey && event.pubkey === selfPubkey) {
+                    key = await utilsManager_6.SocialUtilsManager.decryptMessage(this._privateKey, communityPublicKey, postScpData.encryptedKey);
+                }
+                else if (communityPrivateKey) {
+                    const postPrivateKey = await utilsManager_6.SocialUtilsManager.decryptMessage(communityPrivateKey, event.pubkey, postScpData.encryptedKey);
+                    const messageContentStr = await utilsManager_6.SocialUtilsManager.decryptMessage(postPrivateKey, event.pubkey, event.content);
+                    const messageContent = JSON.parse(messageContentStr);
+                    if (communityUri === messageContent.communityUri) {
+                        key = postPrivateKey;
+                    }
+                }
+            }
+            catch (e) {
+                // console.error(e);
+            }
+            return key;
+        }
+        async retrieveCommunityPrivateKey(communityInfo, selfPrivateKey) {
+            if (!communityInfo.scpData?.gatekeeperPublicKey)
+                return null;
+            const encryptedKey = communityInfo.scpData.encryptedKey || communityInfo.memberKeyMap?.[communityInfo.scpData.gatekeeperPublicKey];
+            if (!encryptedKey)
+                return null;
+            let communityPrivateKey;
+            const creatorPubkey = communityInfo.eventData.pubkey;
+            const selfPubkey = utilsManager_6.SocialUtilsManager.convertPrivateKeyToPubkey(selfPrivateKey);
+            if (selfPubkey === communityInfo.scpData.gatekeeperPublicKey) {
+                communityPrivateKey = await utilsManager_6.SocialUtilsManager.decryptMessage(selfPrivateKey, creatorPubkey, encryptedKey);
+            }
+            else if (selfPubkey === creatorPubkey) {
+                communityPrivateKey = await utilsManager_6.SocialUtilsManager.decryptMessage(selfPrivateKey, communityInfo.scpData.gatekeeperPublicKey, encryptedKey);
+            }
+            return communityPrivateKey;
+        }
+        async constructCommunityNoteIdToPrivateKeyMap(communityInfo, noteInfoList) {
+            let noteIdToPrivateKey = {};
+            let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
+            const pubkey = utilsManager_6.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
+            for (const note of noteInfoList) {
+                let postPrivateKey = await this.decryptPostPrivateKeyForCommunity({
+                    event: note.eventData,
+                    selfPubkey: pubkey,
+                    communityUri: communityInfo.communityUri,
+                    communityPublicKey: communityInfo.scpData.publicKey,
+                    communityPrivateKey
+                });
+                if (postPrivateKey) {
+                    noteIdToPrivateKey[note.eventData.id] = postPrivateKey;
+                }
+            }
+            return noteIdToPrivateKey;
+        }
+        async retrieveCommunityPostKeys(options) {
+            const { communityInfo, noteInfoList } = options;
+            let noteIdToPrivateKey = {};
+            if (options.gatekeeperUrl) {
+                let bodyData = utilsManager_6.SocialUtilsManager.augmentWithAuthInfo({
+                    creatorId: communityInfo.creatorId,
+                    communityId: communityInfo.communityId,
+                    message: options.message,
+                    signature: options.signature,
+                    since: options.since,
+                    until: options.until
+                }, this._privateKey);
+                let url = `${options.gatekeeperUrl}/communities/post-keys`;
+                let response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(bodyData)
+                });
+                let result = await response.json();
+                if (result.success) {
+                    noteIdToPrivateKey = result.data;
+                }
+            }
+            else {
+                noteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(communityInfo, noteInfoList);
+            }
+            return noteIdToPrivateKey;
+        }
+        async retrieveCommunityThreadPostKeys(options) {
+            const { communityInfo, noteInfoList } = options;
+            let noteIdToPrivateKey = {};
+            if (options.gatekeeperUrl) {
+                let bodyData = utilsManager_6.SocialUtilsManager.augmentWithAuthInfo({
+                    creatorId: communityInfo.creatorId,
+                    communityId: communityInfo.communityId,
+                    focusedNoteId: options.focusedNoteId,
+                    message: options.message,
+                    signature: options.signature
+                }, this._privateKey);
+                let url = `${options.gatekeeperUrl}/communities/post-keys`;
+                let response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(bodyData)
+                });
+                let result = await response.json();
+                if (result.success) {
+                    noteIdToPrivateKey = result.data;
+                }
+            }
+            else {
+                noteIdToPrivateKey = await this.constructCommunityNoteIdToPrivateKeyMap(communityInfo, noteInfoList);
+            }
+            return noteIdToPrivateKey;
+        }
+        async retrieveCommunityPostKeysByNoteEvents(options) {
+            let noteIdToPrivateKey = {};
+            let communityPrivateKeyMap = {};
+            const noteCommunityMappings = await this.createNoteCommunityMappings(options.notes);
+            if (noteCommunityMappings.noteCommunityInfoList.length === 0)
+                return noteIdToPrivateKey;
+            const communityInfoMap = {};
+            for (let communityInfo of noteCommunityMappings.communityInfoList) {
+                communityInfoMap[communityInfo.communityUri] = communityInfo;
+                if (communityInfo.membershipType === interfaces_7.MembershipType.Open)
+                    continue;
+                let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
+                if (communityPrivateKey) {
+                    communityPrivateKeyMap[communityInfo.communityUri] = communityPrivateKey;
+                }
+            }
+            let relayToNotesMap = {};
+            for (let noteCommunityInfo of noteCommunityMappings.noteCommunityInfoList) {
+                const communityPrivateKey = communityPrivateKeyMap[noteCommunityInfo.communityUri];
+                const communityInfo = communityInfoMap[noteCommunityInfo.communityUri];
+                if (!communityInfo)
+                    continue;
+                if (communityInfo.membershipType === interfaces_7.MembershipType.Open)
+                    continue;
+                let postPrivateKey = await this.decryptPostPrivateKeyForCommunity({
+                    event: noteCommunityInfo.eventData,
+                    selfPubkey: options.pubKey,
+                    communityUri: noteCommunityInfo.communityUri,
+                    communityPublicKey: communityInfo.scpData.publicKey,
+                    communityPrivateKey
+                });
+                if (postPrivateKey) {
+                    noteIdToPrivateKey[noteCommunityInfo.eventData.id] = postPrivateKey;
+                }
+                else {
+                    if (communityInfo.privateRelay) {
+                        relayToNotesMap[communityInfo.privateRelay] = relayToNotesMap[communityInfo.privateRelay] || [];
+                        relayToNotesMap[communityInfo.privateRelay].push(noteCommunityInfo);
+                    }
+                    else if (options.gatekeeperUrl) {
+                        relayToNotesMap[options.gatekeeperUrl] = relayToNotesMap[options.gatekeeperUrl] || [];
+                        relayToNotesMap[options.gatekeeperUrl].push(noteCommunityInfo);
+                    }
+                }
+            }
+            if (Object.keys(relayToNotesMap).length > 0) {
+                for (let relay in relayToNotesMap) {
+                    const noteIds = relayToNotesMap[relay].map(v => v.eventData.id);
+                    const signature = await options.getSignature(options.message);
+                    let bodyData = utilsManager_6.SocialUtilsManager.augmentWithAuthInfo({
+                        noteIds: noteIds.join(','),
+                        message: options.message,
+                        signature: signature
+                    }, this._privateKey);
+                    let url = `${relay}/communities/post-keys`;
+                    let response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            Accept: 'application/json',
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(bodyData)
+                    });
+                    let result = await response.json();
+                    if (result.success) {
+                        noteIdToPrivateKey = {
+                            ...noteIdToPrivateKey,
+                            ...result.data
+                        };
+                    }
+                }
+            }
+            return noteIdToPrivateKey;
+        }
+        async checkIfUserHasAccessToCommunity(options) {
+            const { communityInfo, gatekeeperUrl, walletAddresses } = options;
+            let hasAccess = false;
+            const pubkey = index_7.Keys.getPublicKey(this._privateKey);
+            let bodyData = {
+                creatorId: communityInfo.creatorId,
+                communityId: communityInfo.communityId,
+                pubkey,
+                walletAddresses
+            };
+            let url = `${gatekeeperUrl}/communities/check-user-access`;
+            let response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(bodyData)
+            });
+            let result = await response.json();
+            if (result.success) {
+                hasAccess = result.data.hasAccess;
+            }
+            return hasAccess;
+        }
+        async constructMetadataByPubKeyMap(notes) {
+            let mentionAuthorSet = new Set();
+            for (let i = 0; i < notes.length; i++) {
+                const mentionTags = notes[i].tags.filter(tag => tag[0] === 'p' && tag[1] !== notes[i].pubkey)?.map(tag => tag[1]) || [];
+                if (mentionTags.length) {
+                    mentionTags.forEach(tag => mentionAuthorSet.add(tag));
+                }
+            }
+            const uniqueKeys = Array.from(mentionAuthorSet);
+            const npubs = notes.map(note => note.pubkey).filter((value, index, self) => self.indexOf(value) === index);
+            const metadata = await this._socialEventManagerRead.fetchUserProfileCacheEvents({
+                pubKeys: [...npubs, ...uniqueKeys]
+            });
+            const metadataByPubKeyMap = metadata.reduce((acc, cur) => {
+                const content = JSON.parse(cur.content);
+                if (cur.pubkey) {
+                    acc[cur.pubkey] = {
+                        ...cur,
+                        content
+                    };
+                }
+                return acc;
+            }, {});
+            return metadataByPubKeyMap;
+        }
+        async fetchUserProfiles(pubKeys) {
+            if (pubKeys.length === 0)
+                return [];
+            let metadataArr = [];
+            let followersCountMap = {};
+            try {
+                const events = await this._socialEventManagerRead.fetchUserProfileCacheEvents({ pubKeys });
+                for (let event of events) {
+                    if (event.kind === 0) {
+                        metadataArr.push({
+                            ...event,
+                            content: utilsManager_6.SocialUtilsManager.parseContent(event.content)
+                        });
+                    }
+                    else if (event.kind === 10000108) {
+                        followersCountMap = utilsManager_6.SocialUtilsManager.parseContent(event.content);
+                    }
+                }
+            }
+            catch (error) {
+                console.error('fetchUserProfiles', error);
+            }
+            if (metadataArr.length == 0)
+                return null;
+            const userProfiles = [];
+            for (let metadata of metadataArr) {
+                let userProfile = utilsManager_6.SocialUtilsManager.constructUserProfile(metadata, followersCountMap);
+                userProfiles.push(userProfile);
+            }
+            return userProfiles;
+        }
+        async updateUserProfile(content) {
+            await this._socialEventManagerWrite.updateUserProfile(content);
+        }
+        async fetchTrendingNotesInfo() {
+            let notes = [];
+            let metadataByPubKeyMap = {};
+            const events = await this._socialEventManagerRead.fetchTrendingCacheEvents({});
+            for (let event of events) {
+                if (event.kind === 0) {
+                    metadataByPubKeyMap[event.pubkey] = {
+                        ...event,
+                        content: utilsManager_6.SocialUtilsManager.parseContent(event.content)
+                    };
+                }
+                else if (event.kind === 1) {
+                    notes.push({
+                        eventData: event
+                    });
+                }
+            }
+            return {
+                notes,
+                metadataByPubKeyMap
+            };
+        }
+        constructNoteCommunity(noteEvent, communityInfoMap) {
+            let community;
+            if (noteEvent.tags?.length) {
+                let scpData = utilsManager_6.SocialUtilsManager.extractScpData(noteEvent, interfaces_7.ScpStandardId.CommunityPost);
+                let communityUri = this.retrieveCommunityUri(noteEvent, scpData);
+                if (communityUri) {
+                    const communityInfo = communityInfoMap[communityUri];
+                    const { creatorId, communityId } = utilsManager_6.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                    community = {
+                        communityUri,
+                        communityId: communityInfo?.communityId || communityId,
+                        creatorId: communityInfo?.creatorId || index_7.Nip19.npubEncode(creatorId),
+                        parentCommunityUri: communityInfo?.parentCommunityUri,
+                        privateRelay: communityInfo?.privateRelay,
+                        isExclusive: communityInfo?.membershipType === interfaces_7.MembershipType.Protected,
+                        isWhitelist: communityInfo?.policies?.[0]?.policyType === interfaces_7.ProtectedMembershipPolicyType.Whitelist,
+                        policies: communityInfo?.policies
+                    };
+                }
+            }
+            return community;
+        }
+        async fetchProfileFeedInfo(pubKey, since = 0, until) {
+            const selfPubkey = this._privateKey ? utilsManager_6.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
+            const events = await this._socialEventManagerRead.fetchProfileFeedCacheEvents({
+                userPubkey: selfPubkey,
+                pubKey,
+                since,
+                until
+            });
+            const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
+            const { notes, metadataByPubKeyMap, quotedNotesMap, noteToRepostIdMap, pubkeyToCommunityIdsMap } = this.createNoteEventMappings(events);
+            const communityInfoMap = {};
+            if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+                const communityEvents = await this._socialEventManagerRead.fetchCommunities({
+                    pubkeyToCommunityIdsMap
+                });
+                for (let event of communityEvents) {
+                    let communityInfo = utilsManager_6.SocialUtilsManager.extractCommunityInfo(event);
+                    communityInfoMap[communityInfo.communityUri] = communityInfo;
+                }
+            }
+            for (let note of notes) {
+                note.community = this.constructNoteCommunity(note.eventData, communityInfoMap);
+                const noteId = note.eventData.id;
+                const repostId = noteToRepostIdMap[noteId];
+                if (!repostId)
+                    continue;
+                const metadata = metadataByPubKeyMap[repostId];
+                if (!metadata)
+                    continue;
+                const metadataContent = metadata.content;
+                const encodedPubkey = index_7.Nip19.npubEncode(metadata.pubkey);
+                const internetIdentifier = typeof metadataContent.nip05 === 'string' ? metadataContent.nip05?.replace('_@', '') || '' : '';
+                note.repost = {
+                    id: encodedPubkey,
+                    username: '',
+                    description: metadataContent.about,
+                    avatar: metadataContent.picture,
+                    pubKey: encodedPubkey,
+                    displayName: metadataContent.display_name || metadataContent.name,
+                    internetIdentifier: internetIdentifier
+                };
+            }
+            return {
+                notes,
+                metadataByPubKeyMap,
+                quotedNotesMap,
+                earliest
+            };
+        }
+        async fetchProfileRepliesInfo(pubKey, since = 0, until) {
+            const selfPubkey = this._privateKey ? utilsManager_6.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
+            const events = await this._socialEventManagerRead.fetchProfileRepliesCacheEvents({
+                userPubkey: selfPubkey,
+                pubKey,
+                since,
+                until
+            });
+            const earliest = this.getEarliestEventTimestamp(events.filter(v => v.created_at));
+            const { notes, metadataByPubKeyMap, quotedNotesMap, noteToParentAuthorIdMap } = this.createNoteEventMappings(events, true);
+            for (let note of notes) {
+                const noteId = note.eventData.id;
+                const parentAuthorId = noteToParentAuthorIdMap[noteId];
+                if (!parentAuthorId)
+                    continue;
+                const metadata = metadataByPubKeyMap[parentAuthorId];
+                if (!metadata)
+                    continue;
+                const metadataContent = metadata.content;
+                const encodedPubkey = index_7.Nip19.npubEncode(metadata.pubkey);
+                const internetIdentifier = typeof metadataContent.nip05 === 'string' ? metadataContent.nip05?.replace('_@', '') || '' : '';
+                note.parentAuthor = {
+                    id: encodedPubkey,
+                    username: '',
+                    description: metadataContent.about,
+                    avatar: metadataContent.picture,
+                    pubKey: encodedPubkey,
+                    displayName: metadataContent.display_name || metadataContent.name,
+                    internetIdentifier: internetIdentifier
+                };
+            }
+            return {
+                notes,
+                metadataByPubKeyMap,
+                quotedNotesMap,
+                earliest
+            };
+        }
+        async fetchEventsByIds(ids) {
+            const events = await this._socialEventManagerRead.fetchEventsByIds({ ids });
+            return events;
+        }
+        async fetchNotesByIds(ids) {
+            const noteEvents = await this._socialEventManagerRead.fetchEventsByIds({ ids });
+            const { notes, quotedNotesMap, pubkeyToCommunityIdsMap } = this.createNoteEventMappings(noteEvents);
+            let metadataByPubKeyMap = await this.constructMetadataByPubKeyMap(noteEvents);
+            const communityInfoMap = {};
+            if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+                const communityEvents = await this._socialEventManagerRead.fetchCommunities({
+                    pubkeyToCommunityIdsMap
+                });
+                for (let event of communityEvents) {
+                    let communityInfo = utilsManager_6.SocialUtilsManager.extractCommunityInfo(event);
+                    communityInfoMap[communityInfo.communityUri] = communityInfo;
+                }
+            }
+            for (let note of notes) {
+                if (!note.actions)
+                    note.actions = {};
+                note.actions.bookmarked = true;
+                note.community = this.constructNoteCommunity(note.eventData, communityInfoMap);
+            }
+            return {
+                notes,
+                metadataByPubKeyMap,
+                quotedNotesMap
+            };
+        }
+        async fetchTempEvents(ids) {
+            const noteEvents = await this._socialEventManagerRead.fetchTempEvents({ ids });
+            return noteEvents;
+        }
+        getEarliestEventTimestamp(events) {
+            if (!events || events.length === 0) {
+                return 0;
+            }
+            return events.reduce((createdAt, event) => {
+                return Math.min(createdAt, event.created_at);
+            }, events[0].created_at);
+        }
+        async fetchHomeFeedInfo(pubKey, since = 0, until) {
+            let events = await this._socialEventManagerRead.fetchHomeFeedCacheEvents({
+                pubKey,
+                since,
+                until
+            });
+            const earliest = this.getEarliestEventTimestamp(events.filter(v => v.kind === 1).filter(v => v.created_at));
+            const { notes, metadataByPubKeyMap, quotedNotesMap, pubkeyToCommunityIdsMap } = this.createNoteEventMappings(events);
+            const communityInfoMap = {};
+            if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+                const communityEvents = await this._socialEventManagerRead.fetchCommunities({
+                    pubkeyToCommunityIdsMap
+                });
+                for (let event of communityEvents) {
+                    let communityInfo = utilsManager_6.SocialUtilsManager.extractCommunityInfo(event);
+                    communityInfoMap[communityInfo.communityUri] = communityInfo;
+                }
+            }
+            for (let note of notes) {
+                note.community = this.constructNoteCommunity(note.eventData, communityInfoMap);
+            }
+            return {
+                notes,
+                metadataByPubKeyMap,
+                quotedNotesMap,
+                earliest
+            };
+        }
+        async fetchUserFollowingFeedInfo(pubKey, until) {
+            let events = await this._socialEventManagerRead.fetchUserFollowingFeed({
+                pubKey,
+                until
+            });
+            const earliest = this.getEarliestEventTimestamp(events.filter(v => (v.kind === 1 || v.kind === 6) && v.created_at));
+            const { notes, metadataByPubKeyMap, quotedNotesMap, pubkeyToCommunityIdsMap } = this.createNoteEventMappings(events);
+            const communityInfoMap = {};
+            if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+                const communityEvents = await this._socialEventManagerRead.fetchCommunities({
+                    pubkeyToCommunityIdsMap
+                });
+                for (let event of communityEvents) {
+                    let communityInfo = utilsManager_6.SocialUtilsManager.extractCommunityInfo(event);
+                    communityInfoMap[communityInfo.communityUri] = communityInfo;
+                }
+            }
+            for (let note of notes) {
+                note.community = this.constructNoteCommunity(note.eventData, communityInfoMap);
+            }
+            return {
+                notes,
+                metadataByPubKeyMap,
+                quotedNotesMap,
+                earliest
+            };
+        }
+        createNoteEventMappings(events, parentAuthorsInfo = false) {
+            let notes = [];
+            let metadataByPubKeyMap = {};
+            let quotedNotesMap = {};
+            let noteToParentAuthorIdMap = {};
+            let noteToRepostIdMap = {};
+            let noteStatsMap = {};
+            let noteActionsMap = {};
+            let pubkeyToCommunityIdsMap = {};
+            for (let event of events) {
+                if (event.kind === 0) {
+                    metadataByPubKeyMap[event.pubkey] = {
+                        ...event,
+                        content: utilsManager_6.SocialUtilsManager.parseContent(event.content)
+                    };
+                }
+                else if (event.kind === 10000107) {
+                    if (!event.content)
+                        continue;
+                    const noteEvent = utilsManager_6.SocialUtilsManager.parseContent(event.content);
+                    quotedNotesMap[noteEvent.id] = {
+                        eventData: noteEvent
+                    };
+                }
+                else if (event.kind === 1) {
+                    notes.push({
+                        eventData: event
+                    });
+                    if (parentAuthorsInfo) {
+                        const parentAuthors = event.tags.filter(tag => tag[0] === 'p')?.map(tag => tag[1]) || [];
+                        if (parentAuthors.length > 0) {
+                            noteToParentAuthorIdMap[event.id] = parentAuthors[parentAuthors.length - 1];
+                        }
+                    }
+                }
+                else if (event.kind === 6) {
+                    if (!event.content)
+                        continue;
+                    const originalNoteContent = utilsManager_6.SocialUtilsManager.parseContent(event.content);
+                    notes.push({
+                        eventData: originalNoteContent
+                    });
+                    if (originalNoteContent?.id)
+                        noteToRepostIdMap[originalNoteContent.id] = event.pubkey;
+                    if (parentAuthorsInfo) {
+                        const parentAuthors = event.tags.filter(tag => tag[0] === 'p')?.map(tag => tag[1]) || [];
+                        if (parentAuthors.length > 0) {
+                            noteToParentAuthorIdMap[event.id] = parentAuthors[parentAuthors.length - 1];
+                        }
+                    }
+                }
+                else if (event.kind === 10000100) {
+                    if (!event.content)
+                        continue;
+                    const content = utilsManager_6.SocialUtilsManager.parseContent(event.content);
+                    noteStatsMap[content.event_id] = {
+                        upvotes: content.likes,
+                        replies: content.replies,
+                        reposts: content.reposts,
+                        satszapped: content.satszapped,
+                        status: content.status
+                    };
+                }
+                else if (event.kind === 10000113) {
+                    //"{\"since\":1700034697,\"until\":1700044097,\"order_by\":\"created_at\"}"
+                    const timeInfo = utilsManager_6.SocialUtilsManager.parseContent(event.content);
+                }
+                else if (event.kind === 10000115) {
+                    if (!event.content)
+                        continue;
+                    const content = utilsManager_6.SocialUtilsManager.parseContent(event.content);
+                    noteActionsMap[content.event_id] = {
+                        liked: content.liked,
+                        replied: content.replied,
+                        reposted: content.reposted,
+                        zapped: content.zapped
+                    };
+                }
+            }
+            for (let note of notes) {
+                const noteId = note.eventData?.id;
+                note.stats = noteStatsMap[noteId];
+                note.actions = noteActionsMap[noteId];
+                const communityUri = note.eventData?.tags?.find(tag => tag[0] === 'a')?.[1];
+                if (communityUri) {
+                    const { creatorId, communityId } = utilsManager_6.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                    if (!pubkeyToCommunityIdsMap[creatorId]) {
+                        pubkeyToCommunityIdsMap[creatorId] = [];
+                    }
+                    if (!pubkeyToCommunityIdsMap[creatorId].includes(communityId)) {
+                        pubkeyToCommunityIdsMap[creatorId].push(communityId);
+                    }
+                }
+            }
+            return {
+                notes,
+                metadataByPubKeyMap,
+                quotedNotesMap,
+                noteToParentAuthorIdMap,
+                noteStatsMap,
+                noteToRepostIdMap,
+                noteActionsMap,
+                pubkeyToCommunityIdsMap
+            };
+        }
+        async fetchCommunityInfo(creatorId, communityId) {
+            const communityEvents = await this._socialEventManagerRead.fetchCommunity({
+                creatorId,
+                communityId
+            });
+            const communityEvent = communityEvents.find(event => event.kind === 34550);
+            if (!communityEvent)
+                return null;
+            let communityInfo = utilsManager_6.SocialUtilsManager.extractCommunityInfo(communityEvent);
+            //Fetch group keys only when scpData.encryptedKey is undefined for backward compatibility
+            if (communityInfo.membershipType === interfaces_7.MembershipType.Protected && !communityInfo.scpData?.encryptedKey) {
+                const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
+                    identifiers: [communityInfo.communityUri + ':keys']
+                });
+                const keyEvent = keyEvents[0];
+                if (keyEvent) {
+                    communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
+                }
+            }
+            return communityInfo;
+        }
+        async fetchUserRelatedCommunityFeedInfo(pubKey, since, until) {
+            let result = [];
+            const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunitiesFeed({ pubKey, since, until });
+            const statsEvents = events.filter(event => event.kind === 10000100);
+            // const {
+            //     notes,
+            //     metadataByPubKeyMap,
+            //     quotedNotesMap
+            // } = this.createNoteEventMappings(feedEvents);
+            let noteStatsMap = {};
+            for (let event of statsEvents) {
+                const content = utilsManager_6.SocialUtilsManager.parseContent(event.content);
+                noteStatsMap[content.event_id] = {
+                    upvotes: content.likes,
+                    replies: content.replies,
+                    reposts: content.reposts,
+                    satszapped: content.satszapped
+                };
+            }
+            const notesEvents = events.filter(event => event.kind === 1);
+            for (let noteEvent of notesEvents) {
+                if (noteEvent.tags?.length) {
+                    const communityUri = noteEvent.tags.find(tag => tag[0] === 'a')?.[1];
+                    if (communityUri) {
+                        const { creatorId, communityId } = utilsManager_6.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                        const stats = noteStatsMap[noteEvent.id];
+                        const noteInfo = {
+                            eventData: noteEvent,
+                            stats,
+                            community: {
+                                communityUri,
+                                communityId,
+                                creatorId: index_7.Nip19.npubEncode(creatorId)
+                            }
+                        };
+                        result.push(noteInfo);
+                    }
+                }
+            }
+            return result;
+        }
+        async fetchThreadNotesInfo(focusedNoteId) {
+            let focusedNote;
+            let ancestorNotes = [];
+            let replies = [];
+            let childReplyEventTagIds = [];
+            //Ancestor posts -> Focused post -> Child replies
+            let decodedFocusedNoteId = focusedNoteId.startsWith('note1') ? index_7.Nip19.decode(focusedNoteId).data : focusedNoteId;
+            const selfPubkey = this._privateKey ? utilsManager_6.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
+            const threadEvents = await this._socialEventManagerRead.fetchThreadCacheEvents({
+                id: decodedFocusedNoteId,
+                pubKey: selfPubkey
+            });
+            const { notes, metadataByPubKeyMap, quotedNotesMap, pubkeyToCommunityIdsMap } = this.createNoteEventMappings(threadEvents);
+            const communityInfoMap = {};
+            if (Object.keys(pubkeyToCommunityIdsMap).length > 0) {
+                const communityEvents = await this._socialEventManagerRead.fetchCommunities({
+                    pubkeyToCommunityIdsMap
+                });
+                for (let event of communityEvents) {
+                    let communityInfo = utilsManager_6.SocialUtilsManager.extractCommunityInfo(event);
+                    communityInfoMap[communityInfo.communityUri] = communityInfo;
+                }
+            }
+            const quotedPubKeys = [];
+            for (let eventId in quotedNotesMap) {
+                const pubKey = quotedNotesMap[eventId].eventData.pubkey;
+                if (!metadataByPubKeyMap[pubKey])
+                    quotedPubKeys.push(pubKey);
+            }
+            if (quotedPubKeys.length > 0) {
+                const metadata = await this._socialEventManagerRead.fetchUserProfileCacheEvents({
+                    pubKeys: quotedPubKeys
+                });
+                const _metadataByPubKeyMap = metadata.reduce((acc, cur) => {
+                    const content = JSON.parse(cur.content);
+                    if (cur.pubkey) {
+                        acc[cur.pubkey] = {
+                            ...cur,
+                            content
+                        };
+                    }
+                    return acc;
+                }, {});
+                Object.assign(metadataByPubKeyMap, _metadataByPubKeyMap);
+            }
+            for (let note of notes) {
+                note.community = this.constructNoteCommunity(note.eventData, communityInfoMap);
+                if (note.eventData.id === decodedFocusedNoteId) {
+                    focusedNote = note;
+                }
+                else if (note.eventData.tags.some(tag => tag[0] === 'e' && tag[1] === decodedFocusedNoteId)) {
+                    replies.push(note);
+                }
+                else {
+                    ancestorNotes.push(note);
+                }
+            }
+            replies = replies.sort((a, b) => b.eventData.created_at - a.eventData.created_at);
+            ancestorNotes = ancestorNotes.sort((a, b) => a.eventData.created_at - b.eventData.created_at);
+            let communityInfo = null;
+            let scpData = utilsManager_6.SocialUtilsManager.extractScpData(focusedNote.eventData, interfaces_7.ScpStandardId.CommunityPost);
+            if (scpData) {
+                const communityUri = this.retrieveCommunityUri(focusedNote.eventData, scpData);
+                if (communityUri) {
+                    const { creatorId, communityId } = utilsManager_6.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                    communityInfo = await this.fetchCommunityInfo(creatorId, communityId);
+                }
+            }
+            return {
+                focusedNote,
+                ancestorNotes,
+                replies,
+                quotedNotesMap,
+                metadataByPubKeyMap,
+                childReplyEventTagIds,
+                communityInfo
+            };
+        }
+        async createNoteCommunityMappings(notes) {
+            let noteCommunityInfoList = [];
+            let pubkeyToCommunityIdsMap = {};
+            let communityInfoList = [];
+            for (let note of notes) {
+                let scpData = utilsManager_6.SocialUtilsManager.extractScpData(note, interfaces_7.ScpStandardId.CommunityPost);
+                if (scpData) {
+                    const communityUri = this.retrieveCommunityUri(note, scpData);
+                    if (communityUri) {
+                        const { creatorId, communityId } = utilsManager_6.SocialUtilsManager.getCommunityBasicInfoFromUri(communityUri);
+                        pubkeyToCommunityIdsMap[creatorId] = pubkeyToCommunityIdsMap[creatorId] || [];
+                        if (!pubkeyToCommunityIdsMap[creatorId].includes(communityId)) {
+                            pubkeyToCommunityIdsMap[creatorId].push(communityId);
+                        }
+                        noteCommunityInfoList.push({
+                            eventData: note,
+                            communityUri,
+                            communityId,
+                            creatorId,
+                        });
+                    }
+                }
+            }
+            if (noteCommunityInfoList.length > 0) {
+                const communityEvents = await this._socialEventManagerRead.fetchCommunities({
+                    pubkeyToCommunityIdsMap
+                });
+                for (let event of communityEvents) {
+                    let communityInfo = utilsManager_6.SocialUtilsManager.extractCommunityInfo(event);
+                    communityInfoList.push(communityInfo);
+                }
+                //Fetch group keys only when scpData.encryptedKey is undefined for backward compatibility
+                const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
+                    identifiers: communityInfoList.filter(v => !v.scpData?.encryptedKey).map(v => v.communityUri + ':keys')
+                });
+                for (let keyEvent of keyEvents) {
+                    const identifier = keyEvent.tags.find(tag => tag[0] === 'd')?.[1];
+                    const communityUri = identifier.replace(':keys', '');
+                    const communityInfo = communityInfoList.find(v => v.communityUri === communityUri);
+                    if (communityInfo) {
+                        communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
+                    }
+                }
+            }
+            return {
+                noteCommunityInfoList,
+                communityInfoList
+            };
+        }
+        async retrieveUserProfileDetail(pubKey) {
+            let metadata;
+            let stats;
+            const userContactEvents = await this._socialEventManagerRead.fetchUserProfileDetailCacheEvents({ pubKey });
+            for (let event of userContactEvents) {
+                if (event.kind === 0) {
+                    metadata = {
+                        ...event,
+                        content: utilsManager_6.SocialUtilsManager.parseContent(event.content)
+                    };
+                }
+                else if (event.kind === 10000105) {
+                    let content = utilsManager_6.SocialUtilsManager.parseContent(event.content);
+                    stats = {
+                        notes: content.note_count,
+                        replies: content.reply_count,
+                        followers: content.followers_count,
+                        following: content.follows_count,
+                        relays: content.relay_count,
+                        timeJoined: content.time_joined
+                    };
+                }
+            }
+            if (!metadata)
+                return null;
+            let userProfile = utilsManager_6.SocialUtilsManager.constructUserProfile(metadata);
+            return {
+                userProfile,
+                stats
+            };
+        }
+        async fetchUserContactList(pubKey) {
+            let metadataArr = [];
+            let followersCountMap = {};
+            const userContactEvents = await this._socialEventManagerRead.fetchContactListCacheEvents({
+                pubKey,
+                detailIncluded: true
+            });
+            for (let event of userContactEvents) {
+                if (event.kind === 0) {
+                    metadataArr.push({
+                        ...event,
+                        content: utilsManager_6.SocialUtilsManager.parseContent(event.content)
+                    });
+                }
+                else if (event.kind === 10000108) {
+                    followersCountMap = utilsManager_6.SocialUtilsManager.parseContent(event.content);
+                }
+            }
+            const userProfiles = [];
+            for (let metadata of metadataArr) {
+                let userProfile = utilsManager_6.SocialUtilsManager.constructUserProfile(metadata, followersCountMap);
+                userProfiles.push(userProfile);
+            }
+            return userProfiles;
+        }
+        async fetchUserFollowersList(pubKey) {
+            let metadataArr = [];
+            let followersCountMap = {};
+            const userFollowersEvents = await this._socialEventManagerRead.fetchFollowersCacheEvents({ pubKey });
+            for (let event of userFollowersEvents) {
+                if (event.kind === 0) {
+                    metadataArr.push({
+                        ...event,
+                        content: utilsManager_6.SocialUtilsManager.parseContent(event.content)
+                    });
+                }
+                else if (event.kind === 10000108) {
+                    followersCountMap = utilsManager_6.SocialUtilsManager.parseContent(event.content);
+                }
+            }
+            const userProfiles = [];
+            for (let metadata of metadataArr) {
+                let userProfile = utilsManager_6.SocialUtilsManager.constructUserProfile(metadata, followersCountMap);
+                userProfiles.push(userProfile);
+            }
+            return userProfiles;
+        }
+        async fetchUserRelayList(pubKey) {
+            let relayList = [];
+            const relaysEvents = await this._socialEventManagerRead.fetchUserRelays({ pubKey });
+            const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
+            if (!relaysEvent)
+                return relayList;
+            relayList = relaysEvent.tags.filter(tag => tag[0] === 'r')?.map(tag => tag[1]) || [];
+            relayList = Array.from(new Set(relayList));
+            return relayList;
+        }
+        async followUser(userPubKey) {
+            const decodedUserPubKey = userPubKey.startsWith('npub1') ? index_7.Nip19.decode(userPubKey).data : userPubKey;
+            const selfPubkey = utilsManager_6.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
+            const contactListEvents = await this._socialEventManagerRead.fetchContactListCacheEvents({
+                pubKey: selfPubkey,
+                detailIncluded: false
+            });
+            let content = '';
+            let contactPubKeys = new Set();
+            let contactListEvent = contactListEvents.find(event => event.kind === 3);
+            if (contactListEvent) {
+                content = contactListEvent.content;
+                contactPubKeys = new Set(contactListEvent.tags.filter(tag => tag[0] === 'p')?.map(tag => tag[1]) || []);
+            }
+            contactPubKeys.add(decodedUserPubKey);
+            await this._socialEventManagerWrite.updateContactList(content, Array.from(contactPubKeys));
+        }
+        async unfollowUser(userPubKey) {
+            const decodedUserPubKey = userPubKey.startsWith('npub1') ? index_7.Nip19.decode(userPubKey).data : userPubKey;
+            const selfPubkey = utilsManager_6.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
+            const contactListEvents = await this._socialEventManagerRead.fetchContactListCacheEvents({
+                pubKey: selfPubkey,
+                detailIncluded: false
+            });
+            let content = '';
+            let contactPubKeys = new Set();
+            const contactListEvent = contactListEvents.find(event => event.kind === 3);
+            if (contactListEvent) {
+                content = contactListEvent.content;
+                for (let tag of contactListEvent.tags) {
+                    if (tag[0] === 'p' && tag[1] !== decodedUserPubKey) {
+                        contactPubKeys.add(tag[1]);
+                    }
+                }
+            }
+            await this._socialEventManagerWrite.updateContactList(content, Array.from(contactPubKeys));
+        }
+        async createCommunity(newInfo, creatorId) {
+            const communityUri = utilsManager_6.SocialUtilsManager.getCommunityUri(creatorId, newInfo.name);
+            let communityInfo = {
+                communityUri,
+                communityId: newInfo.name,
+                creatorId,
+                description: newInfo.description,
+                rules: newInfo.rules,
+                bannerImgUrl: newInfo.bannerImgUrl,
+                avatarImgUrl: newInfo.avatarImgUrl,
+                moderatorIds: newInfo.moderatorIds,
+                scpData: newInfo.scpData,
+                membershipType: newInfo.membershipType,
+                privateRelay: newInfo.privateRelay,
+                gatekeeperNpub: newInfo.gatekeeperNpub,
+                policies: newInfo.policies,
+                pointSystem: newInfo.pointSystem,
+                collectibles: newInfo.collectibles,
+                parentCommunityUri: newInfo.parentCommunityUri
+            };
+            if (communityInfo.membershipType === interfaces_7.MembershipType.Protected) {
+                const gatekeeperPublicKey = index_7.Nip19.decode(communityInfo.gatekeeperNpub).data;
+                const groupPrivateKey = index_7.Keys.generatePrivateKey();
+                const groupPublicKey = index_7.Keys.getPublicKey(groupPrivateKey);
+                const encryptedGroupKey = await utilsManager_6.SocialUtilsManager.encryptMessage(this._privateKey, gatekeeperPublicKey, groupPrivateKey);
+                communityInfo.scpData = {
+                    ...communityInfo.scpData,
+                    publicKey: groupPublicKey,
+                    gatekeeperPublicKey,
+                    encryptedKey: encryptedGroupKey
+                };
+            }
+            await this._socialEventManagerWrite.updateCommunity(communityInfo);
+            return communityInfo;
+        }
+        async updateCommunity(info) {
+            if (info.membershipType === interfaces_7.MembershipType.Protected) {
+                const gatekeeperPublicKey = index_7.Nip19.decode(info.gatekeeperNpub).data;
+                if (info.scpData) {
+                    if (!info.scpData.encryptedKey || !info.scpData.gatekeeperPublicKey) {
+                        const groupPrivateKey = await this.retrieveCommunityPrivateKey(info, this._privateKey);
+                        const encryptedGroupKey = await utilsManager_6.SocialUtilsManager.encryptMessage(this._privateKey, gatekeeperPublicKey, groupPrivateKey);
+                        info.scpData = {
+                            ...info.scpData,
+                            gatekeeperPublicKey,
+                            encryptedKey: encryptedGroupKey
+                        };
+                    }
+                }
+                else {
+                    const groupPrivateKey = index_7.Keys.generatePrivateKey();
+                    const groupPublicKey = index_7.Keys.getPublicKey(groupPrivateKey);
+                    const encryptedGroupKey = await utilsManager_6.SocialUtilsManager.encryptMessage(this._privateKey, gatekeeperPublicKey, groupPrivateKey);
+                    info.scpData = {
+                        ...info.scpData,
+                        publicKey: groupPublicKey,
+                        gatekeeperPublicKey,
+                        encryptedKey: encryptedGroupKey
+                    };
+                }
+            }
+            await this._socialEventManagerWrite.updateCommunity(info);
+            return info;
+        }
+        async fetchCommunitiesMembers(communities) {
+            if (communities.length === 0)
+                return {};
+            const communityUriToMembersMap = await this._socialEventManagerRead.getCommunityUriToMembersMap(communities);
+            return communityUriToMembersMap;
+        }
+        getEventIdToMemberMap(events) {
+            const memberCountsEvents = events.filter(event => event.kind === 10000109);
+            let eventIdToMemberCountMap = {};
+            for (let event of memberCountsEvents) {
+                const content = utilsManager_6.SocialUtilsManager.parseContent(event.content);
+                eventIdToMemberCountMap[content.event_id] = content.member_count;
+            }
+            return eventIdToMemberCountMap;
+        }
+        async fetchCommunities(query) {
+            let communities = [];
+            const events = await this._socialEventManagerRead.fetchCommunities({
+                query
+            });
+            let eventIdToMemberCountMap = this.getEventIdToMemberMap(events);
+            const communityEvents = events.filter(event => event.kind === 34550);
+            for (let event of communityEvents) {
+                const communityInfo = utilsManager_6.SocialUtilsManager.extractCommunityInfo(event);
+                const memberCount = eventIdToMemberCountMap[event.id] || 0;
+                let community = {
+                    ...communityInfo,
+                    members: [],
+                    memberCount
+                };
+                communities.push(community);
+            }
+            return communities;
+        }
+        async fetchMyCommunities(pubKey) {
+            let communities = [];
+            const events = await this._socialEventManagerRead.fetchAllUserRelatedCommunities({ pubKey });
+            let eventIdToMemberCountMap = this.getEventIdToMemberMap(events);
+            const communitiesEvents = events.filter(event => event.kind === 34550);
+            for (let event of communitiesEvents) {
+                const communityInfo = utilsManager_6.SocialUtilsManager.extractCommunityInfo(event);
+                const memberCount = eventIdToMemberCountMap[event.id] || 0;
+                let community = {
+                    ...communityInfo,
+                    members: [],
+                    memberCount
+                };
+                communities.push(community);
+            }
+            return communities;
+        }
+        async joinCommunity(community, pubKey) {
+            const communities = await this._socialEventManagerRead.fetchUserBookmarkedCommunities({ pubKey });
+            communities.push(community);
+            await this._socialEventManagerWrite.updateUserBookmarkedCommunities(communities);
+            if (community.scpData?.channelEventId) {
+                const channelEventIds = await this._socialEventManagerRead.fetchUserBookmarkedChannelEventIds({ pubKey });
+                channelEventIds.push(community.scpData.channelEventId);
+                await this._socialEventManagerWrite.updateUserBookmarkedChannels(channelEventIds);
+            }
+        }
+        async leaveCommunity(community, pubKey) {
+            const communities = await this._socialEventManagerRead.fetchUserBookmarkedCommunities({
+                pubKey,
+                excludedCommunity: community
+            });
+            await this._socialEventManagerWrite.updateUserBookmarkedCommunities(communities);
+            if (community.scpData?.channelEventId) {
+                const channelEventIds = await this._socialEventManagerRead.fetchUserBookmarkedChannelEventIds({ pubKey });
+                const index = channelEventIds.indexOf(community.scpData.channelEventId);
+                if (index > -1) {
+                    channelEventIds.splice(index, 1);
+                }
+                await this._socialEventManagerWrite.updateUserBookmarkedChannels(channelEventIds);
+            }
+        }
+        async encryptGroupMessage(privateKey, groupPublicKey, message) {
+            const messagePrivateKey = index_7.Keys.generatePrivateKey();
+            const messagePublicKey = index_7.Keys.getPublicKey(messagePrivateKey);
+            const encryptedGroupKey = await utilsManager_6.SocialUtilsManager.encryptMessage(privateKey, groupPublicKey, messagePrivateKey);
+            const encryptedMessage = await utilsManager_6.SocialUtilsManager.encryptMessage(privateKey, messagePublicKey, message);
+            return {
+                encryptedMessage,
+                encryptedGroupKey
+            };
+        }
+        async submitCommunityPost(message, info, conversationPath, timestamp, alt, isPublicPost = false) {
+            const messageContent = {
+                communityUri: info.communityUri,
+                message,
+            };
+            let newCommunityPostInfo;
+            if (info.membershipType === interfaces_7.MembershipType.Open || isPublicPost) {
+                newCommunityPostInfo = {
+                    community: info,
+                    message,
+                    timestamp,
+                    conversationPath
+                };
+            }
+            else {
+                const { encryptedMessage, encryptedGroupKey } = await this.encryptGroupMessage(this._privateKey, info.scpData.publicKey, JSON.stringify(messageContent));
+                newCommunityPostInfo = {
+                    community: info,
+                    message: encryptedMessage,
+                    timestamp,
+                    conversationPath,
+                    scpData: {
+                        encryptedKey: encryptedGroupKey,
+                        communityUri: info.communityUri
+                    }
+                };
+            }
+            if (alt)
+                newCommunityPostInfo.alt = alt;
+            const responses = await this._socialEventManagerWrite.submitCommunityPost(newCommunityPostInfo);
+            return responses;
+        }
+        async getAccountBalance(walletAddress) {
+            const apiUrl = 'https://rpc.ankr.com/multichain/79258ce7f7ee046decc3b5292a24eb4bf7c910d7e39b691384c7ce0cfb839a01/?ankr_getAccountBalance';
+            const bodyData = {
+                jsonrpc: '2.0',
+                method: 'ankr_getAccountBalance',
+                params: {
+                    blockchain: [
+                        'bsc',
+                        'avalanche'
+                    ],
+                    walletAddress
+                },
+                id: 1
+            };
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(bodyData)
+            });
+            const data = await response.json();
+            if (data.error) {
+                console.log('error', data.error);
+                return null;
+            }
+            return data.result;
+        }
+        async getNFTsByOwner(walletAddress) {
+            const apiUrl = 'https://rpc.ankr.com/multichain/79258ce7f7ee046decc3b5292a24eb4bf7c910d7e39b691384c7ce0cfb839a01/?ankr_getNFTsByOwner';
+            const bodyData = {
+                jsonrpc: '2.0',
+                method: 'ankr_getNFTsByOwner',
+                params: {
+                    blockchain: [
+                        'bsc',
+                        'avalanche'
+                    ],
+                    walletAddress
+                },
+                id: 1
+            };
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(bodyData)
+            });
+            const data = await response.json();
+            if (data.error) {
+                console.log('error', data.error);
+                return null;
+            }
+            return data.result;
+        }
+        async submitMessage(message, conversationPath, createdAt) {
+            return this._socialEventManagerWrite.postNote(message, conversationPath, createdAt);
+        }
+        async submitLongFormContent(info) {
+            return this._socialEventManagerWrite.submitLongFormContentEvents(info);
+        }
+        async submitLike(postEventData) {
+            let tags = postEventData.tags.filter(tag => tag.length >= 2 && (tag[0] === 'e' || tag[0] === 'p'));
+            tags.push(['e', postEventData.id]);
+            tags.push(['p', postEventData.pubkey]);
+            tags.push(['k', postEventData.kind.toString()]);
+            await this._socialEventManagerWrite.submitLike(tags);
+        }
+        async submitRepost(postEventData) {
+            let tags = [
+                [
+                    'e',
+                    postEventData.id
+                ],
+                [
+                    'p',
+                    postEventData.pubkey
+                ]
+            ];
+            const content = JSON.stringify(postEventData);
+            await this._socialEventManagerWrite.submitRepost(content, tags);
+        }
+        async sendPingRequest(pubkey, relayUrl = this._publicIndexingRelay) {
+            const data = utilsManager_6.SocialUtilsManager.augmentWithAuthInfo({
+                pubkey: pubkey,
+            }, this._privateKey);
+            let result;
+            try {
+                let response = await fetch(relayUrl + '/ping', {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                result = await response.json();
+            }
+            catch (err) {
+            }
+            return result;
+        }
+        async checkRelayStatus(pubkey, relayUrl) {
+            if (!relayUrl)
+                relayUrl = this._publicIndexingRelay;
+            const data = utilsManager_6.SocialUtilsManager.augmentWithAuthInfo({
+                pubkey: pubkey,
+            }, this._privateKey);
+            let result;
+            try {
+                let response = await fetch(relayUrl + '/check-status', {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) {
+                    result = await response.json();
+                }
+                else if (response.status === 401) {
+                    result = {
+                        success: false,
+                        error: 'Access Denied: You do not have permission to access this relay.'
+                    };
+                }
+            }
+            catch (err) {
+            }
+            return result;
+        }
+        async searchUsers(query) {
+            const events = await this._socialEventManagerRead.searchUsers({ query });
+            let metadataArr = [];
+            let followersCountMap = {};
+            for (let event of events) {
+                if (event.kind === 0) {
+                    metadataArr.push({
+                        ...event,
+                        content: utilsManager_6.SocialUtilsManager.parseContent(event.content)
+                    });
+                }
+                else if (event.kind === 10000108) {
+                    followersCountMap = utilsManager_6.SocialUtilsManager.parseContent(event.content);
+                }
+            }
+            const userProfiles = [];
+            for (let metadata of metadataArr) {
+                let userProfile = utilsManager_6.SocialUtilsManager.constructUserProfile(metadata, followersCountMap);
+                userProfiles.push(userProfile);
+            }
+            return userProfiles;
+        }
+        async addRelay(url) {
+            const selfPubkey = utilsManager_6.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
+            const relaysEvents = await this._socialEventManagerRead.fetchUserRelays({
+                pubKey: selfPubkey
+            });
+            const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
+            let relays = { [url]: { write: true, read: true } };
+            if (relaysEvent) {
+                for (let tag of relaysEvent.tags) {
+                    if (tag[0] !== 'r')
+                        continue;
+                    let config = { read: true, write: true };
+                    if (tag[2] === 'write') {
+                        config.read = false;
+                    }
+                    if (tag[2] === 'read') {
+                        config.write = false;
+                    }
+                    relays[tag[1]] = config;
+                }
+            }
+            await this._socialEventManagerWrite.updateRelayList(relays);
+        }
+        async removeRelay(url) {
+            const selfPubkey = utilsManager_6.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
+            const relaysEvents = await this._socialEventManagerRead.fetchUserRelays({
+                pubKey: selfPubkey
+            });
+            const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
+            let relays = {};
+            if (relaysEvent) {
+                for (let tag of relaysEvent.tags) {
+                    if (tag[0] !== 'r' || tag[1] === url)
+                        continue;
+                    let config = { read: true, write: true };
+                    if (tag[2] === 'write') {
+                        config.read = false;
+                    }
+                    if (tag[2] === 'read') {
+                        config.write = false;
+                    }
+                    relays[tag[1]] = config;
+                }
+            }
+            await this._socialEventManagerWrite.updateRelayList(relays);
+        }
+        async updateRelays(add, remove, defaultRelays) {
+            const selfPubkey = utilsManager_6.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
+            const relaysEvents = await this._socialEventManagerRead.fetchUserRelays({
+                pubKey: selfPubkey
+            });
+            const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
+            let relaysMap = {};
+            for (let relay of add) {
+                relaysMap[relay] = { read: true, write: true };
+            }
+            if (relaysEvent) {
+                for (let tag of relaysEvent.tags) {
+                    if (tag[0] !== 'r' || remove.includes(tag[1]))
+                        continue;
+                    let config = { read: true, write: true };
+                    if (tag[2] === 'write') {
+                        config.read = false;
+                    }
+                    if (tag[2] === 'read') {
+                        config.write = false;
+                    }
+                    relaysMap[tag[1]] = config;
+                }
+            }
+            let relayUrls = Object.keys(relaysMap);
+            // this.relays = relayUrls.length > 0 ? relayUrls : defaultRelays;
+            await this._socialEventManagerWrite.updateRelayList(relaysMap);
+            return relayUrls;
+        }
+        async fetchUserPrivateRelay(pubkey) {
+            const url = `${this._publicIndexingRelay}/private-relay?pubkey=${pubkey}`;
+            const response = await fetch(url);
+            const result = await response.json();
+            return result.data.relay;
+        }
+        async fetchCommunityPinnedNotes(creatorId, communityId) {
+            const events = await this._socialEventManagerRead.fetchCommunityPinnedNotesEvents({
+                creatorId,
+                communityId
+            });
+            const { notes, metadataByPubKeyMap } = this.createNoteEventMappings(events);
+            return {
+                notes,
+                metadataByPubKeyMap
+            };
+        }
+        async pinCommunityNote(creatorId, communityId, noteId) {
+            let noteIds = await this._socialEventManagerRead.fetchCommunityPinnedNoteIds({
+                creatorId,
+                communityId
+            });
+            noteIds = Array.from(new Set([...noteIds, noteId]));
+            await this._socialEventManagerWrite.updateCommunityPinnedNotes(creatorId, communityId, noteIds);
+        }
+        async unpinCommunityNote(creatorId, communityId, noteId) {
+            let noteIds = await this._socialEventManagerRead.fetchCommunityPinnedNoteIds({
+                creatorId,
+                communityId
+            });
+            noteIds = Array.from(new Set(noteIds));
+            const index = noteIds.indexOf(noteId);
+            if (index > -1) {
+                noteIds.splice(index, 1);
+            }
+            await this._socialEventManagerWrite.updateCommunityPinnedNotes(creatorId, communityId, noteIds);
+        }
+        async fetchUserPinnedNotes(pubKey) {
+            const pinnedNotesEvent = await this._socialEventManagerRead.fetchUserPinnedNotes({ pubKey });
+            let noteIds = [];
+            if (pinnedNotesEvent) {
+                for (let tag of pinnedNotesEvent.tags) {
+                    if (tag[0] === 'e') {
+                        noteIds.push(tag[1]);
+                    }
+                }
+            }
+            if (noteIds.length > 0)
+                return this._socialEventManagerRead.fetchEventsByIds({ ids: noteIds });
+            else
+                return [];
+        }
+        async pinUserNote(pubKey, noteId) {
+            const pinnedNotesEvent = await this._socialEventManagerRead.fetchUserPinnedNotes({ pubKey });
+            let noteIds = [noteId];
+            if (pinnedNotesEvent) {
+                for (let tag of pinnedNotesEvent.tags) {
+                    if (tag[0] === 'e' && tag[1] !== noteId) {
+                        noteIds.push(tag[1]);
+                    }
+                }
+            }
+            await this._socialEventManagerWrite.updateUserPinnedNotes(noteIds);
+        }
+        async unpinUserNote(pubKey, noteId) {
+            const pinnedNotesEvent = await this._socialEventManagerRead.fetchUserPinnedNotes({ pubKey });
+            let noteIds = [];
+            if (pinnedNotesEvent) {
+                for (let tag of pinnedNotesEvent.tags) {
+                    if (tag[0] === 'e' && tag[1] !== noteId) {
+                        noteIds.push(tag[1]);
+                    }
+                }
+            }
+            await this._socialEventManagerWrite.updateUserPinnedNotes(noteIds);
+        }
+        async deleteEvents(eventIds) {
+            await this._socialEventManagerWrite.deleteEvents(eventIds);
+        }
+        async fetchTrendingCommunities() {
+            let communities = [];
+            const events = await this._socialEventManagerRead.fetchTrendingCommunities();
+            let eventIdToMemberCountMap = this.getEventIdToMemberMap(events);
+            const communitiesEvents = events.filter(event => event.kind === 34550);
+            for (let event of communitiesEvents) {
+                const communityInfo = utilsManager_6.SocialUtilsManager.extractCommunityInfo(event);
+                const memberCount = eventIdToMemberCountMap[event.id] || 0;
+                let community = {
+                    ...communityInfo,
+                    memberCount
+                };
+                communities.push(community);
+            }
+            return communities;
+        }
+        async fetchUserEthWalletAccountsInfo(options) {
+            const { walletHash, pubKey } = options;
+            const event = await this._socialEventManagerRead.fetchUserEthWalletAccountsInfo({ walletHash, pubKey });
+            if (!event)
+                return null;
+            const content = utilsManager_6.SocialUtilsManager.parseContent(event.content);
+            let accountsInfo = {
+                masterWalletSignature: content.master_wallet_signature,
+                socialWalletSignature: content.social_wallet_signature,
+                encryptedKey: content.encrypted_key,
+                masterWalletHash: walletHash,
+                eventData: event
+            };
+            return accountsInfo;
+        }
+        async updateUserEthWalletAccountsInfo(info, privateKey) {
+            const responses = await this._socialEventManagerWrite.updateUserEthWalletAccountsInfo(info, privateKey);
+            const response = responses[0];
+            return response.success ? response.eventId : null;
+        }
+        async fetchSubCommunities(creatorId, communityId) {
+            let communities = [];
+            try {
+                const events = await this._socialEventManagerRead.fetchSubcommunites({
+                    communityCreatorId: creatorId,
+                    communityName: communityId
+                });
+                for (let event of events) {
+                    const communityInfo = utilsManager_6.SocialUtilsManager.extractCommunityInfo(event);
+                    let community = {
+                        ...communityInfo,
+                        members: []
+                    };
+                    communities.push(community);
+                }
+            }
+            catch (error) {
+                console.error('fetchSubCommunities', error);
+            }
+            return communities;
+        }
+        async fetchCommunityDetailMetadata(creatorId, communityId) {
+            const events = await this._socialEventManagerRead.fetchCommunityDetailMetadata({
+                communityCreatorId: creatorId,
+                communityName: communityId
+            });
+            const communityEvent = events.find(event => event.kind === 34550);
+            if (!communityEvent)
+                return null;
+            const communityInfo = utilsManager_6.SocialUtilsManager.extractCommunityInfo(communityEvent);
+            const statsEvent = events.find(event => event.kind === 10000105);
+            let stats;
+            if (statsEvent) {
+                const content = utilsManager_6.SocialUtilsManager.parseContent(statsEvent.content);
+                stats = {
+                    notesCount: content.note_count,
+                    membersCount: content.member_count,
+                    subcommunitiesCount: content.subcommunity_count
+                };
+            }
+            //Fetch group keys only when scpData.encryptedKey is undefined for backward compatibility
+            if (communityInfo.membershipType === interfaces_7.MembershipType.Protected && !communityInfo.scpData?.encryptedKey) {
+                const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
+                    identifiers: [communityInfo.communityUri + ':keys']
+                });
+                const keyEvent = keyEvents[0];
+                if (keyEvent) {
+                    communityInfo.memberKeyMap = JSON.parse(keyEvent.content);
+                }
+            }
+            let detailMetadata = {
+                info: communityInfo,
+                stats
+            };
+            return detailMetadata;
+        }
+        async updateNoteStatus(noteId, status) {
+            const result = await this._socialEventManagerWrite.updateNoteStatus(noteId, status);
+            return result;
+        }
+        async updateCommunitySubscription(options) {
+            const selfPubkey = utilsManager_6.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
+            const communityPubkey = options.communityCreatorId.startsWith('npub1') ? index_7.Nip19.decode(options.communityCreatorId).data : options.communityCreatorId;
+            let bodyData = utilsManager_6.SocialUtilsManager.augmentWithAuthInfo({
+                communityPubkey: communityPubkey,
+                communityD: options.communityId,
+                pubkey: selfPubkey,
+                start: options.start,
+                end: options.end,
+                chainId: options.chainId || 'TON',
+                txHash: options.txHash,
+                timeCreated: Math.round(Date.now() / 1000)
+            }, this._privateKey);
+            const relayUrl = this._publicIndexingRelay;
+            let url = `${relayUrl}/update-community-subscription`;
+            let response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(bodyData)
+            });
+            let result = await response.json();
+            return result;
+        }
+        async checkCommunitySubscriptions(communityCreatorId, communityId) {
+            const selfPubkey = utilsManager_6.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
+            const communityPubkey = communityCreatorId.startsWith('npub1') ? index_7.Nip19.decode(communityCreatorId).data : communityCreatorId;
+            let subscriptions = [];
+            const relayUrl = this._publicIndexingRelay;
+            let url = `${relayUrl}/communities/check-subscriptions`;
+            let bodyData = {
+                pubkey: selfPubkey,
+                communityPubkey: communityPubkey,
+                communityD: communityId,
+            };
+            let response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(bodyData)
+            });
+            let result = await response.json();
+            if (result.success) {
+                subscriptions = result.data.subscriptions;
+            }
+            return subscriptions;
+        }
+    }
+    exports.SocialDataManagerTG = SocialDataManagerTG;
+});
+define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/scom-social-sdk/managers/communication.ts", "@scom/scom-social-sdk/managers/utilsManager.ts", "@scom/scom-social-sdk/managers/eventManagerWrite.ts", "@scom/scom-social-sdk/managers/eventManagerRead.ts", "@scom/scom-social-sdk/managers/eventManagerReadV2.ts", "@scom/scom-social-sdk/managers/dataManager.ts", "@scom/scom-social-sdk/managers/dataManagerTG.ts"], function (require, exports, communication_3, utilsManager_7, eventManagerWrite_3, eventManagerRead_2, eventManagerReadV2_2, dataManager_1, dataManagerTG_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.NostrWebSocketManager = exports.NostrRestAPIManager = exports.SocialDataManagerTG = exports.SocialDataManager = exports.SocialUtilsManager = exports.NostrEventManagerWrite = exports.NostrEventManagerReadV2 = exports.NostrEventManagerRead = void 0;
+    Object.defineProperty(exports, "NostrRestAPIManager", { enumerable: true, get: function () { return communication_3.NostrRestAPIManager; } });
+    Object.defineProperty(exports, "NostrWebSocketManager", { enumerable: true, get: function () { return communication_3.NostrWebSocketManager; } });
+    Object.defineProperty(exports, "SocialUtilsManager", { enumerable: true, get: function () { return utilsManager_7.SocialUtilsManager; } });
+    Object.defineProperty(exports, "NostrEventManagerWrite", { enumerable: true, get: function () { return eventManagerWrite_3.NostrEventManagerWrite; } });
+    Object.defineProperty(exports, "NostrEventManagerRead", { enumerable: true, get: function () { return eventManagerRead_2.NostrEventManagerRead; } });
+    Object.defineProperty(exports, "NostrEventManagerReadV2", { enumerable: true, get: function () { return eventManagerReadV2_2.NostrEventManagerReadV2; } });
+    Object.defineProperty(exports, "SocialDataManager", { enumerable: true, get: function () { return dataManager_1.SocialDataManager; } });
+    Object.defineProperty(exports, "SocialDataManagerTG", { enumerable: true, get: function () { return dataManagerTG_1.SocialDataManagerTG; } });
+});
+define("@scom/scom-social-sdk", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/index.ts", "@scom/scom-social-sdk/managers/index.ts"], function (require, exports, index_8, index_9, managers_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.NostrRestAPIManager = exports.NostrWebSocketManager = exports.SocialDataManager = exports.SocialUtilsManager = exports.NostrEventManagerWrite = exports.NostrEventManagerReadV2 = exports.NostrEventManagerRead = exports.CalendarEventType = exports.CommunityRole = exports.ProtectedMembershipPolicyType = exports.PaymentModel = exports.MembershipType = exports.TokenType = exports.schnorr = exports.secp256k1 = exports.Bech32 = exports.Nip19 = exports.Keys = exports.Event = void 0;
-    Object.defineProperty(exports, "Event", { enumerable: true, get: function () { return index_7.Event; } });
-    Object.defineProperty(exports, "Keys", { enumerable: true, get: function () { return index_7.Keys; } });
-    Object.defineProperty(exports, "Nip19", { enumerable: true, get: function () { return index_7.Nip19; } });
-    Object.defineProperty(exports, "Bech32", { enumerable: true, get: function () { return index_7.Bech32; } });
-    Object.defineProperty(exports, "secp256k1", { enumerable: true, get: function () { return index_7.secp256k1; } });
-    Object.defineProperty(exports, "schnorr", { enumerable: true, get: function () { return index_7.schnorr; } });
-    Object.defineProperty(exports, "TokenType", { enumerable: true, get: function () { return index_8.TokenType; } });
-    Object.defineProperty(exports, "MembershipType", { enumerable: true, get: function () { return index_8.MembershipType; } });
-    Object.defineProperty(exports, "PaymentModel", { enumerable: true, get: function () { return index_8.PaymentModel; } });
-    Object.defineProperty(exports, "ProtectedMembershipPolicyType", { enumerable: true, get: function () { return index_8.ProtectedMembershipPolicyType; } });
-    Object.defineProperty(exports, "CommunityRole", { enumerable: true, get: function () { return index_8.CommunityRole; } });
-    Object.defineProperty(exports, "CalendarEventType", { enumerable: true, get: function () { return index_8.CalendarEventType; } });
+    Object.defineProperty(exports, "Event", { enumerable: true, get: function () { return index_8.Event; } });
+    Object.defineProperty(exports, "Keys", { enumerable: true, get: function () { return index_8.Keys; } });
+    Object.defineProperty(exports, "Nip19", { enumerable: true, get: function () { return index_8.Nip19; } });
+    Object.defineProperty(exports, "Bech32", { enumerable: true, get: function () { return index_8.Bech32; } });
+    Object.defineProperty(exports, "secp256k1", { enumerable: true, get: function () { return index_8.secp256k1; } });
+    Object.defineProperty(exports, "schnorr", { enumerable: true, get: function () { return index_8.schnorr; } });
+    Object.defineProperty(exports, "TokenType", { enumerable: true, get: function () { return index_9.TokenType; } });
+    Object.defineProperty(exports, "MembershipType", { enumerable: true, get: function () { return index_9.MembershipType; } });
+    Object.defineProperty(exports, "PaymentModel", { enumerable: true, get: function () { return index_9.PaymentModel; } });
+    Object.defineProperty(exports, "ProtectedMembershipPolicyType", { enumerable: true, get: function () { return index_9.ProtectedMembershipPolicyType; } });
+    Object.defineProperty(exports, "CommunityRole", { enumerable: true, get: function () { return index_9.CommunityRole; } });
+    Object.defineProperty(exports, "CalendarEventType", { enumerable: true, get: function () { return index_9.CalendarEventType; } });
     Object.defineProperty(exports, "NostrEventManagerRead", { enumerable: true, get: function () { return managers_1.NostrEventManagerRead; } });
     Object.defineProperty(exports, "NostrEventManagerReadV2", { enumerable: true, get: function () { return managers_1.NostrEventManagerReadV2; } });
     Object.defineProperty(exports, "NostrEventManagerWrite", { enumerable: true, get: function () { return managers_1.NostrEventManagerWrite; } });

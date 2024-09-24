@@ -1961,84 +1961,6 @@ declare module "@scom/scom-social-sdk/managers/communication.ts" {
     }
     export { INostrCommunicationManager, INostrRestAPIManager, NostrRestAPIManager, NostrWebSocketManager };
 }
-/// <amd-module name="@scom/scom-social-sdk/utils/geohash.ts" />
-declare module "@scom/scom-social-sdk/utils/geohash.ts" {
-    const Geohash: {
-        ENCODE_AUTO: string;
-        encode: (latitude: number | string, longitude: number | string, numberOfChars?: number | 'auto') => string;
-        encode_uint64: (latitude: number, longitude: number, bitDepth?: number) => number;
-        encode_int: (latitude: number, longitude: number, bitDepth?: number) => number;
-        decode: (hashString: string) => {
-            latitude: number;
-            longitude: number;
-            error: {
-                latitude: number;
-                longitude: number;
-            };
-        };
-        decode_int: (hashInt: number, bitDepth?: number) => {
-            latitude: number;
-            longitude: number;
-            error: {
-                latitude: number;
-                longitude: number;
-            };
-        };
-        decode_uint64: (hashInt: number, bitDepth?: number) => {
-            latitude: number;
-            longitude: number;
-            error: {
-                latitude: number;
-                longitude: number;
-            };
-        };
-        decode_bbox: (hashString: string) => number[];
-        decode_bbox_uint64: (hashInt: number, bitDepth?: number) => number[];
-        decode_bbox_int: (hashInt: number, bitDepth?: number) => number[];
-        neighbor: (hashString: string, direction: [number, number]) => string;
-        neighbor_int: (hashInt: number, direction: [number, number], bitDepth?: number) => number;
-        neighbors: (hashString: string) => string[];
-        neighbors_int: (hashInt: number, bitDepth?: number) => number[];
-        bboxes: (minLat: number, minLon: number, maxLat: number, maxLon: number, numberOfChars: number) => string[];
-        bboxes_int: (minLat: number, minLon: number, maxLat: number, maxLon: number, bitDepth: number) => any[];
-    };
-    export default Geohash;
-}
-/// <amd-module name="@scom/scom-social-sdk/utils/lightningWallet.ts" />
-declare module "@scom/scom-social-sdk/utils/lightningWallet.ts" {
-    type LNURLResponse = {
-        status: "OK";
-    } | {
-        status: "ERROR";
-        reason: string;
-    };
-    export type LnurlStep3Response = LNURLResponse & {
-        callback: string;
-        minSendable: number;
-        maxSendable: number;
-        nostrPubkey: string;
-        allowsNostr: boolean;
-        commentAllowed: number;
-    };
-    export type LnurlStep6Response = LNURLResponse & {
-        pr: string;
-        routes: string[];
-    };
-    export class LightningWalletManager {
-        private _privateKey;
-        private webln;
-        constructor();
-        set privateKey(privateKey: string);
-        isAvailable(): boolean;
-        makeZapInvoice(recipient: string, lnAddress: string, amount: number, comment: string, relays: string[], eventId?: string): Promise<string>;
-        makeInvoice(amount: number, comment: string): Promise<string>;
-        sendPayment(paymentRequest: string): Promise<string>;
-        private createNip57Event;
-        private getZapEndpoint;
-        zap(recipient: string, lnAddress: string, amount: number, comment: string, relays: string[], eventId?: string): Promise<any>;
-        getBalance(): Promise<any>;
-    }
-}
 /// <amd-module name="@scom/scom-social-sdk/managers/utilsManager.ts" />
 declare module "@scom/scom-social-sdk/managers/utilsManager.ts" {
     import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, INostrEvent, INostrMetadata, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
@@ -2352,14 +2274,87 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV2.ts" {
     }
     export { NostrEventManagerReadV2 };
 }
-/// <amd-module name="@scom/scom-social-sdk/managers/index.ts" />
-declare module "@scom/scom-social-sdk/managers/index.ts" {
+/// <amd-module name="@scom/scom-social-sdk/utils/geohash.ts" />
+declare module "@scom/scom-social-sdk/utils/geohash.ts" {
+    const Geohash: {
+        ENCODE_AUTO: string;
+        encode: (latitude: number | string, longitude: number | string, numberOfChars?: number | 'auto') => string;
+        encode_uint64: (latitude: number, longitude: number, bitDepth?: number) => number;
+        encode_int: (latitude: number, longitude: number, bitDepth?: number) => number;
+        decode: (hashString: string) => {
+            latitude: number;
+            longitude: number;
+            error: {
+                latitude: number;
+                longitude: number;
+            };
+        };
+        decode_int: (hashInt: number, bitDepth?: number) => {
+            latitude: number;
+            longitude: number;
+            error: {
+                latitude: number;
+                longitude: number;
+            };
+        };
+        decode_uint64: (hashInt: number, bitDepth?: number) => {
+            latitude: number;
+            longitude: number;
+            error: {
+                latitude: number;
+                longitude: number;
+            };
+        };
+        decode_bbox: (hashString: string) => number[];
+        decode_bbox_uint64: (hashInt: number, bitDepth?: number) => number[];
+        decode_bbox_int: (hashInt: number, bitDepth?: number) => number[];
+        neighbor: (hashString: string, direction: [number, number]) => string;
+        neighbor_int: (hashInt: number, direction: [number, number], bitDepth?: number) => number;
+        neighbors: (hashString: string) => string[];
+        neighbors_int: (hashInt: number, bitDepth?: number) => number[];
+        bboxes: (minLat: number, minLon: number, maxLat: number, maxLon: number, numberOfChars: number) => string[];
+        bboxes_int: (minLat: number, minLon: number, maxLat: number, maxLon: number, bitDepth: number) => any[];
+    };
+    export default Geohash;
+}
+/// <amd-module name="@scom/scom-social-sdk/utils/lightningWallet.ts" />
+declare module "@scom/scom-social-sdk/utils/lightningWallet.ts" {
+    type LNURLResponse = {
+        status: "OK";
+    } | {
+        status: "ERROR";
+        reason: string;
+    };
+    export type LnurlStep3Response = LNURLResponse & {
+        callback: string;
+        minSendable: number;
+        maxSendable: number;
+        nostrPubkey: string;
+        allowsNostr: boolean;
+        commentAllowed: number;
+    };
+    export type LnurlStep6Response = LNURLResponse & {
+        pr: string;
+        routes: string[];
+    };
+    export class LightningWalletManager {
+        private _privateKey;
+        private webln;
+        constructor();
+        set privateKey(privateKey: string);
+        isAvailable(): boolean;
+        makeZapInvoice(recipient: string, lnAddress: string, amount: number, comment: string, relays: string[], eventId?: string): Promise<string>;
+        makeInvoice(amount: number, comment: string): Promise<string>;
+        sendPayment(paymentRequest: string): Promise<string>;
+        private createNip57Event;
+        private getZapEndpoint;
+        zap(recipient: string, lnAddress: string, amount: number, comment: string, relays: string[], eventId?: string): Promise<any>;
+        getBalance(): Promise<any>;
+    }
+}
+/// <amd-module name="@scom/scom-social-sdk/managers/dataManager.ts" />
+declare module "@scom/scom-social-sdk/managers/dataManager.ts" {
     import { ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunitySubscription, IConversationPath, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCommunityInfo, INftSubscription, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, SocialDataManagerOptions } from "@scom/scom-social-sdk/utils/interfaces.ts";
-    import { INostrCommunicationManager, INostrRestAPIManager, NostrRestAPIManager, NostrWebSocketManager } from "@scom/scom-social-sdk/managers/communication.ts";
-    import { SocialUtilsManager } from "@scom/scom-social-sdk/managers/utilsManager.ts";
-    import { NostrEventManagerWrite } from "@scom/scom-social-sdk/managers/eventManagerWrite.ts";
-    import { NostrEventManagerRead } from "@scom/scom-social-sdk/managers/eventManagerRead.ts";
-    import { NostrEventManagerReadV2 } from "@scom/scom-social-sdk/managers/eventManagerReadV2.ts";
     class SocialDataManager {
         private _writeRelays;
         private _publicIndexingRelay;
@@ -2590,7 +2585,166 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
         updateCommunitySubscription(options: IUpdateCommunitySubscription): Promise<any>;
         checkCommunitySubscriptions(communityCreatorId: string, communityId: string): Promise<ICommunitySubscription[]>;
     }
-    export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager, INostrCommunicationManager, INostrRestAPIManager };
+    export { SocialDataManager };
+}
+/// <amd-module name="@scom/scom-social-sdk/managers/dataManagerTG.ts" />
+declare module "@scom/scom-social-sdk/managers/dataManagerTG.ts" {
+    import { ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityDetailMetadata, ICommunityInfo, ICommunityPostScpData, ICommunitySubscription, IConversationPath, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, ILongFormContentInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, SocialDataManagerOptions } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    class SocialDataManagerTG {
+        private _writeRelays;
+        private _publicIndexingRelay;
+        private _socialEventManagerRead;
+        private _socialEventManagerWrite;
+        private _privateKey;
+        constructor(config: ISocialDataManagerConfig);
+        dispose(): Promise<void>;
+        set privateKey(privateKey: string);
+        get socialEventManagerRead(): ISocialEventManagerRead;
+        get socialEventManagerWrite(): ISocialEventManagerWrite;
+        set relays(value: string[]);
+        get privateKey(): string;
+        private _initializeWriteRelaysManagers;
+        fetchCommunityFeedInfo(creatorId: string, communityId: string, since?: number, until?: number): Promise<{
+            notes: INoteInfo[];
+            metadataByPubKeyMap: Record<string, INostrMetadata>;
+            quotedNotesMap: Record<string, INoteInfo>;
+        }>;
+        retrieveCommunityUri(noteEvent: INostrEvent, scpData: ICommunityPostScpData): string;
+        decryptPostPrivateKeyForCommunity(options: IDecryptPostPrivateKeyForCommunityOptions): Promise<string>;
+        retrieveCommunityPrivateKey(communityInfo: ICommunityInfo, selfPrivateKey: string): Promise<string>;
+        private constructCommunityNoteIdToPrivateKeyMap;
+        retrieveCommunityPostKeys(options: IRetrieveCommunityPostKeysOptions): Promise<Record<string, string>>;
+        retrieveCommunityThreadPostKeys(options: IRetrieveCommunityThreadPostKeysOptions): Promise<Record<string, string>>;
+        retrieveCommunityPostKeysByNoteEvents(options: IRetrieveCommunityPostKeysByNoteEventsOptions): Promise<Record<string, string>>;
+        checkIfUserHasAccessToCommunity(options: ICheckIfUserHasAccessToCommunityOptions): Promise<boolean>;
+        constructMetadataByPubKeyMap(notes: INostrEvent[]): Promise<Record<string, INostrMetadata>>;
+        fetchUserProfiles(pubKeys: string[]): Promise<IUserProfile[]>;
+        updateUserProfile(content: INostrMetadataContent): Promise<void>;
+        fetchTrendingNotesInfo(): Promise<{
+            notes: INoteInfo[];
+            metadataByPubKeyMap: Record<string, INostrMetadata>;
+        }>;
+        private constructNoteCommunity;
+        fetchProfileFeedInfo(pubKey: string, since?: number, until?: number): Promise<{
+            notes: INoteInfo[];
+            metadataByPubKeyMap: Record<string, INostrMetadata>;
+            quotedNotesMap: Record<string, INoteInfo>;
+            earliest: number;
+        }>;
+        fetchProfileRepliesInfo(pubKey: string, since?: number, until?: number): Promise<{
+            notes: INoteInfo[];
+            metadataByPubKeyMap: Record<string, INostrMetadata>;
+            quotedNotesMap: Record<string, INoteInfo>;
+            earliest: number;
+        }>;
+        fetchEventsByIds(ids: string[]): Promise<INostrEvent[]>;
+        fetchNotesByIds(ids: string[]): Promise<{
+            notes: INoteInfo[];
+            metadataByPubKeyMap: Record<string, INostrMetadata>;
+            quotedNotesMap: Record<string, INoteInfo>;
+        }>;
+        fetchTempEvents(ids: string[]): Promise<INostrEvent[]>;
+        private getEarliestEventTimestamp;
+        fetchHomeFeedInfo(pubKey: string, since?: number, until?: number): Promise<{
+            notes: INoteInfo[];
+            metadataByPubKeyMap: Record<string, INostrMetadata>;
+            quotedNotesMap: Record<string, INoteInfo>;
+            earliest: number;
+        }>;
+        fetchUserFollowingFeedInfo(pubKey: string, until?: number): Promise<{
+            notes: INoteInfo[];
+            metadataByPubKeyMap: Record<string, INostrMetadata>;
+            quotedNotesMap: Record<string, INoteInfo>;
+            earliest: number;
+        }>;
+        createNoteEventMappings(events: INostrEvent[], parentAuthorsInfo?: boolean): {
+            notes: INoteInfo[];
+            metadataByPubKeyMap: Record<string, INostrMetadata>;
+            quotedNotesMap: Record<string, INoteInfo>;
+            noteToParentAuthorIdMap: Record<string, string>;
+            noteStatsMap: Record<string, IPostStats>;
+            noteToRepostIdMap: Record<string, string>;
+            noteActionsMap: Record<string, INoteActions>;
+            pubkeyToCommunityIdsMap: Record<string, string[]>;
+        };
+        fetchCommunityInfo(creatorId: string, communityId: string): Promise<ICommunityInfo>;
+        fetchUserRelatedCommunityFeedInfo(pubKey: string, since?: number, until?: number): Promise<INoteInfoExtended[]>;
+        fetchThreadNotesInfo(focusedNoteId: string): Promise<{
+            focusedNote: INoteInfo;
+            ancestorNotes: INoteInfo[];
+            replies: INoteInfo[];
+            quotedNotesMap: Record<string, INoteInfo>;
+            metadataByPubKeyMap: Record<string, INostrMetadata>;
+            childReplyEventTagIds: string[];
+            communityInfo: ICommunityInfo;
+        }>;
+        createNoteCommunityMappings(notes: INostrEvent[]): Promise<{
+            noteCommunityInfoList: INoteCommunityInfo[];
+            communityInfoList: ICommunityInfo[];
+        }>;
+        retrieveUserProfileDetail(pubKey: string): Promise<{
+            userProfile: IUserProfile;
+            stats: IUserActivityStats;
+        }>;
+        fetchUserContactList(pubKey: string): Promise<IUserProfile[]>;
+        fetchUserFollowersList(pubKey: string): Promise<IUserProfile[]>;
+        fetchUserRelayList(pubKey: string): Promise<string[]>;
+        followUser(userPubKey: string): Promise<void>;
+        unfollowUser(userPubKey: string): Promise<void>;
+        createCommunity(newInfo: INewCommunityInfo, creatorId: string): Promise<ICommunityInfo>;
+        updateCommunity(info: ICommunityInfo): Promise<ICommunityInfo>;
+        fetchCommunitiesMembers(communities: ICommunityInfo[]): Promise<Record<string, import("@scom/scom-social-sdk/utils/interfaces.ts").ICommunityMember[]>>;
+        private getEventIdToMemberMap;
+        fetchCommunities(query?: string): Promise<ICommunity[]>;
+        fetchMyCommunities(pubKey: string): Promise<ICommunity[]>;
+        joinCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;
+        leaveCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;
+        private encryptGroupMessage;
+        submitCommunityPost(message: string, info: ICommunityInfo, conversationPath?: IConversationPath, timestamp?: number, alt?: string, isPublicPost?: boolean): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").ISocialEventManagerWriteResult>;
+        getAccountBalance(walletAddress: string): Promise<any>;
+        getNFTsByOwner(walletAddress: string): Promise<any>;
+        submitMessage(message: string, conversationPath?: IConversationPath, createdAt?: number): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").ISocialEventManagerWriteResult>;
+        submitLongFormContent(info: ILongFormContentInfo): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").ISocialEventManagerWriteResult>;
+        submitLike(postEventData: INostrEvent): Promise<void>;
+        submitRepost(postEventData: INostrEvent): Promise<void>;
+        sendPingRequest(pubkey: string, relayUrl?: string): Promise<any>;
+        checkRelayStatus(pubkey: string, relayUrl?: string): Promise<any>;
+        searchUsers(query: string): Promise<IUserProfile[]>;
+        addRelay(url: string): Promise<void>;
+        removeRelay(url: string): Promise<void>;
+        updateRelays(add: string[], remove: string[], defaultRelays: string[]): Promise<string[]>;
+        fetchUserPrivateRelay(pubkey: string): Promise<any>;
+        fetchCommunityPinnedNotes(creatorId: string, communityId: string): Promise<{
+            notes: INoteInfo[];
+            metadataByPubKeyMap: Record<string, INostrMetadata>;
+        }>;
+        pinCommunityNote(creatorId: string, communityId: string, noteId: string): Promise<void>;
+        unpinCommunityNote(creatorId: string, communityId: string, noteId: string): Promise<void>;
+        fetchUserPinnedNotes(pubKey: string): Promise<INostrEvent[]>;
+        pinUserNote(pubKey: string, noteId: string): Promise<void>;
+        unpinUserNote(pubKey: string, noteId: string): Promise<void>;
+        deleteEvents(eventIds: string[]): Promise<void>;
+        fetchTrendingCommunities(): Promise<ITrendingCommunityInfo[]>;
+        fetchUserEthWalletAccountsInfo(options: SocialDataManagerOptions.IFetchUserEthWalletAccountsInfoOptions): Promise<IEthWalletAccountsInfo>;
+        updateUserEthWalletAccountsInfo(info: IEthWalletAccountsInfo, privateKey?: string): Promise<any>;
+        fetchSubCommunities(creatorId: string, communityId: string): Promise<ICommunityInfo[]>;
+        fetchCommunityDetailMetadata(creatorId: string, communityId: string): Promise<ICommunityDetailMetadata>;
+        updateNoteStatus(noteId: string, status: string): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").ISocialEventManagerWriteResult>;
+        updateCommunitySubscription(options: IUpdateCommunitySubscription): Promise<any>;
+        checkCommunitySubscriptions(communityCreatorId: string, communityId: string): Promise<ICommunitySubscription[]>;
+    }
+    export { SocialDataManagerTG };
+}
+/// <amd-module name="@scom/scom-social-sdk/managers/index.ts" />
+declare module "@scom/scom-social-sdk/managers/index.ts" {
+    import { INostrCommunicationManager, INostrRestAPIManager, NostrRestAPIManager, NostrWebSocketManager } from "@scom/scom-social-sdk/managers/communication.ts";
+    import { SocialUtilsManager } from "@scom/scom-social-sdk/managers/utilsManager.ts";
+    import { NostrEventManagerWrite } from "@scom/scom-social-sdk/managers/eventManagerWrite.ts";
+    import { NostrEventManagerRead } from "@scom/scom-social-sdk/managers/eventManagerRead.ts";
+    import { NostrEventManagerReadV2 } from "@scom/scom-social-sdk/managers/eventManagerReadV2.ts";
+    import { SocialDataManager } from "@scom/scom-social-sdk/managers/dataManager.ts";
+    import { SocialDataManagerTG } from "@scom/scom-social-sdk/managers/dataManagerTG.ts";
+    export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, SocialUtilsManager, SocialDataManager, SocialDataManagerTG, NostrRestAPIManager, NostrWebSocketManager, INostrCommunicationManager, INostrRestAPIManager };
 }
 /// <amd-module name="@scom/scom-social-sdk" />
 declare module "@scom/scom-social-sdk" {
