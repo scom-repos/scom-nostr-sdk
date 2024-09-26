@@ -149,6 +149,12 @@ export enum PaymentModel {
 	Subscription = 'Subscription'
 }
 
+export enum NetworkType {
+	EVM = "EVM",
+	TON = "TON",
+	Telegram = "Telegram"
+}
+
 export interface ISubscriptionDiscountRule {
 	id: number;
 	name: string;
@@ -165,6 +171,7 @@ export interface IProtectedMembershipPolicy {
 	policyType: ProtectedMembershipPolicyType;
 	name?: string;
 	paymentModel?: PaymentModel;
+	networkType?: NetworkType;
 	chainId?: number;
 	tokenAddress?: string;
 	tokenType?: TokenType;

@@ -22,6 +22,7 @@ export {
     TokenType,
     MembershipType,
     PaymentModel,
+    NetworkType,
     ProtectedMembershipPolicyType,
     ISubscriptionDiscountRule,
     IProtectedMembershipPolicy,

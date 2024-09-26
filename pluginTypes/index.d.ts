@@ -1229,6 +1229,11 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         OneTimePurchase = "OneTimePurchase",
         Subscription = "Subscription"
     }
+    export enum NetworkType {
+        EVM = "EVM",
+        TON = "TON",
+        Telegram = "Telegram"
+    }
     export interface ISubscriptionDiscountRule {
         id: number;
         name: string;
@@ -1244,6 +1249,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         policyType: ProtectedMembershipPolicyType;
         name?: string;
         paymentModel?: PaymentModel;
+        networkType?: NetworkType;
         chainId?: number;
         tokenAddress?: string;
         tokenType?: TokenType;
@@ -1924,7 +1930,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk/utils/index.ts" />
 declare module "@scom/scom-social-sdk/utils/index.ts" {
-    export { IFetchNotesOptions, INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, ICommunityCollectible, ICommunityLeaderboard, ICommunityScpData, INoteInfo, INoteInfoExtended, INoteCommunity, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, INewCommunityInfo, TokenType, MembershipType, PaymentModel, ProtectedMembershipPolicyType, ISubscriptionDiscountRule, IProtectedMembershipPolicy, CommunityRole, ICommunityMember, ICommunity, ITrendingCommunityInfo, CalendarEventType, ICalendarEventInfo, IUpdateCalendarEventInfo, ICalendarEventHost, ICalendarEventAttendee, ICalendarEventDetailInfo, INewCalendarEventPostInfo, ILocationCoordinates, IMqttClientOptions, ISocialDataManagerConfig, INostrFetchEventsResponse, IPaymentActivity, ILongFormContentInfo, IEthWalletAccountsInfo, ICommunityStats, ICommunityDetailMetadata, ISendTempMessageOptions, IDecryptPostPrivateKeyForCommunityOptions, INftSubscription, ICommunitySubscription, IUpdateCommunitySubscription, SocialDataManagerOptions, SocialEventManagerReadOptions, ISocialEventManagerReadResult, ISocialEventManagerWriteResult, SocialEventManagerWriteOptions, ISocialEventManagerRead, ISocialEventManagerWrite, IAllUserRelatedChannels, ICheckIfUserHasAccessToCommunityOptions } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    export { IFetchNotesOptions, INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, ICommunityCollectible, ICommunityLeaderboard, ICommunityScpData, INoteInfo, INoteInfoExtended, INoteCommunity, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, INewCommunityInfo, TokenType, MembershipType, PaymentModel, NetworkType, ProtectedMembershipPolicyType, ISubscriptionDiscountRule, IProtectedMembershipPolicy, CommunityRole, ICommunityMember, ICommunity, ITrendingCommunityInfo, CalendarEventType, ICalendarEventInfo, IUpdateCalendarEventInfo, ICalendarEventHost, ICalendarEventAttendee, ICalendarEventDetailInfo, INewCalendarEventPostInfo, ILocationCoordinates, IMqttClientOptions, ISocialDataManagerConfig, INostrFetchEventsResponse, IPaymentActivity, ILongFormContentInfo, IEthWalletAccountsInfo, ICommunityStats, ICommunityDetailMetadata, ISendTempMessageOptions, IDecryptPostPrivateKeyForCommunityOptions, INftSubscription, ICommunitySubscription, IUpdateCommunitySubscription, SocialDataManagerOptions, SocialEventManagerReadOptions, ISocialEventManagerReadResult, ISocialEventManagerWriteResult, SocialEventManagerWriteOptions, ISocialEventManagerRead, ISocialEventManagerWrite, IAllUserRelatedChannels, ICheckIfUserHasAccessToCommunityOptions } from "@scom/scom-social-sdk/utils/interfaces.ts";
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/communication.ts" />
 declare module "@scom/scom-social-sdk/managers/communication.ts" {
@@ -2749,6 +2755,6 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
 /// <amd-module name="@scom/scom-social-sdk" />
 declare module "@scom/scom-social-sdk" {
     export { Event, Keys, Nip19, Bech32, secp256k1, schnorr } from "@scom/scom-social-sdk/core/index.ts";
-    export { IFetchNotesOptions, INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, ICommunityCollectible, ICommunityLeaderboard, ICommunityScpData, INoteInfo, INoteInfoExtended, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, INewCommunityInfo, TokenType, MembershipType, PaymentModel, ProtectedMembershipPolicyType, ISubscriptionDiscountRule, IProtectedMembershipPolicy, CommunityRole, ICommunityMember, ICommunity, ITrendingCommunityInfo, CalendarEventType, ICalendarEventInfo, IUpdateCalendarEventInfo, ICalendarEventHost, ICalendarEventAttendee, ICalendarEventDetailInfo, INewCalendarEventPostInfo, ILocationCoordinates, IMqttClientOptions, ISocialDataManagerConfig, IPaymentActivity, IEthWalletAccountsInfo, ICommunityStats, ICommunityDetailMetadata, ISendTempMessageOptions, IDecryptPostPrivateKeyForCommunityOptions, INftSubscription, ICommunitySubscription, IUpdateCommunitySubscription, INostrFetchEventsResponse, ILongFormContentInfo, SocialDataManagerOptions, SocialEventManagerReadOptions, ISocialEventManagerReadResult, ISocialEventManagerWriteResult, SocialEventManagerWriteOptions, ISocialEventManagerRead, ISocialEventManagerWrite, IAllUserRelatedChannels, ICheckIfUserHasAccessToCommunityOptions } from "@scom/scom-social-sdk/utils/index.ts";
+    export { IFetchNotesOptions, INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, ICommunityCollectible, ICommunityLeaderboard, ICommunityScpData, INoteInfo, INoteInfoExtended, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, INewCommunityInfo, TokenType, MembershipType, PaymentModel, NetworkType, ProtectedMembershipPolicyType, ISubscriptionDiscountRule, IProtectedMembershipPolicy, CommunityRole, ICommunityMember, ICommunity, ITrendingCommunityInfo, CalendarEventType, ICalendarEventInfo, IUpdateCalendarEventInfo, ICalendarEventHost, ICalendarEventAttendee, ICalendarEventDetailInfo, INewCalendarEventPostInfo, ILocationCoordinates, IMqttClientOptions, ISocialDataManagerConfig, IPaymentActivity, IEthWalletAccountsInfo, ICommunityStats, ICommunityDetailMetadata, ISendTempMessageOptions, IDecryptPostPrivateKeyForCommunityOptions, INftSubscription, ICommunitySubscription, IUpdateCommunitySubscription, INostrFetchEventsResponse, ILongFormContentInfo, SocialDataManagerOptions, SocialEventManagerReadOptions, ISocialEventManagerReadResult, ISocialEventManagerWriteResult, SocialEventManagerWriteOptions, ISocialEventManagerRead, ISocialEventManagerWrite, IAllUserRelatedChannels, ICheckIfUserHasAccessToCommunityOptions } from "@scom/scom-social-sdk/utils/index.ts";
     export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrWebSocketManager, NostrRestAPIManager, INostrCommunicationManager, INostrRestAPIManager } from "@scom/scom-social-sdk/managers/index.ts";
 }
