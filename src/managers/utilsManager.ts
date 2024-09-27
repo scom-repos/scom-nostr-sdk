@@ -29,6 +29,7 @@ class SocialUtilsManager {
     }
 
     static convertPrivateKeyToPubkey(privateKey: string) {
+        if (!privateKey) return null;
         if (privateKey.startsWith('0x')) privateKey = privateKey.replace('0x', '');
         let pub = Utils.padLeft(Keys.getPublicKey(privateKey), 64);
         return pub;

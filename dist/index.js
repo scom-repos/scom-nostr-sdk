@@ -3851,6 +3851,8 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             }
         }
         static convertPrivateKeyToPubkey(privateKey) {
+            if (!privateKey)
+                return null;
             if (privateKey.startsWith('0x'))
                 privateKey = privateKey.replace('0x', '');
             let pub = eth_wallet_1.Utils.padLeft(index_1.Keys.getPublicKey(privateKey), 64);
@@ -7329,6 +7331,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
         }
         set privateKey(privateKey) {
             this._privateKey = privateKey;
+            this._selfPubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(privateKey);
             this._socialEventManagerRead.privateKey = privateKey;
             this._socialEventManagerWrite.privateKey = privateKey;
             if (this.lightningWalletManager) {
@@ -7347,6 +7350,9 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
         }
         get privateKey() {
             return this._privateKey;
+        }
+        get selfPubkey() {
+            return this._selfPubkey;
         }
         _initializeWriteRelaysManagers(relays) {
             if (!relays || relays.length === 0) {
@@ -7472,11 +7478,10 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
                 return null;
             let communityPrivateKey;
             const creatorPubkey = communityInfo.eventData.pubkey;
-            const selfPubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(selfPrivateKey);
-            if (selfPubkey === communityInfo.scpData.gatekeeperPublicKey) {
+            if (this.selfPubkey === communityInfo.scpData.gatekeeperPublicKey) {
                 communityPrivateKey = await utilsManager_5.SocialUtilsManager.decryptMessage(selfPrivateKey, creatorPubkey, encryptedKey);
             }
-            else if (selfPubkey === creatorPubkey) {
+            else if (this.selfPubkey === creatorPubkey) {
                 communityPrivateKey = await utilsManager_5.SocialUtilsManager.decryptMessage(selfPrivateKey, communityInfo.scpData.gatekeeperPublicKey, encryptedKey);
             }
             return communityPrivateKey;
@@ -7484,11 +7489,10 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
         async constructCommunityNoteIdToPrivateKeyMap(communityInfo, noteInfoList) {
             let noteIdToPrivateKey = {};
             let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
-            const pubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
             for (const note of noteInfoList) {
                 let postPrivateKey = await this.decryptPostPrivateKeyForCommunity({
                     event: note.eventData,
-                    selfPubkey: pubkey,
+                    selfPubkey: this.selfPubkey,
                     communityUri: communityInfo.communityUri,
                     communityPublicKey: communityInfo.scpData.publicKey,
                     communityPrivateKey
@@ -7786,9 +7790,8 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
             return community;
         }
         async fetchProfileFeedInfo(pubKey, since = 0, until) {
-            const selfPubkey = this._privateKey ? utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
             const events = await this._socialEventManagerRead.fetchProfileFeedCacheEvents({
-                userPubkey: selfPubkey,
+                userPubkey: this.selfPubkey,
                 pubKey,
                 since,
                 until
@@ -7835,9 +7838,8 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
             };
         }
         async fetchProfileRepliesInfo(pubKey, since = 0, until) {
-            const selfPubkey = this._privateKey ? utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
             const events = await this._socialEventManagerRead.fetchProfileRepliesCacheEvents({
-                userPubkey: selfPubkey,
+                userPubkey: this.selfPubkey,
                 pubKey,
                 since,
                 until
@@ -8171,10 +8173,9 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
             let childReplyEventTagIds = [];
             //Ancestor posts -> Focused post -> Child replies
             let decodedFocusedNoteId = focusedNoteId.startsWith('note1') ? index_6.Nip19.decode(focusedNoteId).data : focusedNoteId;
-            const selfPubkey = this._privateKey ? utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
             const threadEvents = await this._socialEventManagerRead.fetchThreadCacheEvents({
                 id: decodedFocusedNoteId,
-                pubKey: selfPubkey
+                pubKey: this.selfPubkey
             });
             const { notes, metadataByPubKeyMap, quotedNotesMap, pubkeyToCommunityIdsMap } = this.createNoteEventMappings(threadEvents);
             const communityInfoMap = {};
@@ -8381,9 +8382,8 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
         }
         async followUser(userPubKey) {
             const decodedUserPubKey = userPubKey.startsWith('npub1') ? index_6.Nip19.decode(userPubKey).data : userPubKey;
-            const selfPubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
             const contactListEvents = await this._socialEventManagerRead.fetchContactListCacheEvents({
-                pubKey: selfPubkey,
+                pubKey: this.selfPubkey,
                 detailIncluded: false
             });
             let content = '';
@@ -8398,9 +8398,8 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
         }
         async unfollowUser(userPubKey) {
             const decodedUserPubKey = userPubKey.startsWith('npub1') ? index_6.Nip19.decode(userPubKey).data : userPubKey;
-            const selfPubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
             const contactListEvents = await this._socialEventManagerRead.fetchContactListCacheEvents({
-                pubKey: selfPubkey,
+                pubKey: this.selfPubkey,
                 detailIncluded: false
             });
             let content = '';
@@ -8747,9 +8746,8 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
                     const keyEvent = keyEvents[0];
                     if (keyEvent) {
                         const creatorPubkey = channelInfo.eventData.pubkey;
-                        const pubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(options.privateKey);
                         const memberKeyMap = JSON.parse(keyEvent.content);
-                        const encryptedKey = memberKeyMap?.[pubkey];
+                        const encryptedKey = memberKeyMap?.[this.selfPubkey];
                         if (encryptedKey) {
                             groupPrivateKey = await utilsManager_5.SocialUtilsManager.decryptMessage(options.privateKey, creatorPubkey, encryptedKey);
                         }
@@ -8971,10 +8969,9 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
             const responses = await this._socialEventManagerWrite.updateCalendarEvent(updateCalendarEventInfo);
             const response = responses[0];
             if (response.success) {
-                const pubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
                 naddr = index_6.Nip19.naddrEncode({
                     identifier: updateCalendarEventInfo.id,
-                    pubkey: pubkey,
+                    pubkey: this.selfPubkey,
                     kind: updateCalendarEventInfo.type === interfaces_6.CalendarEventType.DateBased ? 31922 : 31923,
                     relays: []
                 });
@@ -9069,10 +9066,9 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
         async acceptCalendarEvent(rsvpId, naddr) {
             let address = index_6.Nip19.decode(naddr).data;
             const calendarEventUri = `${address.kind}:${address.pubkey}:${address.identifier}`;
-            const pubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
             const rsvpEvents = await this._socialEventManagerRead.fetchCalendarEventRSVPs({
                 calendarEventUri,
-                pubkey
+                pubkey: this.selfPubkey
             });
             if (rsvpEvents.length > 0) {
                 rsvpId = rsvpEvents[0].tags.find(tag => tag[0] === 'd')?.[1];
@@ -9082,10 +9078,9 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
         async declineCalendarEvent(rsvpId, naddr) {
             let address = index_6.Nip19.decode(naddr).data;
             const calendarEventUri = `${address.kind}:${address.pubkey}:${address.identifier}`;
-            const pubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
             const rsvpEvents = await this._socialEventManagerRead.fetchCalendarEventRSVPs({
                 calendarEventUri,
-                pubkey
+                pubkey: this.selfPubkey
             });
             if (rsvpEvents.length > 0) {
                 rsvpId = rsvpEvents[0].tags.find(tag => tag[0] === 'd')?.[1];
@@ -9360,9 +9355,8 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
             return userProfiles;
         }
         async addRelay(url) {
-            const selfPubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
             const relaysEvents = await this._socialEventManagerRead.fetchUserRelays({
-                pubKey: selfPubkey
+                pubKey: this.selfPubkey
             });
             const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
             let relays = { [url]: { write: true, read: true } };
@@ -9383,9 +9377,8 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
             await this._socialEventManagerWrite.updateRelayList(relays);
         }
         async removeRelay(url) {
-            const selfPubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
             const relaysEvents = await this._socialEventManagerRead.fetchUserRelays({
-                pubKey: selfPubkey
+                pubKey: this.selfPubkey
             });
             const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
             let relays = {};
@@ -9406,9 +9399,8 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
             await this._socialEventManagerWrite.updateRelayList(relays);
         }
         async updateRelays(add, remove, defaultRelays) {
-            const selfPubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
             const relaysEvents = await this._socialEventManagerRead.fetchUserRelays({
-                pubKey: selfPubkey
+                pubKey: this.selfPubkey
             });
             const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
             let relaysMap = {};
@@ -9528,8 +9520,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
                 const receiptEvent = await this._socialEventManagerRead.fetchPaymentReceiptEvent({
                     requestEventId: requestEvent.id
                 });
-                const selfPubkey = this._privateKey ? utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
-                if (receiptEvent && receiptEvent.pubkey === selfPubkey) {
+                if (receiptEvent && receiptEvent.pubkey === this.selfPubkey) {
                     info.status = 'completed';
                     info.preimage = receiptEvent.tags.find(tag => tag[0] === 'preimage')?.[1];
                     info.tx = receiptEvent.tags.find(tag => tag[0] === 'tx')?.[1];
@@ -9859,12 +9850,11 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
             return result;
         }
         async updateCommunitySubscription(options) {
-            const selfPubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
             const communityPubkey = options.communityCreatorId.startsWith('npub1') ? index_6.Nip19.decode(options.communityCreatorId).data : options.communityCreatorId;
             let bodyData = utilsManager_5.SocialUtilsManager.augmentWithAuthInfo({
                 communityPubkey: communityPubkey,
                 communityD: options.communityId,
-                pubkey: selfPubkey,
+                pubkey: this.selfPubkey,
                 start: options.start,
                 end: options.end,
                 chainId: options.chainId || 'TON',
@@ -9885,13 +9875,12 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
             return result;
         }
         async checkCommunitySubscriptions(communityCreatorId, communityId) {
-            const selfPubkey = utilsManager_5.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
             const communityPubkey = communityCreatorId.startsWith('npub1') ? index_6.Nip19.decode(communityCreatorId).data : communityCreatorId;
             let subscriptions = [];
             const relayUrl = this._publicIndexingRelay;
             let url = `${relayUrl}/communities/check-subscriptions`;
             let bodyData = {
-                pubkey: selfPubkey,
+                pubkey: this.selfPubkey,
                 communityPubkey: communityPubkey,
                 communityD: communityId,
             };

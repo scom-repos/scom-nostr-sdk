@@ -2369,6 +2369,7 @@ declare module "@scom/scom-social-sdk/managers/dataManager.ts" {
         private _socialEventManagerRead;
         private _socialEventManagerWrite;
         private _privateKey;
+        private _selfPubkey;
         private mqttManager;
         private lightningWalletManager;
         constructor(config: ISocialDataManagerConfig);
@@ -2378,6 +2379,7 @@ declare module "@scom/scom-social-sdk/managers/dataManager.ts" {
         get socialEventManagerWrite(): ISocialEventManagerWrite;
         set relays(value: string[]);
         get privateKey(): string;
+        get selfPubkey(): string;
         private _initializeWriteRelaysManagers;
         subscribeToMqttTopics(topics: string[]): void;
         unsubscribeFromMqttTopics(topics: string[]): void;

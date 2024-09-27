@@ -25,6 +25,7 @@ class SocialDataManager {
     private _socialEventManagerRead: ISocialEventManagerRead;
     private _socialEventManagerWrite: ISocialEventManagerWrite;
     private _privateKey: string;
+    private _selfPubkey: string;
     private mqttManager: MqttManager;
     private lightningWalletManager: LightningWalletManager;
 
@@ -85,6 +86,7 @@ class SocialDataManager {
 
     set privateKey(privateKey: string) {
         this._privateKey = privateKey;
+        this._selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(privateKey);
         this._socialEventManagerRead.privateKey = privateKey;
         this._socialEventManagerWrite.privateKey = privateKey;
         if (this.lightningWalletManager) {
@@ -107,6 +109,10 @@ class SocialDataManager {
 
     get privateKey() {
         return this._privateKey;
+    }
+
+    get selfPubkey() {
+        return this._selfPubkey;
     }
 
     private _initializeWriteRelaysManagers(relays: string[]) {
@@ -242,11 +248,10 @@ class SocialDataManager {
         if (!encryptedKey) return null;
         let communityPrivateKey: string;
         const creatorPubkey = communityInfo.eventData.pubkey;
-        const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(selfPrivateKey);
-        if (selfPubkey === communityInfo.scpData.gatekeeperPublicKey) {
+        if (this.selfPubkey === communityInfo.scpData.gatekeeperPublicKey) {
             communityPrivateKey = await SocialUtilsManager.decryptMessage(selfPrivateKey, creatorPubkey, encryptedKey);
         }
-        else if (selfPubkey === creatorPubkey) {
+        else if (this.selfPubkey === creatorPubkey) {
             communityPrivateKey = await SocialUtilsManager.decryptMessage(selfPrivateKey, communityInfo.scpData.gatekeeperPublicKey, encryptedKey);
         }
         return communityPrivateKey;
@@ -255,11 +260,10 @@ class SocialDataManager {
     private async constructCommunityNoteIdToPrivateKeyMap(communityInfo: ICommunityInfo, noteInfoList: INoteInfo[]) {
         let noteIdToPrivateKey: Record<string, string> = {};
         let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
-        const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
         for (const note of noteInfoList) {
             let postPrivateKey = await this.decryptPostPrivateKeyForCommunity({
                 event: note.eventData, 
-                selfPubkey: pubkey, 
+                selfPubkey: this.selfPubkey, 
                 communityUri: communityInfo.communityUri, 
                 communityPublicKey: communityInfo.scpData.publicKey, 
                 communityPrivateKey
@@ -569,9 +573,8 @@ class SocialDataManager {
     }
 
     async fetchProfileFeedInfo(pubKey: string, since: number = 0, until?: number) {
-        const selfPubkey = this._privateKey ? SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
         const events = await this._socialEventManagerRead.fetchProfileFeedCacheEvents({
-            userPubkey: selfPubkey,
+            userPubkey: this.selfPubkey,
             pubKey,
             since,
             until
@@ -623,9 +626,8 @@ class SocialDataManager {
     }
 
     async fetchProfileRepliesInfo(pubKey: string, since: number = 0, until?: number) {
-        const selfPubkey = this._privateKey ? SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
         const events = await this._socialEventManagerRead.fetchProfileRepliesCacheEvents({
-            userPubkey: selfPubkey,
+            userPubkey: this.selfPubkey,
             pubKey,
             since,
             until
@@ -983,10 +985,9 @@ class SocialDataManager {
         let childReplyEventTagIds: string[] = [];
         //Ancestor posts -> Focused post -> Child replies
         let decodedFocusedNoteId = focusedNoteId.startsWith('note1') ? Nip19.decode(focusedNoteId).data as string : focusedNoteId;
-        const selfPubkey = this._privateKey ? SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
         const threadEvents = await this._socialEventManagerRead.fetchThreadCacheEvents({
             id: decodedFocusedNoteId,
-            pubKey: selfPubkey
+            pubKey: this.selfPubkey
         });
         const {
             notes,
@@ -1207,9 +1208,8 @@ class SocialDataManager {
 
     async followUser(userPubKey: string) {
         const decodedUserPubKey = userPubKey.startsWith('npub1') ? Nip19.decode(userPubKey).data as string : userPubKey;
-        const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
         const contactListEvents = await this._socialEventManagerRead.fetchContactListCacheEvents({
-            pubKey: selfPubkey,
+            pubKey: this.selfPubkey,
             detailIncluded: false
         });
         let content = '';
@@ -1225,9 +1225,8 @@ class SocialDataManager {
 
     async unfollowUser(userPubKey: string) {
         const decodedUserPubKey = userPubKey.startsWith('npub1') ? Nip19.decode(userPubKey).data as string : userPubKey;
-        const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
         const contactListEvents = await this._socialEventManagerRead.fetchContactListCacheEvents({
-            pubKey: selfPubkey,
+            pubKey: this.selfPubkey,
             detailIncluded: false
         });
         let content = '';
@@ -1604,9 +1603,8 @@ class SocialDataManager {
                 const keyEvent = keyEvents[0];
                 if (keyEvent) {
                     const creatorPubkey = channelInfo.eventData.pubkey;
-                    const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(options.privateKey);
                     const memberKeyMap = JSON.parse(keyEvent.content);
-                    const encryptedKey = memberKeyMap?.[pubkey];
+                    const encryptedKey = memberKeyMap?.[this.selfPubkey];
                     if (encryptedKey) {
                         groupPrivateKey = await SocialUtilsManager.decryptMessage(options.privateKey, creatorPubkey, encryptedKey);
                     }
@@ -1845,10 +1843,9 @@ class SocialDataManager {
         const responses = await this._socialEventManagerWrite.updateCalendarEvent(updateCalendarEventInfo);
         const response = responses[0];
         if (response.success) {
-            const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
             naddr = Nip19.naddrEncode({
                 identifier: updateCalendarEventInfo.id,
-                pubkey: pubkey,
+                pubkey: this.selfPubkey,
                 kind: updateCalendarEventInfo.type === CalendarEventType.DateBased ? 31922 : 31923,
                 relays: []
             });
@@ -1944,10 +1941,9 @@ class SocialDataManager {
     async acceptCalendarEvent(rsvpId: string, naddr: string) {
         let address = Nip19.decode(naddr).data as Nip19.AddressPointer;
         const calendarEventUri = `${address.kind}:${address.pubkey}:${address.identifier}`;
-        const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
         const rsvpEvents = await this._socialEventManagerRead.fetchCalendarEventRSVPs({
             calendarEventUri,
-            pubkey
+            pubkey: this.selfPubkey
         });
         if (rsvpEvents.length > 0) {
             rsvpId = rsvpEvents[0].tags.find(tag => tag[0] === 'd')?.[1];
@@ -1958,10 +1954,9 @@ class SocialDataManager {
     async declineCalendarEvent(rsvpId: string, naddr: string) {
         let address = Nip19.decode(naddr).data as Nip19.AddressPointer;
         const calendarEventUri = `${address.kind}:${address.pubkey}:${address.identifier}`;
-        const pubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
         const rsvpEvents = await this._socialEventManagerRead.fetchCalendarEventRSVPs({
             calendarEventUri,
-            pubkey
+            pubkey: this.selfPubkey
         });
         if (rsvpEvents.length > 0) {
             rsvpId = rsvpEvents[0].tags.find(tag => tag[0] === 'd')?.[1];
@@ -2240,9 +2235,8 @@ class SocialDataManager {
     }
 
     async addRelay(url: string) {
-        const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
         const relaysEvents = await this._socialEventManagerRead.fetchUserRelays({
-            pubKey: selfPubkey
+            pubKey: this.selfPubkey
         });
         const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
         let relays: Record<string, IRelayConfig> = { [url]: { write: true, read: true } };
@@ -2263,9 +2257,8 @@ class SocialDataManager {
     }
 
     async removeRelay(url: string) {
-        const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
         const relaysEvents = await this._socialEventManagerRead.fetchUserRelays({
-            pubKey: selfPubkey
+            pubKey: this.selfPubkey
         });
         const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
         let relays: Record<string, IRelayConfig> = {};
@@ -2286,9 +2279,8 @@ class SocialDataManager {
     }
 
     async updateRelays(add: string[], remove: string[], defaultRelays: string[]) {
-        const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
         const relaysEvents = await this._socialEventManagerRead.fetchUserRelays({
-            pubKey: selfPubkey
+            pubKey: this.selfPubkey
         });
         const relaysEvent = relaysEvents.find(event => event.kind === 10000139);
         let relaysMap: Record<string, IRelayConfig> = {};
@@ -2417,8 +2409,7 @@ class SocialDataManager {
             const receiptEvent = await this._socialEventManagerRead.fetchPaymentReceiptEvent({
                 requestEventId: requestEvent.id
             });
-            const selfPubkey = this._privateKey ? SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey) : null;
-            if (receiptEvent && receiptEvent.pubkey === selfPubkey) {
+            if (receiptEvent && receiptEvent.pubkey === this.selfPubkey) {
                 info.status = 'completed';
                 info.preimage = receiptEvent.tags.find(tag => tag[0] === 'preimage')?.[1];
                 info.tx = receiptEvent.tags.find(tag => tag[0] === 'tx')?.[1];
@@ -2780,12 +2771,11 @@ class SocialDataManager {
     }
 
     async updateCommunitySubscription(options: IUpdateCommunitySubscription) {
-        const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
         const communityPubkey = options.communityCreatorId.startsWith('npub1') ? Nip19.decode(options.communityCreatorId).data : options.communityCreatorId;
         let bodyData = SocialUtilsManager.augmentWithAuthInfo({
             communityPubkey: communityPubkey,
             communityD: options.communityId,
-            pubkey: selfPubkey,
+            pubkey: this.selfPubkey,
             start: options.start,
             end: options.end,
             chainId: options.chainId || 'TON',
@@ -2807,13 +2797,12 @@ class SocialDataManager {
     }
 
     async checkCommunitySubscriptions(communityCreatorId: string, communityId: string) {
-        const selfPubkey = SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
         const communityPubkey = communityCreatorId.startsWith('npub1') ? Nip19.decode(communityCreatorId).data : communityCreatorId;
         let subscriptions: ICommunitySubscription[] = [];
         const relayUrl = this._publicIndexingRelay;
         let url = `${relayUrl}/communities/check-subscriptions`;
         let bodyData = {
-            pubkey: selfPubkey,
+            pubkey: this.selfPubkey,
             communityPubkey: communityPubkey,
             communityD: communityId,
         };
