@@ -7779,6 +7779,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
                         communityUri,
                         communityId: communityInfo?.communityId || communityId,
                         creatorId: communityInfo?.creatorId || index_6.Nip19.npubEncode(creatorId),
+                        photoUrl: communityInfo?.avatarImgUrl || communityInfo?.bannerImgUrl,
                         parentCommunityUri: communityInfo?.parentCommunityUri,
                         privateRelay: communityInfo?.privateRelay,
                         isExclusive: communityInfo?.membershipType === interfaces_6.MembershipType.Protected,

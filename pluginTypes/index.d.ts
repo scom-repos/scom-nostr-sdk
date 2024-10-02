@@ -1189,6 +1189,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         communityUri?: string;
         creatorId?: string;
         communityId?: string;
+        photoUrl?: string;
         privateRelay?: string;
         parentCommunityUri?: string;
         isExclusive?: boolean;
