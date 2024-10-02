@@ -561,6 +561,7 @@ class SocialDataManager {
                     communityUri,
                     communityId: communityInfo?.communityId || communityId,
                     creatorId: communityInfo?.creatorId || Nip19.npubEncode(creatorId),
+                    photoUrl: communityInfo?.avatarImgUrl || communityInfo?.bannerImgUrl,
                     parentCommunityUri: communityInfo?.parentCommunityUri,
                     privateRelay: communityInfo?.privateRelay,
                     isExclusive: communityInfo?.membershipType === MembershipType.Protected,
