@@ -135,6 +135,11 @@ export declare enum NetworkType {
     TON = "TON",
     Telegram = "Telegram"
 }
+export declare enum CampaignActivityType {
+    LuckySpin = "LuckySpin",
+    BlindBox = "BlindBox",
+    Quiz = "Quiz"
+}
 export interface ISubscriptionDiscountRule {
     id: number;
     name: string;
@@ -208,6 +213,28 @@ export interface ICommunityPostStatusOption {
     status: string;
     isDefault?: boolean;
 }
+export interface ICommunityCampaign {
+    name: string;
+    bannerImgUrl?: string;
+    startTime?: number;
+    endTime?: number;
+    activities?: Array<ILuckySpin>;
+}
+interface ICommunityCampaignActivity {
+    type?: CampaignActivityType;
+}
+interface ILuckySpin extends ICommunityCampaignActivity {
+    rewards?: ILuckySpinReward[];
+    startTime?: number;
+    endTime?: number;
+    price?: string;
+    currency?: string;
+}
+interface ILuckySpinReward {
+    name: string;
+    icon?: string;
+    weight?: number;
+}
 export interface ICommunityInfo extends ICommunityBasicInfo {
     communityUri: string;
     description?: string;
@@ -227,6 +254,7 @@ export interface ICommunityInfo extends ICommunityBasicInfo {
     enableLeaderboard?: boolean;
     parentCommunityUri?: string;
     postStatusOptions?: ICommunityPostStatusOption[];
+    campaigns?: ICommunityCampaign[];
 }
 export interface ICommunityLeaderboard {
     npub: string;

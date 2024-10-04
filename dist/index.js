@@ -3530,7 +3530,7 @@ define("@scom/scom-social-sdk/core/index.ts", ["require", "exports", "@scom/scom
 define("@scom/scom-social-sdk/utils/interfaces.ts", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.CalendarEventType = exports.CommunityRole = exports.NetworkType = exports.PaymentModel = exports.ProtectedMembershipPolicyType = exports.MembershipType = exports.ScpStandardId = exports.TokenType = exports.NftType = void 0;
+    exports.CalendarEventType = exports.CommunityRole = exports.CampaignActivityType = exports.NetworkType = exports.PaymentModel = exports.ProtectedMembershipPolicyType = exports.MembershipType = exports.ScpStandardId = exports.TokenType = exports.NftType = void 0;
     var NftType;
     (function (NftType) {
         NftType["ERC721"] = "ERC721";
@@ -3571,6 +3571,12 @@ define("@scom/scom-social-sdk/utils/interfaces.ts", ["require", "exports"], func
         NetworkType["TON"] = "TON";
         NetworkType["Telegram"] = "Telegram";
     })(NetworkType = exports.NetworkType || (exports.NetworkType = {}));
+    var CampaignActivityType;
+    (function (CampaignActivityType) {
+        CampaignActivityType["LuckySpin"] = "LuckySpin";
+        CampaignActivityType["BlindBox"] = "BlindBox";
+        CampaignActivityType["Quiz"] = "Quiz";
+    })(CampaignActivityType = exports.CampaignActivityType || (exports.CampaignActivityType = {}));
     var CommunityRole;
     (function (CommunityRole) {
         CommunityRole["Creator"] = "creator";
@@ -3587,7 +3593,7 @@ define("@scom/scom-social-sdk/utils/interfaces.ts", ["require", "exports"], func
 define("@scom/scom-social-sdk/utils/index.ts", ["require", "exports", "@scom/scom-social-sdk/utils/interfaces.ts"], function (require, exports, interfaces_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.CalendarEventType = exports.CommunityRole = exports.ProtectedMembershipPolicyType = exports.NetworkType = exports.PaymentModel = exports.MembershipType = exports.TokenType = void 0;
+    exports.CampaignActivityType = exports.CalendarEventType = exports.CommunityRole = exports.ProtectedMembershipPolicyType = exports.NetworkType = exports.PaymentModel = exports.MembershipType = exports.TokenType = void 0;
     Object.defineProperty(exports, "TokenType", { enumerable: true, get: function () { return interfaces_1.TokenType; } });
     Object.defineProperty(exports, "MembershipType", { enumerable: true, get: function () { return interfaces_1.MembershipType; } });
     Object.defineProperty(exports, "PaymentModel", { enumerable: true, get: function () { return interfaces_1.PaymentModel; } });
@@ -3595,6 +3601,7 @@ define("@scom/scom-social-sdk/utils/index.ts", ["require", "exports", "@scom/sco
     Object.defineProperty(exports, "ProtectedMembershipPolicyType", { enumerable: true, get: function () { return interfaces_1.ProtectedMembershipPolicyType; } });
     Object.defineProperty(exports, "CommunityRole", { enumerable: true, get: function () { return interfaces_1.CommunityRole; } });
     Object.defineProperty(exports, "CalendarEventType", { enumerable: true, get: function () { return interfaces_1.CalendarEventType; } });
+    Object.defineProperty(exports, "CampaignActivityType", { enumerable: true, get: function () { return interfaces_1.CampaignActivityType; } });
 });
 define("@scom/scom-social-sdk/managers/communication.ts", ["require", "exports"], function (require, exports) {
     "use strict";
@@ -11569,7 +11576,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
 define("@scom/scom-social-sdk", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/index.ts", "@scom/scom-social-sdk/managers/index.ts"], function (require, exports, index_8, index_9, managers_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.NostrRestAPIManager = exports.NostrWebSocketManager = exports.SocialDataManager = exports.SocialUtilsManager = exports.NostrEventManagerWrite = exports.NostrEventManagerReadV2 = exports.NostrEventManagerRead = exports.CalendarEventType = exports.CommunityRole = exports.ProtectedMembershipPolicyType = exports.NetworkType = exports.PaymentModel = exports.MembershipType = exports.TokenType = exports.schnorr = exports.secp256k1 = exports.Bech32 = exports.Nip19 = exports.Keys = exports.Event = void 0;
+    exports.NostrRestAPIManager = exports.NostrWebSocketManager = exports.SocialDataManager = exports.SocialUtilsManager = exports.NostrEventManagerWrite = exports.NostrEventManagerReadV2 = exports.NostrEventManagerRead = exports.CampaignActivityType = exports.CalendarEventType = exports.CommunityRole = exports.ProtectedMembershipPolicyType = exports.NetworkType = exports.PaymentModel = exports.MembershipType = exports.TokenType = exports.schnorr = exports.secp256k1 = exports.Bech32 = exports.Nip19 = exports.Keys = exports.Event = void 0;
     Object.defineProperty(exports, "Event", { enumerable: true, get: function () { return index_8.Event; } });
     Object.defineProperty(exports, "Keys", { enumerable: true, get: function () { return index_8.Keys; } });
     Object.defineProperty(exports, "Nip19", { enumerable: true, get: function () { return index_8.Nip19; } });
@@ -11583,6 +11590,7 @@ define("@scom/scom-social-sdk", ["require", "exports", "@scom/scom-social-sdk/co
     Object.defineProperty(exports, "ProtectedMembershipPolicyType", { enumerable: true, get: function () { return index_9.ProtectedMembershipPolicyType; } });
     Object.defineProperty(exports, "CommunityRole", { enumerable: true, get: function () { return index_9.CommunityRole; } });
     Object.defineProperty(exports, "CalendarEventType", { enumerable: true, get: function () { return index_9.CalendarEventType; } });
+    Object.defineProperty(exports, "CampaignActivityType", { enumerable: true, get: function () { return index_9.CampaignActivityType; } });
     Object.defineProperty(exports, "NostrEventManagerRead", { enumerable: true, get: function () { return managers_1.NostrEventManagerRead; } });
     Object.defineProperty(exports, "NostrEventManagerReadV2", { enumerable: true, get: function () { return managers_1.NostrEventManagerReadV2; } });
     Object.defineProperty(exports, "NostrEventManagerWrite", { enumerable: true, get: function () { return managers_1.NostrEventManagerWrite; } });
