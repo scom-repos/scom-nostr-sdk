@@ -130,7 +130,7 @@ export declare enum PaymentModel {
     OneTimePurchase = "OneTimePurchase",
     Subscription = "Subscription"
 }
-export declare enum NetworkType {
+export declare enum PaymentMethod {
     EVM = "EVM",
     TON = "TON",
     Telegram = "Telegram"
@@ -155,7 +155,7 @@ export interface IProtectedMembershipPolicy {
     policyType: ProtectedMembershipPolicyType;
     name?: string;
     paymentModel?: PaymentModel;
-    networkType?: NetworkType;
+    paymentMethod?: PaymentMethod;
     chainId?: number;
     tokenAddress?: string;
     tokenType?: TokenType;
