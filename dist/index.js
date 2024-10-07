@@ -3996,7 +3996,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                     data = {};
                 }
             }
-            let pointSystem, collectibles, postStatusOptions;
+            let pointSystem, collectibles, campaigns, postStatusOptions;
             if (scpTag && scpTag[1] === '1') {
                 membershipType = interfaces_2.MembershipType.Protected;
                 policies = Array.isArray(data) ? data : data.policies || [];
@@ -4011,6 +4011,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             if (!Array.isArray(data)) {
                 pointSystem = data.pointSystem;
                 collectibles = data.collectibles;
+                campaigns = data.campaigns;
                 postStatusOptions = data.postStatuses?.length > 0 && typeof data.postStatuses[0] === 'string' ? data.postStatuses.map(status => ({ status })) : data.postStatuses;
             }
             const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
@@ -4031,6 +4032,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 policies,
                 pointSystem,
                 collectibles,
+                campaigns,
                 enableLeaderboard,
                 parentCommunityUri,
                 postStatusOptions
@@ -4341,6 +4343,9 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             }
             if (info.postStatusOptions?.length > 0) {
                 data.postStatuses = info.postStatusOptions;
+            }
+            if (info.campaigns?.length > 0) {
+                data.campaigns = info.campaigns;
             }
             const isEmptyObject = JSON.stringify(data) === "{}";
             const content = isEmptyObject ? "" : JSON.stringify(data);

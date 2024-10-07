@@ -177,7 +177,7 @@ class SocialUtilsManager {
                 data = {};
             }
         }
-        let pointSystem, collectibles, postStatusOptions: ICommunityPostStatusOption[];
+        let pointSystem, collectibles, campaigns, postStatusOptions: ICommunityPostStatusOption[];
         if (scpTag && scpTag[1] === '1') {
             membershipType = MembershipType.Protected;
             policies = Array.isArray(data) ? data : data.policies || [];
@@ -191,6 +191,7 @@ class SocialUtilsManager {
         if (!Array.isArray(data)) {
             pointSystem = data.pointSystem;
             collectibles = data.collectibles;
+            campaigns = data.campaigns;
             postStatusOptions = data.postStatuses?.length > 0 && typeof data.postStatuses[0] === 'string' ? data.postStatuses.map(status => ({ status })) : data.postStatuses;
         }
         const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
@@ -211,6 +212,7 @@ class SocialUtilsManager {
             policies,
             pointSystem,
             collectibles,
+            campaigns,
             enableLeaderboard,
             parentCommunityUri,
             postStatusOptions

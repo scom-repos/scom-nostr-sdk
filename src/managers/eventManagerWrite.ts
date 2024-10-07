@@ -213,6 +213,9 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         if (info.postStatusOptions?.length > 0) {
             data.postStatuses = info.postStatusOptions;
         }
+        if (info.campaigns?.length > 0) {
+            data.campaigns = info.campaigns;
+        }
         const isEmptyObject = JSON.stringify(data) === "{}";
         const content = isEmptyObject ? "" : JSON.stringify(data);
         let event = {
