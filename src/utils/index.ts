@@ -59,5 +59,7 @@ export {
     ISocialEventManagerRead,
     ISocialEventManagerWrite,
     IAllUserRelatedChannels,
-    ICheckIfUserHasAccessToCommunityOptions
+    ICheckIfUserHasAccessToCommunityOptions,
+    CampaignActivityType,
+    ICommunityCampaign
 } from "./interfaces";

@@ -66,7 +66,9 @@ export {
     ISocialEventManagerRead,
     ISocialEventManagerWrite,
     IAllUserRelatedChannels,
-    ICheckIfUserHasAccessToCommunityOptions
+    ICheckIfUserHasAccessToCommunityOptions,
+    CampaignActivityType,
+    ICommunityCampaign
 } from './utils/index'
 
 export {
