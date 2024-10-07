@@ -2620,7 +2620,7 @@ declare module "@scom/scom-social-sdk/managers/dataManager.ts" {
         fetchCommunityDetailMetadata(creatorId: string, communityId: string): Promise<ICommunityDetailMetadata>;
         updateNoteStatus(noteId: string, status: string): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").ISocialEventManagerWriteResult>;
         updateCommunitySubscription(options: IUpdateCommunitySubscription): Promise<any>;
-        checkCommunitySubscriptions(communityCreatorId: string, communityId: string): Promise<ICommunitySubscription[]>;
+        checkCommunitySubscriptions(communityCreatorId: string, communityId: string, walletAddresses: string[]): Promise<ICommunitySubscription[]>;
     }
     export { SocialDataManager };
 }

@@ -2797,7 +2797,7 @@ class SocialDataManager {
         return result;
     }
 
-    async checkCommunitySubscriptions(communityCreatorId: string, communityId: string) {
+    async checkCommunitySubscriptions(communityCreatorId: string, communityId: string, walletAddresses: string[]) {
         const communityPubkey = communityCreatorId.startsWith('npub1') ? Nip19.decode(communityCreatorId).data : communityCreatorId;
         let subscriptions: ICommunitySubscription[] = [];
         const relayUrl = this._publicIndexingRelay;
@@ -2806,6 +2806,7 @@ class SocialDataManager {
             pubkey: this.selfPubkey,
             communityPubkey: communityPubkey,
             communityD: communityId,
+            walletAddresses
         };
         let response = await fetch(url, {
             method: 'POST',
