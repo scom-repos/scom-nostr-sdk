@@ -9875,7 +9875,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
             let result = await response.json();
             return result;
         }
-        async checkCommunitySubscriptions(communityCreatorId, communityId) {
+        async checkCommunitySubscriptions(communityCreatorId, communityId, walletAddresses) {
             const communityPubkey = communityCreatorId.startsWith('npub1') ? index_6.Nip19.decode(communityCreatorId).data : communityCreatorId;
             let subscriptions = [];
             const relayUrl = this._publicIndexingRelay;
@@ -9884,6 +9884,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
                 pubkey: this.selfPubkey,
                 communityPubkey: communityPubkey,
                 communityD: communityId,
+                walletAddresses
             };
             let response = await fetch(url, {
                 method: 'POST',
