@@ -1254,6 +1254,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     export interface IProtectedMembershipPolicy {
         policyType: ProtectedMembershipPolicyType;
         name?: string;
+        isExistingNFT?: boolean;
         paymentModel?: PaymentModel;
         paymentMethod?: PaymentMethod;
         chainId?: number;

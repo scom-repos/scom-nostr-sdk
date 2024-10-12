@@ -154,6 +154,7 @@ export interface ISubscriptionDiscountRule {
 export interface IProtectedMembershipPolicy {
     policyType: ProtectedMembershipPolicyType;
     name?: string;
+    isExistingNFT?: boolean;
     paymentModel?: PaymentModel;
     paymentMethod?: PaymentMethod;
     chainId?: number;
