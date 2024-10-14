@@ -19,6 +19,7 @@ export interface INostrFetchEventsResponse {
 	error?: string;
 	events?: INostrEvent[];
 	data?: any
+	requestId?: string;
 }
 
 export interface INostrSubmitResponse {

@@ -1,15 +1,16 @@
 import { Event } from "../core/index";
 import { INostrEvent, INostrFetchEventsResponse, INostrSubmitResponse, INostrCommunicationManager, INostrRestAPIManager } from "../utils/interfaces";
+import { SocialUtilsManager } from "./utilsManager";
 
 function determineWebSocketType() {
-	if (typeof window !== "undefined"){
+    if (typeof window !== "undefined") {
         return WebSocket;
-	}
-	else{
+    }
+    else {
         // @ts-ignore
         let WebSocket = require('ws');
         return WebSocket;
-	};
+    };
 };
 
 class NostrRestAPIManager implements INostrRestAPIManager {
@@ -55,8 +56,34 @@ class NostrRestAPIManager implements INostrRestAPIManager {
                 },
                 body: JSON.stringify(msg)
             });
-            const data = await response.json();
-            return data;
+            let result: INostrFetchEventsResponse = await response.json();
+            if (result.requestId) {
+                let requestId = result.requestId;
+                const pollFunction = async () => {
+                    const pollResponse = await fetch(`${this._url}/poll/${requestId}`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    const pollResult = await pollResponse.json();
+                    return pollResult;
+                }
+                const stopPolling = (pollResult: any) => {
+                    return !!pollResult?.data;
+                }
+                const pollResult = await SocialUtilsManager.exponentialBackoffRetry(
+                    pollFunction,
+                    10, 
+                    200, 
+                    10000, 
+                    2,
+                    stopPolling
+                );
+                console.log('pollResult', pollResult);
+                result = pollResult.data;
+            }
+            return result;
         } catch (error) {
             console.error('Error fetching events:', error);
             throw error;
@@ -67,10 +94,10 @@ class NostrRestAPIManager implements INostrRestAPIManager {
             cache: [
                 eventType,
                 msg
-            ]   
+            ]
         });
         return events;
-    }    
+    }
     async submitEvent(event: any): Promise<any> {
         try {
             const response = await fetch(`${this._url}/submit-event`, {
@@ -84,7 +111,7 @@ class NostrRestAPIManager implements INostrRestAPIManager {
             return {
                 ...data,
                 relay: this.url
-              };
+            };
         } catch (error) {
             console.error('Error submitting event:', error);
             throw error;
@@ -138,7 +165,7 @@ class NostrWebSocketManager implements INostrCommunicationManager {
 
     establishConnection(requestId: string, cb: (message: any) => void) {
         const WebSocket = determineWebSocketType();
-        this.requestCallbackMap[requestId] = cb; 
+        this.requestCallbackMap[requestId] = cb;
         return new Promise<{ ws: any, error: any }>((resolve, reject) => {
             const openListener = () => {
                 this.ws.removeEventListener('open', openListener);
@@ -181,7 +208,7 @@ class NostrWebSocketManager implements INostrCommunicationManager {
                     // Implement the verifySignature function according to your needs
                     // console.log(verifySignature(eventData)); // true
                     events.push(eventData);
-                } 
+                }
                 else if (message[0] === "EOSE") {
                     resolve({
                         events
@@ -208,7 +235,7 @@ class NostrWebSocketManager implements INostrCommunicationManager {
             cache: [
                 eventType,
                 msg
-            ]   
+            ]
         });
         return events;
     }
@@ -226,7 +253,7 @@ class NostrWebSocketManager implements INostrCommunicationManager {
                 resolve({
                     success: false,
                     message: error,
-                    relay: this.url         
+                    relay: this.url
                 });
             }
             else if (ws) {

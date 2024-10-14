@@ -8,7 +8,7 @@ declare class SocialUtilsManager {
     static decryptMessage(ourPrivateKey: string, theirPublicKey: string, encryptedData: string): Promise<string>;
     private static pad;
     static getGMTOffset(timezone: string): string;
-    static exponentialBackoffRetry<T>(fn: () => Promise<T>, retries: number, delay: number, maxDelay: number, factor: number): Promise<T>;
+    static exponentialBackoffRetry<T>(fn: () => Promise<T>, retries: number, delay: number, maxDelay: number, factor: number, stopCondition?: (data: T) => boolean): Promise<T>;
     static getCommunityUri(creatorId: string, communityId: string): string;
     static getCommunityBasicInfoFromUri(communityUri: string): ICommunityBasicInfo;
     static extractCommunityInfo(event: INostrEvent): ICommunityInfo;

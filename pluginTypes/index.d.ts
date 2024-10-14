@@ -1116,6 +1116,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         error?: string;
         events?: INostrEvent[];
         data?: any;
+        requestId?: string;
     }
     export interface INostrSubmitResponse {
         relay: string;
@@ -1962,6 +1963,38 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
 declare module "@scom/scom-social-sdk/utils/index.ts" {
     export { IFetchNotesOptions, INostrMetadataContent, INostrEvent, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, ICommunityCollectible, ICommunityLeaderboard, ICommunityScpData, INoteInfo, INoteInfoExtended, INoteCommunity, INoteCommunityInfo, ICommunityGatekeeperInfo, IUserProfile, IUserActivityStats, IPostStats, IChannelInfo, IMessageContactInfo, INewCommunityInfo, TokenType, MembershipType, PaymentModel, PaymentMethod, ProtectedMembershipPolicyType, ISubscriptionDiscountRule, IProtectedMembershipPolicy, CommunityRole, ICommunityMember, ICommunity, ITrendingCommunityInfo, CalendarEventType, ICalendarEventInfo, IUpdateCalendarEventInfo, ICalendarEventHost, ICalendarEventAttendee, ICalendarEventDetailInfo, INewCalendarEventPostInfo, ILocationCoordinates, IMqttClientOptions, ISocialDataManagerConfig, INostrFetchEventsResponse, IPaymentActivity, ILongFormContentInfo, IEthWalletAccountsInfo, ICommunityStats, ICommunityDetailMetadata, ISendTempMessageOptions, IDecryptPostPrivateKeyForCommunityOptions, INftSubscription, ICommunitySubscription, IUpdateCommunitySubscription, SocialDataManagerOptions, SocialEventManagerReadOptions, ISocialEventManagerReadResult, ISocialEventManagerWriteResult, SocialEventManagerWriteOptions, ISocialEventManagerRead, ISocialEventManagerWrite, IAllUserRelatedChannels, ICheckIfUserHasAccessToCommunityOptions, CampaignActivityType, ICommunityCampaign } from "@scom/scom-social-sdk/utils/interfaces.ts";
 }
+/// <amd-module name="@scom/scom-social-sdk/managers/utilsManager.ts" />
+declare module "@scom/scom-social-sdk/managers/utilsManager.ts" {
+    import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, INostrEvent, INostrMetadata, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    class SocialUtilsManager {
+        static hexStringToUint8Array(hexString: string): Uint8Array;
+        static base64ToUtf8(base64: string): string;
+        static utf8ToBase64(utf8: string): string;
+        static convertPrivateKeyToPubkey(privateKey: string): string;
+        static encryptMessage(ourPrivateKey: string, theirPublicKey: string, text: string): Promise<string>;
+        static decryptMessage(ourPrivateKey: string, theirPublicKey: string, encryptedData: string): Promise<string>;
+        private static pad;
+        static getGMTOffset(timezone: string): string;
+        static exponentialBackoffRetry<T>(fn: () => Promise<T>, // Function to retry
+        retries: number, // Maximum number of retries
+        delay: number, // Initial delay duration in milliseconds
+        maxDelay: number, // Maximum delay duration in milliseconds
+        factor: number, // Exponential backoff factor
+        stopCondition?: (data: T) => boolean): Promise<T>;
+        static getCommunityUri(creatorId: string, communityId: string): string;
+        static getCommunityBasicInfoFromUri(communityUri: string): ICommunityBasicInfo;
+        static extractCommunityInfo(event: INostrEvent): ICommunityInfo;
+        static extractBookmarkedCommunities(event: INostrEvent, excludedCommunity?: ICommunityInfo): ICommunityBasicInfo[];
+        static extractBookmarkedChannels(event: INostrEvent): string[];
+        static extractScpData(event: INostrEvent, standardId: string): any;
+        static parseContent(content: string): any;
+        static extractChannelInfo(event: INostrEvent): IChannelInfo;
+        static augmentWithAuthInfo(obj: Record<string, any>, privateKey: string): Record<string, any>;
+        static constructUserProfile(metadata: INostrMetadata, followersCountMap?: Record<string, number>): IUserProfile;
+        static flatMap<T, U>(array: T[], callback: (item: T) => U[]): U[];
+    }
+    export { SocialUtilsManager };
+}
 /// <amd-module name="@scom/scom-social-sdk/managers/communication.ts" />
 declare module "@scom/scom-social-sdk/managers/communication.ts" {
     import { Event } from "@scom/scom-social-sdk/core/index.ts";
@@ -1996,37 +2029,6 @@ declare module "@scom/scom-social-sdk/managers/communication.ts" {
         submitEvent(event: Event.VerifiedEvent<number>): Promise<INostrSubmitResponse>;
     }
     export { INostrCommunicationManager, INostrRestAPIManager, NostrRestAPIManager, NostrWebSocketManager };
-}
-/// <amd-module name="@scom/scom-social-sdk/managers/utilsManager.ts" />
-declare module "@scom/scom-social-sdk/managers/utilsManager.ts" {
-    import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, INostrEvent, INostrMetadata, IUserProfile } from "@scom/scom-social-sdk/utils/interfaces.ts";
-    class SocialUtilsManager {
-        static hexStringToUint8Array(hexString: string): Uint8Array;
-        static base64ToUtf8(base64: string): string;
-        static utf8ToBase64(utf8: string): string;
-        static convertPrivateKeyToPubkey(privateKey: string): string;
-        static encryptMessage(ourPrivateKey: string, theirPublicKey: string, text: string): Promise<string>;
-        static decryptMessage(ourPrivateKey: string, theirPublicKey: string, encryptedData: string): Promise<string>;
-        private static pad;
-        static getGMTOffset(timezone: string): string;
-        static exponentialBackoffRetry<T>(fn: () => Promise<T>, // Function to retry
-        retries: number, // Maximum number of retries
-        delay: number, // Initial delay duration in milliseconds
-        maxDelay: number, // Maximum delay duration in milliseconds
-        factor: number): Promise<T>;
-        static getCommunityUri(creatorId: string, communityId: string): string;
-        static getCommunityBasicInfoFromUri(communityUri: string): ICommunityBasicInfo;
-        static extractCommunityInfo(event: INostrEvent): ICommunityInfo;
-        static extractBookmarkedCommunities(event: INostrEvent, excludedCommunity?: ICommunityInfo): ICommunityBasicInfo[];
-        static extractBookmarkedChannels(event: INostrEvent): string[];
-        static extractScpData(event: INostrEvent, standardId: string): any;
-        static parseContent(content: string): any;
-        static extractChannelInfo(event: INostrEvent): IChannelInfo;
-        static augmentWithAuthInfo(obj: Record<string, any>, privateKey: string): Record<string, any>;
-        static constructUserProfile(metadata: INostrMetadata, followersCountMap?: Record<string, number>): IUserProfile;
-        static flatMap<T, U>(array: T[], callback: (item: T) => U[]): U[];
-    }
-    export { SocialUtilsManager };
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/eventManagerWrite.ts" />
 declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {

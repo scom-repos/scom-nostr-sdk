@@ -118,13 +118,17 @@ class SocialUtilsManager {
         retries: number, // Maximum number of retries
         delay: number, // Initial delay duration in milliseconds
         maxDelay: number, // Maximum delay duration in milliseconds
-        factor: number // Exponential backoff factor
+        factor: number, // Exponential backoff factor
+        stopCondition: (data: T) => boolean = () => true // Stop condition
     ): Promise<T> {
         let currentDelay = delay;
     
         for (let i = 0; i < retries; i++) {
             try {
-                return await fn();
+                const data = await fn();
+                if (stopCondition(data)) {
+                    return data;
+                }
             } catch (error) {
                 console.error(`Attempt ${i + 1} failed. Retrying in ${currentDelay}ms...`);
     
