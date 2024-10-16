@@ -1654,7 +1654,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         url: string;
         fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
         fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
-        submitEvent(event: Event.VerifiedEvent<number>): Promise<INostrSubmitResponse>;
+        submitEvent(event: Event.VerifiedEvent<number>, authHeader?: string): Promise<INostrSubmitResponse>;
     }
     export interface ISocialEventManagerReadResult {
         error?: string;
@@ -1956,7 +1956,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         updateNoteStatus(noteId: string, status: string): Promise<ISocialEventManagerWriteResult>;
     }
     export interface INostrRestAPIManager extends INostrCommunicationManager {
-        fetchEventsFromAPI(endpoint: string, msg: any): Promise<INostrFetchEventsResponse>;
+        fetchEventsFromAPI(endpoint: string, msg: any, authHeader?: string): Promise<INostrFetchEventsResponse>;
     }
 }
 /// <amd-module name="@scom/scom-social-sdk/utils/index.ts" />
@@ -1989,7 +1989,7 @@ declare module "@scom/scom-social-sdk/managers/utilsManager.ts" {
         static extractScpData(event: INostrEvent, standardId: string): any;
         static parseContent(content: string): any;
         static extractChannelInfo(event: INostrEvent): IChannelInfo;
-        static augmentWithAuthInfo(obj: Record<string, any>, privateKey: string): Record<string, any>;
+        static constructAuthHeader(privateKey: string): string;
         static constructUserProfile(metadata: INostrMetadata, followersCountMap?: Record<string, number>): IUserProfile;
         static flatMap<T, U>(array: T[], callback: (item: T) => U[]): U[];
     }
@@ -2006,9 +2006,9 @@ declare module "@scom/scom-social-sdk/managers/communication.ts" {
         get url(): string;
         set url(url: string);
         fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
-        fetchEventsFromAPI(endpoint: string, msg: any): Promise<INostrFetchEventsResponse>;
+        fetchEventsFromAPI(endpoint: string, msg: any, authHeader?: string): Promise<INostrFetchEventsResponse>;
         fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
-        submitEvent(event: any): Promise<any>;
+        submitEvent(event: any, authHeader?: string): Promise<any>;
     }
     class NostrWebSocketManager implements INostrCommunicationManager {
         protected _url: string;
@@ -2235,7 +2235,6 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" {
         constructor(manager: INostrRestAPIManager);
         set nostrCommunicationManager(manager: INostrRestAPIManager);
         set privateKey(privateKey: string);
-        protected augmentWithAuthInfo(obj: Record<string, any>): Record<string, any>;
         fetchThreadCacheEvents(options: SocialEventManagerReadOptions.IFetchThreadCacheEvents): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
         fetchTrendingCacheEvents(options: SocialEventManagerReadOptions.IFetchTrendingCacheEvents): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
         fetchProfileFeedCacheEvents(options: SocialEventManagerReadOptions.IFetchProfileFeedCacheEvents): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
@@ -2303,7 +2302,6 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV2.ts" {
         protected _nostrCommunicationManager: INostrRestAPIManager;
         constructor(manager: INostrRestAPIManager);
         set nostrCommunicationManager(manager: INostrRestAPIManager);
-        protected augmentWithAuthInfo(obj: Record<string, any>): Record<string, any>;
         searchUsers(options: SocialEventManagerReadOptions.ISearchUsers): Promise<any[]>;
         fetchPaymentRequestEvent(options: SocialEventManagerReadOptions.IFetchPaymentRequestEvent): Promise<any>;
         fetchPaymentActivitiesForRecipient(options: SocialEventManagerReadOptions.IFetchPaymentActivitiesForRecipient): Promise<any[]>;

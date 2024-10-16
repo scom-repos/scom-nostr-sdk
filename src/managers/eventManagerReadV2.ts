@@ -14,10 +14,6 @@ class NostrEventManagerReadV2 extends NostrEventManagerReadV1o5 implements ISoci
         this._nostrCommunicationManager = manager;
     }
 
-    protected augmentWithAuthInfo(obj: Record<string, any>) {
-        return SocialUtilsManager.augmentWithAuthInfo(obj, this._privateKey);
-    }
-
     async searchUsers(options: SocialEventManagerReadOptions.ISearchUsers) {
         return [];
     }

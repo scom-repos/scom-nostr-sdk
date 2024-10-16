@@ -290,17 +290,12 @@ class SocialUtilsManager {
         return channelInfo;
     }
 
-    static augmentWithAuthInfo(obj: Record<string, any>, privateKey: string) {
-        if (!privateKey) return obj;
+    static constructAuthHeader(privateKey: string) {
+        if (!privateKey) return null;
         const pubkey = Keys.getPublicKey(privateKey);
-        let signature = Signer.getSignature({pubkey: pubkey}, privateKey, {pubkey: 'string'});
-        return {
-            ...obj,
-            auth: {
-                pubkey,
-                signature
-            }
-        }
+        const signature = Signer.getSignature({pubkey}, privateKey, {pubkey: 'string'});
+        const authHeader = `Bearer ${pubkey}:${signature}`;
+        return authHeader;
     }
 
     static constructUserProfile(metadata: INostrMetadata, followersCountMap?: Record<string, number>) {

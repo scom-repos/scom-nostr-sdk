@@ -641,7 +641,7 @@ export interface INostrCommunicationManager {
 	url: string;
     fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
     fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
-    submitEvent(event: Event.VerifiedEvent<number>): Promise<INostrSubmitResponse>;
+    submitEvent(event: Event.VerifiedEvent<number>, authHeader?: string): Promise<INostrSubmitResponse>;
 }
 export interface ISocialEventManagerReadResult {
 	error?: string;
@@ -957,5 +957,5 @@ export interface ISocialEventManagerWrite {
 }
 
 export interface INostrRestAPIManager extends INostrCommunicationManager {
-    fetchEventsFromAPI(endpoint: string, msg: any): Promise<INostrFetchEventsResponse>;
+    fetchEventsFromAPI(endpoint: string, msg: any, authHeader?: string): Promise<INostrFetchEventsResponse>;
 }

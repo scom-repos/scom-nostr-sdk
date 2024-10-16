@@ -47,25 +47,33 @@ class NostrRestAPIManager implements INostrRestAPIManager {
             throw error;
         }
     }
-    async fetchEventsFromAPI(endpoint: string, msg: any): Promise<INostrFetchEventsResponse> {
+    async fetchEventsFromAPI(endpoint: string, msg: any, authHeader?: string): Promise<INostrFetchEventsResponse> {
         try {
-            const response = await fetch(`${this._url}/${endpoint}`, {
+            const requestInit = {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(msg)
-            });
+            }
+            if (authHeader) {
+                requestInit.headers['Authorization'] = authHeader;
+            }
+            const response = await fetch(`${this._url}/${endpoint}`, requestInit);
             let result: INostrFetchEventsResponse = await response.json();
             if (result.requestId) {
                 let requestId = result.requestId;
                 const pollFunction = async () => {
-                    const pollResponse = await fetch(`${this._url}/poll/${requestId}`, {
+                    const pollRequestInit = {
                         method: 'GET',
                         headers: {
                             'Content-Type': 'application/json'
                         }
-                    });
+                    }
+                    if (authHeader) {
+                        pollRequestInit.headers['Authorization'] = authHeader;
+                    }
+                    const pollResponse = await fetch(`${this._url}/poll/${requestId}`, pollRequestInit);
                     const pollResult = await pollResponse.json();
                     return pollResult;
                 }
@@ -98,15 +106,19 @@ class NostrRestAPIManager implements INostrRestAPIManager {
         });
         return events;
     }
-    async submitEvent(event: any): Promise<any> {
+    async submitEvent(event: any, authHeader?: string): Promise<any> {
         try {
-            const response = await fetch(`${this._url}/submit-event`, {
+            const requestInit = {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(event)
-            });
+            }
+            if (authHeader) {
+                requestInit.headers['Authorization'] = authHeader;
+            }
+            const response = await fetch(`${this._url}/submit-event`, requestInit);
             const data = await response.json();
             return {
                 ...data,

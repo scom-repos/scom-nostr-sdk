@@ -7,9 +7,9 @@ declare class NostrRestAPIManager implements INostrRestAPIManager {
     get url(): string;
     set url(url: string);
     fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
-    fetchEventsFromAPI(endpoint: string, msg: any): Promise<INostrFetchEventsResponse>;
+    fetchEventsFromAPI(endpoint: string, msg: any, authHeader?: string): Promise<INostrFetchEventsResponse>;
     fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
-    submitEvent(event: any): Promise<any>;
+    submitEvent(event: any, authHeader?: string): Promise<any>;
 }
 declare class NostrWebSocketManager implements INostrCommunicationManager {
     protected _url: string;

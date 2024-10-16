@@ -5,7 +5,6 @@ declare class NostrEventManagerReadV2 extends NostrEventManagerReadV1o5 implemen
     protected _nostrCommunicationManager: INostrRestAPIManager;
     constructor(manager: INostrRestAPIManager);
     set nostrCommunicationManager(manager: INostrRestAPIManager);
-    protected augmentWithAuthInfo(obj: Record<string, any>): Record<string, any>;
     searchUsers(options: SocialEventManagerReadOptions.ISearchUsers): Promise<any[]>;
     fetchPaymentRequestEvent(options: SocialEventManagerReadOptions.IFetchPaymentRequestEvent): Promise<any>;
     fetchPaymentActivitiesForRecipient(options: SocialEventManagerReadOptions.IFetchPaymentActivitiesForRecipient): Promise<any[]>;

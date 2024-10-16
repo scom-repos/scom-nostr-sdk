@@ -17,7 +17,7 @@ declare class SocialUtilsManager {
     static extractScpData(event: INostrEvent, standardId: string): any;
     static parseContent(content: string): any;
     static extractChannelInfo(event: INostrEvent): IChannelInfo;
-    static augmentWithAuthInfo(obj: Record<string, any>, privateKey: string): Record<string, any>;
+    static constructAuthHeader(privateKey: string): string;
     static constructUserProfile(metadata: INostrMetadata, followersCountMap?: Record<string, number>): IUserProfile;
     static flatMap<T, U>(array: T[], callback: (item: T) => U[]): U[];
 }

@@ -279,20 +279,22 @@ class SocialDataManager {
         const {communityInfo, noteInfoList} = options;
         let noteIdToPrivateKey: Record<string, string> = {};
         if (options.gatekeeperUrl) {
-            let bodyData = SocialUtilsManager.augmentWithAuthInfo({
+            const authHeader = SocialUtilsManager.constructAuthHeader(this._privateKey);
+            let bodyData = {
                 creatorId: communityInfo.creatorId,
                 communityId: communityInfo.communityId,
                 message: options.message,
                 signature: options.signature,
                 since: options.since,
                 until: options.until
-            }, this._privateKey);
+            };
             let url = `${options.gatekeeperUrl}/communities/post-keys`;
             let response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     Accept: 'application/json',
                     'Content-Type': 'application/json',
+                    'Authorization': authHeader
                 },
                 body: JSON.stringify(bodyData)
             });
@@ -314,19 +316,21 @@ class SocialDataManager {
         const {communityInfo, noteInfoList} = options;
         let noteIdToPrivateKey: Record<string, string> = {};
         if (options.gatekeeperUrl) {
-            let bodyData = SocialUtilsManager.augmentWithAuthInfo({
+            const authHeader = SocialUtilsManager.constructAuthHeader(this._privateKey);
+            let bodyData = {
                 creatorId: communityInfo.creatorId,
                 communityId: communityInfo.communityId,
                 focusedNoteId: options.focusedNoteId,
                 message: options.message,
                 signature: options.signature
-            }, this._privateKey);
+            };
             let url = `${options.gatekeeperUrl}/communities/post-keys`;
             let response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     Accept: 'application/json',
                     'Content-Type': 'application/json',
+                    'Authorization': authHeader
                 },
                 body: JSON.stringify(bodyData)
             });
@@ -389,17 +393,19 @@ class SocialDataManager {
             for (let relay in relayToNotesMap) {
                 const noteIds = relayToNotesMap[relay].map(v => v.eventData.id);
                 const signature = await options.getSignature(options.message);
-                let bodyData = SocialUtilsManager.augmentWithAuthInfo({
+                const authHeader = SocialUtilsManager.constructAuthHeader(this._privateKey);
+                let bodyData = {
                     noteIds: noteIds.join(','),
                     message: options.message,
                     signature: signature
-                }, this._privateKey);
+                };
                 let url = `${relay}/communities/post-keys`;
                 let response = await fetch(url, {
                     method: 'POST',
                     headers: {
                         Accept: 'application/json',
                         'Content-Type': 'application/json',
+                        'Authorization': authHeader
                     },
                     body: JSON.stringify(bodyData)
                 });
@@ -1565,18 +1571,20 @@ class SocialDataManager {
     async retrieveChannelMessageKeys(options: IRetrieveChannelMessageKeysOptions) {
         let messageIdToPrivateKey: Record<string, string> = {};
         if (options.gatekeeperUrl) {
-            let bodyData = SocialUtilsManager.augmentWithAuthInfo({
+            const authHeader = SocialUtilsManager.constructAuthHeader(this._privateKey);
+            let bodyData = {
                 creatorId: options.creatorId,
                 channelId: options.channelId,
                 message: options.message,
                 signature: options.signature
-            }, this._privateKey);
+            };
             let url = `${options.gatekeeperUrl}/channels/message-keys`;
             let response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     Accept: 'application/json',
                     'Content-Type': 'application/json',
+                    Authorization: authHeader
                 },
                 body: JSON.stringify(bodyData)
             });
@@ -2162,9 +2170,10 @@ class SocialDataManager {
     }
 
     async sendPingRequest(pubkey: string, relayUrl: string = this._publicIndexingRelay) {
-        const data = SocialUtilsManager.augmentWithAuthInfo({
+        const authHeader = SocialUtilsManager.constructAuthHeader(this._privateKey);
+        const data = {
             pubkey: pubkey,
-        }, this._privateKey);
+        };
         let result
         try {
             let response = await fetch(relayUrl + '/ping', {
@@ -2172,6 +2181,7 @@ class SocialDataManager {
                 headers: {
                     Accept: 'application/json',
                     'Content-Type': 'application/json',
+                    Authorization: authHeader
                 },
                 body: JSON.stringify(data)
             });
@@ -2184,9 +2194,10 @@ class SocialDataManager {
 
     async checkRelayStatus(pubkey: string, relayUrl?: string) {
         if (!relayUrl) relayUrl = this._publicIndexingRelay;
-        const data = SocialUtilsManager.augmentWithAuthInfo({
+        const authHeader = SocialUtilsManager.constructAuthHeader(this._privateKey);
+        const data = {
             pubkey: pubkey,
-        }, this._privateKey);
+        };
         let result
         try {
             let response = await fetch(relayUrl + '/check-status', {
@@ -2194,6 +2205,7 @@ class SocialDataManager {
                 headers: {
                     Accept: 'application/json',
                     'Content-Type': 'application/json',
+                    Authorization: authHeader
                 },
                 body: JSON.stringify(data)
             });
@@ -2773,7 +2785,8 @@ class SocialDataManager {
 
     async updateCommunitySubscription(options: IUpdateCommunitySubscription) {
         const communityPubkey = options.communityCreatorId.startsWith('npub1') ? Nip19.decode(options.communityCreatorId).data : options.communityCreatorId;
-        let bodyData = SocialUtilsManager.augmentWithAuthInfo({
+        const authHeader = SocialUtilsManager.constructAuthHeader(this._privateKey);
+        let bodyData = {
             communityPubkey: communityPubkey,
             communityD: options.communityId,
             pubkey: this.selfPubkey,
@@ -2782,7 +2795,7 @@ class SocialDataManager {
             chainId: options.chainId || 'TON',
             txHash: options.txHash,
             timeCreated: Math.round(Date.now() / 1000)
-        }, this._privateKey);
+        };
         const relayUrl = this._publicIndexingRelay;
         let url = `${relayUrl}/update-community-subscription`;
         let response = await fetch(url, {
@@ -2790,6 +2803,7 @@ class SocialDataManager {
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
+                Authorization: authHeader
             },
             body: JSON.stringify(bodyData)
         });
