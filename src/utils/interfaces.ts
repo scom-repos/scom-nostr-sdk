@@ -260,22 +260,31 @@ export interface ICommunityCampaign {
 	activities?: Array<ILuckySpin>;
 }
 
-interface ICommunityCampaignActivity {
-	type?: CampaignActivityType;
+export interface ICampaignQuest {
+	title: string;
+	link: string;
+	isCompleted?: boolean;
+	point: number;
 }
 
-interface ILuckySpin extends ICommunityCampaignActivity {
+export interface ICommunityCampaignActivity {
+	type?: CampaignActivityType;
+	pointSystem?: ICommunityPointSystem;
+	quests?: ICampaignQuest[];
+}
+
+export interface ILuckySpin extends ICommunityCampaignActivity {
 	rewards?: ILuckySpinReward[];
 	startTime?: number;
 	endTime?: number;
-	price?: string;
+	cost?: number;
 	currency?: string;
 }
 
-interface ILuckySpinReward {
+export interface ILuckySpinReward {
 	name: string;
-    icon?: string;
-    weight?: number;
+	icon?: string;
+	weight?: number;
 }
 
 export interface ICommunityInfo extends ICommunityBasicInfo {

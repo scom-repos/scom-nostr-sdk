@@ -61,5 +61,8 @@ export {
     IAllUserRelatedChannels,
     ICheckIfUserHasAccessToCommunityOptions,
     CampaignActivityType,
-    ICommunityCampaign
+    ICommunityCampaign,
+    ICommunityCampaignActivity,
+    ILuckySpin,
+    ILuckySpinReward
 } from "./interfaces";
