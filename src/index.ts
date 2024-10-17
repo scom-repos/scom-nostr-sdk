@@ -52,6 +52,7 @@ export {
     IPaymentActivity,
     IPostStats,
     IProtectedMembershipPolicy,
+    IQuest,
     ISendTempMessageOptions,
     ISocialDataManagerConfig,
     ISocialEventManagerRead,
