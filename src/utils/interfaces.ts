@@ -163,13 +163,21 @@ export enum CampaignActivityType {
 	Quiz = "Quiz"
 }
 
+export enum SubscriptionBundleType {
+	NoDiscount = "NoDiscount",
+	MinimumDuration = "MinimumDuration",
+	ValidityPeriod = "ValidityPeriod"
+}
+
 export interface ISubscriptionDiscountRule {
 	id: number;
 	name: string;
+	isDisplayAsTitle: boolean;
+	bundleType: SubscriptionBundleType;
 	startTime: number;
 	endTime: number;
 	minDuration?: number;
-	discountType: 'Percentage' | 'FixedAmount';
+	discountType?: 'Percentage' | 'FixedAmount';
 	discountPercentage?: number;
 	fixedPrice?: number;
 	discountApplication: number; // 0: FirstTimeOnly, 1: RenewalsOnly, 2: All

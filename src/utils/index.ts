@@ -52,6 +52,7 @@ export {
     ISocialEventManagerReadResult,
     ISocialEventManagerWrite,
     ISocialEventManagerWriteResult,
+    SubscriptionBundleType,
     ISubscriptionDiscountRule,
     ITrendingCommunityInfo,
     IUpdateCalendarEventInfo,

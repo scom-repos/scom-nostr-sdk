@@ -3530,7 +3530,7 @@ define("@scom/scom-social-sdk/core/index.ts", ["require", "exports", "@scom/scom
 define("@scom/scom-social-sdk/utils/interfaces.ts", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.CalendarEventType = exports.CommunityRole = exports.CampaignActivityType = exports.PaymentMethod = exports.PaymentModel = exports.ProtectedMembershipPolicyType = exports.MembershipType = exports.ScpStandardId = exports.TokenType = exports.NftType = void 0;
+    exports.CalendarEventType = exports.CommunityRole = exports.SubscriptionBundleType = exports.CampaignActivityType = exports.PaymentMethod = exports.PaymentModel = exports.ProtectedMembershipPolicyType = exports.MembershipType = exports.ScpStandardId = exports.TokenType = exports.NftType = void 0;
     var NftType;
     (function (NftType) {
         NftType["ERC721"] = "ERC721";
@@ -3577,6 +3577,12 @@ define("@scom/scom-social-sdk/utils/interfaces.ts", ["require", "exports"], func
         CampaignActivityType["BlindBox"] = "BlindBox";
         CampaignActivityType["Quiz"] = "Quiz";
     })(CampaignActivityType = exports.CampaignActivityType || (exports.CampaignActivityType = {}));
+    var SubscriptionBundleType;
+    (function (SubscriptionBundleType) {
+        SubscriptionBundleType["NoDiscount"] = "NoDiscount";
+        SubscriptionBundleType["MinimumDuration"] = "MinimumDuration";
+        SubscriptionBundleType["ValidityPeriod"] = "ValidityPeriod";
+    })(SubscriptionBundleType = exports.SubscriptionBundleType || (exports.SubscriptionBundleType = {}));
     var CommunityRole;
     (function (CommunityRole) {
         CommunityRole["Creator"] = "creator";
@@ -3593,10 +3599,11 @@ define("@scom/scom-social-sdk/utils/interfaces.ts", ["require", "exports"], func
 define("@scom/scom-social-sdk/utils/index.ts", ["require", "exports", "@scom/scom-social-sdk/utils/interfaces.ts"], function (require, exports, interfaces_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.TokenType = exports.ProtectedMembershipPolicyType = exports.PaymentModel = exports.PaymentMethod = exports.MembershipType = exports.CommunityRole = exports.CampaignActivityType = exports.CalendarEventType = void 0;
+    exports.TokenType = exports.ProtectedMembershipPolicyType = exports.PaymentModel = exports.PaymentMethod = exports.MembershipType = exports.SubscriptionBundleType = exports.CommunityRole = exports.CampaignActivityType = exports.CalendarEventType = void 0;
     Object.defineProperty(exports, "CalendarEventType", { enumerable: true, get: function () { return interfaces_1.CalendarEventType; } });
     Object.defineProperty(exports, "CampaignActivityType", { enumerable: true, get: function () { return interfaces_1.CampaignActivityType; } });
     Object.defineProperty(exports, "CommunityRole", { enumerable: true, get: function () { return interfaces_1.CommunityRole; } });
+    Object.defineProperty(exports, "SubscriptionBundleType", { enumerable: true, get: function () { return interfaces_1.SubscriptionBundleType; } });
     Object.defineProperty(exports, "MembershipType", { enumerable: true, get: function () { return interfaces_1.MembershipType; } });
     Object.defineProperty(exports, "PaymentMethod", { enumerable: true, get: function () { return interfaces_1.PaymentMethod; } });
     Object.defineProperty(exports, "PaymentModel", { enumerable: true, get: function () { return interfaces_1.PaymentModel; } });
@@ -11634,7 +11641,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
 define("@scom/scom-social-sdk", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/index.ts", "@scom/scom-social-sdk/managers/index.ts"], function (require, exports, index_8, index_9, managers_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.NostrRestAPIManager = exports.NostrWebSocketManager = exports.SocialDataManager = exports.SocialUtilsManager = exports.NostrEventManagerWrite = exports.NostrEventManagerReadV2 = exports.NostrEventManagerRead = exports.TokenType = exports.ProtectedMembershipPolicyType = exports.PaymentModel = exports.PaymentMethod = exports.MembershipType = exports.CommunityRole = exports.CampaignActivityType = exports.CalendarEventType = exports.schnorr = exports.secp256k1 = exports.Bech32 = exports.Nip19 = exports.Keys = exports.Event = void 0;
+    exports.NostrRestAPIManager = exports.NostrWebSocketManager = exports.SocialDataManager = exports.SocialUtilsManager = exports.NostrEventManagerWrite = exports.NostrEventManagerReadV2 = exports.NostrEventManagerRead = exports.TokenType = exports.ProtectedMembershipPolicyType = exports.PaymentModel = exports.PaymentMethod = exports.MembershipType = exports.SubscriptionBundleType = exports.CommunityRole = exports.CampaignActivityType = exports.CalendarEventType = exports.schnorr = exports.secp256k1 = exports.Bech32 = exports.Nip19 = exports.Keys = exports.Event = void 0;
     Object.defineProperty(exports, "Event", { enumerable: true, get: function () { return index_8.Event; } });
     Object.defineProperty(exports, "Keys", { enumerable: true, get: function () { return index_8.Keys; } });
     Object.defineProperty(exports, "Nip19", { enumerable: true, get: function () { return index_8.Nip19; } });
@@ -11644,6 +11651,7 @@ define("@scom/scom-social-sdk", ["require", "exports", "@scom/scom-social-sdk/co
     Object.defineProperty(exports, "CalendarEventType", { enumerable: true, get: function () { return index_9.CalendarEventType; } });
     Object.defineProperty(exports, "CampaignActivityType", { enumerable: true, get: function () { return index_9.CampaignActivityType; } });
     Object.defineProperty(exports, "CommunityRole", { enumerable: true, get: function () { return index_9.CommunityRole; } });
+    Object.defineProperty(exports, "SubscriptionBundleType", { enumerable: true, get: function () { return index_9.SubscriptionBundleType; } });
     Object.defineProperty(exports, "MembershipType", { enumerable: true, get: function () { return index_9.MembershipType; } });
     Object.defineProperty(exports, "PaymentMethod", { enumerable: true, get: function () { return index_9.PaymentMethod; } });
     Object.defineProperty(exports, "PaymentModel", { enumerable: true, get: function () { return index_9.PaymentModel; } });
