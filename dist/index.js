@@ -3574,6 +3574,7 @@ define("@scom/scom-social-sdk/utils/interfaces.ts", ["require", "exports"], func
     var CampaignActivityType;
     (function (CampaignActivityType) {
         CampaignActivityType["LuckySpin"] = "LuckySpin";
+        CampaignActivityType["Quest"] = "Quest";
         CampaignActivityType["BlindBox"] = "BlindBox";
         CampaignActivityType["Quiz"] = "Quiz";
     })(CampaignActivityType = exports.CampaignActivityType || (exports.CampaignActivityType = {}));

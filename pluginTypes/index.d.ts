@@ -1238,6 +1238,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     }
     export enum CampaignActivityType {
         LuckySpin = "LuckySpin",
+        Quest = "Quest",
         BlindBox = "BlindBox",
         Quiz = "Quiz"
     }
@@ -1329,7 +1330,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         endTime?: number;
         activities?: Array<ILuckySpin>;
     }
-    export interface ICampaignQuest {
+    export interface IQuest {
         title: string;
         link: string;
         isCompleted?: boolean;
@@ -1337,8 +1338,6 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     }
     export interface ICommunityCampaignActivity {
         type?: CampaignActivityType;
-        pointSystem?: ICommunityPointSystem;
-        quests?: ICampaignQuest[];
     }
     export interface ILuckySpin extends ICommunityCampaignActivity {
         rewards?: ILuckySpinReward[];
@@ -1351,6 +1350,11 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         name: string;
         icon?: string;
         weight?: number;
+    }
+    export interface ICampaignQuest extends ICommunityCampaignActivity {
+        quests?: IQuest[];
+        startTime?: number;
+        endTime?: number;
     }
     export interface ICommunityInfo extends ICommunityBasicInfo {
         communityUri: string;
@@ -1976,7 +1980,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk/utils/index.ts" />
 declare module "@scom/scom-social-sdk/utils/index.ts" {
-    export { CalendarEventType, CampaignActivityType, CommunityRole, IAllUserRelatedChannels, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, ICheckIfUserHasAccessToCommunityOptions, ICampaignQuest, ICommunity, ICommunityBasicInfo, ICommunityCampaign, ICommunityCampaignActivity, ICommunityCollectible, ICommunityDetailMetadata, ICommunityGatekeeperInfo, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostStatusOption, ICommunityScpData, ICommunityStats, ICommunitySubscription, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, IFetchNotesOptions, ILocationCoordinates, ILongFormContentInfo, ILuckySpin, ILuckySpinReward, IMessageContactInfo, IMqttClientOptions, INewCalendarEventPostInfo, INewCommunityInfo, INftSubscription, INostrEvent, INostrFetchEventsResponse, INostrMetadataContent, INoteCommunity, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPaymentActivity, IPostStats, IProtectedMembershipPolicy, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerReadResult, ISocialEventManagerWrite, ISocialEventManagerWriteResult, SubscriptionBundleType, ISubscriptionDiscountRule, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, MembershipType, PaymentMethod, PaymentModel, ProtectedMembershipPolicyType, SocialDataManagerOptions, SocialEventManagerReadOptions, SocialEventManagerWriteOptions, TokenType } from "@scom/scom-social-sdk/utils/interfaces.ts";
+    export { CalendarEventType, CampaignActivityType, CommunityRole, IAllUserRelatedChannels, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityBasicInfo, ICommunityCampaign, ICommunityCampaignActivity, ICommunityCollectible, ICommunityDetailMetadata, ICommunityGatekeeperInfo, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostStatusOption, ICommunityScpData, ICommunityStats, ICommunitySubscription, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, IFetchNotesOptions, ILocationCoordinates, ILongFormContentInfo, ILuckySpin, ILuckySpinReward, IQuest, ICampaignQuest, IMessageContactInfo, IMqttClientOptions, INewCalendarEventPostInfo, INewCommunityInfo, INftSubscription, INostrEvent, INostrFetchEventsResponse, INostrMetadataContent, INoteCommunity, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPaymentActivity, IPostStats, IProtectedMembershipPolicy, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerReadResult, ISocialEventManagerWrite, ISocialEventManagerWriteResult, SubscriptionBundleType, ISubscriptionDiscountRule, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, MembershipType, PaymentMethod, PaymentModel, ProtectedMembershipPolicyType, SocialDataManagerOptions, SocialEventManagerReadOptions, SocialEventManagerWriteOptions, TokenType } from "@scom/scom-social-sdk/utils/interfaces.ts";
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/utilsManager.ts" />
 declare module "@scom/scom-social-sdk/managers/utilsManager.ts" {
