@@ -149,6 +149,7 @@ export declare enum SubscriptionBundleType {
 export interface ISubscriptionDiscountRule {
     id: number;
     name: string;
+    isDisplayAsTitle: boolean;
     bundleType: SubscriptionBundleType;
     startTime: number;
     endTime: number;

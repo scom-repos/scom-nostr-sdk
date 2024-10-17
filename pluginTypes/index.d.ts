@@ -1249,6 +1249,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     export interface ISubscriptionDiscountRule {
         id: number;
         name: string;
+        isDisplayAsTitle: boolean;
         bundleType: SubscriptionBundleType;
         startTime: number;
         endTime: number;
