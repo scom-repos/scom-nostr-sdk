@@ -159,6 +159,7 @@ export enum PaymentMethod {
 
 export enum CampaignActivityType {
 	LuckySpin = "LuckySpin",
+	Quest = "Quest",
 	BlindBox = "BlindBox",
 	Quiz = "Quiz"
 }
@@ -268,7 +269,7 @@ export interface ICommunityCampaign {
 	activities?: Array<ILuckySpin>;
 }
 
-export interface ICampaignQuest {
+export interface IQuest {
 	title: string;
 	link: string;
 	isCompleted?: boolean;
@@ -277,8 +278,6 @@ export interface ICampaignQuest {
 
 export interface ICommunityCampaignActivity {
 	type?: CampaignActivityType;
-	pointSystem?: ICommunityPointSystem;
-	quests?: ICampaignQuest[];
 }
 
 export interface ILuckySpin extends ICommunityCampaignActivity {
@@ -293,6 +292,12 @@ export interface ILuckySpinReward {
 	name: string;
 	icon?: string;
 	weight?: number;
+}
+
+export interface ICampaignQuest extends ICommunityCampaignActivity {
+	quests?: IQuest[];
+	startTime?: number;
+	endTime?: number;
 }
 
 export interface ICommunityInfo extends ICommunityBasicInfo {
