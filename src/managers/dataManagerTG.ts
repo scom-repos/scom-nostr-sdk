@@ -323,7 +323,11 @@ class SocialDataManagerTG {
 
     async checkIfUserHasAccessToCommunity(options: ICheckIfUserHasAccessToCommunityOptions) {
         const { communityInfo, gatekeeperUrl, walletAddresses } = options;
-        let hasAccess = false;
+        let data: {
+            hasAccess: boolean,
+            subscriptions: ICommunitySubscription[],
+            isWhiteListed: boolean
+        } = { hasAccess: false, subscriptions: [], isWhiteListed: false };
         const pubkey = Keys.getPublicKey(this._privateKey);
         let bodyData = {
             creatorId: communityInfo.creatorId,
@@ -342,9 +346,9 @@ class SocialDataManagerTG {
         });
         let result = await response.json();
         if (result.success) {
-            hasAccess = result.data.hasAccess;
+            data = result.data;
         }
-        return hasAccess;
+        return data;
     }
 
     async constructMetadataByPubKeyMap(notes: INostrEvent[]) {

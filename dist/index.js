@@ -7692,7 +7692,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
         }
         async checkIfUserHasAccessToCommunity(options) {
             const { communityInfo, gatekeeperUrl, walletAddresses } = options;
-            let hasAccess = false;
+            let data = { hasAccess: false, subscriptions: [], isWhiteListed: false };
             const pubkey = index_6.Keys.getPublicKey(this._privateKey);
             let bodyData = {
                 creatorId: communityInfo.creatorId,
@@ -7711,9 +7711,9 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
             });
             let result = await response.json();
             if (result.success) {
-                hasAccess = result.data.hasAccess;
+                data = result.data;
             }
-            return hasAccess;
+            return data;
         }
         async checkNftSubscriptions(options) {
             const { chainId, nftAddress, walletAddresses, gatekeeperUrl } = options;
@@ -10250,7 +10250,7 @@ define("@scom/scom-social-sdk/managers/dataManagerTG.ts", ["require", "exports",
         }
         async checkIfUserHasAccessToCommunity(options) {
             const { communityInfo, gatekeeperUrl, walletAddresses } = options;
-            let hasAccess = false;
+            let data = { hasAccess: false, subscriptions: [], isWhiteListed: false };
             const pubkey = index_7.Keys.getPublicKey(this._privateKey);
             let bodyData = {
                 creatorId: communityInfo.creatorId,
@@ -10269,9 +10269,9 @@ define("@scom/scom-social-sdk/managers/dataManagerTG.ts", ["require", "exports",
             });
             let result = await response.json();
             if (result.success) {
-                hasAccess = result.data.hasAccess;
+                data = result.data;
             }
-            return hasAccess;
+            return data;
         }
         async constructMetadataByPubKeyMap(notes) {
             let mentionAuthorSet = new Set();

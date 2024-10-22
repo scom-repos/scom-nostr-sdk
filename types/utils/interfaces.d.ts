@@ -559,7 +559,9 @@ export interface ICommunitySubscription {
     start: number;
     end: number;
     chainId: string;
-    txHash: string;
+    nftAddress?: string;
+    nftId?: number;
+    txHash?: string;
 }
 export interface IUpdateCommunitySubscription {
     communityCreatorId: string;

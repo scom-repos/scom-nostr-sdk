@@ -1659,7 +1659,9 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         start: number;
         end: number;
         chainId: string;
-        txHash: string;
+        nftAddress?: string;
+        nftId?: number;
+        txHash?: string;
     }
     export interface IUpdateCommunitySubscription {
         communityCreatorId: string;
@@ -2447,7 +2449,11 @@ declare module "@scom/scom-social-sdk/managers/dataManager.ts" {
         retrieveCommunityPostKeys(options: IRetrieveCommunityPostKeysOptions): Promise<Record<string, string>>;
         retrieveCommunityThreadPostKeys(options: IRetrieveCommunityThreadPostKeysOptions): Promise<Record<string, string>>;
         retrieveCommunityPostKeysByNoteEvents(options: IRetrieveCommunityPostKeysByNoteEventsOptions): Promise<Record<string, string>>;
-        checkIfUserHasAccessToCommunity(options: ICheckIfUserHasAccessToCommunityOptions): Promise<boolean>;
+        checkIfUserHasAccessToCommunity(options: ICheckIfUserHasAccessToCommunityOptions): Promise<{
+            hasAccess: boolean;
+            subscriptions: ICommunitySubscription[];
+            isWhiteListed: boolean;
+        }>;
         checkNftSubscriptions(options: {
             chainId: number;
             nftAddress: string;
@@ -2673,7 +2679,11 @@ declare module "@scom/scom-social-sdk/managers/dataManagerTG.ts" {
         retrieveCommunityPostKeys(options: IRetrieveCommunityPostKeysOptions): Promise<Record<string, string>>;
         retrieveCommunityThreadPostKeys(options: IRetrieveCommunityThreadPostKeysOptions): Promise<Record<string, string>>;
         retrieveCommunityPostKeysByNoteEvents(options: IRetrieveCommunityPostKeysByNoteEventsOptions): Promise<Record<string, string>>;
-        checkIfUserHasAccessToCommunity(options: ICheckIfUserHasAccessToCommunityOptions): Promise<boolean>;
+        checkIfUserHasAccessToCommunity(options: ICheckIfUserHasAccessToCommunityOptions): Promise<{
+            hasAccess: boolean;
+            subscriptions: ICommunitySubscription[];
+            isWhiteListed: boolean;
+        }>;
         constructMetadataByPubKeyMap(notes: INostrEvent[]): Promise<Record<string, INostrMetadata>>;
         fetchUserProfiles(pubKeys: string[]): Promise<IUserProfile[]>;
         updateUserProfile(content: INostrMetadataContent): Promise<void>;
