@@ -645,9 +645,11 @@ export interface INftSubscription {
 
 export interface ICommunitySubscription {
 	start: number;
-	end: number;
-	chainId: string;
-	txHash: string;
+    end: number;
+    chainId: string;
+    nftAddress?: string;
+    nftId?: number;
+    txHash?: string;
 }
 
 export interface IUpdateCommunitySubscription {

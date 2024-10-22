@@ -36,7 +36,11 @@ declare class SocialDataManager {
     retrieveCommunityPostKeys(options: IRetrieveCommunityPostKeysOptions): Promise<Record<string, string>>;
     retrieveCommunityThreadPostKeys(options: IRetrieveCommunityThreadPostKeysOptions): Promise<Record<string, string>>;
     retrieveCommunityPostKeysByNoteEvents(options: IRetrieveCommunityPostKeysByNoteEventsOptions): Promise<Record<string, string>>;
-    checkIfUserHasAccessToCommunity(options: ICheckIfUserHasAccessToCommunityOptions): Promise<boolean>;
+    checkIfUserHasAccessToCommunity(options: ICheckIfUserHasAccessToCommunityOptions): Promise<{
+        hasAccess: boolean;
+        subscriptions: ICommunitySubscription[];
+        isWhiteListed: boolean;
+    }>;
     checkNftSubscriptions(options: {
         chainId: number;
         nftAddress: string;

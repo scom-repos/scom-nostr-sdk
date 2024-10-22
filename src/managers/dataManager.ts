@@ -423,7 +423,11 @@ class SocialDataManager {
 
     async checkIfUserHasAccessToCommunity(options: ICheckIfUserHasAccessToCommunityOptions) {
         const { communityInfo, gatekeeperUrl, walletAddresses } = options;
-        let hasAccess = false;
+        let data: {
+            hasAccess: boolean,
+            subscriptions: ICommunitySubscription[],
+            isWhiteListed: boolean
+        } = { hasAccess: false, subscriptions: [], isWhiteListed: false };
         const pubkey = Keys.getPublicKey(this._privateKey);
         let bodyData = {
             creatorId: communityInfo.creatorId,
@@ -442,9 +446,9 @@ class SocialDataManager {
         });
         let result = await response.json();
         if (result.success) {
-            hasAccess = result.data.hasAccess;
+            data = result.data;
         }
-        return hasAccess;
+        return data;
     }
 
     async checkNftSubscriptions(options: { chainId: number, nftAddress: string, walletAddresses: string[], gatekeeperUrl: string }) {
