@@ -6024,6 +6024,10 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
         set privateKey(privateKey) {
             this._privateKey = privateKey;
         }
+        async fetchEventsFromAPIWithAuth(endpoint, msg) {
+            const authHeader = utilsManager_4.SocialUtilsManager.constructAuthHeader(this._privateKey);
+            return await this._nostrCommunicationManager.fetchEventsFromAPI(endpoint, msg, authHeader);
+        }
         async fetchThreadCacheEvents(options) {
             const { id } = options;
             let decodedId = id.startsWith('note1') ? index_4.Nip19.decode(id).data : id;
@@ -6031,12 +6035,12 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 eventId: decodedId,
                 limit: 100
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-thread-posts', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-thread-posts', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchTrendingCacheEvents(options) {
             let msg = {};
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-trending-posts', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-trending-posts', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchProfileFeedCacheEvents(options) {
@@ -6060,7 +6064,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 const decodedUserPubKey = userPubkey.startsWith('npub1') ? index_4.Nip19.decode(userPubkey).data : userPubkey;
                 msg.user_pubkey = decodedUserPubKey;
             }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-profile-feed', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-profile-feed', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchProfileRepliesCacheEvents(options) {
@@ -6084,7 +6088,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 const decodedUserPubKey = userPubkey.startsWith('npub1') ? index_4.Nip19.decode(userPubkey).data : userPubkey;
                 msg.user_pubkey = decodedUserPubKey;
             }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-profile-replies', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-profile-replies', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchHomeFeedCacheEvents(options) {
@@ -6106,7 +6110,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 const decodedPubKey = pubKey.startsWith('npub1') ? index_4.Nip19.decode(pubKey).data : pubKey;
                 msg.pubKey = decodedPubKey;
             }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-home-feed', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-home-feed', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchUserProfileCacheEvents(options) {
@@ -6117,7 +6121,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             let msg = {
                 pubkeys: decodedPubKeys
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-profiles', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-user-profiles', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchUserProfileDetailCacheEvents(options) {
@@ -6128,7 +6132,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             let msg = {
                 pubkey: decodedPubKey
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-profile-detail', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-user-profile-detail', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchContactListCacheEvents(options) {
@@ -6138,7 +6142,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 pubkey: decodedPubKey,
                 detailIncluded: detailIncluded,
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-contact-list', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-contact-list', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchUserRelays(options) {
@@ -6147,7 +6151,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             let msg = {
                 pubkey: decodedPubKey
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-relays', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-user-relays', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchFollowersCacheEvents(options) {
@@ -6156,7 +6160,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             let msg = {
                 pubkey: decodedPubKey
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-followers', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-followers', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchCommunities(options) {
@@ -6175,7 +6179,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                     };
                     msg.identifiers.push(request);
                 }
-                let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities', msg);
+                let response = await this.fetchEventsFromAPIWithAuth('fetch-communities', msg);
                 events = response.events;
             }
             else {
@@ -6183,7 +6187,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                     limit: 50,
                     query
                 };
-                let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities', msg);
+                let response = await this.fetchEventsFromAPIWithAuth('fetch-communities', msg);
                 events = response.events;
             }
             return events;
@@ -6194,7 +6198,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             let msg = {
                 pubkey: decodedPubKey
             };
-            let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-communities', msg);
+            let response = await this.fetchEventsFromAPIWithAuth('fetch-user-communities', msg);
             return response.events || [];
         }
         async fetchAllUserRelatedCommunitiesFeed(options) {
@@ -6206,7 +6210,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 until,
                 limit: 20
             };
-            let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-communities-feed', msg);
+            let response = await this.fetchEventsFromAPIWithAuth('fetch-user-communities-feed', msg);
             return response.events || [];
         }
         async fetchUserBookmarkedCommunities(options) {
@@ -6215,7 +6219,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             let msg = {
                 pubkey: decodedPubKey
             };
-            let response = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-bookmarked-communities', msg);
+            let response = await this.fetchEventsFromAPIWithAuth('fetch-user-bookmarked-communities', msg);
             let communities = [];
             for (let community of response.data) {
                 if (excludedCommunity) {
@@ -6238,7 +6242,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                     }
                 ]
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-communities', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchCommunityFeed(options) {
@@ -6254,7 +6258,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 since,
                 until
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-feed', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-community-feed', msg);
             return fetchEventsResponse.events || [];
         }
         // async fetchNotes(options: IFetchNotesOptions) {
@@ -6274,7 +6278,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             let msg = {
                 pubKey
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-related-channels', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-user-related-channels', msg);
             let channels = [];
             const channelMetadataMap = {};
             for (let event of fetchEventsResponse.events) {
@@ -6322,7 +6326,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             let msg = {
                 pubKey
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-bookmarked-channel-event-ids', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-user-bookmarked-channel-event-ids', msg);
             return fetchEventsResponse.data;
         }
         async fetchEventsByIds(options) {
@@ -6330,7 +6334,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             let msg = {
                 ids
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-events', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-events', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchTempEvents(options) {
@@ -6338,8 +6342,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             let msg = {
                 ids
             };
-            const authHeader = utilsManager_4.SocialUtilsManager.constructAuthHeader(this._privateKey);
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-temp-events', msg, authHeader);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-temp-events', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchChannelMessages(options) {
@@ -6359,7 +6362,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             else {
                 msg.until = until;
             }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-channel-messages', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-channel-messages', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchChannelInfoMessages(options) {
@@ -6369,7 +6372,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 channelId: decodedChannelId,
                 limit: 20
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-channel-info-messages', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-channel-info-messages', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchMessageContactsCacheEvents(options) {
@@ -6391,7 +6394,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 receiver: decodedPubKey,
                 senderToLastReadMap: senderToLastReadMap
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-direct-messages-stats', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-direct-messages-stats', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchDirectMessages(options) {
@@ -6413,7 +6416,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             else {
                 msg.until = until;
             }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-direct-messages', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-direct-messages', msg);
             return fetchEventsResponse.events || [];
         }
         async resetMessageCount(options) {
@@ -6434,7 +6437,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             let msg = {
                 identifiers
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-application-specific', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-application-specific', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchUserGroupInvitations(options) {
@@ -6444,7 +6447,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 pubKey: decodedPubKey,
                 groupKinds: groupKinds
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-group-invitations', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-user-group-invitations', msg);
             let events = fetchEventsResponse.events?.filter(event => event.tags.filter(tag => tag[0] === 'p' && tag?.[3] === 'invitee').map(tag => tag[1]).includes(decodedPubKey));
             return events;
         }
@@ -6456,7 +6459,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 limit: limit || 10,
                 previousEventId
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-events', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-calendar-events', msg);
             return {
                 events: fetchEventsResponse.events || [],
                 data: fetchEventsResponse.data
@@ -6468,7 +6471,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             let msg = {
                 key
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-events', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-calendar-events', msg);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
         }
         async fetchCalendarEventPosts(options) {
@@ -6477,7 +6480,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 eventUri: calendarEventUri,
                 limit: 50
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-posts', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-calendar-posts', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchCalendarEventRSVPs(options) {
@@ -6489,7 +6492,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 const decodedPubKey = pubkey.startsWith('npub1') ? index_4.Nip19.decode(pubkey).data : pubkey;
                 msg.pubkey = decodedPubKey;
             }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-calendar-rsvps', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-calendar-rsvps', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchLongFormContentEvents(options) {
@@ -6511,7 +6514,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             else {
                 msg.until = until;
             }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-long-form-content', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-long-form-content', msg);
             return fetchEventsResponse.events || [];
         }
         async searchUsers(options) {
@@ -6520,7 +6523,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 query,
                 limit: 10
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('search-users', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('search-users', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchPaymentRequestEvent(options) {
@@ -6656,7 +6659,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             if (until > 0) {
                 msg.until = until;
             }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-following-feed', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-user-following-feed', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchCommunityPinnedNotesEvents(options) {
@@ -6667,7 +6670,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 communityName: communityId,
                 eventMetadataIncluded: true
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-pinned-notes', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-community-pinned-notes', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchCommunityPinnedNoteIds(options) {
@@ -6678,7 +6681,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 communityName: communityId,
                 eventMetadataIncluded: false
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-pinned-notes', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-community-pinned-notes', msg);
             return fetchEventsResponse.data?.ids || [];
         }
         async fetchUserPinnedNotes(options) {
@@ -6687,7 +6690,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             let msg = {
                 pubkey: decodedPubKey
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-pinned-notes', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-user-pinned-notes', msg);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
         }
         async fetchUserBookmarks(options) {
@@ -6696,12 +6699,12 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             let msg = {
                 pubkey: decodedPubKey
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-bookmarks', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-user-bookmarks', msg);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
         }
         async fetchTrendingCommunities() {
             let msg = {};
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-trending-communities', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-trending-communities', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchUserEthWalletAccountsInfo(options) {
@@ -6714,7 +6717,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             else if (walletHash) {
                 msg.walletHash = walletHash;
             }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-user-eth-wallet-info', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-user-eth-wallet-info', msg);
             return fetchEventsResponse.events?.length > 0 ? fetchEventsResponse.events[0] : null;
         }
         async fetchSubcommunites(options) {
@@ -6724,7 +6727,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 communityPubkey,
                 communityName
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-subcommunities', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-subcommunities', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchCommunityDetailMetadata(options) {
@@ -6734,7 +6737,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 communityPubkey,
                 communityName
             };
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-community-detail-metadata', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-community-detail-metadata', msg);
             return fetchEventsResponse.events || [];
         }
         async getCommunityUriToMembersMap(communities) {
@@ -6749,7 +6752,7 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 };
                 msg.identifiers.push(request);
             }
-            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEventsFromAPI('fetch-communities-members', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-communities-members', msg);
             const events = fetchEventsResponse.events || [];
             const communityMemberEvents = events.filter(event => event.kind === 10000112);
             const nonCommunityMemberEvents = events.filter(event => event.kind !== 10000112);

@@ -6,6 +6,7 @@ declare class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     constructor(manager: INostrRestAPIManager);
     set nostrCommunicationManager(manager: INostrRestAPIManager);
     set privateKey(privateKey: string);
+    fetchEventsFromAPIWithAuth(endpoint: string, msg: any): Promise<import("../utils/interfaces").INostrFetchEventsResponse>;
     fetchThreadCacheEvents(options: SocialEventManagerReadOptions.IFetchThreadCacheEvents): Promise<import("../utils/interfaces").INostrEvent[]>;
     fetchTrendingCacheEvents(options: SocialEventManagerReadOptions.IFetchTrendingCacheEvents): Promise<import("../utils/interfaces").INostrEvent[]>;
     fetchProfileFeedCacheEvents(options: SocialEventManagerReadOptions.IFetchProfileFeedCacheEvents): Promise<import("../utils/interfaces").INostrEvent[]>;

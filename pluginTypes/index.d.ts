@@ -2256,6 +2256,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" {
         constructor(manager: INostrRestAPIManager);
         set nostrCommunicationManager(manager: INostrRestAPIManager);
         set privateKey(privateKey: string);
+        fetchEventsFromAPIWithAuth(endpoint: string, msg: any): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrFetchEventsResponse>;
         fetchThreadCacheEvents(options: SocialEventManagerReadOptions.IFetchThreadCacheEvents): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
         fetchTrendingCacheEvents(options: SocialEventManagerReadOptions.IFetchTrendingCacheEvents): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
         fetchProfileFeedCacheEvents(options: SocialEventManagerReadOptions.IFetchProfileFeedCacheEvents): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").INostrEvent[]>;
