@@ -1444,7 +1444,8 @@ class SocialDataManager {
         if (community.creatorId === pubKey) return CommunityRole.Creator;
         if (community.moderatorIds?.includes(pubKey)) return CommunityRole.Moderator;
         const communities = await this._socialEventManagerRead.fetchUserBookmarkedCommunities({ pubKey });
-        const isMember = communities.find(c => c.communityId === community.communityId && c.creatorId === community.creatorId) != null;
+        const decodedCreatorId = community.creatorId.startsWith('npub1') ? Nip19.decode(community.creatorId).data : community.creatorId;
+        const isMember = communities.find(c => c.communityId === community.communityId && c.creatorId === decodedCreatorId) != null;
         return isMember ? CommunityRole.GeneralMember : CommunityRole.None;
     }
 

@@ -8648,7 +8648,8 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
             if (community.moderatorIds?.includes(pubKey))
                 return interfaces_6.CommunityRole.Moderator;
             const communities = await this._socialEventManagerRead.fetchUserBookmarkedCommunities({ pubKey });
-            const isMember = communities.find(c => c.communityId === community.communityId && c.creatorId === community.creatorId) != null;
+            const decodedCreatorId = community.creatorId.startsWith('npub1') ? index_6.Nip19.decode(community.creatorId).data : community.creatorId;
+            const isMember = communities.find(c => c.communityId === community.communityId && c.creatorId === decodedCreatorId) != null;
             return isMember ? interfaces_6.CommunityRole.GeneralMember : interfaces_6.CommunityRole.None;
         }
         async joinCommunity(community, pubKey) {
