@@ -3732,16 +3732,19 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                     if (stopCondition(data)) {
                         return data;
                     }
+                    else {
+                        console.log(`Attempt ${i + 1} failed. Retrying in ${currentDelay}ms...`);
+                        await new Promise(resolve => setTimeout(resolve, currentDelay));
+                        currentDelay = Math.min(maxDelay, currentDelay * factor);
+                    }
                 }
                 catch (error) {
-                    console.error(`Attempt ${i + 1} failed. Retrying in ${currentDelay}ms...`);
-                    // Wait for the current delay period
+                    console.error('error', error);
+                    console.log(`Attempt ${i + 1} failed. Retrying in ${currentDelay}ms...`);
                     await new Promise(resolve => setTimeout(resolve, currentDelay));
-                    // Update delay for the next iteration, capped at maxDelay
                     currentDelay = Math.min(maxDelay, currentDelay * factor);
                 }
             }
-            // If all retries have been exhausted, throw an error
             throw new Error(`Failed after ${retries} retries`);
         }
         static getCommunityUri(creatorId, communityId) {
@@ -7717,29 +7720,6 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
                 data = result.data;
             }
             return data;
-        }
-        async checkNftSubscriptions(options) {
-            const { chainId, nftAddress, walletAddresses, gatekeeperUrl } = options;
-            let subscriptions = [];
-            let url = `${gatekeeperUrl}/communities/check-nft-subscriptions`;
-            let bodyData = {
-                chainId,
-                nftAddress,
-                walletAddresses
-            };
-            let response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(bodyData)
-            });
-            let result = await response.json();
-            if (result.success) {
-                subscriptions = result.data.subscriptions;
-            }
-            return subscriptions;
         }
         async constructMetadataByPubKeyMap(notes) {
             let mentionAuthorSet = new Set();

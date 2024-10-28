@@ -129,18 +129,19 @@ class SocialUtilsManager {
                 if (stopCondition(data)) {
                     return data;
                 }
-            } catch (error) {
-                console.error(`Attempt ${i + 1} failed. Retrying in ${currentDelay}ms...`);
-    
-                // Wait for the current delay period
+                else {
+                    console.log(`Attempt ${i + 1} failed. Retrying in ${currentDelay}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, currentDelay));
+                    currentDelay = Math.min(maxDelay, currentDelay * factor);
+                }
+            } 
+            catch (error) {
+                console.error('error', error);
+                console.log(`Attempt ${i + 1} failed. Retrying in ${currentDelay}ms...`);
                 await new Promise(resolve => setTimeout(resolve, currentDelay));
-    
-                // Update delay for the next iteration, capped at maxDelay
                 currentDelay = Math.min(maxDelay, currentDelay * factor);
             }
         }
-    
-        // If all retries have been exhausted, throw an error
         throw new Error(`Failed after ${retries} retries`);
     }
 
