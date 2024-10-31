@@ -2782,7 +2782,8 @@ class SocialDataManager {
             pubkey: this.selfPubkey,
             start: options.start,
             end: options.end,
-            chainId: options.chainId || 'TON',
+            chainId: options.chainId,
+            currency: options.currency,
             txHash: options.txHash,
             timeCreated: Math.round(Date.now() / 1000)
         };
@@ -2799,32 +2800,6 @@ class SocialDataManager {
         });
         let result = await response.json();
         return result;
-    }
-
-    async checkCommunitySubscriptions(communityCreatorId: string, communityId: string, walletAddresses: string[]) {
-        const communityPubkey = communityCreatorId.startsWith('npub1') ? Nip19.decode(communityCreatorId).data : communityCreatorId;
-        let subscriptions: ICommunitySubscription[] = [];
-        const relayUrl = this._publicIndexingRelay;
-        let url = `${relayUrl}/communities/check-subscriptions`;
-        let bodyData = {
-            pubkey: this.selfPubkey,
-            communityPubkey: communityPubkey,
-            communityD: communityId,
-            walletAddresses
-        };
-        let response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(bodyData)
-        });
-        let result = await response.json();
-        if (result.success) {
-            subscriptions = result.data.subscriptions;
-        }
-        return subscriptions;
     }
 }
 

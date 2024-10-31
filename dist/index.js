@@ -9912,7 +9912,8 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
                 pubkey: this.selfPubkey,
                 start: options.start,
                 end: options.end,
-                chainId: options.chainId || 'TON',
+                chainId: options.chainId,
+                currency: options.currency,
                 txHash: options.txHash,
                 timeCreated: Math.round(Date.now() / 1000)
             };
@@ -9929,31 +9930,6 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
             });
             let result = await response.json();
             return result;
-        }
-        async checkCommunitySubscriptions(communityCreatorId, communityId, walletAddresses) {
-            const communityPubkey = communityCreatorId.startsWith('npub1') ? index_6.Nip19.decode(communityCreatorId).data : communityCreatorId;
-            let subscriptions = [];
-            const relayUrl = this._publicIndexingRelay;
-            let url = `${relayUrl}/communities/check-subscriptions`;
-            let bodyData = {
-                pubkey: this.selfPubkey,
-                communityPubkey: communityPubkey,
-                communityD: communityId,
-                walletAddresses
-            };
-            let response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(bodyData)
-            });
-            let result = await response.json();
-            if (result.success) {
-                subscriptions = result.data.subscriptions;
-            }
-            return subscriptions;
         }
     }
     exports.SocialDataManager = SocialDataManager;
@@ -11592,31 +11568,6 @@ define("@scom/scom-social-sdk/managers/dataManagerTG.ts", ["require", "exports",
             });
             let result = await response.json();
             return result;
-        }
-        async checkCommunitySubscriptions(communityCreatorId, communityId) {
-            const selfPubkey = utilsManager_6.SocialUtilsManager.convertPrivateKeyToPubkey(this._privateKey);
-            const communityPubkey = communityCreatorId.startsWith('npub1') ? index_7.Nip19.decode(communityCreatorId).data : communityCreatorId;
-            let subscriptions = [];
-            const relayUrl = this._publicIndexingRelay;
-            let url = `${relayUrl}/communities/check-subscriptions`;
-            let bodyData = {
-                pubkey: selfPubkey,
-                communityPubkey: communityPubkey,
-                communityD: communityId,
-            };
-            let response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(bodyData)
-            });
-            let result = await response.json();
-            if (result.success) {
-                subscriptions = result.data.subscriptions;
-            }
-            return subscriptions;
         }
     }
     exports.SocialDataManagerTG = SocialDataManagerTG;

@@ -558,7 +558,8 @@ export interface INftSubscription {
 export interface ICommunitySubscription {
     start: number;
     end: number;
-    chainId: string;
+    currency: string;
+    chainId?: string;
     nftAddress?: string;
     nftId?: number;
     txHash?: string;
@@ -569,6 +570,7 @@ export interface IUpdateCommunitySubscription {
     start: number;
     end: number;
     chainId?: string;
+    currency: string;
     txHash: string;
 }
 export interface INostrCommunicationManager {

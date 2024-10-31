@@ -228,6 +228,5 @@ declare class SocialDataManager {
     fetchCommunityDetailMetadata(creatorId: string, communityId: string): Promise<ICommunityDetailMetadata>;
     updateNoteStatus(noteId: string, status: string): Promise<import("../utils/interfaces").ISocialEventManagerWriteResult>;
     updateCommunitySubscription(options: IUpdateCommunitySubscription): Promise<any>;
-    checkCommunitySubscriptions(communityCreatorId: string, communityId: string, walletAddresses: string[]): Promise<ICommunitySubscription[]>;
 }
 export { SocialDataManager };

@@ -1658,7 +1658,8 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     export interface ICommunitySubscription {
         start: number;
         end: number;
-        chainId: string;
+        currency: string;
+        chainId?: string;
         nftAddress?: string;
         nftId?: number;
         txHash?: string;
@@ -1669,6 +1670,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         start: number;
         end: number;
         chainId?: string;
+        currency: string;
         txHash: string;
     }
     export interface INostrCommunicationManager {
@@ -2642,7 +2644,6 @@ declare module "@scom/scom-social-sdk/managers/dataManager.ts" {
         fetchCommunityDetailMetadata(creatorId: string, communityId: string): Promise<ICommunityDetailMetadata>;
         updateNoteStatus(noteId: string, status: string): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").ISocialEventManagerWriteResult>;
         updateCommunitySubscription(options: IUpdateCommunitySubscription): Promise<any>;
-        checkCommunitySubscriptions(communityCreatorId: string, communityId: string, walletAddresses: string[]): Promise<ICommunitySubscription[]>;
     }
     export { SocialDataManager };
 }
@@ -2794,7 +2795,6 @@ declare module "@scom/scom-social-sdk/managers/dataManagerTG.ts" {
         fetchCommunityDetailMetadata(creatorId: string, communityId: string): Promise<ICommunityDetailMetadata>;
         updateNoteStatus(noteId: string, status: string): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").ISocialEventManagerWriteResult>;
         updateCommunitySubscription(options: IUpdateCommunitySubscription): Promise<any>;
-        checkCommunitySubscriptions(communityCreatorId: string, communityId: string): Promise<ICommunitySubscription[]>;
     }
     export { SocialDataManagerTG };
 }
