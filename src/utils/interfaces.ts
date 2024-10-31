@@ -39,6 +39,7 @@ export interface INostrMetadataContent {
     banner?: string;
     lud16?: string;
     nip05?: string;
+	eth_wallet?: string;
 }
 
 export interface INostrMetadata {
@@ -64,6 +65,7 @@ export interface IUserProfile {
 	internetIdentifier: string;
 	followers?: number;
 	lud16?: string;
+	ethWallet?: string;
 	metadata?: INostrMetadata;
 }
 

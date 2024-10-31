@@ -317,6 +317,7 @@ class SocialUtilsManager {
             banner: metadataContent.banner,
             followers: followersCount,
             lud16: metadataContent.lud16,
+            ethWallet: metadataContent.eth_wallet,
             metadata,
         }
         return userProfile;

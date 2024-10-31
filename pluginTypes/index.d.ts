@@ -1134,6 +1134,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         banner?: string;
         lud16?: string;
         nip05?: string;
+        eth_wallet?: string;
     }
     export interface INostrMetadata {
         id: string;
@@ -1157,6 +1158,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         internetIdentifier: string;
         followers?: number;
         lud16?: string;
+        ethWallet?: string;
         metadata?: INostrMetadata;
     }
     export interface IUserActivityStats {
@@ -2460,6 +2462,7 @@ declare module "@scom/scom-social-sdk/managers/dataManager.ts" {
         constructMetadataByPubKeyMap(notes: INostrEvent[]): Promise<Record<string, INostrMetadata>>;
         fetchUserProfiles(pubKeys: string[]): Promise<IUserProfile[]>;
         updateUserProfile(content: INostrMetadataContent): Promise<void>;
+        updateUserProfileV2(profile: Partial<IUserProfile>): Promise<void>;
         fetchTrendingNotesInfo(): Promise<{
             notes: INoteInfo[];
             metadataByPubKeyMap: Record<string, INostrMetadata>;

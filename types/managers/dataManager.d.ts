@@ -44,6 +44,7 @@ declare class SocialDataManager {
     constructMetadataByPubKeyMap(notes: INostrEvent[]): Promise<Record<string, INostrMetadata>>;
     fetchUserProfiles(pubKeys: string[]): Promise<IUserProfile[]>;
     updateUserProfile(content: INostrMetadataContent): Promise<void>;
+    updateUserProfileV2(profile: Partial<IUserProfile>): Promise<void>;
     fetchTrendingNotesInfo(): Promise<{
         notes: INoteInfo[];
         metadataByPubKeyMap: Record<string, INostrMetadata>;

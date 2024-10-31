@@ -3915,6 +3915,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 banner: metadataContent.banner,
                 followers: followersCount,
                 lud16: metadataContent.lud16,
+                ethWallet: metadataContent.eth_wallet,
                 metadata,
             };
             return userProfile;
@@ -7777,7 +7778,21 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
             }
             return userProfiles;
         }
+        //To be deprecated
         async updateUserProfile(content) {
+            await this._socialEventManagerWrite.updateUserProfile(content);
+        }
+        async updateUserProfileV2(profile) {
+            const content = {
+                ...profile.metadata?.content,
+                name: profile.username,
+                display_name: profile.displayName,
+                website: profile.website,
+                picture: profile.avatar,
+                about: profile.description,
+                banner: profile.banner,
+                eth_wallet: profile.ethWallet
+            };
             await this._socialEventManagerWrite.updateUserProfile(content);
         }
         async fetchTrendingNotesInfo() {

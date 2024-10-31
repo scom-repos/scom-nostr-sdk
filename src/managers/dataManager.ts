@@ -508,7 +508,22 @@ class SocialDataManager {
         return userProfiles;
     }
 
+    //To be deprecated
     async updateUserProfile(content: INostrMetadataContent) {
+        await this._socialEventManagerWrite.updateUserProfile(content)
+    }
+
+    async updateUserProfileV2(profile: Partial<IUserProfile>) {
+        const content: INostrMetadataContent = {
+            ...profile.metadata?.content,
+            name: profile.username,
+            display_name: profile.displayName,
+            website: profile.website,
+            picture: profile.avatar,
+            about: profile.description,
+            banner: profile.banner,
+            eth_wallet: profile.ethWallet
+        }
         await this._socialEventManagerWrite.updateUserProfile(content)
     }
 
