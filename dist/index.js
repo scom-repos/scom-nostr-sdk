@@ -3774,6 +3774,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             let scpData;
             let gatekeeperNpub;
             let membershipType = interfaces_2.MembershipType.Open;
+            let telegramBotUsername;
             let data = {};
             if (event.content) {
                 try {
@@ -3796,6 +3797,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 }
             }
             if (!Array.isArray(data)) {
+                telegramBotUsername = data.telegramBotUsername;
                 pointSystem = data.pointSystem;
                 collectibles = data.collectibles;
                 campaigns = data.campaigns;
@@ -3815,6 +3817,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 eventData: event,
                 gatekeeperNpub,
                 membershipType,
+                telegramBotUsername,
                 privateRelay,
                 policies,
                 pointSystem,
@@ -4370,7 +4373,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
         async updateCommunity(info) {
             const data = {
                 pointSystem: info.pointSystem,
-                collectibles: info.collectibles
+                collectibles: info.collectibles,
+                telegramBotUsername: info.telegramBotUsername,
             };
             if (info.membershipType === interfaces_3.MembershipType.Protected) {
                 data.policies = [];

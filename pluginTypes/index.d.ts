@@ -1368,6 +1368,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         moderatorIds?: string[];
         eventData?: INostrEvent;
         membershipType: MembershipType;
+        telegramBotUsername?: string;
         memberKeyMap?: Record<string, string>;
         privateRelay?: string;
         gatekeeperNpub?: string;
@@ -1396,6 +1397,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         rules?: string;
         scpData?: ICommunityScpData;
         membershipType: MembershipType;
+        telegramBotUsername?: string;
         privateRelay?: string;
         gatekeeperNpub?: string;
         policies?: IProtectedMembershipPolicy[];

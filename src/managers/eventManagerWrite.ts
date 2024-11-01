@@ -197,7 +197,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
     async updateCommunity(info: ICommunityInfo) {
         const data: any = {
             pointSystem: info.pointSystem,
-            collectibles: info.collectibles
+            collectibles: info.collectibles,
+            telegramBotUsername: info.telegramBotUsername,
         }
         if (info.membershipType === MembershipType.Protected) {
             data.policies = [];

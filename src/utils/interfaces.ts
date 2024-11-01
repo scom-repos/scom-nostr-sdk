@@ -312,6 +312,7 @@ export interface ICommunityInfo extends ICommunityBasicInfo {
 	moderatorIds?: string[];
 	eventData?: INostrEvent;
 	membershipType: MembershipType;
+	telegramBotUsername?: string;
 	// memberIds?: string[];
 	memberKeyMap?: Record<string, string>;
 	privateRelay?: string;
@@ -343,6 +344,7 @@ export interface INewCommunityInfo {
 	rules?: string;
 	scpData?: ICommunityScpData;
 	membershipType: MembershipType;
+	telegramBotUsername?: string;
 	// memberIds?: string[];
 	privateRelay?: string;
 	gatekeeperNpub?: string;

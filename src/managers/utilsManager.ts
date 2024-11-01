@@ -174,6 +174,7 @@ class SocialUtilsManager {
         let scpData;
         let gatekeeperNpub;
         let membershipType: MembershipType = MembershipType.Open;
+        let telegramBotUsername;
         let data: any = {};
         if (event.content) {
             try {
@@ -194,6 +195,7 @@ class SocialUtilsManager {
             }
         }
         if (!Array.isArray(data)) {
+            telegramBotUsername = data.telegramBotUsername;
             pointSystem = data.pointSystem;
             collectibles = data.collectibles;
             campaigns = data.campaigns;
@@ -213,6 +215,7 @@ class SocialUtilsManager {
             eventData: event,
             gatekeeperNpub,
             membershipType,
+            telegramBotUsername,
             privateRelay,
             policies,
             pointSystem,
