@@ -3919,6 +3919,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 followers: followersCount,
                 lud16: metadataContent.lud16,
                 ethWallet: metadataContent.eth_wallet,
+                telegramAccount: metadataContent.telegram_account,
                 metadata,
             };
             return userProfile;

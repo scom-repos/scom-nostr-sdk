@@ -1135,6 +1135,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         lud16?: string;
         nip05?: string;
         eth_wallet?: string;
+        telegram_account?: string;
     }
     export interface INostrMetadata {
         id: string;
@@ -1159,6 +1160,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         followers?: number;
         lud16?: string;
         ethWallet?: string;
+        telegramAccount?: string;
         metadata?: INostrMetadata;
     }
     export interface IUserActivityStats {
