@@ -522,7 +522,8 @@ class SocialDataManager {
             picture: profile.avatar,
             about: profile.description,
             banner: profile.banner,
-            eth_wallet: profile.ethWallet
+            eth_wallet: profile.ethWallet,
+            telegram_account: profile.telegramAccount,
         }
         await this._socialEventManagerWrite.updateUserProfile(content)
     }
