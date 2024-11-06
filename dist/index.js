@@ -3787,7 +3787,29 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             let pointSystem, collectibles, campaigns, postStatusOptions;
             if (scpTag && scpTag[1] === '1') {
                 membershipType = interfaces_2.MembershipType.Protected;
-                policies = Array.isArray(data) ? data : data.policies || [];
+                if (Array.isArray(data)) {
+                    policies = data;
+                }
+                else {
+                    if (data.policies) {
+                        for (let policy of data.policies) {
+                            let paymentMethod;
+                            if (policy.paymentMethod) {
+                                paymentMethod = policy.paymentMethod;
+                            }
+                            else if (policy.chainId) {
+                                paymentMethod = interfaces_2.PaymentMethod.EVM;
+                            }
+                            else {
+                                paymentMethod = policy.currency === 'TON' ? interfaces_2.PaymentMethod.TON : interfaces_2.PaymentMethod.Telegram;
+                            }
+                            policies.push({
+                                ...policy,
+                                paymentMethod
+                            });
+                        }
+                    }
+                }
                 const scpDataStr = SocialUtilsManager.base64ToUtf8(scpTag[2]);
                 if (!scpDataStr.startsWith('$scp:'))
                     return null;

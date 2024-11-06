@@ -1,6 +1,6 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, INostrEvent, INostrMetadata, IUserProfile, MembershipType, ScpStandardId } from "../utils/interfaces";
+import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, INostrEvent, INostrMetadata, IUserProfile, MembershipType, PaymentMethod, ScpStandardId } from "../utils/interfaces";
 import { Signer } from "@scom/scom-signer";
 
 class SocialUtilsManager {
@@ -186,7 +186,29 @@ class SocialUtilsManager {
         let pointSystem, collectibles, campaigns, postStatusOptions: ICommunityPostStatusOption[];
         if (scpTag && scpTag[1] === '1') {
             membershipType = MembershipType.Protected;
-            policies = Array.isArray(data) ? data : data.policies || [];
+            if (Array.isArray(data)) {
+                policies = data;
+            }
+            else {
+                if (data.policies) {
+                    for (let policy of data.policies) {
+                        let paymentMethod;
+                        if (policy.paymentMethod) {
+                            paymentMethod = policy.paymentMethod;
+                        } 
+                        else if (policy.chainId) {
+                            paymentMethod = PaymentMethod.EVM;
+                        } 
+                        else {
+                            paymentMethod = policy.currency === 'TON' ? PaymentMethod.TON : PaymentMethod.Telegram;
+                        }
+                        policies.push({
+                            ...policy,
+                            paymentMethod
+                        })
+                    }
+                }
+            }
             const scpDataStr = SocialUtilsManager.base64ToUtf8(scpTag[2]);
             if (!scpDataStr.startsWith('$scp:')) return null;
             scpData = JSON.parse(scpDataStr.substring(5));
