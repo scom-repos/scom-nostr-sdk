@@ -121,12 +121,16 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         return fetchEventsResponse.events || [];
     }
 
-    async fetchUserProfileDetailCacheEvents(options: SocialEventManagerReadOptions.IFetchUserProfileDetailCacheEvents) {
-        let {pubKey} = options;
-        if (!pubKey) return [];
-        const decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+    async fetchUserProfileDetailEvents(options: SocialEventManagerReadOptions.IFetchUserProfileDetailEvents) {
+        let {pubKey, telegramAccount} = options;
+        if (!pubKey && !telegramAccount) return [];
+        let decodedPubKey;
+        if (pubKey) {
+            decodedPubKey = pubKey.startsWith('npub1') ? Nip19.decode(pubKey).data : pubKey;
+        }
         let msg = {
-            pubkey: decodedPubKey
+            pubkey: decodedPubKey,
+            telegramAccount
         };
         const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-user-profile-detail', msg);
         return fetchEventsResponse.events || [];

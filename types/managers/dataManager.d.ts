@@ -118,6 +118,13 @@ declare class SocialDataManager {
         userProfile: IUserProfile;
         stats: IUserActivityStats;
     }>;
+    retrieveUserProfileDetailV2(options: {
+        pubKey?: string;
+        telegramAccount?: string;
+    }): Promise<{
+        userProfile: IUserProfile;
+        stats: IUserActivityStats;
+    }>;
     fetchUserContactList(pubKey: string): Promise<IUserProfile[]>;
     fetchUserFollowersList(pubKey: string): Promise<IUserProfile[]>;
     fetchUserRelayList(pubKey: string): Promise<string[]>;

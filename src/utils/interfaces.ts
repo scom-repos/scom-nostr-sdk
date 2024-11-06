@@ -721,8 +721,9 @@ export namespace SocialEventManagerReadOptions {
 	export interface IFetchUserProfileCacheEvents {
 		pubKeys: string[];
 	}
-	export interface IFetchUserProfileDetailCacheEvents {
-		pubKey: string;
+	export interface IFetchUserProfileDetailEvents {
+		pubKey?: string;
+		telegramAccount?: string;
 	}
 	export interface IFetchContactListCacheEvents {
 		pubKey: string;
@@ -891,7 +892,7 @@ export interface ISocialEventManagerRead {
 	fetchProfileRepliesCacheEvents(options: SocialEventManagerReadOptions.IFetchProfileRepliesCacheEvents): Promise<INostrEvent[]>;
 	fetchHomeFeedCacheEvents(options: SocialEventManagerReadOptions.IFetchHomeFeedCacheEvents): Promise<INostrEvent[]>;
 	fetchUserProfileCacheEvents(options: SocialEventManagerReadOptions.IFetchUserProfileCacheEvents): Promise<INostrEvent[]>;
-	fetchUserProfileDetailCacheEvents(options: SocialEventManagerReadOptions.IFetchUserProfileDetailCacheEvents): Promise<INostrEvent[]>;
+	fetchUserProfileDetailEvents(options: SocialEventManagerReadOptions.IFetchUserProfileDetailEvents): Promise<INostrEvent[]>;
 	fetchContactListCacheEvents(options: SocialEventManagerReadOptions.IFetchContactListCacheEvents): Promise<INostrEvent[]>;
 	fetchUserRelays(options: SocialEventManagerReadOptions.IFetchUserRelays): Promise<INostrEvent[]>;
 	fetchFollowersCacheEvents(options: SocialEventManagerReadOptions.IFetchFollowersCacheEvents): Promise<INostrEvent[]>;
