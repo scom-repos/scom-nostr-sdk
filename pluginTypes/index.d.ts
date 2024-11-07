@@ -2537,11 +2537,7 @@ declare module "@scom/scom-social-sdk/managers/dataManager.ts" {
             noteCommunityInfoList: INoteCommunityInfo[];
             communityInfoList: ICommunityInfo[];
         }>;
-        retrieveUserProfileDetail(pubKey: string): Promise<{
-            userProfile: IUserProfile;
-            stats: IUserActivityStats;
-        }>;
-        retrieveUserProfileDetailV2(options: {
+        retrieveUserProfileDetail(options: {
             pubKey?: string;
             telegramAccount?: string;
         }): Promise<{

@@ -8375,39 +8375,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
                 communityInfoList
             };
         }
-        //To be deprecated
-        async retrieveUserProfileDetail(pubKey) {
-            let metadata;
-            let stats;
-            const userProfileEvents = await this._socialEventManagerRead.fetchUserProfileDetailEvents({ pubKey });
-            for (let event of userProfileEvents) {
-                if (event.kind === 0) {
-                    metadata = {
-                        ...event,
-                        content: utilsManager_5.SocialUtilsManager.parseContent(event.content)
-                    };
-                }
-                else if (event.kind === 10000105) {
-                    let content = utilsManager_5.SocialUtilsManager.parseContent(event.content);
-                    stats = {
-                        notes: content.note_count,
-                        replies: content.reply_count,
-                        followers: content.followers_count,
-                        following: content.follows_count,
-                        relays: content.relay_count,
-                        timeJoined: content.time_joined
-                    };
-                }
-            }
-            if (!metadata)
-                return null;
-            let userProfile = utilsManager_5.SocialUtilsManager.constructUserProfile(metadata);
-            return {
-                userProfile,
-                stats
-            };
-        }
-        async retrieveUserProfileDetailV2(options) {
+        async retrieveUserProfileDetail(options) {
             const { pubKey, telegramAccount } = options;
             let metadata;
             let stats;
