@@ -591,7 +591,7 @@ export interface ISocialEventManagerReadResult {
     data?: any;
 }
 export interface ISocialEventManagerWriteResult {
-    relayResponses: INostrSubmitResponse[];
+    relayResponse: INostrSubmitResponse;
     event: INostrEvent;
 }
 export declare namespace SocialDataManagerOptions {

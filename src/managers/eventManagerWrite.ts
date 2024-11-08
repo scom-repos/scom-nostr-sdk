@@ -76,17 +76,23 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         let privateKey = options?.privateKey || this._privateKey;
         const verifiedEvent = Event.finishEvent(event, privateKey);
         const authHeader = SocialUtilsManager.constructAuthHeader(this._privateKey);
-        let relayResponses: INostrSubmitResponse[] = [];
-        if (mainRelayOnly) {
-            const response = await this._mainNostrRestAPIManager.submitEvent(verifiedEvent, authHeader);
-            relayResponses.push(response);
-        }
-        else {
-            relayResponses = await Promise.all(this._nostrCommunicationManagers.map(manager => manager.submitEvent(verifiedEvent, authHeader)));
+        const response = await this._mainNostrRestAPIManager.submitEvent(verifiedEvent, authHeader);
+        if (response.success) {
+            if (!mainRelayOnly) {
+                const otherRelays = this._nostrCommunicationManagers.filter(manager => manager.url !== this._mainNostrRestAPIManager.url);
+                setTimeout(async () => {
+                    try {
+                        await Promise.all(otherRelays.map(manager => manager.submitEvent(verifiedEvent, authHeader)));
+                    } 
+                    catch (error) {
+                        console.error('Error submitting to other relays:', error);
+                    }
+                });
+            }
         }
         return {
             event: verifiedEvent,
-            relayResponses
+            relayResponse: response
         }
     }
 

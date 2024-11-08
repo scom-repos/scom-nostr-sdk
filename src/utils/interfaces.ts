@@ -682,7 +682,7 @@ export interface ISocialEventManagerReadResult {
 }
 
 export interface ISocialEventManagerWriteResult {
-	relayResponses: INostrSubmitResponse[];
+	relayResponse: INostrSubmitResponse;
 	event: INostrEvent;
 }
 

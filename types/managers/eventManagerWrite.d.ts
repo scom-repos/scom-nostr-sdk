@@ -12,111 +12,111 @@ declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
     private handleEventSubmission;
     updateContactList(content: string, contactPubKeys: string[]): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     postNote(content: string, conversationPath?: IConversationPath, createdAt?: number): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     deleteEvents(eventIds: string[]): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     updateChannel(info: IChannelInfo): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     updateUserBookmarkedChannels(channelEventIds: string[]): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     updateCommunity(info: ICommunityInfo): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[]): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     submitCommunityPost(info: INewCommunityPostInfo): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     submitChannelMessage(info: INewChannelMessageInfo): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     updateUserProfile(content: INostrMetadataContent): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     sendTempMessage(options: SocialEventManagerWriteOptions.ISendTempMessage): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     updateCalendarEvent(info: IUpdateCalendarEventInfo): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     submitCalendarEventPost(info: INewCalendarEventPostInfo): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     submitLongFormContentEvents(info: ILongFormContentInfo): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     submitLike(tags: string[][]): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     submitRepost(content: string, tags: string[][]): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     updateRelayList(relays: Record<string, IRelayConfig>): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, isLightningInvoice?: boolean): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     createPaymentReceiptEvent(requestEventId: string, recipient: string, comment: string, preimage?: string, tx?: string): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     updateCommunityPinnedNotes(creatorId: string, communityId: string, eventIds: string[]): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     updateUserPinnedNotes(eventIds: string[]): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     updateUserBookmarks(tags: string[][]): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     updateUserEthWalletAccountsInfo(options: SocialEventManagerWriteOptions.IUpdateUserEthWalletAccountsInfo, privateKey?: string): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
     updateNoteStatus(noteId: string, status: string): Promise<{
         event: Event.VerifiedEvent<number>;
-        relayResponses: INostrSubmitResponse[];
+        relayResponse: INostrSubmitResponse;
     }>;
 }
 export { NostrEventManagerWrite };
