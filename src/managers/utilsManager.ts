@@ -1,6 +1,6 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, INostrEvent, INostrMetadata, IUserProfile, MembershipType, PaymentMethod, ScpStandardId } from "../utils/interfaces";
+import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, INostrEvent, INostrMetadata, IUserProfile, MembershipType, PaymentMethod, ScpStandardId } from "../utils";
 import { Signer } from "@scom/scom-signer";
 
 class SocialUtilsManager {
@@ -148,6 +148,11 @@ class SocialUtilsManager {
     static getCommunityUri(creatorId: string, communityId: string) {
         const decodedPubkey = creatorId.startsWith('npub1') ? Nip19.decode(creatorId).data as string : creatorId;
         return `34550:${decodedPubkey}:${communityId}`;
+    }
+
+    static getMarketplaceStallUri(creatorId: string, stallId: string) {
+        const decodedPubkey = creatorId.startsWith('npub1') ? Nip19.decode(creatorId).data as string : creatorId;
+        return `30018:${decodedPubkey}:${stallId}`;
     }
 
     static getCommunityBasicInfoFromUri(communityUri: string): ICommunityBasicInfo {

@@ -669,6 +669,34 @@ export interface IUpdateCommunitySubscription {
 	txHash: string;
 }
 
+export interface IMarketplaceStallShipping {
+	id: string;
+	name?: string;
+	cost: number;
+	regions: string[];
+}
+
+export interface IMarketplaceStall {
+	id: string;
+	name: string;
+	description?: string;
+	currency: string;
+	shipping: IMarketplaceStallShipping[];
+}
+
+export interface IMarketplaceProduct {
+	id: string;
+	stallId: string;
+	name: string;
+	description?: string;
+	images?: string[];
+	currency: string;
+	price: number;
+	quantity: number;
+	specs?: string[][];
+	shipping: IMarketplaceStallShipping[];
+}
+
 export interface INostrCommunicationManager {
 	url: string;
     fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
@@ -751,10 +779,7 @@ export namespace SocialEventManagerReadOptions {
 		pubKey: string;
 		excludedCommunity?: ICommunityInfo;
 	}
-	export interface IFetchCommunity {
-		creatorId: string;
-		communityId: string;
-	}
+	export interface IFetchCommunity extends ICommunityBasicInfo {}
 	export interface IFetchCommunityFeed {
 		communityUri: string;
 		since?: number;
@@ -859,14 +884,8 @@ export namespace SocialEventManagerReadOptions {
 		pubKey: string;
 		until?: number;
 	}
-	export interface IFetchCommunityPinnedNotesEvents {
-		creatorId: string;
-		communityId: string;
-	}
-	export interface IFetchCommunityPinnedNoteIds {
-		creatorId: string;
-		communityId: string;
-	}
+	export interface IFetchCommunityPinnedNotesEvents extends ICommunityBasicInfo {}
+	export interface IFetchCommunityPinnedNoteIds extends ICommunityBasicInfo {}
 	export interface IFetchUserPinnedNotes {
 		pubKey: string;
 	}
@@ -881,6 +900,8 @@ export namespace SocialEventManagerReadOptions {
 		communityCreatorId: string;
 		communityName: string;
 	}
+	export interface IFetchCommunityStalls extends ICommunityBasicInfo {}
+	export interface IFetchCommunityProducts extends ICommunityBasicInfo {}
 }
 
 export interface ISocialEventManagerRead {

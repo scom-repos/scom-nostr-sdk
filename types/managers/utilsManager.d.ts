@@ -1,4 +1,4 @@
-import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, INostrEvent, INostrMetadata, IUserProfile } from "../utils/interfaces";
+import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, INostrEvent, INostrMetadata, IUserProfile } from "../utils";
 declare class SocialUtilsManager {
     static hexStringToUint8Array(hexString: string): Uint8Array;
     static base64ToUtf8(base64: string): string;
@@ -10,6 +10,7 @@ declare class SocialUtilsManager {
     static getGMTOffset(timezone: string): string;
     static exponentialBackoffRetry<T>(fn: () => Promise<T>, retries: number, delay: number, maxDelay: number, factor: number, stopCondition?: (data: T) => boolean): Promise<T>;
     static getCommunityUri(creatorId: string, communityId: string): string;
+    static getMarketplaceStallUri(creatorId: string, stallId: string): string;
     static getCommunityBasicInfoFromUri(communityUri: string): ICommunityBasicInfo;
     static extractCommunityInfo(event: INostrEvent): ICommunityInfo;
     static extractBookmarkedCommunities(event: INostrEvent, excludedCommunity?: ICommunityInfo): ICommunityBasicInfo[];

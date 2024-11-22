@@ -579,6 +579,31 @@ export interface IUpdateCommunitySubscription {
     currency: string;
     txHash: string;
 }
+export interface IMarketplaceStallShipping {
+    id: string;
+    name?: string;
+    cost: number;
+    regions: string[];
+}
+export interface IMarketplaceStall {
+    id: string;
+    name: string;
+    description?: string;
+    currency: string;
+    shipping: IMarketplaceStallShipping[];
+}
+export interface IMarketplaceProduct {
+    id: string;
+    stallId: string;
+    name: string;
+    description?: string;
+    images?: string[];
+    currency: string;
+    price: number;
+    quantity: number;
+    specs?: string[][];
+    shipping: IMarketplaceStallShipping[];
+}
 export interface INostrCommunicationManager {
     url: string;
     fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
@@ -658,9 +683,7 @@ export declare namespace SocialEventManagerReadOptions {
         pubKey: string;
         excludedCommunity?: ICommunityInfo;
     }
-    interface IFetchCommunity {
-        creatorId: string;
-        communityId: string;
+    interface IFetchCommunity extends ICommunityBasicInfo {
     }
     interface IFetchCommunityFeed {
         communityUri: string;
@@ -766,13 +789,9 @@ export declare namespace SocialEventManagerReadOptions {
         pubKey: string;
         until?: number;
     }
-    interface IFetchCommunityPinnedNotesEvents {
-        creatorId: string;
-        communityId: string;
+    interface IFetchCommunityPinnedNotesEvents extends ICommunityBasicInfo {
     }
-    interface IFetchCommunityPinnedNoteIds {
-        creatorId: string;
-        communityId: string;
+    interface IFetchCommunityPinnedNoteIds extends ICommunityBasicInfo {
     }
     interface IFetchUserPinnedNotes {
         pubKey: string;
@@ -787,6 +806,10 @@ export declare namespace SocialEventManagerReadOptions {
     interface IFetchSubcommunites {
         communityCreatorId: string;
         communityName: string;
+    }
+    interface IFetchCommunityStalls extends ICommunityBasicInfo {
+    }
+    interface IFetchCommunityProducts extends ICommunityBasicInfo {
     }
 }
 export interface ISocialEventManagerRead {

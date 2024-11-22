@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { CommunityRole, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, IFetchNotesOptions, INostrMetadata, IPaymentActivity, ISocialEventManagerRead, IUserProfile, SocialEventManagerReadOptions } from "../utils/interfaces";
+import { CommunityRole, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, IFetchNotesOptions, INostrMetadata, IPaymentActivity, ISocialEventManagerRead, IUserProfile, SocialEventManagerReadOptions } from "../utils";
 import { INostrCommunicationManager, INostrRestAPIManager } from "./communication";
 import { SocialUtilsManager } from "./utilsManager";
 import { NostrEventManagerRead } from "./eventManagerRead";
@@ -840,6 +840,28 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
             communityUriToMembersMap[communityUri] = communityMembers;
         }
         return communityUriToMembersMap;
+    }
+
+    async fetchCommunityStalls(options: SocialEventManagerReadOptions.IFetchCommunityStalls) {
+        const {creatorId, communityId} = options;
+        const communityPubkey = creatorId.startsWith('npub1') ? Nip19.decode(creatorId).data : creatorId;
+        let msg = {
+            communityPubkey,
+            communityName: communityId
+        };
+        const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-community-stalls', msg);
+        return fetchEventsResponse.events || [];
+    }
+
+    async fetchCommunityProducts(options: SocialEventManagerReadOptions.IFetchCommunityProducts) {
+        const {creatorId, communityId} = options;
+        const communityPubkey = creatorId.startsWith('npub1') ? Nip19.decode(creatorId).data : creatorId;
+        let msg = {
+            communityPubkey,
+            communityName: communityId
+        };
+        const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-community-products', msg);
+        return fetchEventsResponse.events || [];
     }
 }
 

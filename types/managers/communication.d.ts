@@ -1,5 +1,5 @@
 import { Event } from "../core/index";
-import { INostrFetchEventsResponse, INostrSubmitResponse, INostrCommunicationManager, INostrRestAPIManager } from "../utils/interfaces";
+import { INostrFetchEventsResponse, INostrSubmitResponse, INostrCommunicationManager, INostrRestAPIManager } from "../utils";
 declare class NostrRestAPIManager implements INostrRestAPIManager {
     protected _url: string;
     protected requestCallbackMap: Record<string, (response: any) => void>;

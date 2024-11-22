@@ -1,5 +1,25 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, IConversationPath, ILongFormContentInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityPostInfo, INostrEvent, INostrMetadataContent, INostrRestAPIManager, INostrSubmitResponse, IRelayConfig, ISocialEventManagerWrite, IUpdateCalendarEventInfo,  MembershipType,  ScpStandardId, SocialEventManagerWriteOptions } from "../utils/interfaces";
+import { 
+    CalendarEventType, 
+    IChannelInfo, 
+    ICommunityBasicInfo, 
+    ICommunityInfo, 
+    IConversationPath, 
+    ILongFormContentInfo, 
+    INewCalendarEventPostInfo, 
+    INewChannelMessageInfo, 
+    INewCommunityPostInfo, 
+    INostrMetadataContent, 
+    INostrRestAPIManager, 
+    IRelayConfig, 
+    ISocialEventManagerWrite, 
+    IMarketplaceStall, 
+    IUpdateCalendarEventInfo, 
+    MembershipType, 
+    ScpStandardId, 
+    SocialEventManagerWriteOptions, 
+    IMarketplaceProduct
+} from "../utils";
 import {
     INostrCommunicationManager
 } from "./communication";
@@ -868,6 +888,65 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 [
                     "e",
                     noteId
+                ]
+            ]
+        };
+        const result = await this.handleEventSubmission(event);
+        return result;
+    }
+
+    async updateCommunityStall(creatorId: string, communityId: string, stall: IMarketplaceStall) {
+        const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
+        let event = {
+            "kind": 30017,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": JSON.stringify(stall),
+            "tags": [
+                [
+                    "d",
+                    stall.id
+                ],
+                [
+                    "a",
+                    communityUri
+                ]
+            ]
+        };
+        const result = await this.handleEventSubmission(event);
+        return result;
+    }
+
+    async updateCommunityProduct(creatorId: string, communityId: string, product: IMarketplaceProduct) {
+        const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
+        const stallUri = SocialUtilsManager.getMarketplaceStallUri(creatorId, product.stallId);
+        const productContent = JSON.stringify({
+            id: product.id,
+            stall_id: product.stallId,
+            name: product.name,
+            description: product.description,
+            images: product.images,
+            currency: product.currency,
+            price: product.price,
+            quantity: product.quantity,
+            specs: product.specs,
+            shipping: product.shipping
+        });
+        let event = {
+            "kind": 30018,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": productContent,
+            "tags": [
+                [
+                    "d",
+                    product.id
+                ],
+                [
+                    "a",
+                    stallUri
+                ],
+                [
+                    "a",
+                    communityUri
                 ]
             ]
         };

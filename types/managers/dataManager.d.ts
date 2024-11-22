@@ -1,4 +1,4 @@
-import { CommunityRole, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunitySubscription, IConversationPath, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, SocialDataManagerOptions } from "../utils/interfaces";
+import { CommunityRole, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunitySubscription, IConversationPath, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, SocialDataManagerOptions } from "../utils";
 declare class SocialDataManager {
     private _writeRelays;
     private _publicIndexingRelay;
@@ -133,9 +133,9 @@ declare class SocialDataManager {
     }>;
     createCommunity(newInfo: INewCommunityInfo, creatorId: string): Promise<ICommunityInfo>;
     updateCommunity(info: ICommunityInfo): Promise<ICommunityInfo>;
-    updateCommunityChannel(communityInfo: ICommunityInfo): Promise<import("../utils/interfaces").ISocialEventManagerWriteResult>;
+    updateCommunityChannel(communityInfo: ICommunityInfo): Promise<import("../utils").ISocialEventManagerWriteResult>;
     createChannel(channelInfo: IChannelInfo, memberIds: string[]): Promise<IChannelInfo>;
-    updateChannel(channelInfo: IChannelInfo): Promise<import("../utils/interfaces").ISocialEventManagerWriteResult>;
+    updateChannel(channelInfo: IChannelInfo): Promise<import("../utils").ISocialEventManagerWriteResult>;
     fetchCommunitiesMembers(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
     private getEventIdToMemberMap;
     fetchCommunities(query?: string): Promise<ICommunity[]>;
@@ -144,7 +144,7 @@ declare class SocialDataManager {
     joinCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;
     leaveCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;
     private encryptGroupMessage;
-    submitCommunityPost(message: string, info: ICommunityInfo, conversationPath?: IConversationPath, timestamp?: number, alt?: string, isPublicPost?: boolean): Promise<import("../utils/interfaces").ISocialEventManagerWriteResult>;
+    submitCommunityPost(message: string, info: ICommunityInfo, conversationPath?: IConversationPath, timestamp?: number, alt?: string, isPublicPost?: boolean): Promise<import("../utils").ISocialEventManagerWriteResult>;
     fetchAllUserRelatedChannels(pubKey: string): Promise<IChannelInfo[]>;
     retrieveChannelMessages(channelId: string, since?: number, until?: number): Promise<INostrEvent[]>;
     retrieveChannelEvents(creatorId: string, channelId: string): Promise<{
@@ -158,8 +158,8 @@ declare class SocialDataManager {
         encryptedMessages: any[];
         metadataByPubKeyMap: Record<string, INostrMetadata>;
     }>;
-    sendDirectMessage(chatId: string, message: string, replyToEventId?: string): Promise<import("../utils/interfaces").ISocialEventManagerWriteResult>;
-    sendTempMessage(options: ISendTempMessageOptions): Promise<import("../utils/interfaces").ISocialEventManagerWriteResult>;
+    sendDirectMessage(chatId: string, message: string, replyToEventId?: string): Promise<import("../utils").ISocialEventManagerWriteResult>;
+    sendTempMessage(options: ISendTempMessageOptions): Promise<import("../utils").ISocialEventManagerWriteResult>;
     resetMessageCount(selfPubKey: string, senderPubKey: string): Promise<void>;
     fetchMessageContacts(pubKey: string): Promise<IMessageContactInfo[]>;
     fetchUserGroupInvitations(pubKey: string): Promise<string[]>;
@@ -180,8 +180,8 @@ declare class SocialDataManager {
     private fetchEventMetadataFromIPFS;
     getAccountBalance(walletAddress: string): Promise<any>;
     getNFTsByOwner(walletAddress: string): Promise<any>;
-    submitMessage(message: string, conversationPath?: IConversationPath, createdAt?: number): Promise<import("../utils/interfaces").ISocialEventManagerWriteResult>;
-    submitLongFormContent(info: ILongFormContentInfo): Promise<import("../utils/interfaces").ISocialEventManagerWriteResult>;
+    submitMessage(message: string, conversationPath?: IConversationPath, createdAt?: number): Promise<import("../utils").ISocialEventManagerWriteResult>;
+    submitLongFormContent(info: ILongFormContentInfo): Promise<import("../utils").ISocialEventManagerWriteResult>;
     submitLike(postEventData: INostrEvent): Promise<void>;
     submitRepost(postEventData: INostrEvent): Promise<void>;
     sendPingRequest(pubkey: string, relayUrl?: string): Promise<any>;
@@ -197,7 +197,7 @@ declare class SocialDataManager {
     private isLightningInvoice;
     sendPayment(paymentRequest: string, comment: string): Promise<string>;
     zap(pubkey: string, lud16: string, amount: string, noteId: string): Promise<any>;
-    fetchUserPaymentActivities(pubkey: string, since?: number, until?: number): Promise<import("../utils/interfaces").IPaymentActivity[]>;
+    fetchUserPaymentActivities(pubkey: string, since?: number, until?: number): Promise<import("../utils").IPaymentActivity[]>;
     fetchPaymentReceiptInfo(paymentRequest: string): Promise<{
         status: 'pending' | 'completed';
         preimage?: string;
@@ -230,7 +230,7 @@ declare class SocialDataManager {
     updateUserEthWalletAccountsInfo(info: IEthWalletAccountsInfo, privateKey?: string): Promise<any>;
     fetchSubCommunities(creatorId: string, communityId: string): Promise<ICommunityInfo[]>;
     fetchCommunityDetailMetadata(creatorId: string, communityId: string): Promise<ICommunityDetailMetadata>;
-    updateNoteStatus(noteId: string, status: string): Promise<import("../utils/interfaces").ISocialEventManagerWriteResult>;
+    updateNoteStatus(noteId: string, status: string): Promise<import("../utils").ISocialEventManagerWriteResult>;
     updateCommunitySubscription(options: IUpdateCommunitySubscription): Promise<any>;
 }
 export { SocialDataManager };

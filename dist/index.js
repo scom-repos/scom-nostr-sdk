@@ -1,3 +1,17 @@
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
 define("@scom/scom-social-sdk/core/hashes/_assert.ts", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -3600,18 +3614,10 @@ define("@scom/scom-social-sdk/utils/interfaces.ts", ["require", "exports"], func
 define("@scom/scom-social-sdk/utils/index.ts", ["require", "exports", "@scom/scom-social-sdk/utils/interfaces.ts"], function (require, exports, interfaces_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.TokenType = exports.ProtectedMembershipPolicyType = exports.PaymentModel = exports.PaymentMethod = exports.MembershipType = exports.SubscriptionBundleType = exports.CommunityRole = exports.CampaignActivityType = exports.CalendarEventType = void 0;
-    Object.defineProperty(exports, "CalendarEventType", { enumerable: true, get: function () { return interfaces_1.CalendarEventType; } });
-    Object.defineProperty(exports, "CampaignActivityType", { enumerable: true, get: function () { return interfaces_1.CampaignActivityType; } });
-    Object.defineProperty(exports, "CommunityRole", { enumerable: true, get: function () { return interfaces_1.CommunityRole; } });
-    Object.defineProperty(exports, "SubscriptionBundleType", { enumerable: true, get: function () { return interfaces_1.SubscriptionBundleType; } });
-    Object.defineProperty(exports, "MembershipType", { enumerable: true, get: function () { return interfaces_1.MembershipType; } });
-    Object.defineProperty(exports, "PaymentMethod", { enumerable: true, get: function () { return interfaces_1.PaymentMethod; } });
-    Object.defineProperty(exports, "PaymentModel", { enumerable: true, get: function () { return interfaces_1.PaymentModel; } });
-    Object.defineProperty(exports, "ProtectedMembershipPolicyType", { enumerable: true, get: function () { return interfaces_1.ProtectedMembershipPolicyType; } });
-    Object.defineProperty(exports, "TokenType", { enumerable: true, get: function () { return interfaces_1.TokenType; } });
+    ///<amd-module name='@scom/scom-social-sdk/utils/index.ts'/> 
+    __exportStar(interfaces_1, exports);
 });
-define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", "@ijstech/eth-wallet", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-signer"], function (require, exports, eth_wallet_1, index_1, interfaces_2, scom_signer_1) {
+define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", "@ijstech/eth-wallet", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/index.ts", "@scom/scom-signer"], function (require, exports, eth_wallet_1, index_1, utils_14, scom_signer_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.SocialUtilsManager = void 0;
@@ -3751,6 +3757,10 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             const decodedPubkey = creatorId.startsWith('npub1') ? index_1.Nip19.decode(creatorId).data : creatorId;
             return `34550:${decodedPubkey}:${communityId}`;
         }
+        static getMarketplaceStallUri(creatorId, stallId) {
+            const decodedPubkey = creatorId.startsWith('npub1') ? index_1.Nip19.decode(creatorId).data : creatorId;
+            return `30018:${decodedPubkey}:${stallId}`;
+        }
         static getCommunityBasicInfoFromUri(communityUri) {
             const parts = communityUri.split(':');
             return {
@@ -3773,7 +3783,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             let policies = [];
             let scpData;
             let gatekeeperNpub;
-            let membershipType = interfaces_2.MembershipType.Open;
+            let membershipType = utils_14.MembershipType.Open;
             let telegramBotUsername;
             let data = {};
             if (event.content) {
@@ -3786,7 +3796,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             }
             let pointSystem, collectibles, campaigns, postStatusOptions;
             if (scpTag && scpTag[1] === '1') {
-                membershipType = interfaces_2.MembershipType.Protected;
+                membershipType = utils_14.MembershipType.Protected;
                 if (Array.isArray(data)) {
                     policies = data;
                 }
@@ -3798,10 +3808,10 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                                 paymentMethod = policy.paymentMethod;
                             }
                             else if (policy.chainId) {
-                                paymentMethod = interfaces_2.PaymentMethod.EVM;
+                                paymentMethod = utils_14.PaymentMethod.EVM;
                             }
                             else {
-                                paymentMethod = policy.currency === 'TON' ? interfaces_2.PaymentMethod.TON : interfaces_2.PaymentMethod.Telegram;
+                                paymentMethod = policy.currency === 'TON' ? utils_14.PaymentMethod.TON : utils_14.PaymentMethod.Telegram;
                             }
                             policies.push({
                                 ...policy,
@@ -3903,7 +3913,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             }
             if (!eventId)
                 return null;
-            let scpData = this.extractScpData(event, interfaces_2.ScpStandardId.Channel);
+            let scpData = this.extractScpData(event, utils_14.ScpStandardId.Channel);
             let channelInfo = {
                 id: eventId,
                 name: content.name,
@@ -4214,7 +4224,7 @@ define("@scom/scom-social-sdk/managers/communication.ts", ["require", "exports",
     }
     exports.NostrWebSocketManager = NostrWebSocketManager;
 });
-define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/managers/utilsManager.ts"], function (require, exports, index_2, interfaces_3, utilsManager_2) {
+define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/index.ts", "@scom/scom-social-sdk/managers/utilsManager.ts"], function (require, exports, index_2, utils_15, utilsManager_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.NostrEventManagerWrite = void 0;
@@ -4371,7 +4381,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 let encodedScpData = utilsManager_2.SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
                 event.tags.push([
                     "scp",
-                    interfaces_3.ScpStandardId.Channel,
+                    utils_15.ScpStandardId.Channel,
                     encodedScpData
                 ]);
             }
@@ -4405,7 +4415,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 collectibles: info.collectibles,
                 telegramBotUsername: info.telegramBotUsername,
             };
-            if (info.membershipType === interfaces_3.MembershipType.Protected) {
+            if (info.membershipType === utils_15.MembershipType.Protected) {
                 data.policies = [];
                 for (let policy of info.policies) {
                     const memberIds = policy.memberIds?.map(memberId => {
@@ -4468,7 +4478,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 let encodedScpData = utilsManager_2.SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
                 event.tags.push([
                     "scp",
-                    interfaces_3.ScpStandardId.Community,
+                    utils_15.ScpStandardId.Community,
                     encodedScpData
                 ]);
             }
@@ -4535,7 +4545,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 let encodedScpData = utilsManager_2.SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
                 event.tags.push([
                     "scp",
-                    interfaces_3.ScpStandardId.CommunityPost,
+                    utils_15.ScpStandardId.CommunityPost,
                     encodedScpData
                 ]);
             }
@@ -4572,7 +4582,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 let encodedScpData = utilsManager_2.SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify(info.scpData));
                 event.tags.push([
                     "scp",
-                    interfaces_3.ScpStandardId.ChannelMessage,
+                    utils_15.ScpStandardId.ChannelMessage,
                     encodedScpData
                 ]);
             }
@@ -4661,7 +4671,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     ],
                     [
                         "scp",
-                        interfaces_3.ScpStandardId.GroupKeys
+                        utils_15.ScpStandardId.GroupKeys
                     ]
                 ]
             };
@@ -4681,7 +4691,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             let kind;
             let start;
             let end;
-            if (info.type === interfaces_3.CalendarEventType.DateBased) {
+            if (info.type === utils_15.CalendarEventType.DateBased) {
                 kind = 31922;
                 start = convertUnixTimestampToDate(info.start);
             }
@@ -4723,7 +4733,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 ]);
             }
             if (info.end) {
-                if (info.type === interfaces_3.CalendarEventType.DateBased) {
+                if (info.type === utils_15.CalendarEventType.DateBased) {
                     end = convertUnixTimestampToDate(info.end);
                 }
                 else {
@@ -5049,10 +5059,67 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             const result = await this.handleEventSubmission(event);
             return result;
         }
+        async updateCommunityStall(creatorId, communityId, stall) {
+            const communityUri = utilsManager_2.SocialUtilsManager.getCommunityUri(creatorId, communityId);
+            let event = {
+                "kind": 30017,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": JSON.stringify(stall),
+                "tags": [
+                    [
+                        "d",
+                        stall.id
+                    ],
+                    [
+                        "a",
+                        communityUri
+                    ]
+                ]
+            };
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async updateCommunityProduct(creatorId, communityId, product) {
+            const communityUri = utilsManager_2.SocialUtilsManager.getCommunityUri(creatorId, communityId);
+            const stallUri = utilsManager_2.SocialUtilsManager.getMarketplaceStallUri(creatorId, product.stallId);
+            const productContent = JSON.stringify({
+                id: product.id,
+                stall_id: product.stallId,
+                name: product.name,
+                description: product.description,
+                images: product.images,
+                currency: product.currency,
+                price: product.price,
+                quantity: product.quantity,
+                specs: product.specs,
+                shipping: product.shipping
+            });
+            let event = {
+                "kind": 30018,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": productContent,
+                "tags": [
+                    [
+                        "d",
+                        product.id
+                    ],
+                    [
+                        "a",
+                        stallUri
+                    ],
+                    [
+                        "a",
+                        communityUri
+                    ]
+                ]
+            };
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
     }
     exports.NostrEventManagerWrite = NostrEventManagerWrite;
 });
-define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/managers/utilsManager.ts"], function (require, exports, index_3, interfaces_4, utilsManager_3) {
+define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/index.ts", "@scom/scom-social-sdk/managers/utilsManager.ts"], function (require, exports, index_3, utils_16, utilsManager_3) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.NostrEventManagerRead = void 0;
@@ -5958,7 +6025,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
                 communityUriToMemberIdRoleComboMap[communityUri] = [];
                 communityUriToMemberIdRoleComboMap[communityUri].push({
                     id: community.creatorId,
-                    role: interfaces_4.CommunityRole.Creator
+                    role: utils_16.CommunityRole.Creator
                 });
                 communityUriToCreatorOrModeratorIdsMap[communityUri] = new Set();
                 communityUriToCreatorOrModeratorIdsMap[communityUri].add(community.creatorId);
@@ -5968,7 +6035,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
                             continue;
                         communityUriToMemberIdRoleComboMap[communityUri].push({
                             id: moderator,
-                            role: interfaces_4.CommunityRole.Moderator
+                            role: utils_16.CommunityRole.Moderator
                         });
                         communityUriToCreatorOrModeratorIdsMap[communityUri].add(moderator);
                     }
@@ -5985,7 +6052,7 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
                         continue;
                     communityUriToMemberIdRoleComboMap[communityUri].push({
                         id: pubkey,
-                        role: interfaces_4.CommunityRole.GeneralMember
+                        role: utils_16.CommunityRole.GeneralMember
                     });
                 }
             }
@@ -6044,10 +6111,30 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             }
             return communityUriToMembersMap;
         }
+        async fetchCommunityStalls(options) {
+            const { creatorId, communityId } = options;
+            const communityUri = utilsManager_3.SocialUtilsManager.getCommunityUri(creatorId, communityId);
+            let request = {
+                kinds: [30017],
+                "#a": [communityUri]
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            return fetchEventsResponse.events;
+        }
+        async fetchCommunityProducts(options) {
+            const { creatorId, communityId } = options;
+            const communityUri = utilsManager_3.SocialUtilsManager.getCommunityUri(creatorId, communityId);
+            let request = {
+                kinds: [30018],
+                "#a": [communityUri]
+            };
+            const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
+            return fetchEventsResponse.events;
+        }
     }
     exports.NostrEventManagerRead = NostrEventManagerRead;
 });
-define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/managers/utilsManager.ts"], function (require, exports, index_4, interfaces_5, utilsManager_4) {
+define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/index.ts", "@scom/scom-social-sdk/managers/utilsManager.ts"], function (require, exports, index_4, utils_17, utilsManager_4) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.NostrEventManagerReadV1o5 = void 0;
@@ -6833,25 +6920,45 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 const creatorProfile = pubkeyToProfileMap[content.communities_pubkey];
                 if (!creatorProfile)
                     continue;
-                let creator = mapProfileToCommunityMember(creatorProfile, interfaces_5.CommunityRole.Creator);
+                let creator = mapProfileToCommunityMember(creatorProfile, utils_17.CommunityRole.Creator);
                 communityMembers.push(creator);
                 for (let moderator of content.moderators) {
                     const userProfile = pubkeyToProfileMap[moderator];
                     if (!userProfile)
                         continue;
-                    let communityMember = mapProfileToCommunityMember(userProfile, interfaces_5.CommunityRole.Moderator);
+                    let communityMember = mapProfileToCommunityMember(userProfile, utils_17.CommunityRole.Moderator);
                     communityMembers.push(communityMember);
                 }
                 for (let member of content.general_members) {
                     const userProfile = pubkeyToProfileMap[member];
                     if (!userProfile)
                         continue;
-                    let communityMember = mapProfileToCommunityMember(userProfile, interfaces_5.CommunityRole.GeneralMember);
+                    let communityMember = mapProfileToCommunityMember(userProfile, utils_17.CommunityRole.GeneralMember);
                     communityMembers.push(communityMember);
                 }
                 communityUriToMembersMap[communityUri] = communityMembers;
             }
             return communityUriToMembersMap;
+        }
+        async fetchCommunityStalls(options) {
+            const { creatorId, communityId } = options;
+            const communityPubkey = creatorId.startsWith('npub1') ? index_4.Nip19.decode(creatorId).data : creatorId;
+            let msg = {
+                communityPubkey,
+                communityName: communityId
+            };
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-community-stalls', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchCommunityProducts(options) {
+            const { creatorId, communityId } = options;
+            const communityPubkey = creatorId.startsWith('npub1') ? index_4.Nip19.decode(creatorId).data : creatorId;
+            let msg = {
+                communityPubkey,
+                communityName: communityId
+            };
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-community-products', msg);
+            return fetchEventsResponse.events || [];
         }
     }
     exports.NostrEventManagerReadV1o5 = NostrEventManagerReadV1o5;
@@ -7370,7 +7477,7 @@ define("@scom/scom-social-sdk/utils/lightningWallet.ts", ["require", "exports", 
     }
     exports.LightningWalletManager = LightningWalletManager;
 });
-define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/interfaces.ts", "@scom/scom-social-sdk/managers/communication.ts", "@scom/scom-social-sdk/utils/geohash.ts", "@scom/scom-mqtt", "@scom/scom-social-sdk/utils/lightningWallet.ts", "@scom/scom-social-sdk/managers/utilsManager.ts", "@scom/scom-social-sdk/managers/eventManagerWrite.ts", "@scom/scom-social-sdk/managers/eventManagerRead.ts", "@scom/scom-social-sdk/managers/eventManagerReadV2.ts", "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", "@scom/scom-signer", "@ijstech/eth-wallet"], function (require, exports, index_6, interfaces_6, communication_1, geohash_1, scom_mqtt_1, lightningWallet_1, utilsManager_5, eventManagerWrite_1, eventManagerRead_1, eventManagerReadV2_1, eventManagerReadV1o5_2, scom_signer_2, eth_wallet_2) {
+define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/utils/index.ts", "@scom/scom-social-sdk/managers/communication.ts", "@scom/scom-social-sdk/utils/geohash.ts", "@scom/scom-mqtt", "@scom/scom-social-sdk/utils/lightningWallet.ts", "@scom/scom-social-sdk/managers/utilsManager.ts", "@scom/scom-social-sdk/managers/eventManagerWrite.ts", "@scom/scom-social-sdk/managers/eventManagerRead.ts", "@scom/scom-social-sdk/managers/eventManagerReadV2.ts", "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", "@scom/scom-signer", "@ijstech/eth-wallet"], function (require, exports, index_6, utils_18, communication_1, geohash_1, scom_mqtt_1, lightningWallet_1, utilsManager_5, eventManagerWrite_1, eventManagerRead_1, eventManagerReadV2_1, eventManagerReadV1o5_2, scom_signer_2, eth_wallet_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.SocialDataManager = void 0;
@@ -7504,7 +7611,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
         //To be deprecated
         async retrievePostPrivateKey(event, communityUri, communityPrivateKey) {
             let key = null;
-            let postScpData = utilsManager_5.SocialUtilsManager.extractScpData(event, interfaces_6.ScpStandardId.CommunityPost);
+            let postScpData = utilsManager_5.SocialUtilsManager.extractScpData(event, utils_18.ScpStandardId.CommunityPost);
             if (!postScpData)
                 return key;
             try {
@@ -7523,7 +7630,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
         async decryptPostPrivateKeyForCommunity(options) {
             const { event, selfPubkey, communityUri, communityPublicKey, communityPrivateKey } = options;
             let key = null;
-            let postScpData = utilsManager_5.SocialUtilsManager.extractScpData(event, interfaces_6.ScpStandardId.CommunityPost);
+            let postScpData = utilsManager_5.SocialUtilsManager.extractScpData(event, utils_18.ScpStandardId.CommunityPost);
             if (!postScpData)
                 return key;
             try {
@@ -7546,7 +7653,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
         }
         async retrieveChannelMessagePrivateKey(event, channelId, communityPrivateKey) {
             let key = null;
-            let messageScpData = utilsManager_5.SocialUtilsManager.extractScpData(event, interfaces_6.ScpStandardId.ChannelMessage);
+            let messageScpData = utilsManager_5.SocialUtilsManager.extractScpData(event, utils_18.ScpStandardId.ChannelMessage);
             try {
                 const messagePrivateKey = await utilsManager_5.SocialUtilsManager.decryptMessage(communityPrivateKey, event.pubkey, messageScpData.encryptedKey);
                 const messageContentStr = await utilsManager_5.SocialUtilsManager.decryptMessage(messagePrivateKey, event.pubkey, event.content);
@@ -7667,7 +7774,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
             const communityInfoMap = {};
             for (let communityInfo of noteCommunityMappings.communityInfoList) {
                 communityInfoMap[communityInfo.communityUri] = communityInfo;
-                if (communityInfo.membershipType === interfaces_6.MembershipType.Open)
+                if (communityInfo.membershipType === utils_18.MembershipType.Open)
                     continue;
                 let communityPrivateKey = await this.retrieveCommunityPrivateKey(communityInfo, this._privateKey);
                 if (communityPrivateKey) {
@@ -7680,7 +7787,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
                 const communityInfo = communityInfoMap[noteCommunityInfo.communityUri];
                 if (!communityInfo)
                     continue;
-                if (communityInfo.membershipType === interfaces_6.MembershipType.Open)
+                if (communityInfo.membershipType === utils_18.MembershipType.Open)
                     continue;
                 let postPrivateKey = await this.decryptPostPrivateKeyForCommunity({
                     event: noteCommunityInfo.eventData,
@@ -7858,7 +7965,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
         constructNoteCommunity(noteEvent, communityInfoMap) {
             let community;
             if (noteEvent.tags?.length) {
-                let scpData = utilsManager_5.SocialUtilsManager.extractScpData(noteEvent, interfaces_6.ScpStandardId.CommunityPost);
+                let scpData = utilsManager_5.SocialUtilsManager.extractScpData(noteEvent, utils_18.ScpStandardId.CommunityPost);
                 let communityUri = this.retrieveCommunityUri(noteEvent, scpData);
                 if (communityUri) {
                     const communityInfo = communityInfoMap[communityUri];
@@ -7870,8 +7977,8 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
                         photoUrl: communityInfo?.avatarImgUrl || communityInfo?.bannerImgUrl,
                         parentCommunityUri: communityInfo?.parentCommunityUri,
                         privateRelay: communityInfo?.privateRelay,
-                        isExclusive: communityInfo?.membershipType === interfaces_6.MembershipType.Protected,
-                        isWhitelist: communityInfo?.policies?.[0]?.policyType === interfaces_6.ProtectedMembershipPolicyType.Whitelist,
+                        isExclusive: communityInfo?.membershipType === utils_18.MembershipType.Protected,
+                        isWhitelist: communityInfo?.policies?.[0]?.policyType === utils_18.ProtectedMembershipPolicyType.Whitelist,
                         policies: communityInfo?.policies
                     };
                 }
@@ -8175,7 +8282,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
                 return null;
             let communityInfo = utilsManager_5.SocialUtilsManager.extractCommunityInfo(communityEvent);
             //Fetch group keys only when scpData.encryptedKey is undefined for backward compatibility
-            if (communityInfo.membershipType === interfaces_6.MembershipType.Protected && !communityInfo.scpData?.encryptedKey) {
+            if (communityInfo.membershipType === utils_18.MembershipType.Protected && !communityInfo.scpData?.encryptedKey) {
                 const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
                     identifiers: [communityInfo.communityUri + ':keys']
                 });
@@ -8314,7 +8421,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
             replies = replies.sort((a, b) => b.eventData.created_at - a.eventData.created_at);
             ancestorNotes = ancestorNotes.sort((a, b) => a.eventData.created_at - b.eventData.created_at);
             let communityInfo = null;
-            let scpData = utilsManager_5.SocialUtilsManager.extractScpData(focusedNote.eventData, interfaces_6.ScpStandardId.CommunityPost);
+            let scpData = utilsManager_5.SocialUtilsManager.extractScpData(focusedNote.eventData, utils_18.ScpStandardId.CommunityPost);
             if (scpData) {
                 const communityUri = this.retrieveCommunityUri(focusedNote.eventData, scpData);
                 if (communityUri) {
@@ -8337,7 +8444,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
             let pubkeyToCommunityIdsMap = {};
             let communityInfoList = [];
             for (let note of notes) {
-                let scpData = utilsManager_5.SocialUtilsManager.extractScpData(note, interfaces_6.ScpStandardId.CommunityPost);
+                let scpData = utilsManager_5.SocialUtilsManager.extractScpData(note, utils_18.ScpStandardId.CommunityPost);
                 if (scpData) {
                     const communityUri = this.retrieveCommunityUri(note, scpData);
                     if (communityUri) {
@@ -8539,7 +8646,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
                 collectibles: newInfo.collectibles,
                 parentCommunityUri: newInfo.parentCommunityUri
             };
-            if (communityInfo.membershipType === interfaces_6.MembershipType.Protected) {
+            if (communityInfo.membershipType === utils_18.MembershipType.Protected) {
                 const gatekeeperPublicKey = index_6.Nip19.decode(communityInfo.gatekeeperNpub).data;
                 const groupPrivateKey = index_6.Keys.generatePrivateKey();
                 const groupPublicKey = index_6.Keys.getPublicKey(groupPrivateKey);
@@ -8561,7 +8668,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
             return communityInfo;
         }
         async updateCommunity(info) {
-            if (info.membershipType === interfaces_6.MembershipType.Protected) {
+            if (info.membershipType === utils_18.MembershipType.Protected) {
                 const gatekeeperPublicKey = index_6.Nip19.decode(info.gatekeeperNpub).data;
                 if (info.scpData) {
                     if (!info.scpData.encryptedKey || !info.scpData.gatekeeperPublicKey) {
@@ -8676,15 +8783,15 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
         }
         async fetchUserRoleInCommunity(community, pubKey) {
             if (!pubKey)
-                return interfaces_6.CommunityRole.None;
+                return utils_18.CommunityRole.None;
             if (community.creatorId === pubKey)
-                return interfaces_6.CommunityRole.Creator;
+                return utils_18.CommunityRole.Creator;
             if (community.moderatorIds?.includes(pubKey))
-                return interfaces_6.CommunityRole.Moderator;
+                return utils_18.CommunityRole.Moderator;
             const communities = await this._socialEventManagerRead.fetchUserBookmarkedCommunities({ pubKey });
             const decodedCreatorId = community.creatorId.startsWith('npub1') ? index_6.Nip19.decode(community.creatorId).data : community.creatorId;
             const isMember = communities.find(c => c.communityId === community.communityId && c.creatorId === decodedCreatorId) != null;
-            return isMember ? interfaces_6.CommunityRole.GeneralMember : interfaces_6.CommunityRole.None;
+            return isMember ? utils_18.CommunityRole.GeneralMember : utils_18.CommunityRole.None;
         }
         async joinCommunity(community, pubKey) {
             const communities = await this._socialEventManagerRead.fetchUserBookmarkedCommunities({ pubKey });
@@ -8727,7 +8834,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
                 message,
             };
             let newCommunityPostInfo;
-            if (info.membershipType === interfaces_6.MembershipType.Open || isPublicPost) {
+            if (info.membershipType === utils_18.MembershipType.Open || isPublicPost) {
                 newCommunityPostInfo = {
                     community: info,
                     message,
@@ -9022,7 +9129,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
             let startTime;
             let endTime;
             if (event.kind === 31922) {
-                type = interfaces_6.CalendarEventType.DateBased;
+                type = utils_18.CalendarEventType.DateBased;
                 const startDate = new Date(start);
                 startTime = startDate.getTime() / 1000;
                 if (end) {
@@ -9031,7 +9138,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
                 }
             }
             else if (event.kind === 31923) {
-                type = interfaces_6.CalendarEventType.TimeBased;
+                type = utils_18.CalendarEventType.TimeBased;
                 startTime = Number(start);
                 if (end) {
                     endTime = Number(end);
@@ -9076,7 +9183,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
                 naddr = index_6.Nip19.naddrEncode({
                     identifier: updateCalendarEventInfo.id,
                     pubkey: this.selfPubkey,
-                    kind: updateCalendarEventInfo.type === interfaces_6.CalendarEventType.DateBased ? 31922 : 31923,
+                    kind: updateCalendarEventInfo.type === utils_18.CalendarEventType.DateBased ? 31922 : 31923,
                     relays: []
                 });
             }
@@ -9938,7 +10045,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
                 };
             }
             //Fetch group keys only when scpData.encryptedKey is undefined for backward compatibility
-            if (communityInfo.membershipType === interfaces_6.MembershipType.Protected && !communityInfo.scpData?.encryptedKey) {
+            if (communityInfo.membershipType === utils_18.MembershipType.Protected && !communityInfo.scpData?.encryptedKey) {
                 const keyEvents = await this._socialEventManagerRead.fetchGroupKeys({
                     identifiers: [communityInfo.communityUri + ':keys']
                 });
