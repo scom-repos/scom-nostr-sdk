@@ -697,6 +697,17 @@ export interface IMarketplaceProduct {
 	shipping?: IMarketplaceStallShipping[];
 }
 
+export interface ICommunityStallInfo extends IMarketplaceStall {
+	communityUri?: string;
+	eventData?: INostrEvent;
+}
+
+export interface ICommunityProductInfo extends IMarketplaceProduct {
+	communityUri?: string;
+	stallUri?: string;
+	eventData?: INostrEvent;
+}
+
 export interface INostrCommunicationManager {
 	url: string;
     fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
@@ -956,6 +967,8 @@ export interface ISocialEventManagerRead {
 	fetchUserEthWalletAccountsInfo(options: SocialEventManagerReadOptions.IFetchUserEthWalletAccountsInfo): Promise<INostrEvent>;
 	fetchSubcommunites(options: SocialEventManagerReadOptions.IFetchSubcommunites): Promise<INostrEvent[]>;
 	getCommunityUriToMembersMap(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
+	fetchCommunityStalls(options: SocialEventManagerReadOptions.IFetchCommunityStalls): Promise<INostrEvent[]>;
+	fetchCommunityProducts(options: SocialEventManagerReadOptions.IFetchCommunityProducts): Promise<INostrEvent[]>;
 	// fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
     // fetchReplies(options: IFetchRepliesOptions): Promise<INostrEvent[]>;
     // fetchFollowing(npubs: string[]): Promise<INostrEvent[]>;
@@ -1008,6 +1021,8 @@ export interface ISocialEventManagerWrite {
     updateUserBookmarks(tags: string[][]): Promise<ISocialEventManagerWriteResult>;
 	updateUserEthWalletAccountsInfo(options: SocialEventManagerWriteOptions.IUpdateUserEthWalletAccountsInfo, privateKey?: string): Promise<ISocialEventManagerWriteResult>;
 	updateNoteStatus(noteId: string, status: string): Promise<ISocialEventManagerWriteResult>;
+	updateCommunityStall(creatorId: string, communityId: string, stall: IMarketplaceStall): Promise<ISocialEventManagerWriteResult>;
+	updateCommunityProduct(creatorId: string, communityId: string, product: IMarketplaceProduct): Promise<ISocialEventManagerWriteResult>;
 }
 
 export interface INostrRestAPIManager extends INostrCommunicationManager {

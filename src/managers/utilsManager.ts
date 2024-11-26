@@ -1,6 +1,6 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, INostrEvent, INostrMetadata, IUserProfile, MembershipType, PaymentMethod, ScpStandardId } from "../utils";
+import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, ICommunityProductInfo, ICommunityStallInfo, INostrEvent, INostrMetadata, IUserProfile, MembershipType, PaymentMethod, ScpStandardId } from "../utils";
 import { Signer } from "@scom/scom-signer";
 
 class SocialUtilsManager {
@@ -254,6 +254,59 @@ class SocialUtilsManager {
         }
 
         return communityInfo;
+    }
+
+    static extractCommunityStallInfo(event: INostrEvent) {
+        const stallId = event.tags.find(tag => tag[0] === 'd')?.[1];
+        const communityUri = event.tags.find(tag => tag[0] === 'a')?.[1];
+        let data: any = {};
+        if (event.content) {
+            try {
+                data = JSON.parse(event.content)
+            } catch {
+                data = {};
+            }
+        }
+        let communityStallInfo: ICommunityStallInfo = {
+            id: stallId,
+            name: data.name,
+            description: data.description,
+            currency: data.currency,
+            shipping: data.shipping,
+            communityUri: communityUri,
+            eventData: event
+        };
+        return communityStallInfo;
+    }
+
+    static extractCommunityProductInfo(event: INostrEvent) {
+        const productId = event.tags.find(tag => tag[0] === 'd')?.[1];
+        const communityUri = event.tags.find(tag => tag[0] === 'a' && tag[1].startsWith('34550:'))?.[1];
+        const stallUri = event.tags.find(tag => tag[0] === 'a' && tag[1].startsWith('30018:'))?.[1];
+        let data: any = {};
+        if (event.content) {
+            try {
+                data = JSON.parse(event.content)
+            } catch {
+                data = {};
+            }
+        }
+        let communityProductInfo: ICommunityProductInfo = {
+            id: productId,
+            stallId: data.stall_id,
+            name: data.name,
+            description: data.description,
+            images: data.images,
+            currency: data.currency,
+            price: data.price,
+            quantity: data.quantity,
+            specs: data.specs,
+            shipping: data.shipping,
+            communityUri: communityUri,
+            stallUri: stallUri,
+            eventData: event
+        };
+        return communityProductInfo;
     }
 
     static extractBookmarkedCommunities(event: INostrEvent, excludedCommunity?: ICommunityInfo) {

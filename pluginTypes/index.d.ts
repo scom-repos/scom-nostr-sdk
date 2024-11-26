@@ -1704,6 +1704,15 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         specs?: string[][];
         shipping?: IMarketplaceStallShipping[];
     }
+    export interface ICommunityStallInfo extends IMarketplaceStall {
+        communityUri?: string;
+        eventData?: INostrEvent;
+    }
+    export interface ICommunityProductInfo extends IMarketplaceProduct {
+        communityUri?: string;
+        stallUri?: string;
+        eventData?: INostrEvent;
+    }
     export interface INostrCommunicationManager {
         url: string;
         fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
@@ -1962,6 +1971,8 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         fetchUserEthWalletAccountsInfo(options: SocialEventManagerReadOptions.IFetchUserEthWalletAccountsInfo): Promise<INostrEvent>;
         fetchSubcommunites(options: SocialEventManagerReadOptions.IFetchSubcommunites): Promise<INostrEvent[]>;
         getCommunityUriToMembersMap(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
+        fetchCommunityStalls(options: SocialEventManagerReadOptions.IFetchCommunityStalls): Promise<INostrEvent[]>;
+        fetchCommunityProducts(options: SocialEventManagerReadOptions.IFetchCommunityProducts): Promise<INostrEvent[]>;
     }
     export namespace SocialEventManagerWriteOptions {
         interface IUpdateUserEthWalletAccountsInfo {
@@ -2007,6 +2018,8 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         updateUserBookmarks(tags: string[][]): Promise<ISocialEventManagerWriteResult>;
         updateUserEthWalletAccountsInfo(options: SocialEventManagerWriteOptions.IUpdateUserEthWalletAccountsInfo, privateKey?: string): Promise<ISocialEventManagerWriteResult>;
         updateNoteStatus(noteId: string, status: string): Promise<ISocialEventManagerWriteResult>;
+        updateCommunityStall(creatorId: string, communityId: string, stall: IMarketplaceStall): Promise<ISocialEventManagerWriteResult>;
+        updateCommunityProduct(creatorId: string, communityId: string, product: IMarketplaceProduct): Promise<ISocialEventManagerWriteResult>;
     }
     export interface INostrRestAPIManager extends INostrCommunicationManager {
         fetchEventsFromAPI(endpoint: string, msg: any, authHeader?: string): Promise<INostrFetchEventsResponse>;
@@ -2018,7 +2031,7 @@ declare module "@scom/scom-social-sdk/utils/index.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/utilsManager.ts" />
 declare module "@scom/scom-social-sdk/managers/utilsManager.ts" {
-    import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, INostrEvent, INostrMetadata, IUserProfile } from "@scom/scom-social-sdk/utils/index.ts";
+    import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityProductInfo, ICommunityStallInfo, INostrEvent, INostrMetadata, IUserProfile } from "@scom/scom-social-sdk/utils/index.ts";
     class SocialUtilsManager {
         static hexStringToUint8Array(hexString: string): Uint8Array;
         static base64ToUtf8(base64: string): string;
@@ -2038,6 +2051,8 @@ declare module "@scom/scom-social-sdk/managers/utilsManager.ts" {
         static getMarketplaceStallUri(creatorId: string, stallId: string): string;
         static getCommunityBasicInfoFromUri(communityUri: string): ICommunityBasicInfo;
         static extractCommunityInfo(event: INostrEvent): ICommunityInfo;
+        static extractCommunityStallInfo(event: INostrEvent): ICommunityStallInfo;
+        static extractCommunityProductInfo(event: INostrEvent): ICommunityProductInfo;
         static extractBookmarkedCommunities(event: INostrEvent, excludedCommunity?: ICommunityInfo): ICommunityBasicInfo[];
         static extractBookmarkedChannels(event: INostrEvent): string[];
         static extractScpData(event: INostrEvent, standardId: string): any;
@@ -2457,7 +2472,7 @@ declare module "@scom/scom-social-sdk/utils/lightningWallet.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/dataManager.ts" />
 declare module "@scom/scom-social-sdk/managers/dataManager.ts" {
-    import { CommunityRole, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunitySubscription, IConversationPath, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, SocialDataManagerOptions } from "@scom/scom-social-sdk/utils/index.ts";
+    import { CommunityRole, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunityProductInfo, ICommunityStallInfo, ICommunitySubscription, IConversationPath, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, ILocationCoordinates, ILongFormContentInfo, IMarketplaceProduct, IMarketplaceStall, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, SocialDataManagerOptions } from "@scom/scom-social-sdk/utils/index.ts";
     class SocialDataManager {
         private _writeRelays;
         private _publicIndexingRelay;
@@ -2691,6 +2706,10 @@ declare module "@scom/scom-social-sdk/managers/dataManager.ts" {
         fetchCommunityDetailMetadata(creatorId: string, communityId: string): Promise<ICommunityDetailMetadata>;
         updateNoteStatus(noteId: string, status: string): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").ISocialEventManagerWriteResult>;
         updateCommunitySubscription(options: IUpdateCommunitySubscription): Promise<any>;
+        fetchCommunityStalls(creatorId: string, communityId: string): Promise<ICommunityStallInfo[]>;
+        fetchCommunityProducts(creatorId: string, communityId: string): Promise<ICommunityProductInfo[]>;
+        updateCommunityStall(creatorId: string, communityId: string, stall: IMarketplaceStall): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").ISocialEventManagerWriteResult>;
+        updateCommunityProduct(creatorId: string, communityId: string, product: IMarketplaceProduct): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").ISocialEventManagerWriteResult>;
     }
     export { SocialDataManager };
 }
