@@ -673,7 +673,7 @@ export interface IMarketplaceStallShipping {
 	id: string;
 	name?: string;
 	cost: number;
-	regions: string[];
+	regions?: string[];
 }
 
 export interface IMarketplaceStall {
@@ -694,7 +694,7 @@ export interface IMarketplaceProduct {
 	price: number;
 	quantity: number;
 	specs?: string[][];
-	shipping: IMarketplaceStallShipping[];
+	shipping?: IMarketplaceStallShipping[];
 }
 
 export interface INostrCommunicationManager {

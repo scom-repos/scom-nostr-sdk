@@ -1683,7 +1683,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         id: string;
         name?: string;
         cost: number;
-        regions: string[];
+        regions?: string[];
     }
     export interface IMarketplaceStall {
         id: string;
@@ -1702,7 +1702,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         price: number;
         quantity: number;
         specs?: string[][];
-        shipping: IMarketplaceStallShipping[];
+        shipping?: IMarketplaceStallShipping[];
     }
     export interface INostrCommunicationManager {
         url: string;
