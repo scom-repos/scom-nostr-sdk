@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityBasicInfo, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunityStats, ICommunitySubscription, IConversationPath, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, ILocationCoordinates, ILongFormContentInfo, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INftSubscription, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunity, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId, SocialDataManagerOptions } from "../utils";
+import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityBasicInfo, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunityProductInfo, ICommunityStallInfo, ICommunityStats, ICommunitySubscription, IConversationPath, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, ILocationCoordinates, ILongFormContentInfo, IMarketplaceProduct, IMarketplaceStall, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INftSubscription, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunity, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId, SocialDataManagerOptions } from "../utils";
 import {
     INostrCommunicationManager,
     INostrRestAPIManager,
@@ -2816,6 +2816,50 @@ class SocialDataManager {
             body: JSON.stringify(bodyData)
         });
         let result = await response.json();
+        return result;
+    }
+
+    async fetchCommunityStalls(creatorId: string, communityId: string) {
+        let stalls: ICommunityStallInfo[] = [];
+        try {
+            const events = await this._socialEventManagerRead.fetchCommunityStalls({
+                creatorId,
+                communityId
+            });
+            for (let event of events) {
+                const communityStallInfo = SocialUtilsManager.extractCommunityStallInfo(event);
+                stalls.push(communityStallInfo);
+            }
+        } catch (error) {
+            console.error('fetchCommunityStalls', error);
+        }
+        return stalls;
+    }
+
+    async fetchCommunityProducts(creatorId: string, communityId: string) {
+        let products: ICommunityProductInfo[] = [];
+        try {
+            const events = await this._socialEventManagerRead.fetchCommunityProducts({
+                creatorId,
+                communityId
+            });
+            for (let event of events) {
+                const communityProductInfo = SocialUtilsManager.extractCommunityProductInfo(event);
+                products.push(communityProductInfo);
+            }
+        } catch (error) {
+            console.error('fetchCommunityProducts', error);
+        }
+        return products;
+    }
+
+    async updateCommunityStall(creatorId: string, communityId: string, stall: IMarketplaceStall) {
+        const result = await this._socialEventManagerWrite.updateCommunityStall(creatorId, communityId, stall);
+        return result;
+    }
+
+    async updateCommunityProduct(creatorId: string, communityId: string, product: IMarketplaceProduct) {
+        const result = await this._socialEventManagerWrite.updateCommunityProduct(creatorId, communityId, product);
         return result;
     }
 }

@@ -3861,6 +3861,59 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             };
             return communityInfo;
         }
+        static extractCommunityStallInfo(event) {
+            const stallId = event.tags.find(tag => tag[0] === 'd')?.[1];
+            const communityUri = event.tags.find(tag => tag[0] === 'a')?.[1];
+            let data = {};
+            if (event.content) {
+                try {
+                    data = JSON.parse(event.content);
+                }
+                catch {
+                    data = {};
+                }
+            }
+            let communityStallInfo = {
+                id: stallId,
+                name: data.name,
+                description: data.description,
+                currency: data.currency,
+                shipping: data.shipping,
+                communityUri: communityUri,
+                eventData: event
+            };
+            return communityStallInfo;
+        }
+        static extractCommunityProductInfo(event) {
+            const productId = event.tags.find(tag => tag[0] === 'd')?.[1];
+            const communityUri = event.tags.find(tag => tag[0] === 'a' && tag[1].startsWith('34550:'))?.[1];
+            const stallUri = event.tags.find(tag => tag[0] === 'a' && tag[1].startsWith('30018:'))?.[1];
+            let data = {};
+            if (event.content) {
+                try {
+                    data = JSON.parse(event.content);
+                }
+                catch {
+                    data = {};
+                }
+            }
+            let communityProductInfo = {
+                id: productId,
+                stallId: data.stall_id,
+                name: data.name,
+                description: data.description,
+                images: data.images,
+                currency: data.currency,
+                price: data.price,
+                quantity: data.quantity,
+                specs: data.specs,
+                shipping: data.shipping,
+                communityUri: communityUri,
+                stallUri: stallUri,
+                eventData: event
+            };
+            return communityProductInfo;
+        }
         static extractBookmarkedCommunities(event, excludedCommunity) {
             const communities = [];
             const communityUriArr = event?.tags.filter(tag => tag[0] === 'a')?.map(tag => tag[1]) || [];
@@ -10090,6 +10143,48 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
                 body: JSON.stringify(bodyData)
             });
             let result = await response.json();
+            return result;
+        }
+        async fetchCommunityStalls(creatorId, communityId) {
+            let stalls = [];
+            try {
+                const events = await this._socialEventManagerRead.fetchCommunityStalls({
+                    creatorId,
+                    communityId
+                });
+                for (let event of events) {
+                    const communityStallInfo = utilsManager_5.SocialUtilsManager.extractCommunityStallInfo(event);
+                    stalls.push(communityStallInfo);
+                }
+            }
+            catch (error) {
+                console.error('fetchCommunityStalls', error);
+            }
+            return stalls;
+        }
+        async fetchCommunityProducts(creatorId, communityId) {
+            let products = [];
+            try {
+                const events = await this._socialEventManagerRead.fetchCommunityProducts({
+                    creatorId,
+                    communityId
+                });
+                for (let event of events) {
+                    const communityProductInfo = utilsManager_5.SocialUtilsManager.extractCommunityProductInfo(event);
+                    products.push(communityProductInfo);
+                }
+            }
+            catch (error) {
+                console.error('fetchCommunityProducts', error);
+            }
+            return products;
+        }
+        async updateCommunityStall(creatorId, communityId, stall) {
+            const result = await this._socialEventManagerWrite.updateCommunityStall(creatorId, communityId, stall);
+            return result;
+        }
+        async updateCommunityProduct(creatorId, communityId, product) {
+            const result = await this._socialEventManagerWrite.updateCommunityProduct(creatorId, communityId, product);
             return result;
         }
     }

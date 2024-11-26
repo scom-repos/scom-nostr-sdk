@@ -1,4 +1,4 @@
-import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, INostrEvent, INostrMetadata, IUserProfile } from "../utils";
+import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityProductInfo, ICommunityStallInfo, INostrEvent, INostrMetadata, IUserProfile } from "../utils";
 declare class SocialUtilsManager {
     static hexStringToUint8Array(hexString: string): Uint8Array;
     static base64ToUtf8(base64: string): string;
@@ -13,6 +13,8 @@ declare class SocialUtilsManager {
     static getMarketplaceStallUri(creatorId: string, stallId: string): string;
     static getCommunityBasicInfoFromUri(communityUri: string): ICommunityBasicInfo;
     static extractCommunityInfo(event: INostrEvent): ICommunityInfo;
+    static extractCommunityStallInfo(event: INostrEvent): ICommunityStallInfo;
+    static extractCommunityProductInfo(event: INostrEvent): ICommunityProductInfo;
     static extractBookmarkedCommunities(event: INostrEvent, excludedCommunity?: ICommunityInfo): ICommunityBasicInfo[];
     static extractBookmarkedChannels(event: INostrEvent): string[];
     static extractScpData(event: INostrEvent, standardId: string): any;
