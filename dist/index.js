@@ -10187,6 +10187,42 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
             const result = await this._socialEventManagerWrite.updateCommunityProduct(creatorId, communityId, product);
             return result;
         }
+        async fetchRegions() {
+            let regions = [];
+            const url = `${this._publicIndexingRelay}/regions`;
+            const authHeader = utilsManager_5.SocialUtilsManager.constructAuthHeader(this._privateKey);
+            let response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                }
+            });
+            let result = await response.json();
+            if (result.success) {
+                regions = result.data;
+            }
+            return regions;
+        }
+        async fetchCurrencies() {
+            let currencies = [];
+            const url = `${this._publicIndexingRelay}/currencies`;
+            const authHeader = utilsManager_5.SocialUtilsManager.constructAuthHeader(this._privateKey);
+            let response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                }
+            });
+            let result = await response.json();
+            if (result.success) {
+                currencies = result.data;
+            }
+            return currencies;
+        }
     }
     exports.SocialDataManager = SocialDataManager;
 });

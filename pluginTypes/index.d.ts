@@ -1713,6 +1713,14 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         stallUri?: string;
         eventData?: INostrEvent;
     }
+    export interface IRegion {
+        code: string;
+        name: string;
+    }
+    export interface ICurrency {
+        code: string;
+        name: string;
+    }
     export interface INostrCommunicationManager {
         url: string;
         fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
@@ -2472,7 +2480,7 @@ declare module "@scom/scom-social-sdk/utils/lightningWallet.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/dataManager.ts" />
 declare module "@scom/scom-social-sdk/managers/dataManager.ts" {
-    import { CommunityRole, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunityProductInfo, ICommunityStallInfo, ICommunitySubscription, IConversationPath, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, ILocationCoordinates, ILongFormContentInfo, IMarketplaceProduct, IMarketplaceStall, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, SocialDataManagerOptions } from "@scom/scom-social-sdk/utils/index.ts";
+    import { CommunityRole, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunityProductInfo, ICommunityStallInfo, ICommunitySubscription, IConversationPath, ICurrency, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, ILocationCoordinates, ILongFormContentInfo, IMarketplaceProduct, IMarketplaceStall, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRegion, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, SocialDataManagerOptions } from "@scom/scom-social-sdk/utils/index.ts";
     class SocialDataManager {
         private _writeRelays;
         private _publicIndexingRelay;
@@ -2710,6 +2718,8 @@ declare module "@scom/scom-social-sdk/managers/dataManager.ts" {
         fetchCommunityProducts(creatorId: string, communityId: string): Promise<ICommunityProductInfo[]>;
         updateCommunityStall(creatorId: string, communityId: string, stall: IMarketplaceStall): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").ISocialEventManagerWriteResult>;
         updateCommunityProduct(creatorId: string, communityId: string, product: IMarketplaceProduct): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").ISocialEventManagerWriteResult>;
+        fetchRegions(): Promise<IRegion[]>;
+        fetchCurrencies(): Promise<ICurrency[]>;
     }
     export { SocialDataManager };
 }

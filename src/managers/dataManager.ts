@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityBasicInfo, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunityProductInfo, ICommunityStallInfo, ICommunityStats, ICommunitySubscription, IConversationPath, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, ILocationCoordinates, ILongFormContentInfo, IMarketplaceProduct, IMarketplaceStall, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INftSubscription, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunity, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId, SocialDataManagerOptions } from "../utils";
+import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityBasicInfo, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunityProductInfo, ICommunityStallInfo, ICommunityStats, ICommunitySubscription, IConversationPath, ICurrency, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, ILocationCoordinates, ILongFormContentInfo, IMarketplaceProduct, IMarketplaceStall, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INftSubscription, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunity, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRegion, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId, SocialDataManagerOptions } from "../utils";
 import {
     INostrCommunicationManager,
     INostrRestAPIManager,
@@ -2861,6 +2861,44 @@ class SocialDataManager {
     async updateCommunityProduct(creatorId: string, communityId: string, product: IMarketplaceProduct) {
         const result = await this._socialEventManagerWrite.updateCommunityProduct(creatorId, communityId, product);
         return result;
+    }
+
+    async fetchRegions() {
+        let regions: IRegion[] = [];
+        const url = `${this._publicIndexingRelay}/regions`;
+        const authHeader = SocialUtilsManager.constructAuthHeader(this._privateKey);
+        let response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': authHeader
+            }
+        });
+        let result = await response.json();
+        if (result.success) {
+            regions = result.data;
+        }
+        return regions;
+    }
+
+    async fetchCurrencies() {
+        let currencies: ICurrency[] = [];
+        const url = `${this._publicIndexingRelay}/currencies`;
+        const authHeader = SocialUtilsManager.constructAuthHeader(this._privateKey);
+        let response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': authHeader
+            }
+        });
+        let result = await response.json();
+        if (result.success) {
+            currencies = result.data;
+        }
+        return currencies;
     }
 }
 

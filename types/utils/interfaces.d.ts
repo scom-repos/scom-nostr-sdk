@@ -613,6 +613,14 @@ export interface ICommunityProductInfo extends IMarketplaceProduct {
     stallUri?: string;
     eventData?: INostrEvent;
 }
+export interface IRegion {
+    code: string;
+    name: string;
+}
+export interface ICurrency {
+    code: string;
+    name: string;
+}
 export interface INostrCommunicationManager {
     url: string;
     fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
