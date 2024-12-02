@@ -18,7 +18,8 @@ import {
     MembershipType, 
     ScpStandardId, 
     SocialEventManagerWriteOptions, 
-    IMarketplaceProduct
+    IMarketplaceProduct,
+    MarketplaceProductType
 } from "../utils";
 import {
     INostrCommunicationManager
@@ -922,6 +923,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         const productContent = JSON.stringify({
             id: product.id,
             stall_id: product.stallId,
+            product_type: product.productType || MarketplaceProductType.Physical,
             name: product.name,
             description: product.description,
             images: product.images,

@@ -3544,7 +3544,7 @@ define("@scom/scom-social-sdk/core/index.ts", ["require", "exports", "@scom/scom
 define("@scom/scom-social-sdk/utils/interfaces.ts", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.CalendarEventType = exports.CommunityRole = exports.SubscriptionBundleType = exports.CampaignActivityType = exports.PaymentMethod = exports.PaymentModel = exports.ProtectedMembershipPolicyType = exports.MembershipType = exports.ScpStandardId = exports.TokenType = exports.NftType = void 0;
+    exports.CalendarEventType = exports.CommunityRole = exports.MarketplaceProductType = exports.SubscriptionBundleType = exports.CampaignActivityType = exports.PaymentMethod = exports.PaymentModel = exports.ProtectedMembershipPolicyType = exports.MembershipType = exports.ScpStandardId = exports.TokenType = exports.NftType = void 0;
     var NftType;
     (function (NftType) {
         NftType["ERC721"] = "ERC721";
@@ -3598,6 +3598,15 @@ define("@scom/scom-social-sdk/utils/interfaces.ts", ["require", "exports"], func
         SubscriptionBundleType["MinimumDuration"] = "MinimumDuration";
         SubscriptionBundleType["ValidityPeriod"] = "ValidityPeriod";
     })(SubscriptionBundleType = exports.SubscriptionBundleType || (exports.SubscriptionBundleType = {}));
+    var MarketplaceProductType;
+    (function (MarketplaceProductType) {
+        MarketplaceProductType["Physical"] = "Physical";
+        MarketplaceProductType["Digital"] = "Digital";
+        MarketplaceProductType["Course"] = "Course";
+        MarketplaceProductType["Ebook"] = "Ebook";
+        MarketplaceProductType["Membership"] = "Membership";
+        MarketplaceProductType["Bundle"] = "Bundle";
+    })(MarketplaceProductType = exports.MarketplaceProductType || (exports.MarketplaceProductType = {}));
     var CommunityRole;
     (function (CommunityRole) {
         CommunityRole["Creator"] = "creator";
@@ -3900,6 +3909,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             let communityProductInfo = {
                 id: productId,
                 stallId: data.stall_id,
+                productType: data.product_type || utils_14.MarketplaceProductType.Physical,
                 name: data.name,
                 description: data.description,
                 images: data.images,
@@ -5138,6 +5148,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             const productContent = JSON.stringify({
                 id: product.id,
                 stall_id: product.stallId,
+                product_type: product.productType || utils_15.MarketplaceProductType.Physical,
                 name: product.name,
                 description: product.description,
                 images: product.images,

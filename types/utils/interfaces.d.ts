@@ -151,6 +151,14 @@ export declare enum SubscriptionBundleType {
     MinimumDuration = "MinimumDuration",
     ValidityPeriod = "ValidityPeriod"
 }
+export declare enum MarketplaceProductType {
+    Physical = "Physical",
+    Digital = "Digital",
+    Course = "Course",
+    Ebook = "Ebook",
+    Membership = "Membership",
+    Bundle = "Bundle"
+}
 export interface ISubscriptionDiscountRule {
     id: number;
     name: string;
@@ -595,6 +603,7 @@ export interface IMarketplaceStall {
 export interface IMarketplaceProduct {
     id: string;
     stallId: string;
+    productType: MarketplaceProductType;
     name: string;
     description?: string;
     images?: string[];

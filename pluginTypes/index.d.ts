@@ -1251,6 +1251,14 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         MinimumDuration = "MinimumDuration",
         ValidityPeriod = "ValidityPeriod"
     }
+    export enum MarketplaceProductType {
+        Physical = "Physical",
+        Digital = "Digital",
+        Course = "Course",
+        Ebook = "Ebook",
+        Membership = "Membership",
+        Bundle = "Bundle"
+    }
     export interface ISubscriptionDiscountRule {
         id: number;
         name: string;
@@ -1695,6 +1703,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
     export interface IMarketplaceProduct {
         id: string;
         stallId: string;
+        productType: MarketplaceProductType;
         name: string;
         description?: string;
         images?: string[];
