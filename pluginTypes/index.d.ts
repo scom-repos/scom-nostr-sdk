@@ -1927,6 +1927,7 @@ declare module "@scom/scom-social-sdk/utils/interfaces.ts" {
         interface IFetchCommunityStalls extends ICommunityBasicInfo {
         }
         interface IFetchCommunityProducts extends ICommunityBasicInfo {
+            stallId?: string;
         }
     }
     export interface ISocialEventManagerRead {
@@ -2715,7 +2716,7 @@ declare module "@scom/scom-social-sdk/managers/dataManager.ts" {
         updateNoteStatus(noteId: string, status: string): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").ISocialEventManagerWriteResult>;
         updateCommunitySubscription(options: IUpdateCommunitySubscription): Promise<any>;
         fetchCommunityStalls(creatorId: string, communityId: string): Promise<ICommunityStallInfo[]>;
-        fetchCommunityProducts(creatorId: string, communityId: string): Promise<ICommunityProductInfo[]>;
+        fetchCommunityProducts(creatorId: string, communityId: string, stallId?: string): Promise<ICommunityProductInfo[]>;
         updateCommunityStall(creatorId: string, communityId: string, stall: IMarketplaceStall): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").ISocialEventManagerWriteResult>;
         updateCommunityProduct(creatorId: string, communityId: string, product: IMarketplaceProduct): Promise<import("@scom/scom-social-sdk/utils/interfaces.ts").ISocialEventManagerWriteResult>;
         fetchRegions(): Promise<IRegion[]>;
