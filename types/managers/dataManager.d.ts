@@ -233,7 +233,7 @@ declare class SocialDataManager {
     updateNoteStatus(noteId: string, status: string): Promise<import("../utils").ISocialEventManagerWriteResult>;
     updateCommunitySubscription(options: IUpdateCommunitySubscription): Promise<any>;
     fetchCommunityStalls(creatorId: string, communityId: string): Promise<ICommunityStallInfo[]>;
-    fetchCommunityProducts(creatorId: string, communityId: string): Promise<ICommunityProductInfo[]>;
+    fetchCommunityProducts(creatorId: string, communityId: string, stallId?: string): Promise<ICommunityProductInfo[]>;
     updateCommunityStall(creatorId: string, communityId: string, stall: IMarketplaceStall): Promise<import("../utils").ISocialEventManagerWriteResult>;
     updateCommunityProduct(creatorId: string, communityId: string, product: IMarketplaceProduct): Promise<import("../utils").ISocialEventManagerWriteResult>;
     fetchRegions(): Promise<IRegion[]>;

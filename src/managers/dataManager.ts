@@ -2836,12 +2836,13 @@ class SocialDataManager {
         return stalls;
     }
 
-    async fetchCommunityProducts(creatorId: string, communityId: string) {
+    async fetchCommunityProducts(creatorId: string, communityId: string, stallId?: string) {
         let products: ICommunityProductInfo[] = [];
         try {
             const events = await this._socialEventManagerRead.fetchCommunityProducts({
                 creatorId,
-                communityId
+                communityId,
+                stallId
             });
             for (let event of events) {
                 const communityProductInfo = SocialUtilsManager.extractCommunityProductInfo(event);

@@ -854,11 +854,12 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     }
 
     async fetchCommunityProducts(options: SocialEventManagerReadOptions.IFetchCommunityProducts) {
-        const {creatorId, communityId} = options;
-        const communityPubkey = creatorId.startsWith('npub1') ? Nip19.decode(creatorId).data : creatorId;
+        const {creatorId, communityId, stallId} = options;
+        const communityPubkey = creatorId && creatorId.startsWith('npub1') ? Nip19.decode(creatorId).data : creatorId;
         let msg = {
             communityPubkey,
-            communityName: communityId
+            communityName: communityId,
+            stallId: stallId
         };
         const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-community-products', msg);
         return fetchEventsResponse.events || [];

@@ -836,6 +836,7 @@ export declare namespace SocialEventManagerReadOptions {
     interface IFetchCommunityStalls extends ICommunityBasicInfo {
     }
     interface IFetchCommunityProducts extends ICommunityBasicInfo {
+        stallId?: string;
     }
 }
 export interface ISocialEventManagerRead {

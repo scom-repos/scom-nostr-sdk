@@ -7015,11 +7015,12 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             return fetchEventsResponse.events || [];
         }
         async fetchCommunityProducts(options) {
-            const { creatorId, communityId } = options;
-            const communityPubkey = creatorId.startsWith('npub1') ? index_4.Nip19.decode(creatorId).data : creatorId;
+            const { creatorId, communityId, stallId } = options;
+            const communityPubkey = creatorId && creatorId.startsWith('npub1') ? index_4.Nip19.decode(creatorId).data : creatorId;
             let msg = {
                 communityPubkey,
-                communityName: communityId
+                communityName: communityId,
+                stallId: stallId
             };
             const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-community-products', msg);
             return fetchEventsResponse.events || [];
@@ -10173,12 +10174,13 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
             }
             return stalls;
         }
-        async fetchCommunityProducts(creatorId, communityId) {
+        async fetchCommunityProducts(creatorId, communityId, stallId) {
             let products = [];
             try {
                 const events = await this._socialEventManagerRead.fetchCommunityProducts({
                     creatorId,
-                    communityId
+                    communityId,
+                    stallId
                 });
                 for (let event of events) {
                     const communityProductInfo = utilsManager_5.SocialUtilsManager.extractCommunityProductInfo(event);

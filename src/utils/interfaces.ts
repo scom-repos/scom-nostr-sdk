@@ -932,7 +932,9 @@ export namespace SocialEventManagerReadOptions {
 		communityName: string;
 	}
 	export interface IFetchCommunityStalls extends ICommunityBasicInfo {}
-	export interface IFetchCommunityProducts extends ICommunityBasicInfo {}
+	export interface IFetchCommunityProducts extends ICommunityBasicInfo {
+		stallId?: string;
+	}
 }
 
 export interface ISocialEventManagerRead {
