@@ -1586,6 +1586,38 @@ declare module "@scom/scom-social-sdk/interfaces/marketplace.ts" {
         code: string;
         name: string;
     }
+    export interface IMarketplaceOrderItem {
+        productId: string;
+        quantity: number;
+    }
+    export interface IMarketplaceOrder {
+        id: string;
+        name?: string;
+        address?: string;
+        message?: string;
+        contact: {
+            nostr: string;
+            phone?: string;
+            email?: string;
+        };
+        items: IMarketplaceOrderItem[];
+        shippingId: string;
+    }
+    export interface IMarketplaceOrderPaymentOption {
+        type: string;
+        link: string;
+    }
+    export interface IMarketplaceOrderPaymentRequest {
+        id: string;
+        message?: string;
+        paymentOptions: IMarketplaceOrderPaymentOption[];
+    }
+    export interface IMarketplaceOrderStatus {
+        id: string;
+        message?: string;
+        paid: boolean;
+        shipped: boolean;
+    }
 }
 /// <amd-module name="@scom/scom-social-sdk/interfaces/misc.ts" />
 declare module "@scom/scom-social-sdk/interfaces/misc.ts" {
@@ -2027,7 +2059,7 @@ declare module "@scom/scom-social-sdk/interfaces/dataManager.ts" {
 /// <amd-module name="@scom/scom-social-sdk/interfaces/eventManagerWrite.ts" />
 declare module "@scom/scom-social-sdk/interfaces/eventManagerWrite.ts" {
     import { IUpdateCalendarEventInfo, INewCalendarEventPostInfo, ILongFormContentInfo, IRelayConfig } from "@scom/scom-social-sdk/interfaces/misc.ts";
-    import { IMarketplaceProduct, IMarketplaceStall } from "@scom/scom-social-sdk/interfaces/marketplace.ts";
+    import { IMarketplaceOrder, IMarketplaceOrderPaymentRequest, IMarketplaceOrderStatus, IMarketplaceProduct, IMarketplaceStall } from "@scom/scom-social-sdk/interfaces/marketplace.ts";
     import { ICommunityBasicInfo, ICommunityInfo, INewCommunityPostInfo } from "@scom/scom-social-sdk/interfaces/community.ts";
     import { IChannelInfo, INewChannelMessageInfo } from "@scom/scom-social-sdk/interfaces/channel.ts";
     import { INostrMetadataContent, INostrCommunicationManager, IConversationPath, INostrEvent, INostrSubmitResponse } from "@scom/scom-social-sdk/interfaces/common.ts";
@@ -2038,11 +2070,31 @@ declare module "@scom/scom-social-sdk/interfaces/eventManagerWrite.ts" {
             encryptedKey: string;
             masterWalletHash: string;
         }
-        interface ISendTempMessage {
+        interface ISendMessage {
             receiver: string;
             encryptedMessage: string;
             replyToEventId?: string;
+        }
+        interface ISendTempMessage extends ISendMessage {
             widgetId?: string;
+        }
+        interface IPlaceMarketplaceOrder {
+            merchantId: string;
+            stallId: string;
+            order: IMarketplaceOrder;
+            replyToEventId?: string;
+        }
+        interface IRequestMarketplaceOrderPayment {
+            merchantId: string;
+            stallId: string;
+            paymentRequest: IMarketplaceOrderPaymentRequest;
+            replyToEventId?: string;
+        }
+        interface IUpdatetMarketplaceOrderStatus {
+            merchantId: string;
+            stallId: string;
+            status: IMarketplaceOrderStatus;
+            replyToEventId?: string;
         }
     }
     export interface ISocialEventManagerWriteResult {
@@ -2062,7 +2114,7 @@ declare module "@scom/scom-social-sdk/interfaces/eventManagerWrite.ts" {
         updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[]): Promise<ISocialEventManagerWriteResult>;
         submitCommunityPost(info: INewCommunityPostInfo): Promise<ISocialEventManagerWriteResult>;
         updateUserProfile(content: INostrMetadataContent): Promise<ISocialEventManagerWriteResult>;
-        sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<ISocialEventManagerWriteResult>;
+        sendMessage(options: SocialEventManagerWriteOptions.ISendMessage): Promise<ISocialEventManagerWriteResult>;
         sendTempMessage(options: SocialEventManagerWriteOptions.ISendTempMessage): Promise<ISocialEventManagerWriteResult>;
         updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]): Promise<ISocialEventManagerWriteResult>;
         updateCalendarEvent(info: IUpdateCalendarEventInfo): Promise<ISocialEventManagerWriteResult>;
@@ -2081,6 +2133,9 @@ declare module "@scom/scom-social-sdk/interfaces/eventManagerWrite.ts" {
         updateNoteStatus(noteId: string, status: string): Promise<ISocialEventManagerWriteResult>;
         updateCommunityStall(creatorId: string, communityId: string, stall: IMarketplaceStall): Promise<ISocialEventManagerWriteResult>;
         updateCommunityProduct(creatorId: string, communityId: string, product: IMarketplaceProduct): Promise<ISocialEventManagerWriteResult>;
+        placeMarketplaceOrder(options: SocialEventManagerWriteOptions.IPlaceMarketplaceOrder): Promise<ISocialEventManagerWriteResult>;
+        requestMarketplaceOrderPayment(options: SocialEventManagerWriteOptions.IRequestMarketplaceOrderPayment): Promise<ISocialEventManagerWriteResult>;
+        updateMarketplaceOrderStatus(options: SocialEventManagerWriteOptions.IUpdatetMarketplaceOrderStatus): Promise<ISocialEventManagerWriteResult>;
     }
 }
 /// <amd-module name="@scom/scom-social-sdk/interfaces/index.ts" />
@@ -2113,7 +2168,7 @@ declare module "@scom/scom-social-sdk/managers/utilsManager.ts" {
         factor: number, // Exponential backoff factor
         stopCondition?: (data: T) => boolean): Promise<T>;
         static getCommunityUri(creatorId: string, communityId: string): string;
-        static getMarketplaceStallUri(creatorId: string, stallId: string): string;
+        static getMarketplaceStallUri(merchantId: string, stallId: string): string;
         static getCommunityBasicInfoFromUri(communityUri: string): ICommunityBasicInfo;
         static extractCommunityInfo(event: INostrEvent): ICommunityInfo;
         static extractCommunityStallInfo(event: INostrEvent): ICommunityStallInfo;
@@ -2218,7 +2273,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
             event: Event.VerifiedEvent<number>;
             relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
-        sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<{
+        sendMessage(options: SocialEventManagerWriteOptions.ISendMessage): Promise<{
             event: Event.VerifiedEvent<number>;
             relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
@@ -2291,6 +2346,18 @@ declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
             relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         updateCommunityProduct(creatorId: string, communityId: string, product: IMarketplaceProduct): Promise<{
+            event: Event.VerifiedEvent<number>;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
+        }>;
+        placeMarketplaceOrder(options: SocialEventManagerWriteOptions.IPlaceMarketplaceOrder): Promise<{
+            event: Event.VerifiedEvent<number>;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
+        }>;
+        requestMarketplaceOrderPayment(options: SocialEventManagerWriteOptions.IRequestMarketplaceOrderPayment): Promise<{
+            event: Event.VerifiedEvent<number>;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
+        }>;
+        updateMarketplaceOrderStatus(options: SocialEventManagerWriteOptions.IUpdatetMarketplaceOrderStatus): Promise<{
             event: Event.VerifiedEvent<number>;
             relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;

@@ -429,7 +429,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         return result;
     }
   
-    async sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string) {
+    async sendMessage(options: SocialEventManagerWriteOptions.ISendMessage) {
+        const { receiver, encryptedMessage, replyToEventId } = options;
         const decodedPubKey = receiver.startsWith('npub1') ? Nip19.decode(receiver).data : receiver;
         let event = {
             "kind": 4,
@@ -952,6 +953,113 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 ]
             ]
         };
+        const result = await this.handleEventSubmission(event);
+        return result;
+    }
+
+    async placeMarketplaceOrder(options: SocialEventManagerWriteOptions.IPlaceMarketplaceOrder) {
+        const { merchantId, stallId, order, replyToEventId } = options;
+        const stallUri = SocialUtilsManager.getMarketplaceStallUri(merchantId, stallId);
+        const decodedPubKey = merchantId.startsWith('npub1') ? Nip19.decode(merchantId).data : merchantId;
+        let orderItems = order.items.map(item => {
+            return {
+                product_id: item.productId,
+                quantity: item.quantity
+            }
+        });
+        let orderContent = JSON.stringify({
+            id: order.id,
+            type: 0,
+            name: order.name,
+            address: order.address,
+            message: order.message,
+            contact: order.contact,
+            items: orderItems,
+            shipping_id: order.shippingId
+        });
+        let event = {
+            "kind": 4,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": orderContent,
+            "tags": [
+                [
+                    'p',
+                    decodedPubKey as string
+                ],
+                [
+                    "a",
+                    stallUri
+                ]
+            ]
+        }
+        if (replyToEventId) {
+            event.tags.push(['e', replyToEventId]);
+        }
+        const result = await this.handleEventSubmission(event);
+        return result;
+    }
+
+    async requestMarketplaceOrderPayment(options: SocialEventManagerWriteOptions.IRequestMarketplaceOrderPayment) {
+        const { merchantId, stallId, paymentRequest, replyToEventId } = options;
+        const stallUri = SocialUtilsManager.getMarketplaceStallUri(merchantId, stallId);
+        const decodedPubKey = merchantId.startsWith('npub1') ? Nip19.decode(merchantId).data : merchantId;
+        let paymentContent = JSON.stringify({
+            id: paymentRequest.id,
+            type: 1,
+            message: paymentRequest.message,
+            payment_options: paymentRequest.paymentOptions
+        });
+        let event = {
+            "kind": 4,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": paymentContent,
+            "tags": [
+                [
+                    'p',
+                    decodedPubKey as string
+                ],
+                [
+                    "a",
+                    stallUri
+                ]
+            ]
+        }
+        if (replyToEventId) {
+            event.tags.push(['e', replyToEventId]);
+        }
+        const result = await this.handleEventSubmission(event);
+        return result;
+    }
+
+    async updateMarketplaceOrderStatus(options: SocialEventManagerWriteOptions.IUpdatetMarketplaceOrderStatus) {
+        const { merchantId, stallId, status, replyToEventId } = options;
+        const stallUri = SocialUtilsManager.getMarketplaceStallUri(merchantId, stallId);
+        const decodedPubKey = merchantId.startsWith('npub1') ? Nip19.decode(merchantId).data : merchantId;
+        let statusContent = JSON.stringify({
+            id: status.id,
+            type: 2,
+            message: status.message,
+            paid: status.paid,
+            shipped: status.shipped
+        });
+        let event = {
+            "kind": 4,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": statusContent,
+            "tags": [
+                [
+                    'p',
+                    decodedPubKey as string
+                ],
+                [
+                    "a",
+                    stallUri
+                ]
+            ]
+        }
+        if (replyToEventId) {
+            event.tags.push(['e', replyToEventId]);
+        }
         const result = await this.handleEventSubmission(event);
         return result;
     }

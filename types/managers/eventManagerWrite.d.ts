@@ -50,7 +50,7 @@ declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
         event: Event.VerifiedEvent<number>;
         relayResponse: import("../interfaces").INostrSubmitResponse;
     }>;
-    sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<{
+    sendMessage(options: SocialEventManagerWriteOptions.ISendMessage): Promise<{
         event: Event.VerifiedEvent<number>;
         relayResponse: import("../interfaces").INostrSubmitResponse;
     }>;
@@ -123,6 +123,18 @@ declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
         relayResponse: import("../interfaces").INostrSubmitResponse;
     }>;
     updateCommunityProduct(creatorId: string, communityId: string, product: IMarketplaceProduct): Promise<{
+        event: Event.VerifiedEvent<number>;
+        relayResponse: import("../interfaces").INostrSubmitResponse;
+    }>;
+    placeMarketplaceOrder(options: SocialEventManagerWriteOptions.IPlaceMarketplaceOrder): Promise<{
+        event: Event.VerifiedEvent<number>;
+        relayResponse: import("../interfaces").INostrSubmitResponse;
+    }>;
+    requestMarketplaceOrderPayment(options: SocialEventManagerWriteOptions.IRequestMarketplaceOrderPayment): Promise<{
+        event: Event.VerifiedEvent<number>;
+        relayResponse: import("../interfaces").INostrSubmitResponse;
+    }>;
+    updateMarketplaceOrderStatus(options: SocialEventManagerWriteOptions.IUpdatetMarketplaceOrderStatus): Promise<{
         event: Event.VerifiedEvent<number>;
         relayResponse: import("../interfaces").INostrSubmitResponse;
     }>;

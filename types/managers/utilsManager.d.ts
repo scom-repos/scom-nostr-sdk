@@ -10,7 +10,7 @@ declare class SocialUtilsManager {
     static getGMTOffset(timezone: string): string;
     static exponentialBackoffRetry<T>(fn: () => Promise<T>, retries: number, delay: number, maxDelay: number, factor: number, stopCondition?: (data: T) => boolean): Promise<T>;
     static getCommunityUri(creatorId: string, communityId: string): string;
-    static getMarketplaceStallUri(creatorId: string, stallId: string): string;
+    static getMarketplaceStallUri(merchantId: string, stallId: string): string;
     static getCommunityBasicInfoFromUri(communityUri: string): ICommunityBasicInfo;
     static extractCommunityInfo(event: INostrEvent): ICommunityInfo;
     static extractCommunityStallInfo(event: INostrEvent): ICommunityStallInfo;

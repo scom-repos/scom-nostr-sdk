@@ -1692,7 +1692,11 @@ class SocialDataManager {
     async sendDirectMessage(chatId: string, message: string, replyToEventId?: string) {
         const decodedReceiverPubKey = Nip19.decode(chatId).data as string;
         const content = await SocialUtilsManager.encryptMessage(this._privateKey, decodedReceiverPubKey, message);
-        const result = await this._socialEventManagerWrite.sendMessage(decodedReceiverPubKey, content, replyToEventId);
+        const result = await this._socialEventManagerWrite.sendMessage({
+            receiver: decodedReceiverPubKey,
+            encryptedMessage: content, 
+            replyToEventId
+        });
         return result;
     }
 

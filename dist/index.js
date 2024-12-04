@@ -3803,8 +3803,8 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             const decodedPubkey = creatorId.startsWith('npub1') ? index_1.Nip19.decode(creatorId).data : creatorId;
             return `34550:${decodedPubkey}:${communityId}`;
         }
-        static getMarketplaceStallUri(creatorId, stallId) {
-            const decodedPubkey = creatorId.startsWith('npub1') ? index_1.Nip19.decode(creatorId).data : creatorId;
+        static getMarketplaceStallUri(merchantId, stallId) {
+            const decodedPubkey = merchantId.startsWith('npub1') ? index_1.Nip19.decode(merchantId).data : merchantId;
             return `30018:${decodedPubkey}:${stallId}`;
         }
         static getCommunityBasicInfoFromUri(communityUri) {
@@ -4711,7 +4711,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             const result = await this.handleEventSubmission(event);
             return result;
         }
-        async sendMessage(receiver, encryptedMessage, replyToEventId) {
+        async sendMessage(options) {
+            const { receiver, encryptedMessage, replyToEventId } = options;
             const decodedPubKey = receiver.startsWith('npub1') ? index_2.Nip19.decode(receiver).data : receiver;
             let event = {
                 "kind": 4,
@@ -5214,6 +5215,110 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     ]
                 ]
             };
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async placeMarketplaceOrder(options) {
+            const { merchantId, stallId, order, replyToEventId } = options;
+            const stallUri = utilsManager_2.SocialUtilsManager.getMarketplaceStallUri(merchantId, stallId);
+            const decodedPubKey = merchantId.startsWith('npub1') ? index_2.Nip19.decode(merchantId).data : merchantId;
+            let orderItems = order.items.map(item => {
+                return {
+                    product_id: item.productId,
+                    quantity: item.quantity
+                };
+            });
+            let orderContent = JSON.stringify({
+                id: order.id,
+                type: 0,
+                name: order.name,
+                address: order.address,
+                message: order.message,
+                contact: order.contact,
+                items: orderItems,
+                shipping_id: order.shippingId
+            });
+            let event = {
+                "kind": 4,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": orderContent,
+                "tags": [
+                    [
+                        'p',
+                        decodedPubKey
+                    ],
+                    [
+                        "a",
+                        stallUri
+                    ]
+                ]
+            };
+            if (replyToEventId) {
+                event.tags.push(['e', replyToEventId]);
+            }
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async requestMarketplaceOrderPayment(options) {
+            const { merchantId, stallId, paymentRequest, replyToEventId } = options;
+            const stallUri = utilsManager_2.SocialUtilsManager.getMarketplaceStallUri(merchantId, stallId);
+            const decodedPubKey = merchantId.startsWith('npub1') ? index_2.Nip19.decode(merchantId).data : merchantId;
+            let paymentContent = JSON.stringify({
+                id: paymentRequest.id,
+                type: 1,
+                message: paymentRequest.message,
+                payment_options: paymentRequest.paymentOptions
+            });
+            let event = {
+                "kind": 4,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": paymentContent,
+                "tags": [
+                    [
+                        'p',
+                        decodedPubKey
+                    ],
+                    [
+                        "a",
+                        stallUri
+                    ]
+                ]
+            };
+            if (replyToEventId) {
+                event.tags.push(['e', replyToEventId]);
+            }
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async updateMarketplaceOrderStatus(options) {
+            const { merchantId, stallId, status, replyToEventId } = options;
+            const stallUri = utilsManager_2.SocialUtilsManager.getMarketplaceStallUri(merchantId, stallId);
+            const decodedPubKey = merchantId.startsWith('npub1') ? index_2.Nip19.decode(merchantId).data : merchantId;
+            let statusContent = JSON.stringify({
+                id: status.id,
+                type: 2,
+                message: status.message,
+                paid: status.paid,
+                shipped: status.shipped
+            });
+            let event = {
+                "kind": 4,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": statusContent,
+                "tags": [
+                    [
+                        'p',
+                        decodedPubKey
+                    ],
+                    [
+                        "a",
+                        stallUri
+                    ]
+                ]
+            };
+            if (replyToEventId) {
+                event.tags.push(['e', replyToEventId]);
+            }
             const result = await this.handleEventSubmission(event);
             return result;
         }
@@ -9122,7 +9227,11 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
         async sendDirectMessage(chatId, message, replyToEventId) {
             const decodedReceiverPubKey = index_6.Nip19.decode(chatId).data;
             const content = await utilsManager_5.SocialUtilsManager.encryptMessage(this._privateKey, decodedReceiverPubKey, message);
-            const result = await this._socialEventManagerWrite.sendMessage(decodedReceiverPubKey, content, replyToEventId);
+            const result = await this._socialEventManagerWrite.sendMessage({
+                receiver: decodedReceiverPubKey,
+                encryptedMessage: content,
+                replyToEventId
+            });
             return result;
         }
         async sendTempMessage(options) {

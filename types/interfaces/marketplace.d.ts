@@ -50,3 +50,35 @@ export interface ICurrency {
     code: string;
     name: string;
 }
+export interface IMarketplaceOrderItem {
+    productId: string;
+    quantity: number;
+}
+export interface IMarketplaceOrder {
+    id: string;
+    name?: string;
+    address?: string;
+    message?: string;
+    contact: {
+        nostr: string;
+        phone?: string;
+        email?: string;
+    };
+    items: IMarketplaceOrderItem[];
+    shippingId: string;
+}
+export interface IMarketplaceOrderPaymentOption {
+    type: string;
+    link: string;
+}
+export interface IMarketplaceOrderPaymentRequest {
+    id: string;
+    message?: string;
+    paymentOptions: IMarketplaceOrderPaymentOption[];
+}
+export interface IMarketplaceOrderStatus {
+    id: string;
+    message?: string;
+    paid: boolean;
+    shipped: boolean;
+}

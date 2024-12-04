@@ -150,8 +150,8 @@ class SocialUtilsManager {
         return `34550:${decodedPubkey}:${communityId}`;
     }
 
-    static getMarketplaceStallUri(creatorId: string, stallId: string) {
-        const decodedPubkey = creatorId.startsWith('npub1') ? Nip19.decode(creatorId).data as string : creatorId;
+    static getMarketplaceStallUri(merchantId: string, stallId: string) {
+        const decodedPubkey = merchantId.startsWith('npub1') ? Nip19.decode(merchantId).data as string : merchantId;
         return `30018:${decodedPubkey}:${stallId}`;
     }
 

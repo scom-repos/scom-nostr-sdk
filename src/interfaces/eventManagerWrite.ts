@@ -1,5 +1,5 @@
 import { IUpdateCalendarEventInfo, INewCalendarEventPostInfo, ILongFormContentInfo, IRelayConfig } from "./misc";
-import { IMarketplaceProduct, IMarketplaceStall } from "./marketplace";
+import { IMarketplaceOrder, IMarketplaceOrderPaymentRequest, IMarketplaceOrderStatus, IMarketplaceProduct, IMarketplaceStall } from "./marketplace";
 import { ICommunityBasicInfo, ICommunityInfo, INewCommunityPostInfo } from "./community";
 import { IChannelInfo, INewChannelMessageInfo } from "./channel";
 import { INostrMetadataContent, INostrCommunicationManager, IConversationPath, INostrEvent, INostrSubmitResponse } from "./common";
@@ -12,12 +12,36 @@ export namespace SocialEventManagerWriteOptions {
 		masterWalletHash: string;
 	}
 
-	export interface ISendTempMessage {
-		receiver: string;
-		encryptedMessage: string;
-		replyToEventId?: string;
+    export interface ISendMessage {
+        receiver: string;
+        encryptedMessage: string;
+        replyToEventId?: string;
+    }
+
+	export interface ISendTempMessage extends ISendMessage {
 		widgetId?: string;
 	}
+
+    export interface IPlaceMarketplaceOrder {
+        merchantId: string;
+        stallId: string;
+        order: IMarketplaceOrder;
+        replyToEventId?: string;
+    }
+
+    export interface IRequestMarketplaceOrderPayment {
+        merchantId: string;
+        stallId: string;
+        paymentRequest: IMarketplaceOrderPaymentRequest;
+        replyToEventId?: string;
+    }
+
+    export interface IUpdatetMarketplaceOrderStatus {
+        merchantId: string;
+        stallId: string;
+        status: IMarketplaceOrderStatus;
+        replyToEventId?: string;
+    }
 }
 
 export interface ISocialEventManagerWriteResult {
@@ -38,7 +62,7 @@ export interface ISocialEventManagerWrite {
     updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[]): Promise<ISocialEventManagerWriteResult>;
     submitCommunityPost(info: INewCommunityPostInfo): Promise<ISocialEventManagerWriteResult>;
     updateUserProfile(content: INostrMetadataContent): Promise<ISocialEventManagerWriteResult>;
-    sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<ISocialEventManagerWriteResult>;
+    sendMessage(options: SocialEventManagerWriteOptions.ISendMessage): Promise<ISocialEventManagerWriteResult>;
 	sendTempMessage(options: SocialEventManagerWriteOptions.ISendTempMessage): Promise<ISocialEventManagerWriteResult>;
     updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]): Promise<ISocialEventManagerWriteResult>;
     updateCalendarEvent(info: IUpdateCalendarEventInfo): Promise<ISocialEventManagerWriteResult>;
@@ -57,4 +81,7 @@ export interface ISocialEventManagerWrite {
 	updateNoteStatus(noteId: string, status: string): Promise<ISocialEventManagerWriteResult>;
 	updateCommunityStall(creatorId: string, communityId: string, stall: IMarketplaceStall): Promise<ISocialEventManagerWriteResult>;
 	updateCommunityProduct(creatorId: string, communityId: string, product: IMarketplaceProduct): Promise<ISocialEventManagerWriteResult>;
+    placeMarketplaceOrder(options: SocialEventManagerWriteOptions.IPlaceMarketplaceOrder): Promise<ISocialEventManagerWriteResult>;
+    requestMarketplaceOrderPayment(options: SocialEventManagerWriteOptions.IRequestMarketplaceOrderPayment): Promise<ISocialEventManagerWriteResult>;
+    updateMarketplaceOrderStatus(options: SocialEventManagerWriteOptions.IUpdatetMarketplaceOrderStatus): Promise<ISocialEventManagerWriteResult>;
 }
