@@ -1,46 +1,6 @@
-import { Event } from "../core/index";
 import { IChannelInfo } from "./channel";
-import { IConversationPath, INostrEvent, INoteInfo } from "./common";
+import { IConversationPath, INostrEvent, INostrMetadata, INoteInfo } from "./common";
 import { INoteCommunity } from "./community";
-import { ISocialEventManagerRead } from "./eventManagerRead";
-export interface IFetchNotesOptions {
-    authors?: string[];
-    ids?: string[];
-}
-export interface INostrFetchEventsResponse {
-    error?: string;
-    events?: INostrEvent[];
-    data?: any;
-    requestId?: string;
-}
-export interface INostrSubmitResponse {
-    relay: string;
-    success: boolean;
-    message?: string;
-}
-export interface INostrMetadataContent {
-    name: string;
-    display_name: string;
-    displayName?: string;
-    username?: string;
-    website?: string;
-    picture?: string;
-    about?: string;
-    banner?: string;
-    lud16?: string;
-    nip05?: string;
-    eth_wallet?: string;
-    telegram_account?: string;
-}
-export interface INostrMetadata {
-    id: string;
-    pubkey: string;
-    created_at: number;
-    kind: number;
-    tags: string[][];
-    sig: string;
-    content: INostrMetadataContent;
-}
 export interface IUserProfile {
     id: string;
     username: string;
@@ -151,25 +111,6 @@ export interface ILocationCoordinates {
     latitude: number;
     longitude: number;
 }
-export interface IMqttClientOptions {
-    username: string;
-    password: string;
-}
-export interface ISocialDataManagerConfig {
-    version?: 1 | 1.5 | 2;
-    writeRelays?: string[];
-    readRelay?: string;
-    readManager?: ISocialEventManagerRead;
-    publicIndexingRelay?: string;
-    apiBaseUrl?: string;
-    ipLocationServiceBaseUrl?: string;
-    ipLocationServiceApiKey?: string;
-    mqttBrokerUrl?: string;
-    mqttClientOptions?: IMqttClientOptions;
-    mqttSubscriptions?: string[];
-    mqttMessageCallback?: (topic: string, message: string) => void;
-    enableLightningWallet?: boolean;
-}
 export interface ILongFormContentInfo {
     id: string;
     content: string;
@@ -206,19 +147,4 @@ export interface ISendTempMessageOptions {
     message: string;
     replyToEventId?: string;
     widgetId?: string;
-}
-export interface INostrCommunicationManager {
-    url: string;
-    fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
-    fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
-    submitEvent(event: Event.VerifiedEvent<number>, authHeader?: string): Promise<INostrSubmitResponse>;
-}
-export declare namespace SocialDataManagerOptions {
-    interface IFetchUserEthWalletAccountsInfoOptions {
-        walletHash?: string;
-        pubKey?: string;
-    }
-}
-export interface INostrRestAPIManager extends INostrCommunicationManager {
-    fetchEventsFromAPI(endpoint: string, msg: any, authHeader?: string): Promise<INostrFetchEventsResponse>;
 }

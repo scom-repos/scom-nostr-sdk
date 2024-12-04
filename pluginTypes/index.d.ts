@@ -1098,6 +1098,7 @@ declare module "@scom/scom-social-sdk/core/index.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk/interfaces/common.ts" />
 declare module "@scom/scom-social-sdk/interfaces/common.ts" {
+    import { Event } from "@scom/scom-social-sdk/core/index.ts";
     export interface INostrEvent {
         id: string;
         pubkey: string;
@@ -1106,6 +1107,29 @@ declare module "@scom/scom-social-sdk/interfaces/common.ts" {
         tags: string[][];
         content: string;
         sig: string;
+    }
+    export interface INostrMetadataContent {
+        name: string;
+        display_name: string;
+        displayName?: string;
+        username?: string;
+        website?: string;
+        picture?: string;
+        about?: string;
+        banner?: string;
+        lud16?: string;
+        nip05?: string;
+        eth_wallet?: string;
+        telegram_account?: string;
+    }
+    export interface INostrMetadata {
+        id: string;
+        pubkey: string;
+        created_at: number;
+        kind: number;
+        tags: string[][];
+        sig: string;
+        content: INostrMetadataContent;
     }
     export interface IConversationPath {
         noteIds: string[];
@@ -1131,6 +1155,30 @@ declare module "@scom/scom-social-sdk/interfaces/common.ts" {
         eventData: INostrEvent;
         stats?: IPostStats;
         actions?: INoteActions;
+    }
+    export interface IMqttClientOptions {
+        username: string;
+        password: string;
+    }
+    export interface INostrSubmitResponse {
+        relay: string;
+        success: boolean;
+        message?: string;
+    }
+    export interface INostrFetchEventsResponse {
+        error?: string;
+        events?: INostrEvent[];
+        data?: any;
+        requestId?: string;
+    }
+    export interface INostrCommunicationManager {
+        url: string;
+        fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
+        fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
+        submitEvent(event: Event.VerifiedEvent<number>, authHeader?: string): Promise<INostrSubmitResponse>;
+    }
+    export interface INostrRestAPIManager extends INostrCommunicationManager {
+        fetchEventsFromAPI(endpoint: string, msg: any, authHeader?: string): Promise<INostrFetchEventsResponse>;
     }
 }
 /// <amd-module name="@scom/scom-social-sdk/interfaces/community.ts" />
@@ -1539,13 +1587,170 @@ declare module "@scom/scom-social-sdk/interfaces/marketplace.ts" {
         name: string;
     }
 }
+/// <amd-module name="@scom/scom-social-sdk/interfaces/misc.ts" />
+declare module "@scom/scom-social-sdk/interfaces/misc.ts" {
+    import { IChannelInfo } from "@scom/scom-social-sdk/interfaces/channel.ts";
+    import { IConversationPath, INostrEvent, INostrMetadata, INoteInfo } from "@scom/scom-social-sdk/interfaces/common.ts";
+    import { INoteCommunity } from "@scom/scom-social-sdk/interfaces/community.ts";
+    export interface IUserProfile {
+        id: string;
+        username: string;
+        description: string;
+        avatar: string;
+        npub: string;
+        pubkey: string;
+        displayName?: string;
+        website?: string;
+        banner?: string;
+        internetIdentifier: string;
+        followers?: number;
+        lud16?: string;
+        ethWallet?: string;
+        telegramAccount?: string;
+        metadata?: INostrMetadata;
+    }
+    export interface IUserActivityStats {
+        notes: number;
+        replies: number;
+        followers: number;
+        following: number;
+        relays: number;
+        timeJoined: number;
+    }
+    export interface IAuthor {
+        id: string;
+        username: string;
+        description: string;
+        avatar: string;
+        pubKey?: string;
+        displayName?: string;
+        internetIdentifier: string;
+    }
+    export interface INoteInfoExtended extends INoteInfo {
+        parentAuthor?: IAuthor;
+        repost?: IAuthor;
+        community?: INoteCommunity;
+    }
+    export enum ScpStandardId {
+        Community = "1",
+        CommunityPost = "2",
+        Channel = "3",
+        ChannelMessage = "4",
+        GroupKeys = "5"
+    }
+    export interface IMessageContactInfo {
+        id: string;
+        pubKey: string;
+        creatorId: string;
+        username: string;
+        displayName: string;
+        avatar?: string;
+        banner?: string;
+        latestAt?: number;
+        cnt?: number;
+        isGroup?: boolean;
+        channelInfo?: IChannelInfo;
+    }
+    export enum CalendarEventType {
+        DateBased = "dateBased",
+        TimeBased = "timeBased"
+    }
+    export interface ICalendarEventBasicInfo {
+        id: string;
+        title: string;
+        description: string;
+        start: number;
+        end?: number;
+        startTzid?: string;
+        endTzid?: string;
+        type: CalendarEventType;
+        location?: string;
+        latitude?: number;
+        longitude?: number;
+        city?: string;
+        image?: string;
+    }
+    export interface ICalendarEventInfo extends ICalendarEventBasicInfo {
+        naddr: string;
+        eventData?: INostrEvent;
+        geohash?: string;
+    }
+    export interface IUpdateCalendarEventInfo extends ICalendarEventBasicInfo {
+        geohash?: string;
+        hostIds?: string[];
+    }
+    export interface ICalendarEventHost {
+        pubkey: string;
+        userProfile?: IUserProfile;
+    }
+    export interface ICalendarEventAttendee {
+        pubkey: string;
+        userProfile?: IUserProfile;
+        rsvpEventData?: INostrEvent;
+    }
+    export interface ICalendarEventDetailInfo extends ICalendarEventInfo {
+        hosts?: ICalendarEventHost[];
+        attendees?: ICalendarEventAttendee[];
+        notes?: INoteInfo[];
+    }
+    export interface INewCalendarEventPostInfo {
+        calendarEventUri: string;
+        message: string;
+        conversationPath?: IConversationPath;
+    }
+    export interface ILocationCoordinates {
+        latitude: number;
+        longitude: number;
+    }
+    export interface ILongFormContentInfo {
+        id: string;
+        content: string;
+        markdownContent: string;
+        title?: string;
+        image?: string;
+        summary?: string;
+        createdAt?: number;
+        publishedAt?: number;
+        eventData?: INostrEvent;
+        hashtags?: string[];
+    }
+    export interface IRelayConfig {
+        read: boolean;
+        write: boolean;
+    }
+    export interface IPaymentActivity {
+        paymentHash: string;
+        sender: string;
+        recipient: string;
+        amount: string;
+        status: string;
+        createdAt: number;
+    }
+    export interface IEthWalletAccountsInfo {
+        masterWalletSignature: string;
+        socialWalletSignature: string;
+        encryptedKey: string;
+        masterWalletHash: string;
+        eventData?: INostrEvent;
+    }
+    export interface ISendTempMessageOptions {
+        receiverId: string;
+        message: string;
+        replyToEventId?: string;
+        widgetId?: string;
+    }
+}
 /// <amd-module name="@scom/scom-social-sdk/interfaces/eventManagerRead.ts" />
 declare module "@scom/scom-social-sdk/interfaces/eventManagerRead.ts" {
-    import { INostrCommunicationManager, INostrRestAPIManager, IFetchNotesOptions, IPaymentActivity } from "@scom/scom-social-sdk/interfaces/misc.ts";
+    import { IPaymentActivity } from "@scom/scom-social-sdk/interfaces/misc.ts";
     import { Nip19 } from "@scom/scom-social-sdk/core/index.ts";
     import { ICommunityBasicInfo, ICommunityInfo, ICommunityMember } from "@scom/scom-social-sdk/interfaces/community.ts";
     import { IAllUserRelatedChannels } from "@scom/scom-social-sdk/interfaces/channel.ts";
-    import { INostrEvent } from "@scom/scom-social-sdk/interfaces/common.ts";
+    import { INostrCommunicationManager, INostrRestAPIManager, INostrEvent } from "@scom/scom-social-sdk/interfaces/common.ts";
+    export interface IFetchNotesOptions {
+        authors?: string[];
+        ids?: string[];
+    }
     export namespace SocialEventManagerReadOptions {
         interface IFetchThreadCacheEvents {
             id: string;
@@ -1793,164 +1998,15 @@ declare module "@scom/scom-social-sdk/interfaces/eventManagerRead.ts" {
         fetchCommunityProducts(options: SocialEventManagerReadOptions.IFetchCommunityProducts): Promise<INostrEvent[]>;
     }
 }
-/// <amd-module name="@scom/scom-social-sdk/interfaces/misc.ts" />
-declare module "@scom/scom-social-sdk/interfaces/misc.ts" {
-    import { Event } from "@scom/scom-social-sdk/core/index.ts";
-    import { IChannelInfo } from "@scom/scom-social-sdk/interfaces/channel.ts";
-    import { IConversationPath, INostrEvent, INoteInfo } from "@scom/scom-social-sdk/interfaces/common.ts";
-    import { INoteCommunity } from "@scom/scom-social-sdk/interfaces/community.ts";
+/// <amd-module name="@scom/scom-social-sdk/interfaces/dataManager.ts" />
+declare module "@scom/scom-social-sdk/interfaces/dataManager.ts" {
+    import { IMqttClientOptions } from "@scom/scom-social-sdk/interfaces/common.ts";
     import { ISocialEventManagerRead } from "@scom/scom-social-sdk/interfaces/eventManagerRead.ts";
-    export interface IFetchNotesOptions {
-        authors?: string[];
-        ids?: string[];
-    }
-    export interface INostrFetchEventsResponse {
-        error?: string;
-        events?: INostrEvent[];
-        data?: any;
-        requestId?: string;
-    }
-    export interface INostrSubmitResponse {
-        relay: string;
-        success: boolean;
-        message?: string;
-    }
-    export interface INostrMetadataContent {
-        name: string;
-        display_name: string;
-        displayName?: string;
-        username?: string;
-        website?: string;
-        picture?: string;
-        about?: string;
-        banner?: string;
-        lud16?: string;
-        nip05?: string;
-        eth_wallet?: string;
-        telegram_account?: string;
-    }
-    export interface INostrMetadata {
-        id: string;
-        pubkey: string;
-        created_at: number;
-        kind: number;
-        tags: string[][];
-        sig: string;
-        content: INostrMetadataContent;
-    }
-    export interface IUserProfile {
-        id: string;
-        username: string;
-        description: string;
-        avatar: string;
-        npub: string;
-        pubkey: string;
-        displayName?: string;
-        website?: string;
-        banner?: string;
-        internetIdentifier: string;
-        followers?: number;
-        lud16?: string;
-        ethWallet?: string;
-        telegramAccount?: string;
-        metadata?: INostrMetadata;
-    }
-    export interface IUserActivityStats {
-        notes: number;
-        replies: number;
-        followers: number;
-        following: number;
-        relays: number;
-        timeJoined: number;
-    }
-    export interface IAuthor {
-        id: string;
-        username: string;
-        description: string;
-        avatar: string;
-        pubKey?: string;
-        displayName?: string;
-        internetIdentifier: string;
-    }
-    export interface INoteInfoExtended extends INoteInfo {
-        parentAuthor?: IAuthor;
-        repost?: IAuthor;
-        community?: INoteCommunity;
-    }
-    export enum ScpStandardId {
-        Community = "1",
-        CommunityPost = "2",
-        Channel = "3",
-        ChannelMessage = "4",
-        GroupKeys = "5"
-    }
-    export interface IMessageContactInfo {
-        id: string;
-        pubKey: string;
-        creatorId: string;
-        username: string;
-        displayName: string;
-        avatar?: string;
-        banner?: string;
-        latestAt?: number;
-        cnt?: number;
-        isGroup?: boolean;
-        channelInfo?: IChannelInfo;
-    }
-    export enum CalendarEventType {
-        DateBased = "dateBased",
-        TimeBased = "timeBased"
-    }
-    export interface ICalendarEventBasicInfo {
-        id: string;
-        title: string;
-        description: string;
-        start: number;
-        end?: number;
-        startTzid?: string;
-        endTzid?: string;
-        type: CalendarEventType;
-        location?: string;
-        latitude?: number;
-        longitude?: number;
-        city?: string;
-        image?: string;
-    }
-    export interface ICalendarEventInfo extends ICalendarEventBasicInfo {
-        naddr: string;
-        eventData?: INostrEvent;
-        geohash?: string;
-    }
-    export interface IUpdateCalendarEventInfo extends ICalendarEventBasicInfo {
-        geohash?: string;
-        hostIds?: string[];
-    }
-    export interface ICalendarEventHost {
-        pubkey: string;
-        userProfile?: IUserProfile;
-    }
-    export interface ICalendarEventAttendee {
-        pubkey: string;
-        userProfile?: IUserProfile;
-        rsvpEventData?: INostrEvent;
-    }
-    export interface ICalendarEventDetailInfo extends ICalendarEventInfo {
-        hosts?: ICalendarEventHost[];
-        attendees?: ICalendarEventAttendee[];
-        notes?: INoteInfo[];
-    }
-    export interface INewCalendarEventPostInfo {
-        calendarEventUri: string;
-        message: string;
-        conversationPath?: IConversationPath;
-    }
-    export interface ILocationCoordinates {
-        latitude: number;
-        longitude: number;
-    }
-    export interface IMqttClientOptions {
-        username: string;
-        password: string;
+    export namespace SocialDataManagerOptions {
+        interface IFetchUserEthWalletAccountsInfoOptions {
+            walletHash?: string;
+            pubKey?: string;
+        }
     }
     export interface ISocialDataManagerConfig {
         version?: 1 | 1.5 | 2;
@@ -1967,66 +2023,14 @@ declare module "@scom/scom-social-sdk/interfaces/misc.ts" {
         mqttMessageCallback?: (topic: string, message: string) => void;
         enableLightningWallet?: boolean;
     }
-    export interface ILongFormContentInfo {
-        id: string;
-        content: string;
-        markdownContent: string;
-        title?: string;
-        image?: string;
-        summary?: string;
-        createdAt?: number;
-        publishedAt?: number;
-        eventData?: INostrEvent;
-        hashtags?: string[];
-    }
-    export interface IRelayConfig {
-        read: boolean;
-        write: boolean;
-    }
-    export interface IPaymentActivity {
-        paymentHash: string;
-        sender: string;
-        recipient: string;
-        amount: string;
-        status: string;
-        createdAt: number;
-    }
-    export interface IEthWalletAccountsInfo {
-        masterWalletSignature: string;
-        socialWalletSignature: string;
-        encryptedKey: string;
-        masterWalletHash: string;
-        eventData?: INostrEvent;
-    }
-    export interface ISendTempMessageOptions {
-        receiverId: string;
-        message: string;
-        replyToEventId?: string;
-        widgetId?: string;
-    }
-    export interface INostrCommunicationManager {
-        url: string;
-        fetchEvents(...requests: any): Promise<INostrFetchEventsResponse>;
-        fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
-        submitEvent(event: Event.VerifiedEvent<number>, authHeader?: string): Promise<INostrSubmitResponse>;
-    }
-    export namespace SocialDataManagerOptions {
-        interface IFetchUserEthWalletAccountsInfoOptions {
-            walletHash?: string;
-            pubKey?: string;
-        }
-    }
-    export interface INostrRestAPIManager extends INostrCommunicationManager {
-        fetchEventsFromAPI(endpoint: string, msg: any, authHeader?: string): Promise<INostrFetchEventsResponse>;
-    }
 }
 /// <amd-module name="@scom/scom-social-sdk/interfaces/eventManagerWrite.ts" />
 declare module "@scom/scom-social-sdk/interfaces/eventManagerWrite.ts" {
-    import { INostrSubmitResponse, INostrCommunicationManager, INostrMetadataContent, IUpdateCalendarEventInfo, INewCalendarEventPostInfo, ILongFormContentInfo, IRelayConfig } from "@scom/scom-social-sdk/interfaces/misc.ts";
+    import { IUpdateCalendarEventInfo, INewCalendarEventPostInfo, ILongFormContentInfo, IRelayConfig } from "@scom/scom-social-sdk/interfaces/misc.ts";
     import { IMarketplaceProduct, IMarketplaceStall } from "@scom/scom-social-sdk/interfaces/marketplace.ts";
     import { ICommunityBasicInfo, ICommunityInfo, INewCommunityPostInfo } from "@scom/scom-social-sdk/interfaces/community.ts";
     import { IChannelInfo, INewChannelMessageInfo } from "@scom/scom-social-sdk/interfaces/channel.ts";
-    import { IConversationPath, INostrEvent } from "@scom/scom-social-sdk/interfaces/common.ts";
+    import { INostrMetadataContent, INostrCommunicationManager, IConversationPath, INostrEvent, INostrSubmitResponse } from "@scom/scom-social-sdk/interfaces/common.ts";
     export namespace SocialEventManagerWriteOptions {
         interface IUpdateUserEthWalletAccountsInfo {
             masterWalletSignature: string;
@@ -2086,6 +2090,7 @@ declare module "@scom/scom-social-sdk/interfaces/index.ts" {
     export * from "@scom/scom-social-sdk/interfaces/channel.ts";
     export * from "@scom/scom-social-sdk/interfaces/marketplace.ts";
     export * from "@scom/scom-social-sdk/interfaces/misc.ts";
+    export * from "@scom/scom-social-sdk/interfaces/dataManager.ts";
     export * from "@scom/scom-social-sdk/interfaces/eventManagerRead.ts";
     export * from "@scom/scom-social-sdk/interfaces/eventManagerWrite.ts";
 }
@@ -2175,119 +2180,119 @@ declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
         private handleEventSubmission;
         updateContactList(content: string, contactPubKeys: string[]): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         postNote(content: string, conversationPath?: IConversationPath, createdAt?: number): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         deleteEvents(eventIds: string[]): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         updateChannel(info: IChannelInfo): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         updateUserBookmarkedChannels(channelEventIds: string[]): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         updateCommunity(info: ICommunityInfo): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         updateUserBookmarkedCommunities(communities: ICommunityBasicInfo[]): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         submitCommunityPost(info: INewCommunityPostInfo): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         submitChannelMessage(info: INewChannelMessageInfo): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         updateUserProfile(content: INostrMetadataContent): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         sendMessage(receiver: string, encryptedMessage: string, replyToEventId?: string): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         sendTempMessage(options: SocialEventManagerWriteOptions.ISendTempMessage): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         updateGroupKeys(identifier: string, groupKind: number, keys: string, invitees: string[]): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         updateCalendarEvent(info: IUpdateCalendarEventInfo): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         createCalendarEventRSVP(rsvpId: string, calendarEventUri: string, accepted: boolean): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         submitCalendarEventPost(info: INewCalendarEventPostInfo): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         submitLongFormContentEvents(info: ILongFormContentInfo): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         submitLike(tags: string[][]): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         submitRepost(content: string, tags: string[][]): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         updateRelayList(relays: Record<string, IRelayConfig>): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         createPaymentRequestEvent(paymentRequest: string, amount: string, comment: string, isLightningInvoice?: boolean): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         createPaymentReceiptEvent(requestEventId: string, recipient: string, comment: string, preimage?: string, tx?: string): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         updateCommunityPinnedNotes(creatorId: string, communityId: string, eventIds: string[]): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         updateUserPinnedNotes(eventIds: string[]): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         updateUserBookmarks(tags: string[][]): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         updateUserEthWalletAccountsInfo(options: SocialEventManagerWriteOptions.IUpdateUserEthWalletAccountsInfo, privateKey?: string): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         updateNoteStatus(noteId: string, status: string): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         updateCommunityStall(creatorId: string, communityId: string, stall: IMarketplaceStall): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
         updateCommunityProduct(creatorId: string, communityId: string, product: IMarketplaceProduct): Promise<{
             event: Event.VerifiedEvent<number>;
-            relayResponse: import("@scom/scom-social-sdk/interfaces/misc.ts").INostrSubmitResponse;
+            relayResponse: import("@scom/scom-social-sdk/interfaces/common.ts").INostrSubmitResponse;
         }>;
     }
     export { NostrEventManagerWrite };
@@ -2374,7 +2379,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" {
         constructor(manager: INostrRestAPIManager);
         set nostrCommunicationManager(manager: INostrRestAPIManager);
         set privateKey(privateKey: string);
-        fetchEventsFromAPIWithAuth(endpoint: string, msg: any): Promise<import("@scom/scom-social-sdk/interfaces/misc.ts").INostrFetchEventsResponse>;
+        fetchEventsFromAPIWithAuth(endpoint: string, msg: any): Promise<import("@scom/scom-social-sdk/interfaces/common.ts").INostrFetchEventsResponse>;
         fetchThreadCacheEvents(options: SocialEventManagerReadOptions.IFetchThreadCacheEvents): Promise<import("@scom/scom-social-sdk/interfaces/common.ts").INostrEvent[]>;
         fetchTrendingCacheEvents(options: SocialEventManagerReadOptions.IFetchTrendingCacheEvents): Promise<import("@scom/scom-social-sdk/interfaces/common.ts").INostrEvent[]>;
         fetchProfileFeedCacheEvents(options: SocialEventManagerReadOptions.IFetchProfileFeedCacheEvents): Promise<import("@scom/scom-social-sdk/interfaces/common.ts").INostrEvent[]>;

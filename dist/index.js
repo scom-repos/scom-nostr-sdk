@@ -3540,6 +3540,7 @@ define("@scom/scom-social-sdk/core/index.ts", ["require", "exports", "@scom/scom
     Object.defineProperty(exports, "secp256k1", { enumerable: true, get: function () { return secp256k1_3.secp256k1; } });
     Object.defineProperty(exports, "schnorr", { enumerable: true, get: function () { return secp256k1_3.schnorr; } });
 });
+///<amd-module name='@scom/scom-social-sdk/interfaces/common.ts'/> 
 define("@scom/scom-social-sdk/interfaces/common.ts", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -3619,11 +3620,6 @@ define("@scom/scom-social-sdk/interfaces/marketplace.ts", ["require", "exports"]
         MarketplaceProductType["Bundle"] = "Bundle";
     })(MarketplaceProductType = exports.MarketplaceProductType || (exports.MarketplaceProductType = {}));
 });
-define("@scom/scom-social-sdk/interfaces/eventManagerRead.ts", ["require", "exports"], function (require, exports) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-});
-///<amd-module name='@scom/scom-social-sdk/interfaces/misc.ts'/> 
 define("@scom/scom-social-sdk/interfaces/misc.ts", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -3642,11 +3638,19 @@ define("@scom/scom-social-sdk/interfaces/misc.ts", ["require", "exports"], funct
         CalendarEventType["TimeBased"] = "timeBased";
     })(CalendarEventType = exports.CalendarEventType || (exports.CalendarEventType = {}));
 });
+define("@scom/scom-social-sdk/interfaces/eventManagerRead.ts", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+});
+define("@scom/scom-social-sdk/interfaces/dataManager.ts", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+});
 define("@scom/scom-social-sdk/interfaces/eventManagerWrite.ts", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
 });
-define("@scom/scom-social-sdk/interfaces/index.ts", ["require", "exports", "@scom/scom-social-sdk/interfaces/common.ts", "@scom/scom-social-sdk/interfaces/community.ts", "@scom/scom-social-sdk/interfaces/channel.ts", "@scom/scom-social-sdk/interfaces/marketplace.ts", "@scom/scom-social-sdk/interfaces/misc.ts", "@scom/scom-social-sdk/interfaces/eventManagerRead.ts", "@scom/scom-social-sdk/interfaces/eventManagerWrite.ts"], function (require, exports, common_1, community_1, channel_1, marketplace_1, misc_1, eventManagerRead_1, eventManagerWrite_1) {
+define("@scom/scom-social-sdk/interfaces/index.ts", ["require", "exports", "@scom/scom-social-sdk/interfaces/common.ts", "@scom/scom-social-sdk/interfaces/community.ts", "@scom/scom-social-sdk/interfaces/channel.ts", "@scom/scom-social-sdk/interfaces/marketplace.ts", "@scom/scom-social-sdk/interfaces/misc.ts", "@scom/scom-social-sdk/interfaces/dataManager.ts", "@scom/scom-social-sdk/interfaces/eventManagerRead.ts", "@scom/scom-social-sdk/interfaces/eventManagerWrite.ts"], function (require, exports, common_1, community_1, channel_1, marketplace_1, misc_1, dataManager_1, eventManagerRead_1, eventManagerWrite_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     ///<amd-module name='@scom/scom-social-sdk/interfaces/index.ts'/> 
@@ -3655,6 +3659,7 @@ define("@scom/scom-social-sdk/interfaces/index.ts", ["require", "exports", "@sco
     __exportStar(channel_1, exports);
     __exportStar(marketplace_1, exports);
     __exportStar(misc_1, exports);
+    __exportStar(dataManager_1, exports);
     __exportStar(eventManagerRead_1, exports);
     __exportStar(eventManagerWrite_1, exports);
 });
@@ -10271,7 +10276,7 @@ define("@scom/scom-social-sdk/managers/dataManager.ts", ["require", "exports", "
     }
     exports.SocialDataManager = SocialDataManager;
 });
-define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/scom-social-sdk/managers/communication.ts", "@scom/scom-social-sdk/managers/utilsManager.ts", "@scom/scom-social-sdk/managers/eventManagerWrite.ts", "@scom/scom-social-sdk/managers/eventManagerRead.ts", "@scom/scom-social-sdk/managers/eventManagerReadV2.ts", "@scom/scom-social-sdk/managers/dataManager.ts"], function (require, exports, communication_2, utilsManager_6, eventManagerWrite_3, eventManagerRead_3, eventManagerReadV2_2, dataManager_1) {
+define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/scom-social-sdk/managers/communication.ts", "@scom/scom-social-sdk/managers/utilsManager.ts", "@scom/scom-social-sdk/managers/eventManagerWrite.ts", "@scom/scom-social-sdk/managers/eventManagerRead.ts", "@scom/scom-social-sdk/managers/eventManagerReadV2.ts", "@scom/scom-social-sdk/managers/dataManager.ts"], function (require, exports, communication_2, utilsManager_6, eventManagerWrite_3, eventManagerRead_3, eventManagerReadV2_2, dataManager_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.NostrWebSocketManager = exports.NostrRestAPIManager = exports.SocialDataManager = exports.SocialUtilsManager = exports.NostrEventManagerWrite = exports.NostrEventManagerReadV2 = exports.NostrEventManagerRead = void 0;
@@ -10281,7 +10286,7 @@ define("@scom/scom-social-sdk/managers/index.ts", ["require", "exports", "@scom/
     Object.defineProperty(exports, "NostrEventManagerWrite", { enumerable: true, get: function () { return eventManagerWrite_3.NostrEventManagerWrite; } });
     Object.defineProperty(exports, "NostrEventManagerRead", { enumerable: true, get: function () { return eventManagerRead_3.NostrEventManagerRead; } });
     Object.defineProperty(exports, "NostrEventManagerReadV2", { enumerable: true, get: function () { return eventManagerReadV2_2.NostrEventManagerReadV2; } });
-    Object.defineProperty(exports, "SocialDataManager", { enumerable: true, get: function () { return dataManager_1.SocialDataManager; } });
+    Object.defineProperty(exports, "SocialDataManager", { enumerable: true, get: function () { return dataManager_2.SocialDataManager; } });
 });
 define("@scom/scom-social-sdk", ["require", "exports", "@scom/scom-social-sdk/core/index.ts", "@scom/scom-social-sdk/interfaces/index.ts", "@scom/scom-social-sdk/managers/index.ts"], function (require, exports, index_7, interfaces_6, managers_1) {
     "use strict";

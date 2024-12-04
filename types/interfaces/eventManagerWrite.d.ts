@@ -1,8 +1,8 @@
-import { INostrSubmitResponse, INostrCommunicationManager, INostrMetadataContent, IUpdateCalendarEventInfo, INewCalendarEventPostInfo, ILongFormContentInfo, IRelayConfig } from "./misc";
+import { IUpdateCalendarEventInfo, INewCalendarEventPostInfo, ILongFormContentInfo, IRelayConfig } from "./misc";
 import { IMarketplaceProduct, IMarketplaceStall } from "./marketplace";
 import { ICommunityBasicInfo, ICommunityInfo, INewCommunityPostInfo } from "./community";
 import { IChannelInfo, INewChannelMessageInfo } from "./channel";
-import { IConversationPath, INostrEvent } from "./common";
+import { INostrMetadataContent, INostrCommunicationManager, IConversationPath, INostrEvent, INostrSubmitResponse } from "./common";
 export declare namespace SocialEventManagerWriteOptions {
     interface IUpdateUserEthWalletAccountsInfo {
         masterWalletSignature: string;

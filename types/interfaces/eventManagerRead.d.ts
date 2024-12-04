@@ -1,8 +1,12 @@
-import { INostrCommunicationManager, INostrRestAPIManager, IFetchNotesOptions, IPaymentActivity } from "./misc";
+import { IPaymentActivity } from "./misc";
 import { Nip19 } from "../core/index";
 import { ICommunityBasicInfo, ICommunityInfo, ICommunityMember } from "./community";
 import { IAllUserRelatedChannels } from "./channel";
-import { INostrEvent } from "./common";
+import { INostrCommunicationManager, INostrRestAPIManager, INostrEvent } from "./common";
+export interface IFetchNotesOptions {
+    authors?: string[];
+    ids?: string[];
+}
 export declare namespace SocialEventManagerReadOptions {
     interface IFetchThreadCacheEvents {
         id: string;
