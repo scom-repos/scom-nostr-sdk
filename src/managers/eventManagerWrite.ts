@@ -20,7 +20,7 @@ import {
     SocialEventManagerWriteOptions, 
     IMarketplaceProduct,
     MarketplaceProductType
-} from "../utils";
+} from "../interfaces";
 import {
     INostrCommunicationManager
 } from "./communication";

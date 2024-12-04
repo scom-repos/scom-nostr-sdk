@@ -1,4 +1,4 @@
-import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, INostrEvent, IPaymentActivity, ISocialEventManagerRead, SocialEventManagerReadOptions } from "../utils";
+import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, INostrEvent, IPaymentActivity, ISocialEventManagerRead, SocialEventManagerReadOptions } from "../interfaces";
 import { INostrCommunicationManager } from "./communication";
 declare class NostrEventManagerRead implements ISocialEventManagerRead {
     protected _nostrCommunicationManager: INostrCommunicationManager;

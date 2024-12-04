@@ -1,4 +1,4 @@
-import { ISocialEventManagerRead, SocialEventManagerReadOptions } from "../utils";
+import { ISocialEventManagerRead, SocialEventManagerReadOptions } from "../interfaces";
 import { INostrRestAPIManager } from "./communication";
 import { SocialUtilsManager } from "./utilsManager";
 import { NostrEventManagerReadV1o5 } from "./eventManagerReadV1o5";

@@ -6,8 +6,8 @@ export {
     secp256k1, 
     schnorr
 } from './core/index'
-export * from './utils/index'
 
+export * from './interfaces';
 export {
     NostrEventManagerRead,
     NostrEventManagerReadV2,

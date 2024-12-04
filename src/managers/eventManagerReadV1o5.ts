@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../core/index";
-import { CommunityRole, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, IFetchNotesOptions, INostrMetadata, IPaymentActivity, ISocialEventManagerRead, IUserProfile, SocialEventManagerReadOptions } from "../utils";
+import { CommunityRole, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityMember, IFetchNotesOptions, INostrMetadata, IPaymentActivity, ISocialEventManagerRead, IUserProfile, SocialEventManagerReadOptions } from "../interfaces";
 import { INostrCommunicationManager, INostrRestAPIManager } from "./communication";
 import { SocialUtilsManager } from "./utilsManager";
 import { NostrEventManagerRead } from "./eventManagerRead";

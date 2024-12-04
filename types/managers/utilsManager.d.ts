@@ -1,4 +1,4 @@
-import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityProductInfo, ICommunityStallInfo, INostrEvent, INostrMetadata, IUserProfile } from "../utils";
+import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityProductInfo, ICommunityStallInfo, INostrEvent, INostrMetadata, IUserProfile } from "../interfaces";
 declare class SocialUtilsManager {
     static hexStringToUint8Array(hexString: string): Uint8Array;
     static base64ToUtf8(base64: string): string;

@@ -1,5 +1,5 @@
 import { Event } from "../core/index";
-import { INostrEvent, INostrFetchEventsResponse, INostrSubmitResponse, INostrCommunicationManager, INostrRestAPIManager } from "../utils";
+import { INostrEvent, INostrFetchEventsResponse, INostrSubmitResponse, INostrCommunicationManager, INostrRestAPIManager } from "../interfaces";
 import { SocialUtilsManager } from "./utilsManager";
 
 function determineWebSocketType() {

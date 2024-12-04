@@ -1,6 +1,6 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, ICommunityProductInfo, ICommunityStallInfo, INostrEvent, INostrMetadata, IUserProfile, MarketplaceProductType, MembershipType, PaymentMethod, ScpStandardId } from "../utils";
+import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, ICommunityProductInfo, ICommunityStallInfo, INostrEvent, INostrMetadata, IUserProfile, MarketplaceProductType, MembershipType, PaymentMethod, ScpStandardId } from "../interfaces";
 import { Signer } from "@scom/scom-signer";
 
 class SocialUtilsManager {
