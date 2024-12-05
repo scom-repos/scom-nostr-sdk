@@ -1548,6 +1548,7 @@ declare module "@scom/scom-social-sdk/interfaces/marketplace.ts" {
         name?: string;
         cost: number;
         regions?: string[];
+        amountWithOthers?: number;
     }
     export interface IMarketplaceStall {
         id: string;
@@ -1563,6 +1564,7 @@ declare module "@scom/scom-social-sdk/interfaces/marketplace.ts" {
         name: string;
         description?: string;
         images?: string[];
+        thumbnail?: string;
         currency: string;
         price: number;
         quantity: number;

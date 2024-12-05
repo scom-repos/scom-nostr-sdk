@@ -298,6 +298,7 @@ class SocialUtilsManager {
             name: data.name,
             description: data.description,
             images: data.images,
+            thumbnail: data.thumbnail,
             currency: data.currency,
             price: data.price,
             quantity: data.quantity,
