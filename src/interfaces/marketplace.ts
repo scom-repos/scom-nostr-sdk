@@ -14,6 +14,7 @@ export interface IMarketplaceStallShipping {
 	name?: string;
 	cost: number;
 	regions?: string[];
+	amountWithOthers?: number;
 }
 
 export interface IMarketplaceStall {
@@ -31,6 +32,7 @@ export interface IMarketplaceProduct {
 	name: string;
 	description?: string;
 	images?: string[];
+	thumbnail?: string;
 	currency: string;
 	price: number;
 	quantity: number;

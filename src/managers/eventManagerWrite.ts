@@ -928,6 +928,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             name: product.name,
             description: product.description,
             images: product.images,
+            thumbnail: product.thumbnail,
             currency: product.currency,
             price: product.price,
             quantity: product.quantity,
