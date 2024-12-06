@@ -9,6 +9,10 @@ export class SystemDataManager {
         this._publicIndexingRelay = publicIndexingRelay;
     }
 
+    get privateKey() {
+        return this._privateKey;
+    }
+    
     set privateKey(privateKey: string) {
         this._privateKey = privateKey;
     }

@@ -3,6 +3,7 @@ export declare class SystemDataManager {
     private _publicIndexingRelay;
     private _privateKey;
     constructor(publicIndexingRelay: string);
+    get privateKey(): string;
     set privateKey(privateKey: string);
     private fetchListOfValues;
     fetchRegions(): Promise<IRegion[]>;

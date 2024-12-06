@@ -2290,7 +2290,7 @@ class SocialDataManager {
         return paymentRequest;
     }
 
-    private parsePaymentRequest(paymentRequest: string) {
+    parsePaymentRequest(paymentRequest: string) {
         const decoded = atob(paymentRequest);
         let data = JSON.parse(decoded);
         return data;

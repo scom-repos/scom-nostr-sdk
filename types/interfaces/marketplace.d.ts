@@ -29,6 +29,7 @@ export interface IMarketplaceStall {
     description?: string;
     currency: string;
     shipping: IMarketplaceStallShipping[];
+    payout?: IPayoutSettings;
 }
 export interface IMarketplaceProduct {
     id: string;

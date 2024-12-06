@@ -1565,6 +1565,7 @@ declare module "@scom/scom-social-sdk/interfaces/marketplace.ts" {
         description?: string;
         currency: string;
         shipping: IMarketplaceStallShipping[];
+        payout?: IPayoutSettings;
     }
     export interface IMarketplaceProduct {
         id: string;
@@ -2632,6 +2633,7 @@ declare module "@scom/scom-social-sdk/managers/dataManager/system.ts" {
         private _publicIndexingRelay;
         private _privateKey;
         constructor(publicIndexingRelay: string);
+        get privateKey(): string;
         set privateKey(privateKey: string);
         private fetchListOfValues;
         fetchRegions(): Promise<IRegion[]>;
@@ -2834,7 +2836,7 @@ declare module "@scom/scom-social-sdk/managers/dataManager/index.ts" {
         updateRelays(add: string[], remove: string[], defaultRelays: string[]): Promise<string[]>;
         makeInvoice(amount: string, comment: string): Promise<string>;
         createPaymentRequest(chainId: number, token: any, amount: string, to: string, comment: string): Promise<string>;
-        private parsePaymentRequest;
+        parsePaymentRequest(paymentRequest: string): any;
         private sendToken;
         private isLightningInvoice;
         sendPayment(paymentRequest: string, comment: string): Promise<string>;

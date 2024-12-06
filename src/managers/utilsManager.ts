@@ -274,6 +274,7 @@ class SocialUtilsManager {
             description: data.description,
             currency: data.currency,
             shipping: data.shipping,
+            payout: data.payout,
             communityUri: communityUri,
             eventData: event
         };

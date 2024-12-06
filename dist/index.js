@@ -4298,6 +4298,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 description: data.description,
                 currency: data.currency,
                 shipping: data.shipping,
+                payout: data.payout,
                 communityUri: communityUri,
                 eventData: event
             };
@@ -7755,6 +7756,9 @@ define("@scom/scom-social-sdk/managers/dataManager/system.ts", ["require", "expo
     class SystemDataManager {
         constructor(publicIndexingRelay) {
             this._publicIndexingRelay = publicIndexingRelay;
+        }
+        get privateKey() {
+            return this._privateKey;
         }
         set privateKey(privateKey) {
             this._privateKey = privateKey;

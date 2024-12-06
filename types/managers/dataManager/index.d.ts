@@ -191,7 +191,7 @@ declare class SocialDataManager {
     updateRelays(add: string[], remove: string[], defaultRelays: string[]): Promise<string[]>;
     makeInvoice(amount: string, comment: string): Promise<string>;
     createPaymentRequest(chainId: number, token: any, amount: string, to: string, comment: string): Promise<string>;
-    private parsePaymentRequest;
+    parsePaymentRequest(paymentRequest: string): any;
     private sendToken;
     private isLightningInvoice;
     sendPayment(paymentRequest: string, comment: string): Promise<string>;
