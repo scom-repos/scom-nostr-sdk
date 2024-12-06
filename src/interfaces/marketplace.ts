@@ -17,6 +17,17 @@ export interface IMarketplaceStallShipping {
 	amountWithOthers?: number;
 }
 
+export interface ICryptoPayoutOption {
+	cryptoCode: string; 
+	networkCode: string; 
+	tokenAddress?: string;
+	walletAddress: string; 
+}
+
+export interface IPayoutSettings {
+	cryptoOptions: ICryptoPayoutOption[];
+}
+
 export interface IMarketplaceStall {
 	id: string;
 	name: string;
@@ -59,6 +70,16 @@ export interface IRegion {
 export interface ICurrency {
 	code: string;
 	name: string;
+}
+
+export interface ICryptocurrency {
+	cryptoCode: string;
+	networkCode: string;
+	cryptoName: string;
+	networkName: string;
+	chainId?: string;
+	tokenAddress?: string;
+	tokenDecimals?: number;
 }
 
 export interface IMarketplaceOrderItem {

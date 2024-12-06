@@ -1,7 +1,8 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, ICommunityProductInfo, ICommunityStallInfo, INostrEvent, INostrMetadata, IUserProfile, MarketplaceProductType, MembershipType, PaymentMethod, ScpStandardId } from "../interfaces";
+import { CalendarEventType, ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, ICommunityProductInfo, ICommunityStallInfo, INostrEvent, INostrMetadata, IUserProfile, MarketplaceProductType, MembershipType, PaymentMethod, ScpStandardId } from "../interfaces";
 import { Signer } from "@scom/scom-signer";
+import Geohash from '../utils/geohash';
 
 class SocialUtilsManager {
     static hexStringToUint8Array(hexString: string): Uint8Array {
@@ -407,6 +408,69 @@ class SocialUtilsManager {
             metadata,
         }
         return userProfile;
+    }
+
+    static extractCalendarEventInfo(event: INostrEvent) {
+        const description = event.content;
+        const id = event.tags.find(tag => tag[0] === 'd')?.[1];
+        const name = event.tags.find(tag => tag[0] === 'name')?.[1]; //deprecated
+        const title = event.tags.find(tag => tag[0] === 'title')?.[1];
+        const start = event.tags.find(tag => tag[0] === 'start')?.[1];
+        const end = event.tags.find(tag => tag[0] === 'end')?.[1];
+        const startTzid = event.tags.find(tag => tag[0] === 'start_tzid')?.[1];
+        const endTzid = event.tags.find(tag => tag[0] === 'end_tzid')?.[1];
+        const location = event.tags.find(tag => tag[0] === 'location')?.[1];
+        const city = event.tags.find(tag => tag[0] === 'city')?.[1];
+        let lonlat;
+        const geohash = event.tags.find(tag => tag[0] === 'g')?.[1];
+        if (geohash) {
+            lonlat = Geohash.decode(geohash);
+        }
+        const image = event.tags.find(tag => tag[0] === 'image')?.[1];
+        let type;
+        let startTime;
+        let endTime;
+        if (event.kind === 31922) {
+            type = CalendarEventType.DateBased;
+            const startDate = new Date(start);
+            startTime = startDate.getTime() / 1000;
+            if (end) {
+                const endDate = new Date(end);
+                endTime = endDate.getTime() / 1000;
+            }
+        }
+        else if (event.kind === 31923) {
+            type = CalendarEventType.TimeBased;
+            startTime = Number(start);
+            if (end) {
+                endTime = Number(end);
+            }
+        }
+        const naddr = Nip19.naddrEncode({
+            identifier: id,
+            pubkey: event.pubkey,
+            kind: event.kind,
+            relays: []
+        })
+        let calendarEventInfo: ICalendarEventInfo = {
+            naddr,
+            type,
+            id,
+            title: title || name,
+            description,
+            start: startTime,
+            end: endTime,
+            startTzid,
+            endTzid,
+            location,
+            city,
+            latitude: lonlat?.latitude,
+            longitude: lonlat?.longitude,
+            geohash,
+            image,
+            eventData: event
+        }
+        return calendarEventInfo;
     }
 
     //FIXME: remove this when compiler is fixed

@@ -1550,6 +1550,15 @@ declare module "@scom/scom-social-sdk/interfaces/marketplace.ts" {
         regions?: string[];
         amountWithOthers?: number;
     }
+    export interface ICryptoPayoutOption {
+        cryptoCode: string;
+        networkCode: string;
+        tokenAddress?: string;
+        walletAddress: string;
+    }
+    export interface IPayoutSettings {
+        cryptoOptions: ICryptoPayoutOption[];
+    }
     export interface IMarketplaceStall {
         id: string;
         name: string;
@@ -1587,6 +1596,15 @@ declare module "@scom/scom-social-sdk/interfaces/marketplace.ts" {
     export interface ICurrency {
         code: string;
         name: string;
+    }
+    export interface ICryptocurrency {
+        cryptoCode: string;
+        networkCode: string;
+        cryptoName: string;
+        networkName: string;
+        chainId?: string;
+        tokenAddress?: string;
+        tokenDecimals?: number;
     }
     export interface IMarketplaceOrderItem {
         productId: string;
@@ -2087,12 +2105,14 @@ declare module "@scom/scom-social-sdk/interfaces/eventManagerWrite.ts" {
             replyToEventId?: string;
         }
         interface IRequestMarketplaceOrderPayment {
+            customerId: string;
             merchantId: string;
             stallId: string;
             paymentRequest: IMarketplaceOrderPaymentRequest;
             replyToEventId?: string;
         }
         interface IUpdatetMarketplaceOrderStatus {
+            customerId: string;
             merchantId: string;
             stallId: string;
             status: IMarketplaceOrderStatus;
@@ -2151,9 +2171,52 @@ declare module "@scom/scom-social-sdk/interfaces/index.ts" {
     export * from "@scom/scom-social-sdk/interfaces/eventManagerRead.ts";
     export * from "@scom/scom-social-sdk/interfaces/eventManagerWrite.ts";
 }
+/// <amd-module name="@scom/scom-social-sdk/utils/geohash.ts" />
+declare module "@scom/scom-social-sdk/utils/geohash.ts" {
+    const Geohash: {
+        ENCODE_AUTO: string;
+        encode: (latitude: number | string, longitude: number | string, numberOfChars?: number | 'auto') => string;
+        encode_uint64: (latitude: number, longitude: number, bitDepth?: number) => number;
+        encode_int: (latitude: number, longitude: number, bitDepth?: number) => number;
+        decode: (hashString: string) => {
+            latitude: number;
+            longitude: number;
+            error: {
+                latitude: number;
+                longitude: number;
+            };
+        };
+        decode_int: (hashInt: number, bitDepth?: number) => {
+            latitude: number;
+            longitude: number;
+            error: {
+                latitude: number;
+                longitude: number;
+            };
+        };
+        decode_uint64: (hashInt: number, bitDepth?: number) => {
+            latitude: number;
+            longitude: number;
+            error: {
+                latitude: number;
+                longitude: number;
+            };
+        };
+        decode_bbox: (hashString: string) => number[];
+        decode_bbox_uint64: (hashInt: number, bitDepth?: number) => number[];
+        decode_bbox_int: (hashInt: number, bitDepth?: number) => number[];
+        neighbor: (hashString: string, direction: [number, number]) => string;
+        neighbor_int: (hashInt: number, direction: [number, number], bitDepth?: number) => number;
+        neighbors: (hashString: string) => string[];
+        neighbors_int: (hashInt: number, bitDepth?: number) => number[];
+        bboxes: (minLat: number, minLon: number, maxLat: number, maxLon: number, numberOfChars: number) => string[];
+        bboxes_int: (minLat: number, minLon: number, maxLat: number, maxLon: number, bitDepth: number) => any[];
+    };
+    export default Geohash;
+}
 /// <amd-module name="@scom/scom-social-sdk/managers/utilsManager.ts" />
 declare module "@scom/scom-social-sdk/managers/utilsManager.ts" {
-    import { IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityProductInfo, ICommunityStallInfo, INostrEvent, INostrMetadata, IUserProfile } from "@scom/scom-social-sdk/interfaces/index.ts";
+    import { ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityProductInfo, ICommunityStallInfo, INostrEvent, INostrMetadata, IUserProfile } from "@scom/scom-social-sdk/interfaces/index.ts";
     class SocialUtilsManager {
         static hexStringToUint8Array(hexString: string): Uint8Array;
         static base64ToUtf8(base64: string): string;
@@ -2182,6 +2245,7 @@ declare module "@scom/scom-social-sdk/managers/utilsManager.ts" {
         static extractChannelInfo(event: INostrEvent): IChannelInfo;
         static constructAuthHeader(privateKey: string): string;
         static constructUserProfile(metadata: INostrMetadata, followersCountMap?: Record<string, number>): IUserProfile;
+        static extractCalendarEventInfo(event: INostrEvent): ICalendarEventInfo;
         static flatMap<T, U>(array: T[], callback: (item: T) => U[]): U[];
     }
     export { SocialUtilsManager };
@@ -2526,49 +2590,6 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV2.ts" {
     }
     export { NostrEventManagerReadV2 };
 }
-/// <amd-module name="@scom/scom-social-sdk/utils/geohash.ts" />
-declare module "@scom/scom-social-sdk/utils/geohash.ts" {
-    const Geohash: {
-        ENCODE_AUTO: string;
-        encode: (latitude: number | string, longitude: number | string, numberOfChars?: number | 'auto') => string;
-        encode_uint64: (latitude: number, longitude: number, bitDepth?: number) => number;
-        encode_int: (latitude: number, longitude: number, bitDepth?: number) => number;
-        decode: (hashString: string) => {
-            latitude: number;
-            longitude: number;
-            error: {
-                latitude: number;
-                longitude: number;
-            };
-        };
-        decode_int: (hashInt: number, bitDepth?: number) => {
-            latitude: number;
-            longitude: number;
-            error: {
-                latitude: number;
-                longitude: number;
-            };
-        };
-        decode_uint64: (hashInt: number, bitDepth?: number) => {
-            latitude: number;
-            longitude: number;
-            error: {
-                latitude: number;
-                longitude: number;
-            };
-        };
-        decode_bbox: (hashString: string) => number[];
-        decode_bbox_uint64: (hashInt: number, bitDepth?: number) => number[];
-        decode_bbox_int: (hashInt: number, bitDepth?: number) => number[];
-        neighbor: (hashString: string, direction: [number, number]) => string;
-        neighbor_int: (hashInt: number, direction: [number, number], bitDepth?: number) => number;
-        neighbors: (hashString: string) => string[];
-        neighbors_int: (hashInt: number, bitDepth?: number) => number[];
-        bboxes: (minLat: number, minLon: number, maxLat: number, maxLon: number, numberOfChars: number) => string[];
-        bboxes_int: (minLat: number, minLon: number, maxLat: number, maxLon: number, bitDepth: number) => any[];
-    };
-    export default Geohash;
-}
 /// <amd-module name="@scom/scom-social-sdk/utils/lightningWallet.ts" />
 declare module "@scom/scom-social-sdk/utils/lightningWallet.ts" {
     type LNURLResponse = {
@@ -2604,8 +2625,22 @@ declare module "@scom/scom-social-sdk/utils/lightningWallet.ts" {
         getBalance(): Promise<any>;
     }
 }
-/// <amd-module name="@scom/scom-social-sdk/managers/dataManager.ts" />
-declare module "@scom/scom-social-sdk/managers/dataManager.ts" {
+/// <amd-module name="@scom/scom-social-sdk/managers/dataManager/system.ts" />
+declare module "@scom/scom-social-sdk/managers/dataManager/system.ts" {
+    import { ICryptocurrency, ICurrency, IRegion } from "@scom/scom-social-sdk/interfaces/index.ts";
+    export class SystemDataManager {
+        private _publicIndexingRelay;
+        private _privateKey;
+        constructor(publicIndexingRelay: string);
+        set privateKey(privateKey: string);
+        private fetchListOfValues;
+        fetchRegions(): Promise<IRegion[]>;
+        fetchCurrencies(): Promise<ICurrency[]>;
+        fetchCryptocurrencies(): Promise<ICryptocurrency[]>;
+    }
+}
+/// <amd-module name="@scom/scom-social-sdk/managers/dataManager/index.ts" />
+declare module "@scom/scom-social-sdk/managers/dataManager/index.ts" {
     import { CommunityRole, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunityProductInfo, ICommunityStallInfo, ICommunitySubscription, IConversationPath, ICurrency, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, ILocationCoordinates, ILongFormContentInfo, IMarketplaceProduct, IMarketplaceStall, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPostStats, IRegion, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, SocialDataManagerOptions } from "@scom/scom-social-sdk/interfaces/index.ts";
     class SocialDataManager {
         private _writeRelays;
@@ -2618,6 +2653,7 @@ declare module "@scom/scom-social-sdk/managers/dataManager.ts" {
         private _selfPubkey;
         private mqttManager;
         private lightningWalletManager;
+        private systemDataManager;
         constructor(config: ISocialDataManagerConfig);
         dispose(): Promise<void>;
         set privateKey(privateKey: string);
@@ -2771,7 +2807,6 @@ declare module "@scom/scom-social-sdk/managers/dataManager.ts" {
         resetMessageCount(selfPubKey: string, senderPubKey: string): Promise<void>;
         fetchMessageContacts(pubKey: string): Promise<IMessageContactInfo[]>;
         fetchUserGroupInvitations(pubKey: string): Promise<string[]>;
-        private extractCalendarEventInfo;
         updateCalendarEvent(updateCalendarEventInfo: IUpdateCalendarEventInfo): Promise<string>;
         retrieveCalendarEventsByDateRange(start: number, end?: number, limit?: number, previousEventId?: string): Promise<{
             calendarEventInfoList: ICalendarEventInfo[];
@@ -2785,7 +2820,6 @@ declare module "@scom/scom-social-sdk/managers/dataManager.ts" {
         fetchCitiesByKeyword(keyword: string): Promise<any[]>;
         fetchCitiesByCoordinates(latitude: number, longitude: number): Promise<any[]>;
         fetchLocationInfoFromIP(): Promise<ILocationCoordinates>;
-        private fetchEventMetadataFromIPFS;
         getAccountBalance(walletAddress: string): Promise<any>;
         getNFTsByOwner(walletAddress: string): Promise<any>;
         submitMessage(message: string, conversationPath?: IConversationPath, createdAt?: number): Promise<import("@scom/scom-social-sdk/interfaces/eventManagerWrite.ts").ISocialEventManagerWriteResult>;
@@ -2800,7 +2834,7 @@ declare module "@scom/scom-social-sdk/managers/dataManager.ts" {
         updateRelays(add: string[], remove: string[], defaultRelays: string[]): Promise<string[]>;
         makeInvoice(amount: string, comment: string): Promise<string>;
         createPaymentRequest(chainId: number, token: any, amount: string, to: string, comment: string): Promise<string>;
-        parsePaymentRequest(paymentRequest: string): any;
+        private parsePaymentRequest;
         private sendToken;
         private isLightningInvoice;
         sendPayment(paymentRequest: string, comment: string): Promise<string>;
@@ -2846,6 +2880,7 @@ declare module "@scom/scom-social-sdk/managers/dataManager.ts" {
         updateCommunityProduct(creatorId: string, communityId: string, product: IMarketplaceProduct): Promise<import("@scom/scom-social-sdk/interfaces/eventManagerWrite.ts").ISocialEventManagerWriteResult>;
         fetchRegions(): Promise<IRegion[]>;
         fetchCurrencies(): Promise<ICurrency[]>;
+        fetchCryptocurrencies(): Promise<import("@scom/scom-social-sdk/interfaces/marketplace.ts").ICryptocurrency[]>;
     }
     export { SocialDataManager };
 }
@@ -2856,7 +2891,7 @@ declare module "@scom/scom-social-sdk/managers/index.ts" {
     import { NostrEventManagerWrite } from "@scom/scom-social-sdk/managers/eventManagerWrite.ts";
     import { NostrEventManagerRead } from "@scom/scom-social-sdk/managers/eventManagerRead.ts";
     import { NostrEventManagerReadV2 } from "@scom/scom-social-sdk/managers/eventManagerReadV2.ts";
-    import { SocialDataManager } from "@scom/scom-social-sdk/managers/dataManager.ts";
+    import { SocialDataManager } from "@scom/scom-social-sdk/managers/dataManager/index.ts";
     export { NostrEventManagerRead, NostrEventManagerReadV2, NostrEventManagerWrite, SocialUtilsManager, SocialDataManager, NostrRestAPIManager, NostrWebSocketManager, INostrCommunicationManager, INostrRestAPIManager };
 }
 /// <amd-module name="@scom/scom-social-sdk" />

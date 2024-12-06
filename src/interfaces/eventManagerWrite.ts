@@ -30,6 +30,7 @@ export namespace SocialEventManagerWriteOptions {
     }
 
     export interface IRequestMarketplaceOrderPayment {
+        customerId: string;
         merchantId: string;
         stallId: string;
         paymentRequest: IMarketplaceOrderPaymentRequest;
@@ -37,6 +38,7 @@ export namespace SocialEventManagerWriteOptions {
     }
 
     export interface IUpdatetMarketplaceOrderStatus {
+        customerId: string;
         merchantId: string;
         stallId: string;
         status: IMarketplaceOrderStatus;

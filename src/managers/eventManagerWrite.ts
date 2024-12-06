@@ -1001,9 +1001,9 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
     }
 
     async requestMarketplaceOrderPayment(options: SocialEventManagerWriteOptions.IRequestMarketplaceOrderPayment) {
-        const { merchantId, stallId, paymentRequest, replyToEventId } = options;
+        const { customerId, merchantId, stallId, paymentRequest, replyToEventId } = options;
         const stallUri = SocialUtilsManager.getMarketplaceStallUri(merchantId, stallId);
-        const decodedPubKey = merchantId.startsWith('npub1') ? Nip19.decode(merchantId).data : merchantId;
+        const decodedCustomerPubKey = customerId.startsWith('npub1') ? Nip19.decode(customerId).data : customerId;
         let paymentContent = JSON.stringify({
             id: paymentRequest.id,
             type: 1,
@@ -1017,7 +1017,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             "tags": [
                 [
                     'p',
-                    decodedPubKey as string
+                    decodedCustomerPubKey as string
                 ],
                 [
                     "a",
@@ -1033,9 +1033,9 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
     }
 
     async updateMarketplaceOrderStatus(options: SocialEventManagerWriteOptions.IUpdatetMarketplaceOrderStatus) {
-        const { merchantId, stallId, status, replyToEventId } = options;
+        const { customerId, merchantId, stallId, status, replyToEventId } = options;
         const stallUri = SocialUtilsManager.getMarketplaceStallUri(merchantId, stallId);
-        const decodedPubKey = merchantId.startsWith('npub1') ? Nip19.decode(merchantId).data : merchantId;
+        const decodedCustomerPubKey = customerId.startsWith('npub1') ? Nip19.decode(customerId).data : customerId;
         let statusContent = JSON.stringify({
             id: status.id,
             type: 2,
@@ -1050,7 +1050,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             "tags": [
                 [
                     'p',
-                    decodedPubKey as string
+                    decodedCustomerPubKey as string
                 ],
                 [
                     "a",

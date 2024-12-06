@@ -25,12 +25,14 @@ export declare namespace SocialEventManagerWriteOptions {
         replyToEventId?: string;
     }
     interface IRequestMarketplaceOrderPayment {
+        customerId: string;
         merchantId: string;
         stallId: string;
         paymentRequest: IMarketplaceOrderPaymentRequest;
         replyToEventId?: string;
     }
     interface IUpdatetMarketplaceOrderStatus {
+        customerId: string;
         merchantId: string;
         stallId: string;
         status: IMarketplaceOrderStatus;
