@@ -10314,7 +10314,8 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
                 stats = {
                     notesCount: content.note_count,
                     membersCount: content.member_count,
-                    subcommunitiesCount: content.subcommunity_count
+                    subcommunitiesCount: content.subcommunity_count,
+                    productsCount: content.product_count
                 };
             }
             //Fetch group keys only when scpData.encryptedKey is undefined for backward compatibility

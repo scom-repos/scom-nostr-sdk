@@ -2707,7 +2707,8 @@ class SocialDataManager {
             stats = {
                 notesCount: content.note_count,
                 membersCount: content.member_count,
-                subcommunitiesCount: content.subcommunity_count 
+                subcommunitiesCount: content.subcommunity_count,
+                productsCount: content.product_count
             }
         }
 
