@@ -1412,6 +1412,7 @@ declare module "@scom/scom-social-sdk/interfaces/community.ts" {
         notesCount: number;
         subcommunitiesCount: number;
         membersCount: number;
+        productsCount: number;
     }
     export interface ICommunityDetailMetadata {
         info: ICommunityInfo;

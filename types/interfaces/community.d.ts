@@ -227,6 +227,7 @@ export interface ICommunityStats {
     notesCount: number;
     subcommunitiesCount: number;
     membersCount: number;
+    productsCount: number;
 }
 export interface ICommunityDetailMetadata {
     info: ICommunityInfo;
