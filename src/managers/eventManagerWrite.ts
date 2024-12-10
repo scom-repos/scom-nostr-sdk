@@ -961,35 +961,50 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
     async placeMarketplaceOrder(options: SocialEventManagerWriteOptions.IPlaceMarketplaceOrder) {
         const { merchantId, stallId, order, replyToEventId } = options;
         const stallUri = SocialUtilsManager.getMarketplaceStallUri(merchantId, stallId);
-        const decodedPubKey = merchantId.startsWith('npub1') ? Nip19.decode(merchantId).data : merchantId;
+        const decodedMerchantPubkey = merchantId.startsWith('npub1') ? Nip19.decode(merchantId).data as string : merchantId;
         let orderItems = order.items.map(item => {
             return {
                 product_id: item.productId,
                 quantity: item.quantity
             }
         });
-        let orderContent = JSON.stringify({
+        let message = {
             id: order.id,
             type: 0,
-            name: order.name,
-            address: order.address,
-            message: order.message,
             contact: order.contact,
             items: orderItems,
             shipping_id: order.shippingId
-        });
+        };
+        if (order.name) {
+            message['name'] = order.name;
+        }
+        if (order.address) {
+            message['address'] = order.address;
+        }
+        if (order.message) {
+            message['message'] = order.message;
+        }
+        const encryptedMessage = await SocialUtilsManager.encryptMessage(this._privateKey, decodedMerchantPubkey, JSON.stringify(message));
         let event = {
             "kind": 4,
             "created_at": Math.round(Date.now() / 1000),
-            "content": orderContent,
+            "content": encryptedMessage,
             "tags": [
                 [
                     'p',
-                    decodedPubKey as string
+                    decodedMerchantPubkey
                 ],
                 [
                     "a",
                     stallUri
+                ],
+                [
+                    "t",
+                    "order"
+                ],
+                [
+                    "z",
+                    order.id
                 ]
             ]
         }
@@ -1003,21 +1018,22 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
     async requestMarketplaceOrderPayment(options: SocialEventManagerWriteOptions.IRequestMarketplaceOrderPayment) {
         const { customerId, merchantId, stallId, paymentRequest, replyToEventId } = options;
         const stallUri = SocialUtilsManager.getMarketplaceStallUri(merchantId, stallId);
-        const decodedCustomerPubKey = customerId.startsWith('npub1') ? Nip19.decode(customerId).data : customerId;
-        let paymentContent = JSON.stringify({
+        const decodedCustomerPubkey = customerId.startsWith('npub1') ? Nip19.decode(customerId).data as string : customerId;
+        let message = {
             id: paymentRequest.id,
             type: 1,
             message: paymentRequest.message,
             payment_options: paymentRequest.paymentOptions
-        });
+        };
+        const encryptedMessage = await SocialUtilsManager.encryptMessage(this._privateKey, decodedCustomerPubkey, JSON.stringify(message));
         let event = {
             "kind": 4,
             "created_at": Math.round(Date.now() / 1000),
-            "content": paymentContent,
+            "content": encryptedMessage,
             "tags": [
                 [
                     'p',
-                    decodedCustomerPubKey as string
+                    decodedCustomerPubkey
                 ],
                 [
                     "a",
@@ -1035,28 +1051,99 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
     async updateMarketplaceOrderStatus(options: SocialEventManagerWriteOptions.IUpdatetMarketplaceOrderStatus) {
         const { customerId, merchantId, stallId, status, replyToEventId } = options;
         const stallUri = SocialUtilsManager.getMarketplaceStallUri(merchantId, stallId);
-        const decodedCustomerPubKey = customerId.startsWith('npub1') ? Nip19.decode(customerId).data : customerId;
-        let statusContent = JSON.stringify({
+        const decodedCustomerPubkey = customerId.startsWith('npub1') ? Nip19.decode(customerId).data as string : customerId;
+        let message = {
             id: status.id,
             type: 2,
             message: status.message,
             paid: status.paid,
             shipped: status.shipped
-        });
+        };
+        const encryptedMessage = await SocialUtilsManager.encryptMessage(this._privateKey, decodedCustomerPubkey, JSON.stringify(message));
         let event = {
             "kind": 4,
             "created_at": Math.round(Date.now() / 1000),
-            "content": statusContent,
+            "content": encryptedMessage,
             "tags": [
                 [
                     'p',
-                    decodedCustomerPubKey as string
+                    decodedCustomerPubkey
                 ],
                 [
                     "a",
                     stallUri
                 ]
             ]
+        }
+        if (replyToEventId) {
+            event.tags.push(['e', replyToEventId]);
+        }
+        const result = await this.handleEventSubmission(event);
+        return result;
+    }
+
+    async recordPaymentActivity(options: SocialEventManagerWriteOptions.IRecordPaymentActivity) {
+        const { 
+            id, 
+            sender, 
+            recipient, 
+            amount, 
+            currencyCode, 
+            networkCode, 
+            stallId,
+            orderId, 
+            referenceId, 
+            replyToEventId 
+        } = options;
+        const decodedRecipientPubkey = recipient.startsWith('npub1') ? Nip19.decode(recipient).data as string : recipient;
+        let message = {
+            id,
+            type: 3,
+            sender,
+            recipient,
+            amount,
+            currency_code: currencyCode
+        };
+        if (networkCode) {
+            message['network_code'] = networkCode;
+        }
+        if (orderId) {
+            message['order_id'] = orderId;
+        }
+        if (referenceId) {
+            message['reference_id'] = referenceId;
+        }
+        if (stallId) {
+            message['stall_id'] = stallId;
+        }
+        const encryptedMessage = await SocialUtilsManager.encryptMessage(this._privateKey, decodedRecipientPubkey, JSON.stringify(message));
+        let event = {
+            "kind": 4,
+            "created_at": Math.round(Date.now() / 1000),
+            "content": encryptedMessage,
+            "tags": [
+                [
+                    "p",
+                    decodedRecipientPubkey
+                ],
+                [
+                    "t",
+                    "payment"
+                ]
+            ]
+        };
+        if (orderId) {
+            event.tags.push([
+                "z",
+                orderId
+            ]);
+        }
+        if (stallId) {
+            const stallUri = SocialUtilsManager.getMarketplaceStallUri(recipient, stallId);
+            event.tags.push([
+                "a",
+                stallUri
+            ]);
         }
         if (replyToEventId) {
             event.tags.push(['e', replyToEventId]);

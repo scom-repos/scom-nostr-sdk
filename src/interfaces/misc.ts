@@ -145,6 +145,7 @@ export interface IRelayConfig {
 	write: boolean;
 }
 
+//To be deleted
 export interface IPaymentActivity {
 	paymentHash: string;
 	sender: string;
@@ -152,6 +153,18 @@ export interface IPaymentActivity {
 	amount: string;
 	status: string;
 	createdAt: number;
+}
+
+export interface IPaymentActivityV2 {
+	id: string;
+	sender: string;
+	recipient: string;
+	amount: string;
+	currencyCode: string;
+	networkCode?: string;
+	stallId?: string;
+	orderId?: string;
+	referenceId?: string;
 }
 
 export interface IEthWalletAccountsInfo {

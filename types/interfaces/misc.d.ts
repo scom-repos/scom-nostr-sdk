@@ -135,6 +135,17 @@ export interface IPaymentActivity {
     status: string;
     createdAt: number;
 }
+export interface IPaymentActivityV2 {
+    id: string;
+    sender: string;
+    recipient: string;
+    amount: string;
+    currencyCode: string;
+    networkCode?: string;
+    stallId?: string;
+    orderId?: string;
+    referenceId?: string;
+}
 export interface IEthWalletAccountsInfo {
     masterWalletSignature: string;
     socialWalletSignature: string;

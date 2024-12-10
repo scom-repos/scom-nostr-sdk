@@ -5659,35 +5659,50 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
         async placeMarketplaceOrder(options) {
             const { merchantId, stallId, order, replyToEventId } = options;
             const stallUri = utilsManager_2.SocialUtilsManager.getMarketplaceStallUri(merchantId, stallId);
-            const decodedPubKey = merchantId.startsWith('npub1') ? index_2.Nip19.decode(merchantId).data : merchantId;
+            const decodedMerchantPubkey = merchantId.startsWith('npub1') ? index_2.Nip19.decode(merchantId).data : merchantId;
             let orderItems = order.items.map(item => {
                 return {
                     product_id: item.productId,
                     quantity: item.quantity
                 };
             });
-            let orderContent = JSON.stringify({
+            let message = {
                 id: order.id,
                 type: 0,
-                name: order.name,
-                address: order.address,
-                message: order.message,
                 contact: order.contact,
                 items: orderItems,
                 shipping_id: order.shippingId
-            });
+            };
+            if (order.name) {
+                message['name'] = order.name;
+            }
+            if (order.address) {
+                message['address'] = order.address;
+            }
+            if (order.message) {
+                message['message'] = order.message;
+            }
+            const encryptedMessage = await utilsManager_2.SocialUtilsManager.encryptMessage(this._privateKey, decodedMerchantPubkey, JSON.stringify(message));
             let event = {
                 "kind": 4,
                 "created_at": Math.round(Date.now() / 1000),
-                "content": orderContent,
+                "content": encryptedMessage,
                 "tags": [
                     [
                         'p',
-                        decodedPubKey
+                        decodedMerchantPubkey
                     ],
                     [
                         "a",
                         stallUri
+                    ],
+                    [
+                        "t",
+                        "order"
+                    ],
+                    [
+                        "z",
+                        order.id
                     ]
                 ]
             };
@@ -5700,21 +5715,22 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
         async requestMarketplaceOrderPayment(options) {
             const { customerId, merchantId, stallId, paymentRequest, replyToEventId } = options;
             const stallUri = utilsManager_2.SocialUtilsManager.getMarketplaceStallUri(merchantId, stallId);
-            const decodedCustomerPubKey = customerId.startsWith('npub1') ? index_2.Nip19.decode(customerId).data : customerId;
-            let paymentContent = JSON.stringify({
+            const decodedCustomerPubkey = customerId.startsWith('npub1') ? index_2.Nip19.decode(customerId).data : customerId;
+            let message = {
                 id: paymentRequest.id,
                 type: 1,
                 message: paymentRequest.message,
                 payment_options: paymentRequest.paymentOptions
-            });
+            };
+            const encryptedMessage = await utilsManager_2.SocialUtilsManager.encryptMessage(this._privateKey, decodedCustomerPubkey, JSON.stringify(message));
             let event = {
                 "kind": 4,
                 "created_at": Math.round(Date.now() / 1000),
-                "content": paymentContent,
+                "content": encryptedMessage,
                 "tags": [
                     [
                         'p',
-                        decodedCustomerPubKey
+                        decodedCustomerPubkey
                     ],
                     [
                         "a",
@@ -5731,22 +5747,23 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
         async updateMarketplaceOrderStatus(options) {
             const { customerId, merchantId, stallId, status, replyToEventId } = options;
             const stallUri = utilsManager_2.SocialUtilsManager.getMarketplaceStallUri(merchantId, stallId);
-            const decodedCustomerPubKey = customerId.startsWith('npub1') ? index_2.Nip19.decode(customerId).data : customerId;
-            let statusContent = JSON.stringify({
+            const decodedCustomerPubkey = customerId.startsWith('npub1') ? index_2.Nip19.decode(customerId).data : customerId;
+            let message = {
                 id: status.id,
                 type: 2,
                 message: status.message,
                 paid: status.paid,
                 shipped: status.shipped
-            });
+            };
+            const encryptedMessage = await utilsManager_2.SocialUtilsManager.encryptMessage(this._privateKey, decodedCustomerPubkey, JSON.stringify(message));
             let event = {
                 "kind": 4,
                 "created_at": Math.round(Date.now() / 1000),
-                "content": statusContent,
+                "content": encryptedMessage,
                 "tags": [
                     [
                         'p',
-                        decodedCustomerPubKey
+                        decodedCustomerPubkey
                     ],
                     [
                         "a",
@@ -5754,6 +5771,64 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     ]
                 ]
             };
+            if (replyToEventId) {
+                event.tags.push(['e', replyToEventId]);
+            }
+            const result = await this.handleEventSubmission(event);
+            return result;
+        }
+        async recordPaymentActivity(options) {
+            const { id, sender, recipient, amount, currencyCode, networkCode, stallId, orderId, referenceId, replyToEventId } = options;
+            const decodedRecipientPubkey = recipient.startsWith('npub1') ? index_2.Nip19.decode(recipient).data : recipient;
+            let message = {
+                id,
+                type: 3,
+                sender,
+                recipient,
+                amount,
+                currency_code: currencyCode
+            };
+            if (networkCode) {
+                message['network_code'] = networkCode;
+            }
+            if (orderId) {
+                message['order_id'] = orderId;
+            }
+            if (referenceId) {
+                message['reference_id'] = referenceId;
+            }
+            if (stallId) {
+                message['stall_id'] = stallId;
+            }
+            const encryptedMessage = await utilsManager_2.SocialUtilsManager.encryptMessage(this._privateKey, decodedRecipientPubkey, JSON.stringify(message));
+            let event = {
+                "kind": 4,
+                "created_at": Math.round(Date.now() / 1000),
+                "content": encryptedMessage,
+                "tags": [
+                    [
+                        "p",
+                        decodedRecipientPubkey
+                    ],
+                    [
+                        "t",
+                        "payment"
+                    ]
+                ]
+            };
+            if (orderId) {
+                event.tags.push([
+                    "z",
+                    orderId
+                ]);
+            }
+            if (stallId) {
+                const stallUri = utilsManager_2.SocialUtilsManager.getMarketplaceStallUri(recipient, stallId);
+                event.tags.push([
+                    "a",
+                    stallUri
+                ]);
+            }
             if (replyToEventId) {
                 event.tags.push(['e', replyToEventId]);
             }
@@ -10407,6 +10482,18 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
         }
         async updateCommunityProduct(creatorId, communityId, product) {
             const result = await this._socialEventManagerWrite.updateCommunityProduct(creatorId, communityId, product);
+            return result;
+        }
+        async placeMarketplaceOrder(merchantId, stallId, order) {
+            const result = await this._socialEventManagerWrite.placeMarketplaceOrder({
+                merchantId: merchantId,
+                stallId: stallId,
+                order
+            });
+            return result;
+        }
+        async recordPaymentActivity(paymentActivity) {
+            const result = await this._socialEventManagerWrite.recordPaymentActivity(paymentActivity);
             return result;
         }
         async fetchRegions() {

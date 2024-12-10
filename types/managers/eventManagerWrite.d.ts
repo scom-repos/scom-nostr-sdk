@@ -138,5 +138,9 @@ declare class NostrEventManagerWrite implements ISocialEventManagerWrite {
         event: Event.VerifiedEvent<number>;
         relayResponse: import("../interfaces").INostrSubmitResponse;
     }>;
+    recordPaymentActivity(options: SocialEventManagerWriteOptions.IRecordPaymentActivity): Promise<{
+        event: Event.VerifiedEvent<number>;
+        relayResponse: import("../interfaces").INostrSubmitResponse;
+    }>;
 }
 export { NostrEventManagerWrite };

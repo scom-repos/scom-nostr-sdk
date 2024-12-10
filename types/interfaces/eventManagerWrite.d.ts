@@ -1,4 +1,4 @@
-import { IUpdateCalendarEventInfo, INewCalendarEventPostInfo, ILongFormContentInfo, IRelayConfig } from "./misc";
+import { IUpdateCalendarEventInfo, INewCalendarEventPostInfo, ILongFormContentInfo, IRelayConfig, IPaymentActivityV2 } from "./misc";
 import { IMarketplaceOrder, IMarketplaceOrderPaymentRequest, IMarketplaceOrderStatus, IMarketplaceProduct, IMarketplaceStall } from "./marketplace";
 import { ICommunityBasicInfo, ICommunityInfo, INewCommunityPostInfo } from "./community";
 import { IChannelInfo, INewChannelMessageInfo } from "./channel";
@@ -36,6 +36,9 @@ export declare namespace SocialEventManagerWriteOptions {
         merchantId: string;
         stallId: string;
         status: IMarketplaceOrderStatus;
+        replyToEventId?: string;
+    }
+    interface IRecordPaymentActivity extends IPaymentActivityV2 {
         replyToEventId?: string;
     }
 }
@@ -78,4 +81,5 @@ export interface ISocialEventManagerWrite {
     placeMarketplaceOrder(options: SocialEventManagerWriteOptions.IPlaceMarketplaceOrder): Promise<ISocialEventManagerWriteResult>;
     requestMarketplaceOrderPayment(options: SocialEventManagerWriteOptions.IRequestMarketplaceOrderPayment): Promise<ISocialEventManagerWriteResult>;
     updateMarketplaceOrderStatus(options: SocialEventManagerWriteOptions.IUpdatetMarketplaceOrderStatus): Promise<ISocialEventManagerWriteResult>;
+    recordPaymentActivity(options: SocialEventManagerWriteOptions.IRecordPaymentActivity): Promise<ISocialEventManagerWriteResult>;
 }
