@@ -28,7 +28,7 @@ export interface IMarketplaceStall {
     name: string;
     description?: string;
     currency: string;
-    shipping: IMarketplaceStallShipping[];
+    shipping?: IMarketplaceStallShipping[];
     payout?: IPayoutSettings;
 }
 export interface IMarketplaceProduct {
@@ -86,7 +86,7 @@ export interface IMarketplaceOrder {
         email?: string;
     };
     items: IMarketplaceOrderItem[];
-    shippingId: string;
+    shippingId?: string;
 }
 export interface IMarketplaceOrderPaymentOption {
     type: string;

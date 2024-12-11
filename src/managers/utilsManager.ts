@@ -1,6 +1,6 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, ICommunityProductInfo, ICommunityStallInfo, INostrEvent, INostrMetadata, IUserProfile, MarketplaceProductType, MembershipType, PaymentMethod, ScpStandardId } from "../interfaces";
+import { CalendarEventType, ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, ICommunityProductInfo, ICommunityStallInfo, INostrEvent, INostrMetadata, IPaymentActivityV2, IUserProfile, MarketplaceProductType, MembershipType, PaymentMethod, ScpStandardId } from "../interfaces";
 import { Signer } from "@scom/scom-signer";
 import Geohash from '../utils/geohash';
 
@@ -472,6 +472,40 @@ class SocialUtilsManager {
             eventData: event
         }
         return calendarEventInfo;
+    }
+
+    static async extractPaymentActivity(privateKey: string, event: INostrEvent) {
+        const encryptedContent = event.content;
+        let paymentActivity: IPaymentActivityV2;
+        try {
+            const selfPubKey = Keys.getPublicKey(privateKey);
+            const senderPubKey = event.pubkey;
+            const recipientPubKey = event.tags.find(tag => tag[0] === 'p')?.[1];
+            let contentStr;
+            if (selfPubKey === senderPubKey) {
+                contentStr = await SocialUtilsManager.decryptMessage(privateKey, recipientPubKey, encryptedContent);
+            }
+            else {
+                contentStr = await SocialUtilsManager.decryptMessage(privateKey, senderPubKey, encryptedContent);
+            }
+            if (!contentStr.length) return null;
+            const content = this.parseContent(contentStr);
+            paymentActivity = {
+                id: content.id,
+                sender: content.sender,
+                recipient: content.recipient,
+                amount: content.amount,
+                currencyCode: content.currency_code,
+                networkCode: content.network_code,
+                stallId: content.stall_id,
+                orderId: content.order_id,
+                referenceId: content.reference_id,
+            }
+        } 
+        catch (e) {
+            console.warn("Failed to decrypt payment activity", e);
+        }
+        return paymentActivity;
     }
 
     //FIXME: remove this when compiler is fixed

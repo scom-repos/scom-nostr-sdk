@@ -1095,12 +1095,13 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             referenceId, 
             replyToEventId 
         } = options;
+        const decodedSenderPubkey = sender.startsWith('npub1') ? Nip19.decode(sender).data as string : sender;
         const decodedRecipientPubkey = recipient.startsWith('npub1') ? Nip19.decode(recipient).data as string : recipient;
         let message = {
             id,
             type: 3,
-            sender,
-            recipient,
+            sender: decodedSenderPubkey,
+            recipient: decodedRecipientPubkey,
             amount,
             currency_code: currencyCode
         };
@@ -1139,7 +1140,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             ]);
         }
         if (stallId) {
-            const stallUri = SocialUtilsManager.getMarketplaceStallUri(recipient, stallId);
+            const stallUri = SocialUtilsManager.getMarketplaceStallUri(decodedRecipientPubkey, stallId);
             event.tags.push([
                 "a",
                 stallUri

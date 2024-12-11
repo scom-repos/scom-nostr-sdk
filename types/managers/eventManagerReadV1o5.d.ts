@@ -64,5 +64,6 @@ declare class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     getCommunityUriToMembersMap(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
     fetchCommunityStalls(options: SocialEventManagerReadOptions.IFetchCommunityStalls): Promise<import("../interfaces").INostrEvent[]>;
     fetchCommunityProducts(options: SocialEventManagerReadOptions.IFetchCommunityProducts): Promise<import("../interfaces").INostrEvent[]>;
+    fetchPaymentActivities(options: SocialEventManagerReadOptions.IFetchPaymentActivities): Promise<import("../interfaces").INostrEvent[]>;
 }
 export { NostrEventManagerReadV1o5 };

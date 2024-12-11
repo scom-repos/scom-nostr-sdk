@@ -1066,6 +1066,10 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
         return fetchEventsResponse.events;
     }
+
+    async fetchPaymentActivities(options: SocialEventManagerReadOptions.IFetchPaymentActivities) {
+        return []; // Not supported
+    }
 }
 
 export {

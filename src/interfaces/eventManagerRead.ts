@@ -1,4 +1,4 @@
-import { IPaymentActivity } from "./misc";
+import { IFetchPaymentActivitiesOptions, IPaymentActivity } from "./misc";
 import { Nip19 } from "../core/index";
 import { ICommunityBasicInfo, ICommunityInfo, ICommunityMember } from "./community";
 import { IAllUserRelatedChannels } from "./channel";
@@ -192,6 +192,8 @@ export namespace SocialEventManagerReadOptions {
 	export interface IFetchCommunityProducts extends ICommunityBasicInfo {
 		stallId?: string;
 	}
+
+	export interface IFetchPaymentActivities extends IFetchPaymentActivitiesOptions {}
 }
 
 export interface ISocialEventManagerReadResult {
@@ -254,6 +256,7 @@ export interface ISocialEventManagerRead {
 	getCommunityUriToMembersMap(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
 	fetchCommunityStalls(options: SocialEventManagerReadOptions.IFetchCommunityStalls): Promise<INostrEvent[]>;
 	fetchCommunityProducts(options: SocialEventManagerReadOptions.IFetchCommunityProducts): Promise<INostrEvent[]>;
+	fetchPaymentActivities(options: SocialEventManagerReadOptions.IFetchPaymentActivities): Promise<INostrEvent[]>;
 	// fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
     // fetchReplies(options: IFetchRepliesOptions): Promise<INostrEvent[]>;
     // fetchFollowing(npubs: string[]): Promise<INostrEvent[]>;

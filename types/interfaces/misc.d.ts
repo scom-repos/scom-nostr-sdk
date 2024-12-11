@@ -159,3 +159,9 @@ export interface ISendTempMessageOptions {
     replyToEventId?: string;
     widgetId?: string;
 }
+export interface IFetchPaymentActivitiesOptions {
+    pubkey: string;
+    stallId?: string;
+    since?: number;
+    until?: number;
+}

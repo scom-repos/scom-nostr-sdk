@@ -4493,6 +4493,40 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             };
             return calendarEventInfo;
         }
+        static async extractPaymentActivity(privateKey, event) {
+            const encryptedContent = event.content;
+            let paymentActivity;
+            try {
+                const selfPubKey = index_1.Keys.getPublicKey(privateKey);
+                const senderPubKey = event.pubkey;
+                const recipientPubKey = event.tags.find(tag => tag[0] === 'p')?.[1];
+                let contentStr;
+                if (selfPubKey === senderPubKey) {
+                    contentStr = await SocialUtilsManager.decryptMessage(privateKey, recipientPubKey, encryptedContent);
+                }
+                else {
+                    contentStr = await SocialUtilsManager.decryptMessage(privateKey, senderPubKey, encryptedContent);
+                }
+                if (!contentStr.length)
+                    return null;
+                const content = this.parseContent(contentStr);
+                paymentActivity = {
+                    id: content.id,
+                    sender: content.sender,
+                    recipient: content.recipient,
+                    amount: content.amount,
+                    currencyCode: content.currency_code,
+                    networkCode: content.network_code,
+                    stallId: content.stall_id,
+                    orderId: content.order_id,
+                    referenceId: content.reference_id,
+                };
+            }
+            catch (e) {
+                console.warn("Failed to decrypt payment activity", e);
+            }
+            return paymentActivity;
+        }
         //FIXME: remove this when compiler is fixed
         static flatMap(array, callback) {
             return array.reduce((acc, item) => {
@@ -5779,12 +5813,13 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
         }
         async recordPaymentActivity(options) {
             const { id, sender, recipient, amount, currencyCode, networkCode, stallId, orderId, referenceId, replyToEventId } = options;
+            const decodedSenderPubkey = sender.startsWith('npub1') ? index_2.Nip19.decode(sender).data : sender;
             const decodedRecipientPubkey = recipient.startsWith('npub1') ? index_2.Nip19.decode(recipient).data : recipient;
             let message = {
                 id,
                 type: 3,
-                sender,
-                recipient,
+                sender: decodedSenderPubkey,
+                recipient: decodedRecipientPubkey,
                 amount,
                 currency_code: currencyCode
             };
@@ -5823,7 +5858,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 ]);
             }
             if (stallId) {
-                const stallUri = utilsManager_2.SocialUtilsManager.getMarketplaceStallUri(recipient, stallId);
+                const stallUri = utilsManager_2.SocialUtilsManager.getMarketplaceStallUri(decodedRecipientPubkey, stallId);
                 event.tags.push([
                     "a",
                     stallUri
@@ -6850,6 +6885,9 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
             return fetchEventsResponse.events;
         }
+        async fetchPaymentActivities(options) {
+            return []; // Not supported
+        }
     }
     exports.NostrEventManagerRead = NostrEventManagerRead;
 });
@@ -7678,6 +7716,20 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 stallId: stallId
             };
             const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-community-products', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchPaymentActivities(options) {
+            const { pubkey, stallId, since, until } = options;
+            let msg = {
+                pubkey,
+                stallId,
+                limit: 20,
+            };
+            if (since)
+                msg.since = since;
+            if (until)
+                msg.until = until;
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-payment-activities', msg);
             return fetchEventsResponse.events || [];
         }
     }
@@ -10495,6 +10547,15 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
         async recordPaymentActivity(paymentActivity) {
             const result = await this._socialEventManagerWrite.recordPaymentActivity(paymentActivity);
             return result;
+        }
+        async fetchPaymentActivities(options) {
+            const paymentActivities = [];
+            const paymentActivitiesEvents = await this._socialEventManagerRead.fetchPaymentActivities(options);
+            for (let event of paymentActivitiesEvents) {
+                const paymentActivity = await utilsManager_6.SocialUtilsManager.extractPaymentActivity(this._privateKey, event);
+                paymentActivities.push(paymentActivity);
+            }
+            return paymentActivities;
         }
         async fetchRegions() {
             return this.systemDataManager.fetchRegions();
