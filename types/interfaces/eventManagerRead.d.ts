@@ -194,6 +194,11 @@ export declare namespace SocialEventManagerReadOptions {
     interface IFetchCommunityProducts extends ICommunityBasicInfo {
         stallId?: string;
     }
+    interface IFetchCommunityOrders extends ICommunityBasicInfo {
+        stallId?: string;
+        since?: number;
+        until?: number;
+    }
     interface IFetchPaymentActivities extends IFetchPaymentActivitiesOptions {
     }
 }
@@ -254,5 +259,6 @@ export interface ISocialEventManagerRead {
     getCommunityUriToMembersMap(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
     fetchCommunityStalls(options: SocialEventManagerReadOptions.IFetchCommunityStalls): Promise<INostrEvent[]>;
     fetchCommunityProducts(options: SocialEventManagerReadOptions.IFetchCommunityProducts): Promise<INostrEvent[]>;
+    fetchCommunityOrders(options: SocialEventManagerReadOptions.IFetchCommunityOrders): Promise<INostrEvent[]>;
     fetchPaymentActivities(options: SocialEventManagerReadOptions.IFetchPaymentActivities): Promise<INostrEvent[]>;
 }

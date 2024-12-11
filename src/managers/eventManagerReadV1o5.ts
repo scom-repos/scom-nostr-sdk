@@ -865,6 +865,21 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         return fetchEventsResponse.events || [];
     }
 
+    async fetchCommunityOrders(options: SocialEventManagerReadOptions.IFetchCommunityOrders) {
+        const {creatorId, communityId, stallId, since, until} = options;
+        const communityPubkey = creatorId && creatorId.startsWith('npub1') ? Nip19.decode(creatorId).data : creatorId;
+        let msg: any = {
+            communityPubkey,
+            communityName: communityId,
+            stallId: stallId,
+            limit: 20
+        };
+        if (since) msg.since = since;
+        if (until) msg.until = until;
+        const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-community-orders', msg);
+        return fetchEventsResponse.events || [];
+    }
+
     async fetchPaymentActivities(options: SocialEventManagerReadOptions.IFetchPaymentActivities) {
         const {pubkey, stallId, since, until} = options;
         let msg: any = {

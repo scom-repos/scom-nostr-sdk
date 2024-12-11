@@ -4493,6 +4493,38 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             };
             return calendarEventInfo;
         }
+        static async extractMarketplaceOrder(privateKey, event) {
+            const encryptedContent = event.content;
+            let order;
+            try {
+                const selfPubKey = index_1.Keys.getPublicKey(privateKey);
+                const senderPubKey = event.pubkey;
+                const recipientPubKey = event.tags.find(tag => tag[0] === 'p')?.[1];
+                let contentStr;
+                if (selfPubKey === senderPubKey) {
+                    contentStr = await SocialUtilsManager.decryptMessage(privateKey, recipientPubKey, encryptedContent);
+                }
+                else {
+                    contentStr = await SocialUtilsManager.decryptMessage(privateKey, senderPubKey, encryptedContent);
+                }
+                if (!contentStr.length)
+                    return null;
+                const content = this.parseContent(contentStr);
+                order = {
+                    id: content.id,
+                    name: content.name,
+                    address: content.address,
+                    message: content.message,
+                    contact: content.contact,
+                    items: content.items,
+                    shippingId: content.shipping_id,
+                };
+            }
+            catch (e) {
+                console.warn("Failed to decrypt marketplace order", e);
+            }
+            return order;
+        }
         static async extractPaymentActivity(privateKey, event) {
             const encryptedContent = event.content;
             let paymentActivity;
@@ -6885,6 +6917,9 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
             const fetchEventsResponse = await this._nostrCommunicationManager.fetchEvents(request);
             return fetchEventsResponse.events;
         }
+        async fetchCommunityOrders(options) {
+            return []; // Not supported
+        }
         async fetchPaymentActivities(options) {
             return []; // Not supported
         }
@@ -7716,6 +7751,22 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 stallId: stallId
             };
             const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-community-products', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchCommunityOrders(options) {
+            const { creatorId, communityId, stallId, since, until } = options;
+            const communityPubkey = creatorId && creatorId.startsWith('npub1') ? index_4.Nip19.decode(creatorId).data : creatorId;
+            let msg = {
+                communityPubkey,
+                communityName: communityId,
+                stallId: stallId,
+                limit: 20
+            };
+            if (since)
+                msg.since = since;
+            if (until)
+                msg.until = until;
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-community-orders', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchPaymentActivities(options) {
@@ -10556,6 +10607,19 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
                 paymentActivities.push(paymentActivity);
             }
             return paymentActivities;
+        }
+        async fetchCommunityOrders(creatorId, communityId, stallId) {
+            const events = await this._socialEventManagerRead.fetchCommunityOrders({
+                creatorId,
+                communityId,
+                stallId
+            });
+            const orders = [];
+            for (let event of events) {
+                const order = await utilsManager_6.SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event);
+                orders.push(order);
+            }
+            return orders;
         }
         async fetchRegions() {
             return this.systemDataManager.fetchRegions();

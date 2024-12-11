@@ -1067,6 +1067,10 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         return fetchEventsResponse.events;
     }
 
+    async fetchCommunityOrders(options: SocialEventManagerReadOptions.IFetchCommunityOrders) {
+        return []; // Not supported
+    }
+
     async fetchPaymentActivities(options: SocialEventManagerReadOptions.IFetchPaymentActivities) {
         return []; // Not supported
     }

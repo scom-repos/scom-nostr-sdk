@@ -1,6 +1,6 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, ICommunityProductInfo, ICommunityStallInfo, INostrEvent, INostrMetadata, IPaymentActivityV2, IUserProfile, MarketplaceProductType, MembershipType, PaymentMethod, ScpStandardId } from "../interfaces";
+import { CalendarEventType, ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, ICommunityProductInfo, ICommunityStallInfo, IMarketplaceOrder, INostrEvent, INostrMetadata, IPaymentActivityV2, IUserProfile, MarketplaceProductType, MembershipType, PaymentMethod, ScpStandardId } from "../interfaces";
 import { Signer } from "@scom/scom-signer";
 import Geohash from '../utils/geohash';
 
@@ -472,6 +472,38 @@ class SocialUtilsManager {
             eventData: event
         }
         return calendarEventInfo;
+    }
+
+    static async extractMarketplaceOrder(privateKey: string, event: INostrEvent) {
+        const encryptedContent = event.content;
+        let order: IMarketplaceOrder;
+        try {
+            const selfPubKey = Keys.getPublicKey(privateKey);
+            const senderPubKey = event.pubkey;
+            const recipientPubKey = event.tags.find(tag => tag[0] === 'p')?.[1];
+            let contentStr;
+            if (selfPubKey === senderPubKey) {
+                contentStr = await SocialUtilsManager.decryptMessage(privateKey, recipientPubKey, encryptedContent);
+            }
+            else {
+                contentStr = await SocialUtilsManager.decryptMessage(privateKey, senderPubKey, encryptedContent);
+            }
+            if (!contentStr.length) return null;
+            const content = this.parseContent(contentStr);
+            order = {
+                id: content.id,
+                name: content.name,
+                address: content.address,
+                message: content.message,
+                contact: content.contact,
+                items: content.items,
+                shippingId: content.shipping_id,
+            }
+        } 
+        catch (e) {
+            console.warn("Failed to decrypt marketplace order", e);
+        }
+        return order;
     }
 
     static async extractPaymentActivity(privateKey: string, event: INostrEvent) {

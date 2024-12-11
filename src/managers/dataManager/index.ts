@@ -2834,6 +2834,20 @@ class SocialDataManager {
         return paymentActivities;
     }
 
+    async fetchCommunityOrders(creatorId: string, communityId: string, stallId?: string) {
+        const events = await this._socialEventManagerRead.fetchCommunityOrders({
+            creatorId,
+            communityId,
+            stallId
+        });
+        const orders: IMarketplaceOrder[] = [];
+        for (let event of events) {
+            const order = await SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event);
+            orders.push(order);
+        }
+        return orders;
+    }
+
     async fetchRegions() {
         return this.systemDataManager.fetchRegions();
     }

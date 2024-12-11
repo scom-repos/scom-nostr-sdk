@@ -2009,6 +2009,11 @@ declare module "@scom/scom-social-sdk/interfaces/eventManagerRead.ts" {
         interface IFetchCommunityProducts extends ICommunityBasicInfo {
             stallId?: string;
         }
+        interface IFetchCommunityOrders extends ICommunityBasicInfo {
+            stallId?: string;
+            since?: number;
+            until?: number;
+        }
         interface IFetchPaymentActivities extends IFetchPaymentActivitiesOptions {
         }
     }
@@ -2069,6 +2074,7 @@ declare module "@scom/scom-social-sdk/interfaces/eventManagerRead.ts" {
         getCommunityUriToMembersMap(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
         fetchCommunityStalls(options: SocialEventManagerReadOptions.IFetchCommunityStalls): Promise<INostrEvent[]>;
         fetchCommunityProducts(options: SocialEventManagerReadOptions.IFetchCommunityProducts): Promise<INostrEvent[]>;
+        fetchCommunityOrders(options: SocialEventManagerReadOptions.IFetchCommunityOrders): Promise<INostrEvent[]>;
         fetchPaymentActivities(options: SocialEventManagerReadOptions.IFetchPaymentActivities): Promise<INostrEvent[]>;
     }
 }
@@ -2242,7 +2248,7 @@ declare module "@scom/scom-social-sdk/utils/geohash.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/utilsManager.ts" />
 declare module "@scom/scom-social-sdk/managers/utilsManager.ts" {
-    import { ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityProductInfo, ICommunityStallInfo, INostrEvent, INostrMetadata, IPaymentActivityV2, IUserProfile } from "@scom/scom-social-sdk/interfaces/index.ts";
+    import { ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityProductInfo, ICommunityStallInfo, IMarketplaceOrder, INostrEvent, INostrMetadata, IPaymentActivityV2, IUserProfile } from "@scom/scom-social-sdk/interfaces/index.ts";
     class SocialUtilsManager {
         static hexStringToUint8Array(hexString: string): Uint8Array;
         static base64ToUtf8(base64: string): string;
@@ -2272,6 +2278,7 @@ declare module "@scom/scom-social-sdk/managers/utilsManager.ts" {
         static constructAuthHeader(privateKey: string): string;
         static constructUserProfile(metadata: INostrMetadata, followersCountMap?: Record<string, number>): IUserProfile;
         static extractCalendarEventInfo(event: INostrEvent): ICalendarEventInfo;
+        static extractMarketplaceOrder(privateKey: string, event: INostrEvent): Promise<IMarketplaceOrder>;
         static extractPaymentActivity(privateKey: string, event: INostrEvent): Promise<IPaymentActivityV2>;
         static flatMap<T, U>(array: T[], callback: (item: T) => U[]): U[];
     }
@@ -2530,6 +2537,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         getCommunityUriToMembersMap(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
         fetchCommunityStalls(options: SocialEventManagerReadOptions.IFetchCommunityStalls): Promise<INostrEvent[]>;
         fetchCommunityProducts(options: SocialEventManagerReadOptions.IFetchCommunityProducts): Promise<INostrEvent[]>;
+        fetchCommunityOrders(options: SocialEventManagerReadOptions.IFetchCommunityOrders): Promise<any[]>;
         fetchPaymentActivities(options: SocialEventManagerReadOptions.IFetchPaymentActivities): Promise<any[]>;
     }
     export { NostrEventManagerRead };
@@ -2602,6 +2610,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" {
         getCommunityUriToMembersMap(communities: ICommunityInfo[]): Promise<Record<string, ICommunityMember[]>>;
         fetchCommunityStalls(options: SocialEventManagerReadOptions.IFetchCommunityStalls): Promise<import("@scom/scom-social-sdk/interfaces/common.ts").INostrEvent[]>;
         fetchCommunityProducts(options: SocialEventManagerReadOptions.IFetchCommunityProducts): Promise<import("@scom/scom-social-sdk/interfaces/common.ts").INostrEvent[]>;
+        fetchCommunityOrders(options: SocialEventManagerReadOptions.IFetchCommunityOrders): Promise<import("@scom/scom-social-sdk/interfaces/common.ts").INostrEvent[]>;
         fetchPaymentActivities(options: SocialEventManagerReadOptions.IFetchPaymentActivities): Promise<import("@scom/scom-social-sdk/interfaces/common.ts").INostrEvent[]>;
     }
     export { NostrEventManagerReadV1o5 };
@@ -2915,6 +2924,7 @@ declare module "@scom/scom-social-sdk/managers/dataManager/index.ts" {
         placeMarketplaceOrder(merchantId: string, stallId: string, order: IMarketplaceOrder): Promise<import("@scom/scom-social-sdk/interfaces/eventManagerWrite.ts").ISocialEventManagerWriteResult>;
         recordPaymentActivity(paymentActivity: IPaymentActivityV2): Promise<import("@scom/scom-social-sdk/interfaces/eventManagerWrite.ts").ISocialEventManagerWriteResult>;
         fetchPaymentActivities(options: IFetchPaymentActivitiesOptions): Promise<IPaymentActivityV2[]>;
+        fetchCommunityOrders(creatorId: string, communityId: string, stallId?: string): Promise<IMarketplaceOrder[]>;
         fetchRegions(): Promise<IRegion[]>;
         fetchCurrencies(): Promise<ICurrency[]>;
         fetchCryptocurrencies(): Promise<import("@scom/scom-social-sdk/interfaces/marketplace.ts").ICryptocurrency[]>;
