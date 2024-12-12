@@ -10622,7 +10622,7 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
             let stallIdToStallNameMap = {};
             for (let event of stallEvents) {
                 const content = utilsManager_6.SocialUtilsManager.parseContent(event.content);
-                stallIdToStallNameMap[event.id] = content.name;
+                stallIdToStallNameMap[content.stall_id] = content.stall_name;
             }
             const paymentActivitiesEvents = paymentActivitiesResult.filter(event => event.kind === 4);
             for (let event of paymentActivitiesEvents) {
