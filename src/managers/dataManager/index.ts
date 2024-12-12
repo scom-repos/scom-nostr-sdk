@@ -2826,9 +2826,20 @@ class SocialDataManager {
 
     async fetchPaymentActivities(options: IFetchPaymentActivitiesOptions) {    
         const paymentActivities: IPaymentActivityV2[] = [];
-        const paymentActivitiesEvents = await this._socialEventManagerRead.fetchPaymentActivities(options);
+        const paymentActivitiesResult = await this._socialEventManagerRead.fetchPaymentActivities(options);
+        const stallEvents = paymentActivitiesResult.filter(event => event.kind === 10000113);
+        let stallIdToStallNameMap: Record<string, any> = {};
+        for (let event of stallEvents) {
+            const content = SocialUtilsManager.parseContent(event.content);
+            stallIdToStallNameMap[content.stall_id] = content.stall_name;
+        }
+        const paymentActivitiesEvents = paymentActivitiesResult.filter(event => event.kind === 4);
         for (let event of paymentActivitiesEvents) {
             const paymentActivity = await SocialUtilsManager.extractPaymentActivity(this._privateKey, event);
+            if (!paymentActivity) continue;
+            if (paymentActivity.stallId) {
+                paymentActivity.stallName = stallIdToStallNameMap[paymentActivity.stallId];
+            }
             paymentActivities.push(paymentActivity);
         }
         return paymentActivities;

@@ -10617,9 +10617,21 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
         }
         async fetchPaymentActivities(options) {
             const paymentActivities = [];
-            const paymentActivitiesEvents = await this._socialEventManagerRead.fetchPaymentActivities(options);
+            const paymentActivitiesResult = await this._socialEventManagerRead.fetchPaymentActivities(options);
+            const stallEvents = paymentActivitiesResult.filter(event => event.kind === 10000113);
+            let stallIdToStallNameMap = {};
+            for (let event of stallEvents) {
+                const content = utilsManager_6.SocialUtilsManager.parseContent(event.content);
+                stallIdToStallNameMap[event.id] = content.name;
+            }
+            const paymentActivitiesEvents = paymentActivitiesResult.filter(event => event.kind === 4);
             for (let event of paymentActivitiesEvents) {
                 const paymentActivity = await utilsManager_6.SocialUtilsManager.extractPaymentActivity(this._privateKey, event);
+                if (!paymentActivity)
+                    continue;
+                if (paymentActivity.stallId) {
+                    paymentActivity.stallName = stallIdToStallNameMap[paymentActivity.stallId];
+                }
                 paymentActivities.push(paymentActivity);
             }
             return paymentActivities;

@@ -163,6 +163,7 @@ export interface IPaymentActivityV2 {
 	currencyCode: string;
 	networkCode?: string;
 	stallId?: string;
+	stallName?: string;
 	orderId?: string;
 	paymentMethod?: "Stripe" | "EVM";
 	referenceId?: string;

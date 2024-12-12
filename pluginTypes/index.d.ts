@@ -1788,6 +1788,7 @@ declare module "@scom/scom-social-sdk/interfaces/misc.ts" {
         currencyCode: string;
         networkCode?: string;
         stallId?: string;
+        stallName?: string;
         orderId?: string;
         paymentMethod?: "Stripe" | "EVM";
         referenceId?: string;
