@@ -1092,8 +1092,10 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             networkCode, 
             stallId,
             orderId, 
+            paymentMethod,
             referenceId, 
-            replyToEventId 
+            createdAt,
+            replyToEventId
         } = options;
         const decodedSenderPubkey = sender.startsWith('npub1') ? Nip19.decode(sender).data as string : sender;
         const decodedRecipientPubkey = recipient.startsWith('npub1') ? Nip19.decode(recipient).data as string : recipient;
@@ -1111,6 +1113,9 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         if (orderId) {
             message['order_id'] = orderId;
         }
+        if (paymentMethod) {
+            message['payment_method'] = paymentMethod;
+        }
         if (referenceId) {
             message['reference_id'] = referenceId;
         }
@@ -1120,7 +1125,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         const encryptedMessage = await SocialUtilsManager.encryptMessage(this._privateKey, decodedRecipientPubkey, JSON.stringify(message));
         let event = {
             "kind": 4,
-            "created_at": Math.round(Date.now() / 1000),
+            "created_at": createdAt || Math.round(Date.now() / 1000),
             "content": encryptedMessage,
             "tags": [
                 [

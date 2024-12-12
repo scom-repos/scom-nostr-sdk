@@ -531,7 +531,9 @@ class SocialUtilsManager {
                 networkCode: content.network_code,
                 stallId: content.stall_id,
                 orderId: content.order_id,
+                paymentMethod: content.payment_method,
                 referenceId: content.reference_id,
+                createdAt: event.created_at
             }
         } 
         catch (e) {

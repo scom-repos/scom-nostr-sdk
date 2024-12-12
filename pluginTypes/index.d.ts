@@ -1789,7 +1789,9 @@ declare module "@scom/scom-social-sdk/interfaces/misc.ts" {
         networkCode?: string;
         stallId?: string;
         orderId?: string;
+        paymentMethod?: "Stripe" | "EVM";
         referenceId?: string;
+        createdAt?: number;
     }
     export interface IEthWalletAccountsInfo {
         masterWalletSignature: string;

@@ -164,7 +164,9 @@ export interface IPaymentActivityV2 {
 	networkCode?: string;
 	stallId?: string;
 	orderId?: string;
+	paymentMethod?: "Stripe" | "EVM";
 	referenceId?: string;
+	createdAt?: number;
 }
 
 export interface IEthWalletAccountsInfo {

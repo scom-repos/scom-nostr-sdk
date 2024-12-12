@@ -4551,7 +4551,9 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                     networkCode: content.network_code,
                     stallId: content.stall_id,
                     orderId: content.order_id,
+                    paymentMethod: content.payment_method,
                     referenceId: content.reference_id,
+                    createdAt: event.created_at
                 };
             }
             catch (e) {
@@ -5844,7 +5846,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             return result;
         }
         async recordPaymentActivity(options) {
-            const { id, sender, recipient, amount, currencyCode, networkCode, stallId, orderId, referenceId, replyToEventId } = options;
+            const { id, sender, recipient, amount, currencyCode, networkCode, stallId, orderId, paymentMethod, referenceId, createdAt, replyToEventId } = options;
             const decodedSenderPubkey = sender.startsWith('npub1') ? index_2.Nip19.decode(sender).data : sender;
             const decodedRecipientPubkey = recipient.startsWith('npub1') ? index_2.Nip19.decode(recipient).data : recipient;
             let message = {
@@ -5861,6 +5863,9 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             if (orderId) {
                 message['order_id'] = orderId;
             }
+            if (paymentMethod) {
+                message['payment_method'] = paymentMethod;
+            }
             if (referenceId) {
                 message['reference_id'] = referenceId;
             }
@@ -5870,7 +5875,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             const encryptedMessage = await utilsManager_2.SocialUtilsManager.encryptMessage(this._privateKey, decodedRecipientPubkey, JSON.stringify(message));
             let event = {
                 "kind": 4,
-                "created_at": Math.round(Date.now() / 1000),
+                "created_at": createdAt || Math.round(Date.now() / 1000),
                 "content": encryptedMessage,
                 "tags": [
                     [
