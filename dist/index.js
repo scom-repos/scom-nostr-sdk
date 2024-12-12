@@ -6925,6 +6925,9 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
         async fetchCommunityOrders(options) {
             return []; // Not supported
         }
+        async fetchMarketplaceOrders(options) {
+            return []; // Not supported
+        }
         async fetchPaymentActivities(options) {
             return []; // Not supported
         }
@@ -7772,6 +7775,14 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             if (until)
                 msg.until = until;
             const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-community-orders', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchMarketplaceOrders(options) {
+            const { orderId } = options;
+            let msg = {
+                orderId
+            };
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-marketplace-orders', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchPaymentActivities(options) {
@@ -10625,6 +10636,13 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
                 orders.push(order);
             }
             return orders;
+        }
+        async fetchMarketplaceOrder(orderId) {
+            const events = await this._socialEventManagerRead.fetchMarketplaceOrders({ orderId });
+            if (events.length === 0)
+                return null;
+            const order = await utilsManager_6.SocialUtilsManager.extractMarketplaceOrder(this._privateKey, events[0]);
+            return order;
         }
         async fetchRegions() {
             return this.systemDataManager.fetchRegions();

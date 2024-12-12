@@ -2848,6 +2848,13 @@ class SocialDataManager {
         return orders;
     }
 
+    async fetchMarketplaceOrder(orderId: string) {
+        const events = await this._socialEventManagerRead.fetchMarketplaceOrders({ orderId });
+        if (events.length === 0) return null;
+        const order = await SocialUtilsManager.extractMarketplaceOrder(this._privateKey, events[0]);
+        return order;
+    }
+
     async fetchRegions() {
         return this.systemDataManager.fetchRegions();
     }

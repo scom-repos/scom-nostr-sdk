@@ -199,6 +199,9 @@ export declare namespace SocialEventManagerReadOptions {
         since?: number;
         until?: number;
     }
+    interface IFetchMarketplaceOrders {
+        orderId: string;
+    }
     interface IFetchPaymentActivities extends IFetchPaymentActivitiesOptions {
     }
 }
@@ -260,5 +263,6 @@ export interface ISocialEventManagerRead {
     fetchCommunityStalls(options: SocialEventManagerReadOptions.IFetchCommunityStalls): Promise<INostrEvent[]>;
     fetchCommunityProducts(options: SocialEventManagerReadOptions.IFetchCommunityProducts): Promise<INostrEvent[]>;
     fetchCommunityOrders(options: SocialEventManagerReadOptions.IFetchCommunityOrders): Promise<INostrEvent[]>;
+    fetchMarketplaceOrders(options: SocialEventManagerReadOptions.IFetchMarketplaceOrders): Promise<INostrEvent[]>;
     fetchPaymentActivities(options: SocialEventManagerReadOptions.IFetchPaymentActivities): Promise<INostrEvent[]>;
 }
