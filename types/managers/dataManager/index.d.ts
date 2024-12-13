@@ -239,7 +239,8 @@ declare class SocialDataManager {
     recordPaymentActivity(paymentActivity: IPaymentActivityV2): Promise<import("../../interfaces").ISocialEventManagerWriteResult>;
     fetchPaymentActivities(options: IFetchPaymentActivitiesOptions): Promise<IPaymentActivityV2[]>;
     fetchCommunityOrders(creatorId: string, communityId: string, stallId?: string): Promise<IMarketplaceOrder[]>;
-    fetchMarketplaceOrder(orderId: string): Promise<IMarketplaceOrder>;
+    fetchBuyerOrders(pubkey: string): Promise<IMarketplaceOrder[]>;
+    fetchMarketplaceOrderDetails(orderId: string): Promise<IMarketplaceOrder>;
     fetchRegions(): Promise<IRegion[]>;
     fetchCurrencies(): Promise<ICurrency[]>;
     fetchCryptocurrencies(): Promise<import("../../interfaces").ICryptocurrency[]>;

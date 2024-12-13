@@ -2859,8 +2859,18 @@ class SocialDataManager {
         return orders;
     }
 
-    async fetchMarketplaceOrder(orderId: string) {
-        const events = await this._socialEventManagerRead.fetchMarketplaceOrders({ orderId });
+    async fetchBuyerOrders(pubkey: string) {
+        const events = await this._socialEventManagerRead.fetchBuyerOrders({ pubkey });
+        const orders: IMarketplaceOrder[] = [];
+        for (let event of events) {
+            const order = await SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event);
+            orders.push(order);
+        }
+        return orders;
+    }
+
+    async fetchMarketplaceOrderDetails(orderId: string) {
+        const events = await this._socialEventManagerRead.fetchMarketplaceOrderDetails({ orderId });
         if (events.length === 0) return null;
         const order = await SocialUtilsManager.extractMarketplaceOrder(this._privateKey, events[0]);
         return order;

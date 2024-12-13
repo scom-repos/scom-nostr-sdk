@@ -880,12 +880,24 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         return fetchEventsResponse.events || [];
     }
 
-    async fetchMarketplaceOrders(options: SocialEventManagerReadOptions.IFetchMarketplaceOrders) {
+    async fetchBuyerOrders(options: SocialEventManagerReadOptions.IFetchBuyerOrders) {
+        const {pubkey, since, until} = options;
+        let msg: any = {
+            pubkey,
+            limit: 20
+        };
+        if (since) msg.since = since;
+        if (until) msg.until = until;
+        const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-buyer-orders', msg);
+        return fetchEventsResponse.events || [];
+    }
+
+    async fetchMarketplaceOrderDetails(options: SocialEventManagerReadOptions.IFetchMarketplaceOrderDetails) {
         const {orderId} = options;
         let msg: any = {
             orderId
         };
-        const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-marketplace-orders', msg);
+        const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-marketplace-order-details', msg);
         return fetchEventsResponse.events || [];
     }
 

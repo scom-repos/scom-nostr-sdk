@@ -198,8 +198,15 @@ export declare namespace SocialEventManagerReadOptions {
         stallId?: string;
         since?: number;
         until?: number;
+        status?: 'pending' | 'processing' | 'shipped' | 'delivered' | 'canceled';
     }
-    interface IFetchMarketplaceOrders {
+    interface IFetchBuyerOrders {
+        pubkey: string;
+        since?: number;
+        until?: number;
+        status?: 'unpaid' | 'paid' | 'shipped' | 'delivered' | 'canceled';
+    }
+    interface IFetchMarketplaceOrderDetails {
         orderId: string;
     }
     interface IFetchPaymentActivities extends IFetchPaymentActivitiesOptions {
@@ -263,6 +270,7 @@ export interface ISocialEventManagerRead {
     fetchCommunityStalls(options: SocialEventManagerReadOptions.IFetchCommunityStalls): Promise<INostrEvent[]>;
     fetchCommunityProducts(options: SocialEventManagerReadOptions.IFetchCommunityProducts): Promise<INostrEvent[]>;
     fetchCommunityOrders(options: SocialEventManagerReadOptions.IFetchCommunityOrders): Promise<INostrEvent[]>;
-    fetchMarketplaceOrders(options: SocialEventManagerReadOptions.IFetchMarketplaceOrders): Promise<INostrEvent[]>;
+    fetchBuyerOrders(options: SocialEventManagerReadOptions.IFetchBuyerOrders): Promise<INostrEvent[]>;
+    fetchMarketplaceOrderDetails(options: SocialEventManagerReadOptions.IFetchMarketplaceOrderDetails): Promise<INostrEvent[]>;
     fetchPaymentActivities(options: SocialEventManagerReadOptions.IFetchPaymentActivities): Promise<INostrEvent[]>;
 }

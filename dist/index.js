@@ -6925,7 +6925,10 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
         async fetchCommunityOrders(options) {
             return []; // Not supported
         }
-        async fetchMarketplaceOrders(options) {
+        async fetchBuyerOrders(options) {
+            return []; // Not supported
+        }
+        async fetchMarketplaceOrderDetails(options) {
             return []; // Not supported
         }
         async fetchPaymentActivities(options) {
@@ -7777,12 +7780,25 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-community-orders', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchMarketplaceOrders(options) {
+        async fetchBuyerOrders(options) {
+            const { pubkey, since, until } = options;
+            let msg = {
+                pubkey,
+                limit: 20
+            };
+            if (since)
+                msg.since = since;
+            if (until)
+                msg.until = until;
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-buyer-orders', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchMarketplaceOrderDetails(options) {
             const { orderId } = options;
             let msg = {
                 orderId
             };
-            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-marketplace-orders', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-marketplace-order-details', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchPaymentActivities(options) {
@@ -10649,8 +10665,17 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
             }
             return orders;
         }
-        async fetchMarketplaceOrder(orderId) {
-            const events = await this._socialEventManagerRead.fetchMarketplaceOrders({ orderId });
+        async fetchBuyerOrders(pubkey) {
+            const events = await this._socialEventManagerRead.fetchBuyerOrders({ pubkey });
+            const orders = [];
+            for (let event of events) {
+                const order = await utilsManager_6.SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event);
+                orders.push(order);
+            }
+            return orders;
+        }
+        async fetchMarketplaceOrderDetails(orderId) {
+            const events = await this._socialEventManagerRead.fetchMarketplaceOrderDetails({ orderId });
             if (events.length === 0)
                 return null;
             const order = await utilsManager_6.SocialUtilsManager.extractMarketplaceOrder(this._privateKey, events[0]);
