@@ -2853,10 +2853,30 @@ class SocialDataManager {
             status
         });
         const orders: IMarketplaceOrder[] = [];
+        const pubKeys: string[] = [];
+        const userProfileMap: Record<string, IUserProfile> = {};
         for (let event of events) {
             const order = await SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event);
             if (!order) continue;
             orders.push(order);
+            if (order.contact?.nostr && !pubKeys.includes(order.contact.nostr)) {
+                pubKeys.push(order.contact.nostr);
+            }
+        }
+        if (pubKeys.length) {
+            const events = await this._socialEventManagerRead.fetchUserProfileCacheEvents({ pubKeys });
+            for (let event of events) {
+                if (event.kind === 0) {
+                    const encodedPubkey = Nip19.npubEncode(event.pubkey);
+                    userProfileMap[encodedPubkey] = SocialUtilsManager.constructUserProfile({
+                        ...event,
+                        content: SocialUtilsManager.parseContent(event.content)
+                    });
+                }
+            }
+            for (let order of orders) {
+                if (order.contact?.nostr) order.userProfile = userProfileMap[order.contact.nostr];
+            }
         }
         return orders;
     }

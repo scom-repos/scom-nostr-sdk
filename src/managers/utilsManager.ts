@@ -1,6 +1,6 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, ICommunityProductInfo, ICommunityStallInfo, IMarketplaceOrder, INostrEvent, INostrMetadata, IPaymentActivityV2, IUserProfile, MarketplaceProductType, MembershipType, PaymentMethod, ScpStandardId } from "../interfaces";
+import { CalendarEventType, ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, ICommunityProductInfo, ICommunityStallInfo, IMarketplaceOrder, IMarketplaceOrderItem, INostrEvent, INostrMetadata, IPaymentActivityV2, IUserProfile, MarketplaceProductType, MembershipType, PaymentMethod, ScpStandardId } from "../interfaces";
 import { Signer } from "@scom/scom-signer";
 import Geohash from '../utils/geohash';
 
@@ -490,13 +490,17 @@ class SocialUtilsManager {
             }
             if (!contentStr?.length) return null;
             const content = this.parseContent(contentStr);
+            const items: IMarketplaceOrderItem[] = content.items?.map(item => ({
+                productId: item.product_id,
+                quantity: item.quantity
+            }))
             order = {
                 id: content.id,
                 name: content.name,
                 address: content.address,
                 message: content.message,
                 contact: content.contact,
-                items: content.items,
+                items: items,
                 shippingId: content.shipping_id,
             }
         } 

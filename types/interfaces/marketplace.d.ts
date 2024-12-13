@@ -1,4 +1,5 @@
 import { INostrEvent } from "./common";
+import { IUserProfile } from "./misc";
 export declare enum MarketplaceProductType {
     Physical = "Physical",
     Digital = "Digital",
@@ -87,6 +88,7 @@ export interface IMarketplaceOrder {
     };
     items: IMarketplaceOrderItem[];
     shippingId?: string;
+    userProfile?: IUserProfile;
 }
 export interface IMarketplaceOrderPaymentOption {
     type: string;
