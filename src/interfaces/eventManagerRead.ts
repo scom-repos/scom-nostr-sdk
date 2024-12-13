@@ -3,6 +3,7 @@ import { Nip19 } from "../core/index";
 import { ICommunityBasicInfo, ICommunityInfo, ICommunityMember } from "./community";
 import { IAllUserRelatedChannels } from "./channel";
 import { INostrCommunicationManager, INostrRestAPIManager, INostrEvent } from "./common";
+import { BuyerOrderStatus, SellerOrderStatus } from "./marketplace";
 
 export interface IFetchNotesOptions {
 	authors?: string[];
@@ -197,14 +198,14 @@ export namespace SocialEventManagerReadOptions {
 		stallId?: string;
 		since?: number;
 		until?: number;
-		status?: 'pending' | 'processing' | 'shipped' | 'delivered' |  'canceled';
+		status?: SellerOrderStatus;
 	}
 
 	export interface IFetchBuyerOrders {
 		pubkey: string;
 		since?: number;
 		until?: number;
-		status?: 'unpaid' | 'paid' | 'shipped' | 'delivered' |  'canceled';
+		status?: BuyerOrderStatus;
 	}
 
 	export interface IFetchMarketplaceOrderDetails {

@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../../core/index";
-import { CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityBasicInfo, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunityProductInfo, ICommunityStallInfo, ICommunityStats, ICommunitySubscription, IConversationPath, ICurrency, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, IFetchPaymentActivitiesOptions, ILocationCoordinates, ILongFormContentInfo, IMarketplaceOrder, IMarketplaceProduct, IMarketplaceStall, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INftSubscription, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunity, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPaymentActivityV2, IPostStats, IRegion, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId, SocialDataManagerOptions } from "../../interfaces";
+import { BuyerOrderStatus, CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityBasicInfo, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunityProductInfo, ICommunityStallInfo, ICommunityStats, ICommunitySubscription, IConversationPath, ICurrency, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, IFetchPaymentActivitiesOptions, ILocationCoordinates, ILongFormContentInfo, IMarketplaceOrder, IMarketplaceProduct, IMarketplaceStall, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INftSubscription, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunity, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPaymentActivityV2, IPostStats, IRegion, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId, SellerOrderStatus, SocialDataManagerOptions } from "../../interfaces";
 import {
     INostrCommunicationManager,
     INostrRestAPIManager,
@@ -2845,25 +2845,31 @@ class SocialDataManager {
         return paymentActivities;
     }
 
-    async fetchCommunityOrders(creatorId: string, communityId: string, stallId?: string) {
+    async fetchCommunityOrders(creatorId: string, communityId: string, stallId?: string, status?: SellerOrderStatus) {
         const events = await this._socialEventManagerRead.fetchCommunityOrders({
             creatorId,
             communityId,
-            stallId
+            stallId,
+            status
         });
         const orders: IMarketplaceOrder[] = [];
         for (let event of events) {
             const order = await SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event);
+            if (!order) continue;
             orders.push(order);
         }
         return orders;
     }
 
-    async fetchBuyerOrders(pubkey: string) {
-        const events = await this._socialEventManagerRead.fetchBuyerOrders({ pubkey });
+    async fetchBuyerOrders(pubkey: string, status?: BuyerOrderStatus) {
+        const events = await this._socialEventManagerRead.fetchBuyerOrders({ 
+            pubkey,
+            status
+        });
         const orders: IMarketplaceOrder[] = [];
         for (let event of events) {
             const order = await SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event);
+            if (!order) continue;
             orders.push(order);
         }
         return orders;

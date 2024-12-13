@@ -488,7 +488,7 @@ class SocialUtilsManager {
             else {
                 contentStr = await SocialUtilsManager.decryptMessage(privateKey, senderPubKey, encryptedContent);
             }
-            if (!contentStr.length) return null;
+            if (!contentStr?.length) return null;
             const content = this.parseContent(contentStr);
             order = {
                 id: content.id,
@@ -520,7 +520,7 @@ class SocialUtilsManager {
             else {
                 contentStr = await SocialUtilsManager.decryptMessage(privateKey, senderPubKey, encryptedContent);
             }
-            if (!contentStr.length) return null;
+            if (!contentStr?.length) return null;
             const content = this.parseContent(contentStr);
             paymentActivity = {
                 id: content.id,

@@ -119,3 +119,19 @@ export interface IMarketplaceOrderStatus {
 	paid: boolean;
 	shipped: boolean;
 }
+
+export enum SellerOrderStatus {
+	Pending = "pending",
+	Processing = "processing",
+	Shipped = "shipped",
+	Delivered = "delivered",
+	Canceled = "canceled"
+}
+
+export enum BuyerOrderStatus {
+	Unpaid = "unpaid",
+	Paid = "paid",
+	Shipped = "shipped",
+	Delivered = "delivered",
+	Canceled = "canceled"
+}

@@ -3609,7 +3609,7 @@ define("@scom/scom-social-sdk/interfaces/channel.ts", ["require", "exports"], fu
 define("@scom/scom-social-sdk/interfaces/marketplace.ts", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.MarketplaceProductType = void 0;
+    exports.BuyerOrderStatus = exports.SellerOrderStatus = exports.MarketplaceProductType = void 0;
     var MarketplaceProductType;
     (function (MarketplaceProductType) {
         MarketplaceProductType["Physical"] = "Physical";
@@ -3619,6 +3619,22 @@ define("@scom/scom-social-sdk/interfaces/marketplace.ts", ["require", "exports"]
         MarketplaceProductType["Membership"] = "Membership";
         MarketplaceProductType["Bundle"] = "Bundle";
     })(MarketplaceProductType = exports.MarketplaceProductType || (exports.MarketplaceProductType = {}));
+    var SellerOrderStatus;
+    (function (SellerOrderStatus) {
+        SellerOrderStatus["Pending"] = "pending";
+        SellerOrderStatus["Processing"] = "processing";
+        SellerOrderStatus["Shipped"] = "shipped";
+        SellerOrderStatus["Delivered"] = "delivered";
+        SellerOrderStatus["Canceled"] = "canceled";
+    })(SellerOrderStatus = exports.SellerOrderStatus || (exports.SellerOrderStatus = {}));
+    var BuyerOrderStatus;
+    (function (BuyerOrderStatus) {
+        BuyerOrderStatus["Unpaid"] = "unpaid";
+        BuyerOrderStatus["Paid"] = "paid";
+        BuyerOrderStatus["Shipped"] = "shipped";
+        BuyerOrderStatus["Delivered"] = "delivered";
+        BuyerOrderStatus["Canceled"] = "canceled";
+    })(BuyerOrderStatus = exports.BuyerOrderStatus || (exports.BuyerOrderStatus = {}));
 });
 define("@scom/scom-social-sdk/interfaces/misc.ts", ["require", "exports"], function (require, exports) {
     "use strict";
@@ -4507,7 +4523,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 else {
                     contentStr = await SocialUtilsManager.decryptMessage(privateKey, senderPubKey, encryptedContent);
                 }
-                if (!contentStr.length)
+                if (!contentStr?.length)
                     return null;
                 const content = this.parseContent(contentStr);
                 order = {
@@ -4539,7 +4555,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 else {
                     contentStr = await SocialUtilsManager.decryptMessage(privateKey, senderPubKey, encryptedContent);
                 }
-                if (!contentStr.length)
+                if (!contentStr?.length)
                     return null;
                 const content = this.parseContent(contentStr);
                 paymentActivity = {
@@ -7765,13 +7781,14 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             return fetchEventsResponse.events || [];
         }
         async fetchCommunityOrders(options) {
-            const { creatorId, communityId, stallId, since, until } = options;
+            const { creatorId, communityId, stallId, status, since, until } = options;
             const communityPubkey = creatorId && creatorId.startsWith('npub1') ? index_4.Nip19.decode(creatorId).data : creatorId;
             let msg = {
                 communityPubkey,
                 communityName: communityId,
                 stallId: stallId,
-                limit: 20
+                limit: 20,
+                status
             };
             if (since)
                 msg.since = since;
@@ -7781,10 +7798,11 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             return fetchEventsResponse.events || [];
         }
         async fetchBuyerOrders(options) {
-            const { pubkey, since, until } = options;
+            const { pubkey, status, since, until } = options;
             let msg = {
                 pubkey,
-                limit: 20
+                limit: 20,
+                status
             };
             if (since)
                 msg.since = since;
@@ -10652,24 +10670,32 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
             }
             return paymentActivities;
         }
-        async fetchCommunityOrders(creatorId, communityId, stallId) {
+        async fetchCommunityOrders(creatorId, communityId, stallId, status) {
             const events = await this._socialEventManagerRead.fetchCommunityOrders({
                 creatorId,
                 communityId,
-                stallId
+                stallId,
+                status
             });
             const orders = [];
             for (let event of events) {
                 const order = await utilsManager_6.SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event);
+                if (!order)
+                    continue;
                 orders.push(order);
             }
             return orders;
         }
-        async fetchBuyerOrders(pubkey) {
-            const events = await this._socialEventManagerRead.fetchBuyerOrders({ pubkey });
+        async fetchBuyerOrders(pubkey, status) {
+            const events = await this._socialEventManagerRead.fetchBuyerOrders({
+                pubkey,
+                status
+            });
             const orders = [];
             for (let event of events) {
                 const order = await utilsManager_6.SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event);
+                if (!order)
+                    continue;
                 orders.push(order);
             }
             return orders;
