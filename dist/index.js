@@ -4538,6 +4538,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                     contact: content.contact,
                     items: items,
                     shippingId: content.shipping_id,
+                    createdAt: event.created_at,
                 };
             }
             catch (e) {
@@ -10657,10 +10658,10 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
             const paymentActivities = [];
             const paymentActivitiesResult = await this._socialEventManagerRead.fetchPaymentActivities(options);
             const stallEvents = paymentActivitiesResult.filter(event => event.kind === 10000113);
-            let stallIdToStallNameMap = {};
+            let stallIdToStallInfoMap = {};
             for (let event of stallEvents) {
                 const content = utilsManager_6.SocialUtilsManager.parseContent(event.content);
-                stallIdToStallNameMap[content.stall_id] = content.stall_name;
+                stallIdToStallInfoMap[content.stall_id] = content;
             }
             const paymentActivitiesEvents = paymentActivitiesResult.filter(event => event.kind === 4);
             for (let event of paymentActivitiesEvents) {
@@ -10668,7 +10669,7 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
                 if (!paymentActivity)
                     continue;
                 if (paymentActivity.stallId) {
-                    paymentActivity.stallName = stallIdToStallNameMap[paymentActivity.stallId];
+                    paymentActivity.stallName = stallIdToStallInfoMap[paymentActivity.stallId]?.stall_name;
                 }
                 paymentActivities.push(paymentActivity);
             }
@@ -10716,12 +10717,28 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
                 pubkey,
                 status
             });
+            const metadataEvents = events.filter(event => event.kind === 10000113);
+            let orderIdToMetadataMap = {};
+            for (let event of metadataEvents) {
+                const content = utilsManager_6.SocialUtilsManager.parseContent(event.content);
+                orderIdToMetadataMap[content.order_id] = content;
+            }
+            const orderEvents = events.filter(event => event.kind === 4);
             const orders = [];
-            for (let event of events) {
+            for (let event of orderEvents) {
                 const order = await utilsManager_6.SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event);
                 if (!order)
                     continue;
-                orders.push(order);
+                const metadata = orderIdToMetadataMap[order.id];
+                if (!metadata)
+                    continue;
+                let buyerOrder = {
+                    ...order,
+                    stallId: metadata.stall_id,
+                    stallName: metadata.stall_name,
+                    status: metadata.status
+                };
+                orders.push(buyerOrder);
             }
             return orders;
         }

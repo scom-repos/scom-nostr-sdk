@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../../core/index";
-import { BuyerOrderStatus, CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityBasicInfo, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunityProductInfo, ICommunityStallInfo, ICommunityStats, ICommunitySubscription, IConversationPath, ICurrency, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, IFetchPaymentActivitiesOptions, ILocationCoordinates, ILongFormContentInfo, IMarketplaceOrder, IMarketplaceProduct, IMarketplaceStall, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INftSubscription, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunity, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPaymentActivityV2, IPostStats, IRegion, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId, SellerOrderStatus, SocialDataManagerOptions } from "../../interfaces";
+import { BuyerOrderStatus, CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityBasicInfo, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunityProductInfo, ICommunityStallInfo, ICommunityStats, ICommunitySubscription, IConversationPath, ICurrency, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, IFetchPaymentActivitiesOptions, ILocationCoordinates, ILongFormContentInfo, IMarketplaceOrder, IMarketplaceProduct, IMarketplaceStall, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INftSubscription, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunity, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPaymentActivityV2, IPostStats, IRegion, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IRetrievedBuyerOrder, IRetrievedMarketplaceOrder, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId, SellerOrderStatus, SocialDataManagerOptions } from "../../interfaces";
 import {
     INostrCommunicationManager,
     INostrRestAPIManager,
@@ -2828,17 +2828,17 @@ class SocialDataManager {
         const paymentActivities: IPaymentActivityV2[] = [];
         const paymentActivitiesResult = await this._socialEventManagerRead.fetchPaymentActivities(options);
         const stallEvents = paymentActivitiesResult.filter(event => event.kind === 10000113);
-        let stallIdToStallNameMap: Record<string, any> = {};
+        let stallIdToStallInfoMap: Record<string, any> = {};
         for (let event of stallEvents) {
             const content = SocialUtilsManager.parseContent(event.content);
-            stallIdToStallNameMap[content.stall_id] = content.stall_name;
+            stallIdToStallInfoMap[content.stall_id] = content;
         }
         const paymentActivitiesEvents = paymentActivitiesResult.filter(event => event.kind === 4);
         for (let event of paymentActivitiesEvents) {
             const paymentActivity = await SocialUtilsManager.extractPaymentActivity(this._privateKey, event);
             if (!paymentActivity) continue;
             if (paymentActivity.stallId) {
-                paymentActivity.stallName = stallIdToStallNameMap[paymentActivity.stallId];
+                paymentActivity.stallName = stallIdToStallInfoMap[paymentActivity.stallId]?.stall_name;
             }
             paymentActivities.push(paymentActivity);
         }
@@ -2852,7 +2852,7 @@ class SocialDataManager {
             stallId,
             status
         });
-        const orders: IMarketplaceOrder[] = [];
+        const orders: IRetrievedMarketplaceOrder[] = [];
         const pubKeys: string[] = [];
         const userProfileMap: Record<string, IUserProfile> = {};
         for (let event of events) {
@@ -2886,11 +2886,26 @@ class SocialDataManager {
             pubkey,
             status
         });
-        const orders: IMarketplaceOrder[] = [];
-        for (let event of events) {
+        const metadataEvents = events.filter(event => event.kind === 10000113);
+        let orderIdToMetadataMap: Record<string, any> = {};
+        for (let event of metadataEvents) {
+            const content = SocialUtilsManager.parseContent(event.content);
+            orderIdToMetadataMap[content.order_id] = content;
+        }
+        const orderEvents = events.filter(event => event.kind === 4);
+        const orders: IRetrievedBuyerOrder[] = [];
+        for (let event of orderEvents) {
             const order = await SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event);
             if (!order) continue;
-            orders.push(order);
+            const metadata = orderIdToMetadataMap[order.id];
+            if (!metadata) continue;
+            let buyerOrder: IRetrievedBuyerOrder = {
+                ...order,
+                stallId: metadata.stall_id,
+                stallName: metadata.stall_name,
+                status: metadata.status
+            }
+            orders.push(buyerOrder);
         }
         return orders;
     }

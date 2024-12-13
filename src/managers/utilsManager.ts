@@ -1,6 +1,6 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, ICommunityProductInfo, ICommunityStallInfo, IMarketplaceOrder, IMarketplaceOrderItem, INostrEvent, INostrMetadata, IPaymentActivityV2, IUserProfile, MarketplaceProductType, MembershipType, PaymentMethod, ScpStandardId } from "../interfaces";
+import { CalendarEventType, ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, ICommunityProductInfo, ICommunityStallInfo, IMarketplaceOrder, IMarketplaceOrderItem, INostrEvent, INostrMetadata, IPaymentActivityV2, IRetrievedMarketplaceOrder, IUserProfile, MarketplaceProductType, MembershipType, PaymentMethod, ScpStandardId } from "../interfaces";
 import { Signer } from "@scom/scom-signer";
 import Geohash from '../utils/geohash';
 
@@ -476,7 +476,7 @@ class SocialUtilsManager {
 
     static async extractMarketplaceOrder(privateKey: string, event: INostrEvent) {
         const encryptedContent = event.content;
-        let order: IMarketplaceOrder;
+        let order: IRetrievedMarketplaceOrder;
         try {
             const selfPubKey = Keys.getPublicKey(privateKey);
             const senderPubKey = event.pubkey;
@@ -502,6 +502,7 @@ class SocialUtilsManager {
                 contact: content.contact,
                 items: items,
                 shippingId: content.shipping_id,
+                createdAt: event.created_at,
             }
         } 
         catch (e) {

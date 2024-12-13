@@ -90,6 +90,14 @@ export interface IMarketplaceOrder {
     shippingId?: string;
     userProfile?: IUserProfile;
 }
+export interface IRetrievedMarketplaceOrder extends IMarketplaceOrder {
+    stallId?: string;
+    stallName?: string;
+    createdAt: number;
+}
+export interface IRetrievedBuyerOrder extends IRetrievedMarketplaceOrder {
+    status: BuyerOrderStatus;
+}
 export interface IMarketplaceOrderPaymentOption {
     type: string;
     link: string;
