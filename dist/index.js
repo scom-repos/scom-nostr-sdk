@@ -3606,6 +3606,36 @@ define("@scom/scom-social-sdk/interfaces/channel.ts", ["require", "exports"], fu
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
 });
+define("@scom/scom-social-sdk/interfaces/marketplace.ts", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.BuyerOrderStatus = exports.SellerOrderStatus = exports.MarketplaceProductType = void 0;
+    var MarketplaceProductType;
+    (function (MarketplaceProductType) {
+        MarketplaceProductType["Physical"] = "Physical";
+        MarketplaceProductType["Digital"] = "Digital";
+        MarketplaceProductType["Course"] = "Course";
+        MarketplaceProductType["Ebook"] = "Ebook";
+        MarketplaceProductType["Membership"] = "Membership";
+        MarketplaceProductType["Bundle"] = "Bundle";
+    })(MarketplaceProductType = exports.MarketplaceProductType || (exports.MarketplaceProductType = {}));
+    var SellerOrderStatus;
+    (function (SellerOrderStatus) {
+        SellerOrderStatus["Pending"] = "pending";
+        SellerOrderStatus["Processing"] = "processing";
+        SellerOrderStatus["Shipped"] = "shipped";
+        SellerOrderStatus["Delivered"] = "delivered";
+        SellerOrderStatus["Canceled"] = "canceled";
+    })(SellerOrderStatus = exports.SellerOrderStatus || (exports.SellerOrderStatus = {}));
+    var BuyerOrderStatus;
+    (function (BuyerOrderStatus) {
+        BuyerOrderStatus["Unpaid"] = "unpaid";
+        BuyerOrderStatus["Paid"] = "paid";
+        BuyerOrderStatus["Shipped"] = "shipped";
+        BuyerOrderStatus["Delivered"] = "delivered";
+        BuyerOrderStatus["Canceled"] = "canceled";
+    })(BuyerOrderStatus = exports.BuyerOrderStatus || (exports.BuyerOrderStatus = {}));
+});
 define("@scom/scom-social-sdk/interfaces/misc.ts", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -3623,20 +3653,6 @@ define("@scom/scom-social-sdk/interfaces/misc.ts", ["require", "exports"], funct
         CalendarEventType["DateBased"] = "dateBased";
         CalendarEventType["TimeBased"] = "timeBased";
     })(CalendarEventType = exports.CalendarEventType || (exports.CalendarEventType = {}));
-});
-define("@scom/scom-social-sdk/interfaces/marketplace.ts", ["require", "exports"], function (require, exports) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.MarketplaceProductType = void 0;
-    var MarketplaceProductType;
-    (function (MarketplaceProductType) {
-        MarketplaceProductType["Physical"] = "Physical";
-        MarketplaceProductType["Digital"] = "Digital";
-        MarketplaceProductType["Course"] = "Course";
-        MarketplaceProductType["Ebook"] = "Ebook";
-        MarketplaceProductType["Membership"] = "Membership";
-        MarketplaceProductType["Bundle"] = "Bundle";
-    })(MarketplaceProductType = exports.MarketplaceProductType || (exports.MarketplaceProductType = {}));
 });
 define("@scom/scom-social-sdk/interfaces/eventManagerRead.ts", ["require", "exports"], function (require, exports) {
     "use strict";
@@ -4507,20 +4523,16 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 else {
                     contentStr = await SocialUtilsManager.decryptMessage(privateKey, senderPubKey, encryptedContent);
                 }
-                if (!contentStr.length)
+                if (!contentStr?.length)
                     return null;
                 const content = this.parseContent(contentStr);
-                const items = content.items?.map(item => ({
-                    productId: item.product_id,
-                    quantity: item.quantity
-                }));
                 order = {
                     id: content.id,
                     name: content.name,
                     address: content.address,
                     message: content.message,
                     contact: content.contact,
-                    items: items,
+                    items: content.items,
                     shippingId: content.shipping_id,
                 };
             }
@@ -4543,7 +4555,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 else {
                     contentStr = await SocialUtilsManager.decryptMessage(privateKey, senderPubKey, encryptedContent);
                 }
-                if (!contentStr.length)
+                if (!contentStr?.length)
                     return null;
                 const content = this.parseContent(contentStr);
                 paymentActivity = {
@@ -6929,7 +6941,10 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
         async fetchCommunityOrders(options) {
             return []; // Not supported
         }
-        async fetchMarketplaceOrders(options) {
+        async fetchBuyerOrders(options) {
+            return []; // Not supported
+        }
+        async fetchMarketplaceOrderDetails(options) {
             return []; // Not supported
         }
         async fetchPaymentActivities(options) {
@@ -7766,13 +7781,14 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             return fetchEventsResponse.events || [];
         }
         async fetchCommunityOrders(options) {
-            const { creatorId, communityId, stallId, since, until } = options;
+            const { creatorId, communityId, stallId, status, since, until } = options;
             const communityPubkey = creatorId && creatorId.startsWith('npub1') ? index_4.Nip19.decode(creatorId).data : creatorId;
             let msg = {
                 communityPubkey,
                 communityName: communityId,
                 stallId: stallId,
-                limit: 20
+                limit: 20,
+                status
             };
             if (since)
                 msg.since = since;
@@ -7781,12 +7797,26 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
             const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-community-orders', msg);
             return fetchEventsResponse.events || [];
         }
-        async fetchMarketplaceOrders(options) {
+        async fetchBuyerOrders(options) {
+            const { pubkey, status, since, until } = options;
+            let msg = {
+                pubkey,
+                limit: 20,
+                status
+            };
+            if (since)
+                msg.since = since;
+            if (until)
+                msg.until = until;
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-buyer-orders', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchMarketplaceOrderDetails(options) {
             const { orderId } = options;
             let msg = {
                 orderId
             };
-            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-marketplace-orders', msg);
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-marketplace-order-details', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchPaymentActivities(options) {
@@ -10640,42 +10670,38 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
             }
             return paymentActivities;
         }
-        async fetchCommunityOrders(creatorId, communityId, stallId) {
+        async fetchCommunityOrders(creatorId, communityId, stallId, status) {
             const events = await this._socialEventManagerRead.fetchCommunityOrders({
                 creatorId,
                 communityId,
-                stallId
+                stallId,
+                status
             });
             const orders = [];
-            const pubKeys = [];
-            const userProfileMap = {};
             for (let event of events) {
                 const order = await utilsManager_6.SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event);
+                if (!order)
+                    continue;
                 orders.push(order);
-                if (order.contact?.nostr && !pubKeys.includes(order.contact.nostr)) {
-                    pubKeys.push(order.contact.nostr);
-                }
-            }
-            if (pubKeys.length) {
-                const events = await this._socialEventManagerRead.fetchUserProfileCacheEvents({ pubKeys });
-                for (let event of events) {
-                    if (event.kind === 0) {
-                        const encodedPubkey = index_6.Nip19.npubEncode(event.pubkey);
-                        userProfileMap[encodedPubkey] = utilsManager_6.SocialUtilsManager.constructUserProfile({
-                            ...event,
-                            content: utilsManager_6.SocialUtilsManager.parseContent(event.content)
-                        });
-                    }
-                }
-                for (let order of orders) {
-                    if (order.contact?.nostr)
-                        order.userProfile = userProfileMap[order.contact.nostr];
-                }
             }
             return orders;
         }
-        async fetchMarketplaceOrder(orderId) {
-            const events = await this._socialEventManagerRead.fetchMarketplaceOrders({ orderId });
+        async fetchBuyerOrders(pubkey, status) {
+            const events = await this._socialEventManagerRead.fetchBuyerOrders({
+                pubkey,
+                status
+            });
+            const orders = [];
+            for (let event of events) {
+                const order = await utilsManager_6.SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event);
+                if (!order)
+                    continue;
+                orders.push(order);
+            }
+            return orders;
+        }
+        async fetchMarketplaceOrderDetails(orderId) {
+            const events = await this._socialEventManagerRead.fetchMarketplaceOrderDetails({ orderId });
             if (events.length === 0)
                 return null;
             const order = await utilsManager_6.SocialUtilsManager.extractMarketplaceOrder(this._privateKey, events[0]);

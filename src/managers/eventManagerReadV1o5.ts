@@ -866,13 +866,14 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
     }
 
     async fetchCommunityOrders(options: SocialEventManagerReadOptions.IFetchCommunityOrders) {
-        const {creatorId, communityId, stallId, since, until} = options;
+        const {creatorId, communityId, stallId, status, since, until} = options;
         const communityPubkey = creatorId && creatorId.startsWith('npub1') ? Nip19.decode(creatorId).data : creatorId;
         let msg: any = {
             communityPubkey,
             communityName: communityId,
             stallId: stallId,
-            limit: 20
+            limit: 20,
+            status
         };
         if (since) msg.since = since;
         if (until) msg.until = until;
@@ -880,12 +881,25 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         return fetchEventsResponse.events || [];
     }
 
-    async fetchMarketplaceOrders(options: SocialEventManagerReadOptions.IFetchMarketplaceOrders) {
+    async fetchBuyerOrders(options: SocialEventManagerReadOptions.IFetchBuyerOrders) {
+        const {pubkey, status, since, until} = options;
+        let msg: any = {
+            pubkey,
+            limit: 20,
+            status
+        };
+        if (since) msg.since = since;
+        if (until) msg.until = until;
+        const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-buyer-orders', msg);
+        return fetchEventsResponse.events || [];
+    }
+
+    async fetchMarketplaceOrderDetails(options: SocialEventManagerReadOptions.IFetchMarketplaceOrderDetails) {
         const {orderId} = options;
         let msg: any = {
             orderId
         };
-        const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-marketplace-orders', msg);
+        const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-marketplace-order-details', msg);
         return fetchEventsResponse.events || [];
     }
 

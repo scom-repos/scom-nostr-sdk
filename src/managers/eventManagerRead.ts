@@ -1071,7 +1071,11 @@ class NostrEventManagerRead implements ISocialEventManagerRead {
         return []; // Not supported
     }
 
-    async fetchMarketplaceOrders(options: SocialEventManagerReadOptions.IFetchMarketplaceOrders) {
+    async fetchBuyerOrders(options: SocialEventManagerReadOptions.IFetchBuyerOrders) {
+        return []; // Not supported
+    }
+
+    async fetchMarketplaceOrderDetails(options: SocialEventManagerReadOptions.IFetchMarketplaceOrderDetails) {
         return []; // Not supported
     }
 

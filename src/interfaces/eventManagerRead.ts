@@ -3,6 +3,7 @@ import { Nip19 } from "../core/index";
 import { ICommunityBasicInfo, ICommunityInfo, ICommunityMember } from "./community";
 import { IAllUserRelatedChannels } from "./channel";
 import { INostrCommunicationManager, INostrRestAPIManager, INostrEvent } from "./common";
+import { BuyerOrderStatus, SellerOrderStatus } from "./marketplace";
 
 export interface IFetchNotesOptions {
 	authors?: string[];
@@ -197,9 +198,17 @@ export namespace SocialEventManagerReadOptions {
 		stallId?: string;
 		since?: number;
 		until?: number;
+		status?: SellerOrderStatus;
 	}
 
-	export interface IFetchMarketplaceOrders {
+	export interface IFetchBuyerOrders {
+		pubkey: string;
+		since?: number;
+		until?: number;
+		status?: BuyerOrderStatus;
+	}
+
+	export interface IFetchMarketplaceOrderDetails {
 		orderId: string;
 	}
 
@@ -267,7 +276,8 @@ export interface ISocialEventManagerRead {
 	fetchCommunityStalls(options: SocialEventManagerReadOptions.IFetchCommunityStalls): Promise<INostrEvent[]>;
 	fetchCommunityProducts(options: SocialEventManagerReadOptions.IFetchCommunityProducts): Promise<INostrEvent[]>;
 	fetchCommunityOrders(options: SocialEventManagerReadOptions.IFetchCommunityOrders): Promise<INostrEvent[]>;
-	fetchMarketplaceOrders(options: SocialEventManagerReadOptions.IFetchMarketplaceOrders): Promise<INostrEvent[]>;
+	fetchBuyerOrders(options: SocialEventManagerReadOptions.IFetchBuyerOrders): Promise<INostrEvent[]>;
+	fetchMarketplaceOrderDetails(options: SocialEventManagerReadOptions.IFetchMarketplaceOrderDetails): Promise<INostrEvent[]>;
 	fetchPaymentActivities(options: SocialEventManagerReadOptions.IFetchPaymentActivities): Promise<INostrEvent[]>;
 	// fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
     // fetchReplies(options: IFetchRepliesOptions): Promise<INostrEvent[]>;
