@@ -3606,20 +3606,6 @@ define("@scom/scom-social-sdk/interfaces/channel.ts", ["require", "exports"], fu
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
 });
-define("@scom/scom-social-sdk/interfaces/marketplace.ts", ["require", "exports"], function (require, exports) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.MarketplaceProductType = void 0;
-    var MarketplaceProductType;
-    (function (MarketplaceProductType) {
-        MarketplaceProductType["Physical"] = "Physical";
-        MarketplaceProductType["Digital"] = "Digital";
-        MarketplaceProductType["Course"] = "Course";
-        MarketplaceProductType["Ebook"] = "Ebook";
-        MarketplaceProductType["Membership"] = "Membership";
-        MarketplaceProductType["Bundle"] = "Bundle";
-    })(MarketplaceProductType = exports.MarketplaceProductType || (exports.MarketplaceProductType = {}));
-});
 define("@scom/scom-social-sdk/interfaces/misc.ts", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -3637,6 +3623,20 @@ define("@scom/scom-social-sdk/interfaces/misc.ts", ["require", "exports"], funct
         CalendarEventType["DateBased"] = "dateBased";
         CalendarEventType["TimeBased"] = "timeBased";
     })(CalendarEventType = exports.CalendarEventType || (exports.CalendarEventType = {}));
+});
+define("@scom/scom-social-sdk/interfaces/marketplace.ts", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.MarketplaceProductType = void 0;
+    var MarketplaceProductType;
+    (function (MarketplaceProductType) {
+        MarketplaceProductType["Physical"] = "Physical";
+        MarketplaceProductType["Digital"] = "Digital";
+        MarketplaceProductType["Course"] = "Course";
+        MarketplaceProductType["Ebook"] = "Ebook";
+        MarketplaceProductType["Membership"] = "Membership";
+        MarketplaceProductType["Bundle"] = "Bundle";
+    })(MarketplaceProductType = exports.MarketplaceProductType || (exports.MarketplaceProductType = {}));
 });
 define("@scom/scom-social-sdk/interfaces/eventManagerRead.ts", ["require", "exports"], function (require, exports) {
     "use strict";
@@ -4510,13 +4510,17 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 if (!contentStr.length)
                     return null;
                 const content = this.parseContent(contentStr);
+                const items = content.items?.map(item => ({
+                    productId: item.product_id,
+                    quantity: item.quantity
+                }));
                 order = {
                     id: content.id,
                     name: content.name,
                     address: content.address,
                     message: content.message,
                     contact: content.contact,
-                    items: content.items,
+                    items: items,
                     shippingId: content.shipping_id,
                 };
             }
@@ -10631,9 +10635,30 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
                 stallId
             });
             const orders = [];
+            const pubKeys = [];
+            const userProfileMap = {};
             for (let event of events) {
                 const order = await utilsManager_6.SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event);
                 orders.push(order);
+                if (order.contact?.nostr && !pubKeys.includes(order.contact.nostr)) {
+                    pubKeys.push(order.contact.nostr);
+                }
+            }
+            if (pubKeys.length) {
+                const events = await this._socialEventManagerRead.fetchUserProfileCacheEvents({ pubKeys });
+                for (let event of events) {
+                    if (event.kind === 0) {
+                        const encodedPubkey = index_6.Nip19.npubEncode(event.pubkey);
+                        userProfileMap[encodedPubkey] = utilsManager_6.SocialUtilsManager.constructUserProfile({
+                            ...event,
+                            content: utilsManager_6.SocialUtilsManager.parseContent(event.content)
+                        });
+                    }
+                }
+                for (let order of orders) {
+                    if (order.contact?.nostr)
+                        order.userProfile = userProfileMap[order.contact.nostr];
+                }
             }
             return orders;
         }
