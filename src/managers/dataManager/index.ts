@@ -2905,7 +2905,15 @@ class SocialDataManager {
             const content = SocialUtilsManager.parseContent(event.content);
             orderIdToMetadataMap[content.order_id] = content;
         }
-        const orderEvents = events.filter(event => event.kind === 4);
+        const orderIdToPaymentActivityMap: Record<string, IPaymentActivityV2> = {};
+        const paymentEvents = events.filter(event => event.kind === 4 && event.tags.find(tag => tag[0] === 't')?.[1] === 'order');
+        for (let event of paymentEvents) {
+            const paymentActivity = await SocialUtilsManager.extractPaymentActivity(this._privateKey, event);
+            if (!paymentActivity) continue;
+            const orderId = paymentActivity.orderId;
+            orderIdToPaymentActivityMap[orderId] = paymentActivity;
+        }
+        const orderEvents = events.filter(event => event.kind === 4 && event.tags.find(tag => tag[0] === 't')?.[1] === 'order');
         const orders: IRetrievedBuyerOrder[] = [];
         for (let event of orderEvents) {
             const order = await SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event);
@@ -2916,7 +2924,8 @@ class SocialDataManager {
                 ...order,
                 stallId: metadata.stall_id,
                 stallName: metadata.stall_name,
-                status: metadata.status
+                status: metadata.status,
+                paymentActivity: orderIdToPaymentActivityMap[order.id]
             }
             orders.push(buyerOrder);
         }

@@ -965,7 +965,9 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         let orderItems = order.items.map(item => {
             return {
                 product_id: item.productId,
-                quantity: item.quantity
+                product_name: item.productName,
+                quantity: item.quantity,
+                price: item.price
             }
         });
         let message = {
@@ -973,7 +975,10 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             type: 0,
             contact: order.contact,
             items: orderItems,
-            shipping_id: order.shippingId
+            currency: order.currency,
+            shipping_id: order.shippingId,
+            shipping_cost: order.shippingCost,
+            total_amount: order.totalAmount
         };
         if (order.name) {
             message['name'] = order.name;

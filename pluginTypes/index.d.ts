@@ -1709,7 +1709,7 @@ declare module "@scom/scom-social-sdk/interfaces/misc.ts" {
 /// <amd-module name="@scom/scom-social-sdk/interfaces/marketplace.ts" />
 declare module "@scom/scom-social-sdk/interfaces/marketplace.ts" {
     import { INostrEvent } from "@scom/scom-social-sdk/interfaces/common.ts";
-    import { IUserProfile } from "@scom/scom-social-sdk/interfaces/misc.ts";
+    import { IPaymentActivityV2, IUserProfile } from "@scom/scom-social-sdk/interfaces/misc.ts";
     export enum MarketplaceProductType {
         Physical = "Physical",
         Digital = "Digital",
@@ -1784,7 +1784,9 @@ declare module "@scom/scom-social-sdk/interfaces/marketplace.ts" {
     }
     export interface IMarketplaceOrderItem {
         productId: string;
+        productName?: string;
         quantity: number;
+        price?: number;
     }
     export interface IMarketplaceOrder {
         id: string;
@@ -1797,7 +1799,10 @@ declare module "@scom/scom-social-sdk/interfaces/marketplace.ts" {
             email?: string;
         };
         items: IMarketplaceOrderItem[];
+        currency?: string;
         shippingId?: string;
+        shippingCost?: number;
+        totalAmount?: number;
         userProfile?: IUserProfile;
     }
     export interface IRetrievedMarketplaceOrder extends IMarketplaceOrder {
@@ -1805,6 +1810,8 @@ declare module "@scom/scom-social-sdk/interfaces/marketplace.ts" {
         stallName?: string;
         createdAt: number;
         orderStatus?: SellerOrderStatus;
+        items: IMarketplaceOrderItem[];
+        paymentActivity?: IPaymentActivityV2;
     }
     export interface IRetrievedBuyerOrder extends IRetrievedMarketplaceOrder {
         status: BuyerOrderStatus;

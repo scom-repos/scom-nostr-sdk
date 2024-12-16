@@ -1,5 +1,5 @@
 import { INostrEvent } from "./common";
-import { IUserProfile } from "./misc";
+import { IPaymentActivityV2, IUserProfile } from "./misc";
 
 export enum MarketplaceProductType {
 	Physical = "Physical",
@@ -86,7 +86,9 @@ export interface ICryptocurrency {
 
 export interface IMarketplaceOrderItem {
 	productId: string;
+	productName?: string;
 	quantity: number;
+	price?: number;
 }
 
 export interface IMarketplaceOrder {
@@ -100,7 +102,10 @@ export interface IMarketplaceOrder {
 		email?: string;
 	};
 	items: IMarketplaceOrderItem[];
+	currency?: string;
 	shippingId?: string;
+	shippingCost?: number;
+	totalAmount?: number;
 	userProfile?: IUserProfile;
 }
 
@@ -109,6 +114,8 @@ export interface IRetrievedMarketplaceOrder extends IMarketplaceOrder {
 	stallName?: string;
 	createdAt: number;
 	orderStatus?: SellerOrderStatus;
+	items: IMarketplaceOrderItem[];
+	paymentActivity?: IPaymentActivityV2;
 }
 
 export interface IRetrievedBuyerOrder extends IRetrievedMarketplaceOrder {

@@ -4528,7 +4528,9 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 const content = this.parseContent(contentStr);
                 const items = content.items?.map(item => ({
                     productId: item.product_id,
-                    quantity: item.quantity
+                    productName: item.product_name,
+                    quantity: item.quantity,
+                    price: item.price
                 }));
                 order = {
                     id: content.id,
@@ -4537,7 +4539,10 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                     message: content.message,
                     contact: content.contact,
                     items: items,
+                    currency: content.currency,
                     shippingId: content.shipping_id,
+                    shippingCost: content.shipping_cost,
+                    totalAmount: content.total_amount,
                     createdAt: event.created_at,
                 };
             }
@@ -4571,7 +4576,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                     currencyCode: content.currency_code,
                     networkCode: content.network_code,
                     stallId: content.stall_id,
-                    orderId: content.order_id,
+                    orderId: content.id,
                     paymentMethod: content.payment_method,
                     referenceId: content.reference_id,
                     createdAt: event.created_at
@@ -5752,7 +5757,9 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             let orderItems = order.items.map(item => {
                 return {
                     product_id: item.productId,
-                    quantity: item.quantity
+                    product_name: item.productName,
+                    quantity: item.quantity,
+                    price: item.price
                 };
             });
             let message = {
@@ -5760,7 +5767,10 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 type: 0,
                 contact: order.contact,
                 items: orderItems,
-                shipping_id: order.shippingId
+                currency: order.currency,
+                shipping_id: order.shippingId,
+                shipping_cost: order.shippingCost,
+                total_amount: order.totalAmount
             };
             if (order.name) {
                 message['name'] = order.name;
@@ -10736,7 +10746,16 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
                 const content = utilsManager_6.SocialUtilsManager.parseContent(event.content);
                 orderIdToMetadataMap[content.order_id] = content;
             }
-            const orderEvents = events.filter(event => event.kind === 4);
+            const orderIdToPaymentActivityMap = {};
+            const paymentEvents = events.filter(event => event.kind === 4 && event.tags.find(tag => tag[0] === 't')?.[1] === 'order');
+            for (let event of paymentEvents) {
+                const paymentActivity = await utilsManager_6.SocialUtilsManager.extractPaymentActivity(this._privateKey, event);
+                if (!paymentActivity)
+                    continue;
+                const orderId = paymentActivity.orderId;
+                orderIdToPaymentActivityMap[orderId] = paymentActivity;
+            }
+            const orderEvents = events.filter(event => event.kind === 4 && event.tags.find(tag => tag[0] === 't')?.[1] === 'order');
             const orders = [];
             for (let event of orderEvents) {
                 const order = await utilsManager_6.SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event);
@@ -10749,7 +10768,8 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
                     ...order,
                     stallId: metadata.stall_id,
                     stallName: metadata.stall_name,
-                    status: metadata.status
+                    status: metadata.status,
+                    paymentActivity: orderIdToPaymentActivityMap[order.id]
                 };
                 orders.push(buyerOrder);
             }
