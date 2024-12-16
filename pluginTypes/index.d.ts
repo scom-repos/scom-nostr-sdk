@@ -1804,6 +1804,7 @@ declare module "@scom/scom-social-sdk/interfaces/marketplace.ts" {
         stallId?: string;
         stallName?: string;
         createdAt: number;
+        orderStatus?: SellerOrderStatus;
     }
     export interface IRetrievedBuyerOrder extends IRetrievedMarketplaceOrder {
         status: BuyerOrderStatus;

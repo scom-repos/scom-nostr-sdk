@@ -10682,13 +10682,26 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
                 stallId,
                 status
             });
+            const metadataEvents = events.filter(event => event.kind === 10000113);
+            let orderIdToMetadataMap = {};
+            for (let event of metadataEvents) {
+                const content = utilsManager_6.SocialUtilsManager.parseContent(event.content);
+                orderIdToMetadataMap[content.order_id] = content;
+            }
+            const orderEvents = events.filter(event => event.kind === 4);
             const orders = [];
             const pubKeys = [];
             const userProfileMap = {};
-            for (let event of events) {
+            for (let event of orderEvents) {
                 const order = await utilsManager_6.SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event);
                 if (!order)
                     continue;
+                const metadata = orderIdToMetadataMap[order.id];
+                if (metadata) {
+                    order.stallId = metadata.stall_id;
+                    order.stallName = metadata.stall_name;
+                    order.orderStatus = metadata.order_status;
+                }
                 orders.push(order);
                 if (order.contact?.nostr && !pubKeys.includes(order.contact.nostr)) {
                     pubKeys.push(order.contact.nostr);

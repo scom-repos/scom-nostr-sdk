@@ -94,6 +94,7 @@ export interface IRetrievedMarketplaceOrder extends IMarketplaceOrder {
     stallId?: string;
     stallName?: string;
     createdAt: number;
+    orderStatus?: SellerOrderStatus;
 }
 export interface IRetrievedBuyerOrder extends IRetrievedMarketplaceOrder {
     status: BuyerOrderStatus;
