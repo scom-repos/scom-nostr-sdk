@@ -5844,15 +5844,14 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             return result;
         }
         async updateMarketplaceOrderStatus(options) {
-            const { customerId, merchantId, stallId, status, replyToEventId } = options;
+            const { customerId, merchantId, stallId, updateInfo, replyToEventId } = options;
             const stallUri = utilsManager_2.SocialUtilsManager.getMarketplaceStallUri(merchantId, stallId);
             const decodedCustomerPubkey = customerId.startsWith('npub1') ? index_2.Nip19.decode(customerId).data : customerId;
             let message = {
-                id: status.id,
-                type: 2,
-                message: status.message,
-                paid: status.paid,
-                shipped: status.shipped
+                id: updateInfo.id,
+                type: 4,
+                message: updateInfo.message,
+                status: updateInfo.status
             };
             const encryptedMessage = await utilsManager_2.SocialUtilsManager.encryptMessage(this._privateKey, decodedCustomerPubkey, JSON.stringify(message));
             let event = {
@@ -5867,6 +5866,18 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     [
                         "a",
                         stallUri
+                    ],
+                    [
+                        "t",
+                        "order-status"
+                    ],
+                    [
+                        "status",
+                        updateInfo.status
+                    ],
+                    [
+                        "z",
+                        updateInfo.id
                     ]
                 ]
             };
@@ -10662,6 +10673,15 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
         }
         async recordPaymentActivity(paymentActivity) {
             const result = await this._socialEventManagerWrite.recordPaymentActivity(paymentActivity);
+            return result;
+        }
+        async updateMarketplaceOrderStatus(merchantId, stallId, updateInfo) {
+            const result = await this._socialEventManagerWrite.updateMarketplaceOrderStatus({
+                customerId: this._selfPubkey,
+                merchantId,
+                stallId,
+                updateInfo
+            });
             return result;
         }
         async fetchPaymentActivities(options) {

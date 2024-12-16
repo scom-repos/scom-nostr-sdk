@@ -1054,15 +1054,14 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
     }
 
     async updateMarketplaceOrderStatus(options: SocialEventManagerWriteOptions.IUpdatetMarketplaceOrderStatus) {
-        const { customerId, merchantId, stallId, status, replyToEventId } = options;
+        const { customerId, merchantId, stallId, updateInfo, replyToEventId } = options;
         const stallUri = SocialUtilsManager.getMarketplaceStallUri(merchantId, stallId);
         const decodedCustomerPubkey = customerId.startsWith('npub1') ? Nip19.decode(customerId).data as string : customerId;
         let message = {
-            id: status.id,
-            type: 2,
-            message: status.message,
-            paid: status.paid,
-            shipped: status.shipped
+            id: updateInfo.id,
+            type: 4,
+            message: updateInfo.message,
+            status: updateInfo.status
         };
         const encryptedMessage = await SocialUtilsManager.encryptMessage(this._privateKey, decodedCustomerPubkey, JSON.stringify(message));
         let event = {
@@ -1077,6 +1076,18 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 [
                     "a",
                     stallUri
+                ],
+                [
+                    "t",
+                    "order-status"
+                ],
+                [
+                    "status",
+                    updateInfo.status
+                ],
+                [
+                    "z",
+                    updateInfo.id
                 ]
             ]
         }

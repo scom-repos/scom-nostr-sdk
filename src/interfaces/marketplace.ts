@@ -106,7 +106,6 @@ export interface IMarketplaceOrder {
 	shippingId?: string;
 	shippingCost?: number;
 	totalAmount?: number;
-	userProfile?: IUserProfile;
 }
 
 export interface IRetrievedMarketplaceOrder extends IMarketplaceOrder {
@@ -115,6 +114,7 @@ export interface IRetrievedMarketplaceOrder extends IMarketplaceOrder {
 	createdAt: number;
 	orderStatus?: SellerOrderStatus;
 	items: IMarketplaceOrderItem[];
+	userProfile?: IUserProfile;
 	paymentActivity?: IPaymentActivityV2;
 }
 
@@ -133,11 +133,19 @@ export interface IMarketplaceOrderPaymentRequest {
 	paymentOptions: IMarketplaceOrderPaymentOption[];
 }
 
-export interface IMarketplaceOrderStatus {
+export interface IMarketplaceOrderUpdateInfo {
 	id: string;
 	message?: string;
-	paid: boolean;
-	shipped: boolean;
+	status: SellerOrderStatus;
+	shippingDetails?: {
+        carrier?: string; 
+        trackingNumber?: string;
+        estimatedDeliveryDate?: number;
+    };
+    cancellationDetails?: {
+        reason: string; 
+        refundedAmount?: number; 
+    };
 }
 
 export enum SellerOrderStatus {

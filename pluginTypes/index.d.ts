@@ -1803,7 +1803,6 @@ declare module "@scom/scom-social-sdk/interfaces/marketplace.ts" {
         shippingId?: string;
         shippingCost?: number;
         totalAmount?: number;
-        userProfile?: IUserProfile;
     }
     export interface IRetrievedMarketplaceOrder extends IMarketplaceOrder {
         stallId?: string;
@@ -1811,6 +1810,7 @@ declare module "@scom/scom-social-sdk/interfaces/marketplace.ts" {
         createdAt: number;
         orderStatus?: SellerOrderStatus;
         items: IMarketplaceOrderItem[];
+        userProfile?: IUserProfile;
         paymentActivity?: IPaymentActivityV2;
     }
     export interface IRetrievedBuyerOrder extends IRetrievedMarketplaceOrder {
@@ -1825,11 +1825,19 @@ declare module "@scom/scom-social-sdk/interfaces/marketplace.ts" {
         message?: string;
         paymentOptions: IMarketplaceOrderPaymentOption[];
     }
-    export interface IMarketplaceOrderStatus {
+    export interface IMarketplaceOrderUpdateInfo {
         id: string;
         message?: string;
-        paid: boolean;
-        shipped: boolean;
+        status: SellerOrderStatus;
+        shippingDetails?: {
+            carrier?: string;
+            trackingNumber?: string;
+            estimatedDeliveryDate?: number;
+        };
+        cancellationDetails?: {
+            reason: string;
+            refundedAmount?: number;
+        };
     }
     export enum SellerOrderStatus {
         Pending = "pending",
@@ -2155,7 +2163,7 @@ declare module "@scom/scom-social-sdk/interfaces/dataManager.ts" {
 /// <amd-module name="@scom/scom-social-sdk/interfaces/eventManagerWrite.ts" />
 declare module "@scom/scom-social-sdk/interfaces/eventManagerWrite.ts" {
     import { IUpdateCalendarEventInfo, INewCalendarEventPostInfo, ILongFormContentInfo, IRelayConfig, IPaymentActivityV2 } from "@scom/scom-social-sdk/interfaces/misc.ts";
-    import { IMarketplaceOrder, IMarketplaceOrderPaymentRequest, IMarketplaceOrderStatus, IMarketplaceProduct, IMarketplaceStall } from "@scom/scom-social-sdk/interfaces/marketplace.ts";
+    import { IMarketplaceOrder, IMarketplaceOrderPaymentRequest, IMarketplaceOrderUpdateInfo, IMarketplaceProduct, IMarketplaceStall } from "@scom/scom-social-sdk/interfaces/marketplace.ts";
     import { ICommunityBasicInfo, ICommunityInfo, INewCommunityPostInfo } from "@scom/scom-social-sdk/interfaces/community.ts";
     import { IChannelInfo, INewChannelMessageInfo } from "@scom/scom-social-sdk/interfaces/channel.ts";
     import { INostrMetadataContent, INostrCommunicationManager, IConversationPath, INostrEvent, INostrSubmitResponse } from "@scom/scom-social-sdk/interfaces/common.ts";
@@ -2191,7 +2199,7 @@ declare module "@scom/scom-social-sdk/interfaces/eventManagerWrite.ts" {
             customerId: string;
             merchantId: string;
             stallId: string;
-            status: IMarketplaceOrderStatus;
+            updateInfo: IMarketplaceOrderUpdateInfo;
             replyToEventId?: string;
         }
         interface IRecordPaymentActivity extends IPaymentActivityV2 {
@@ -2736,7 +2744,7 @@ declare module "@scom/scom-social-sdk/managers/dataManager/system.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/dataManager/index.ts" />
 declare module "@scom/scom-social-sdk/managers/dataManager/index.ts" {
-    import { BuyerOrderStatus, CommunityRole, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunityProductInfo, ICommunityStallInfo, ICommunitySubscription, IConversationPath, ICurrency, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, IFetchPaymentActivitiesOptions, ILocationCoordinates, ILongFormContentInfo, IMarketplaceOrder, IMarketplaceProduct, IMarketplaceStall, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPaymentActivityV2, IPostStats, IRegion, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IRetrievedBuyerOrder, IRetrievedMarketplaceOrder, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, SellerOrderStatus, SocialDataManagerOptions } from "@scom/scom-social-sdk/interfaces/index.ts";
+    import { BuyerOrderStatus, CommunityRole, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunityProductInfo, ICommunityStallInfo, ICommunitySubscription, IConversationPath, ICurrency, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, IFetchPaymentActivitiesOptions, ILocationCoordinates, ILongFormContentInfo, IMarketplaceOrder, IMarketplaceOrderUpdateInfo, IMarketplaceProduct, IMarketplaceStall, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPaymentActivityV2, IPostStats, IRegion, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IRetrievedBuyerOrder, IRetrievedMarketplaceOrder, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, SellerOrderStatus, SocialDataManagerOptions } from "@scom/scom-social-sdk/interfaces/index.ts";
     class SocialDataManager {
         private _writeRelays;
         private _publicIndexingRelay;
@@ -2975,6 +2983,7 @@ declare module "@scom/scom-social-sdk/managers/dataManager/index.ts" {
         updateCommunityProduct(creatorId: string, communityId: string, product: IMarketplaceProduct): Promise<import("@scom/scom-social-sdk/interfaces/eventManagerWrite.ts").ISocialEventManagerWriteResult>;
         placeMarketplaceOrder(merchantId: string, stallId: string, order: IMarketplaceOrder): Promise<import("@scom/scom-social-sdk/interfaces/eventManagerWrite.ts").ISocialEventManagerWriteResult>;
         recordPaymentActivity(paymentActivity: IPaymentActivityV2): Promise<import("@scom/scom-social-sdk/interfaces/eventManagerWrite.ts").ISocialEventManagerWriteResult>;
+        updateMarketplaceOrderStatus(merchantId: string, stallId: string, updateInfo: IMarketplaceOrderUpdateInfo): Promise<import("@scom/scom-social-sdk/interfaces/eventManagerWrite.ts").ISocialEventManagerWriteResult>;
         fetchPaymentActivities(options: IFetchPaymentActivitiesOptions): Promise<IPaymentActivityV2[]>;
         fetchCommunityOrders(creatorId: string, communityId: string, stallId?: string, status?: SellerOrderStatus): Promise<IRetrievedMarketplaceOrder[]>;
         fetchBuyerOrders(pubkey: string, status?: BuyerOrderStatus): Promise<IRetrievedBuyerOrder[]>;
