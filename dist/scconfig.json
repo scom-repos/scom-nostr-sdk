@@ -1,7 +1,7 @@
 {
     "name": "@scom/scom-social-sdk",
     "type": "sdk",
-    "version": "0.1.88",
+    "version": "0.1.89",
     "dependencies": [
         "@ijstech/eth-wallet",
         "@scom/scom-signer",
