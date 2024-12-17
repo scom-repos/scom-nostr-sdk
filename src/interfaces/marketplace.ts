@@ -120,6 +120,7 @@ export interface IRetrievedMarketplaceOrder extends IMarketplaceOrder {
 
 export interface IRetrievedBuyerOrder extends IRetrievedMarketplaceOrder {
 	status: BuyerOrderStatus;
+	productDetails?: IMarketplaceProduct[];
 }
 
 export interface IMarketplaceOrderPaymentOption {

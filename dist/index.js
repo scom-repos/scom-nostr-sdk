@@ -6973,6 +6973,9 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
         async fetchMarketplaceOrderDetails(options) {
             return []; // Not supported
         }
+        async fetchMarketplaceProductDetails(options) {
+            return []; // Not supported
+        }
         async fetchPaymentActivities(options) {
             return []; // Not supported
         }
@@ -7843,6 +7846,15 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 orderId
             };
             const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-marketplace-order-details', msg);
+            return fetchEventsResponse.events || [];
+        }
+        async fetchMarketplaceProductDetails(options) {
+            const { stallId, productIds } = options;
+            let msg = {
+                stallId,
+                productIds
+            };
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-marketplace-product-details', msg);
             return fetchEventsResponse.events || [];
         }
         async fetchPaymentActivities(options) {
@@ -10799,8 +10811,30 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
             const events = await this._socialEventManagerRead.fetchMarketplaceOrderDetails({ orderId });
             if (events.length === 0)
                 return null;
-            const order = await utilsManager_6.SocialUtilsManager.extractMarketplaceOrder(this._privateKey, events[0]);
-            return order;
+            const orderEvent = events.find(event => event.kind === 4 && event.tags.find(tag => tag[0] === 't')?.[1] === 'order');
+            const order = await utilsManager_6.SocialUtilsManager.extractMarketplaceOrder(this._privateKey, orderEvent);
+            const paymentEvent = events.find(event => event.kind === 4 && event.tags.find(tag => tag[0] === 't')?.[1] === 'order');
+            const paymentActivity = await utilsManager_6.SocialUtilsManager.extractPaymentActivity(this._privateKey, paymentEvent);
+            const metadataEvent = events.find(event => event.kind === 10000113);
+            const metadata = utilsManager_6.SocialUtilsManager.parseContent(metadataEvent.content);
+            const productEvents = await this._socialEventManagerRead.fetchMarketplaceProductDetails({
+                stallId: metadata.stall_id,
+                productIds: order.items.map(v => v.productId)
+            });
+            let products = [];
+            for (let event of productEvents) {
+                const productInfo = utilsManager_6.SocialUtilsManager.extractCommunityProductInfo(event);
+                products.push(productInfo);
+            }
+            let buyerOrder = {
+                ...order,
+                stallId: metadata.stall_id,
+                stallName: metadata.stall_name,
+                status: metadata.status,
+                paymentActivity,
+                productDetails: products
+            };
+            return buyerOrder;
         }
         async fetchRegions() {
             return this.systemDataManager.fetchRegions();

@@ -212,6 +212,11 @@ export namespace SocialEventManagerReadOptions {
 		orderId: string;
 	}
 
+	export interface IFetchMarketplaceProductDetails {
+		stallId: string;
+		productIds: string[];
+	}
+
 	export interface IFetchPaymentActivities extends IFetchPaymentActivitiesOptions {}
 }
 
@@ -278,6 +283,7 @@ export interface ISocialEventManagerRead {
 	fetchCommunityOrders(options: SocialEventManagerReadOptions.IFetchCommunityOrders): Promise<INostrEvent[]>;
 	fetchBuyerOrders(options: SocialEventManagerReadOptions.IFetchBuyerOrders): Promise<INostrEvent[]>;
 	fetchMarketplaceOrderDetails(options: SocialEventManagerReadOptions.IFetchMarketplaceOrderDetails): Promise<INostrEvent[]>;
+	fetchMarketplaceProductDetails(options: SocialEventManagerReadOptions.IFetchMarketplaceProductDetails): Promise<INostrEvent[]>;
 	fetchPaymentActivities(options: SocialEventManagerReadOptions.IFetchPaymentActivities): Promise<INostrEvent[]>;
 	// fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
     // fetchReplies(options: IFetchRepliesOptions): Promise<INostrEvent[]>;

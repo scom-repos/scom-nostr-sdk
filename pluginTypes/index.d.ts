@@ -1815,6 +1815,7 @@ declare module "@scom/scom-social-sdk/interfaces/marketplace.ts" {
     }
     export interface IRetrievedBuyerOrder extends IRetrievedMarketplaceOrder {
         status: BuyerOrderStatus;
+        productDetails?: IMarketplaceProduct[];
     }
     export interface IMarketplaceOrderPaymentOption {
         type: string;
@@ -2068,6 +2069,10 @@ declare module "@scom/scom-social-sdk/interfaces/eventManagerRead.ts" {
         interface IFetchMarketplaceOrderDetails {
             orderId: string;
         }
+        interface IFetchMarketplaceProductDetails {
+            stallId: string;
+            productIds: string[];
+        }
         interface IFetchPaymentActivities extends IFetchPaymentActivitiesOptions {
         }
     }
@@ -2131,6 +2136,7 @@ declare module "@scom/scom-social-sdk/interfaces/eventManagerRead.ts" {
         fetchCommunityOrders(options: SocialEventManagerReadOptions.IFetchCommunityOrders): Promise<INostrEvent[]>;
         fetchBuyerOrders(options: SocialEventManagerReadOptions.IFetchBuyerOrders): Promise<INostrEvent[]>;
         fetchMarketplaceOrderDetails(options: SocialEventManagerReadOptions.IFetchMarketplaceOrderDetails): Promise<INostrEvent[]>;
+        fetchMarketplaceProductDetails(options: SocialEventManagerReadOptions.IFetchMarketplaceProductDetails): Promise<INostrEvent[]>;
         fetchPaymentActivities(options: SocialEventManagerReadOptions.IFetchPaymentActivities): Promise<INostrEvent[]>;
     }
 }
@@ -2596,6 +2602,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         fetchCommunityOrders(options: SocialEventManagerReadOptions.IFetchCommunityOrders): Promise<any[]>;
         fetchBuyerOrders(options: SocialEventManagerReadOptions.IFetchBuyerOrders): Promise<any[]>;
         fetchMarketplaceOrderDetails(options: SocialEventManagerReadOptions.IFetchMarketplaceOrderDetails): Promise<any[]>;
+        fetchMarketplaceProductDetails(options: SocialEventManagerReadOptions.IFetchMarketplaceProductDetails): Promise<any[]>;
         fetchPaymentActivities(options: SocialEventManagerReadOptions.IFetchPaymentActivities): Promise<any[]>;
     }
     export { NostrEventManagerRead };
@@ -2671,6 +2678,7 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" {
         fetchCommunityOrders(options: SocialEventManagerReadOptions.IFetchCommunityOrders): Promise<import("@scom/scom-social-sdk/interfaces/common.ts").INostrEvent[]>;
         fetchBuyerOrders(options: SocialEventManagerReadOptions.IFetchBuyerOrders): Promise<import("@scom/scom-social-sdk/interfaces/common.ts").INostrEvent[]>;
         fetchMarketplaceOrderDetails(options: SocialEventManagerReadOptions.IFetchMarketplaceOrderDetails): Promise<import("@scom/scom-social-sdk/interfaces/common.ts").INostrEvent[]>;
+        fetchMarketplaceProductDetails(options: SocialEventManagerReadOptions.IFetchMarketplaceProductDetails): Promise<import("@scom/scom-social-sdk/interfaces/common.ts").INostrEvent[]>;
         fetchPaymentActivities(options: SocialEventManagerReadOptions.IFetchPaymentActivities): Promise<import("@scom/scom-social-sdk/interfaces/common.ts").INostrEvent[]>;
     }
     export { NostrEventManagerReadV1o5 };
@@ -2987,7 +2995,7 @@ declare module "@scom/scom-social-sdk/managers/dataManager/index.ts" {
         fetchPaymentActivities(options: IFetchPaymentActivitiesOptions): Promise<IPaymentActivityV2[]>;
         fetchCommunityOrders(creatorId: string, communityId: string, stallId?: string, status?: SellerOrderStatus): Promise<IRetrievedMarketplaceOrder[]>;
         fetchBuyerOrders(pubkey: string, status?: BuyerOrderStatus): Promise<IRetrievedBuyerOrder[]>;
-        fetchMarketplaceOrderDetails(orderId: string): Promise<IRetrievedMarketplaceOrder>;
+        fetchMarketplaceOrderDetails(orderId: string): Promise<IRetrievedBuyerOrder>;
         fetchRegions(): Promise<IRegion[]>;
         fetchCurrencies(): Promise<ICurrency[]>;
         fetchCryptocurrencies(): Promise<import("@scom/scom-social-sdk/interfaces/marketplace.ts").ICryptocurrency[]>;

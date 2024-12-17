@@ -2945,8 +2945,31 @@ class SocialDataManager {
     async fetchMarketplaceOrderDetails(orderId: string) {
         const events = await this._socialEventManagerRead.fetchMarketplaceOrderDetails({ orderId });
         if (events.length === 0) return null;
-        const order = await SocialUtilsManager.extractMarketplaceOrder(this._privateKey, events[0]);
-        return order;
+        const orderEvent = events.find(event => event.kind === 4 && event.tags.find(tag => tag[0] === 't')?.[1] === 'order');
+        const order = await SocialUtilsManager.extractMarketplaceOrder(this._privateKey, orderEvent);
+        const paymentEvent = events.find(event => event.kind === 4 && event.tags.find(tag => tag[0] === 't')?.[1] === 'order');
+        const paymentActivity = await SocialUtilsManager.extractPaymentActivity(this._privateKey, paymentEvent);
+        const metadataEvent = events.find(event => event.kind === 10000113);
+        const metadata = SocialUtilsManager.parseContent(metadataEvent.content);
+        const productEvents = await this._socialEventManagerRead.fetchMarketplaceProductDetails({
+            stallId: metadata.stall_id,
+            productIds: order.items.map(v => v.productId)
+        });
+        let products: IMarketplaceProduct[] = [];
+        for (let event of productEvents) {
+            const productInfo = SocialUtilsManager.extractCommunityProductInfo(event);
+            products.push(productInfo);
+        }
+        let buyerOrder: IRetrievedBuyerOrder = {
+            ...order,
+            stallId: metadata.stall_id,
+            stallName: metadata.stall_name,
+            status: metadata.status,
+            paymentActivity,
+            productDetails: products
+        }
+
+        return buyerOrder;
     }
 
     async fetchRegions() {
