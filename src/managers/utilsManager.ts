@@ -1,6 +1,6 @@
 import { Utils } from "@ijstech/eth-wallet";
 import { Nip19, Event, Keys } from "../core/index";
-import { CalendarEventType, ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, ICommunityProductInfo, ICommunityStallInfo, IMarketplaceOrder, IMarketplaceOrderItem, INostrEvent, INostrMetadata, IPaymentActivityV2, IRetrievedMarketplaceOrder, IUserProfile, MarketplaceProductType, MembershipType, PaymentMethod, ScpStandardId } from "../interfaces";
+import { CalendarEventType, ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityPostStatusOption, ICommunityProductInfo, ICommunityStallInfo, IMarketplaceOrder, IMarketplaceOrderItem, IMarketplaceStallBasicInfo, INostrEvent, INostrMetadata, IPaymentActivityV2, IRetrievedMarketplaceOrder, IUserProfile, MarketplaceProductType, MembershipType, PaymentMethod, ScpStandardId } from "../interfaces";
 import { Signer } from "@scom/scom-signer";
 import Geohash from '../utils/geohash';
 
@@ -161,6 +161,14 @@ class SocialUtilsManager {
         return {
             creatorId: parts[1],
             communityId: parts[2]
+        }
+    }
+    
+    static getMarketplaceStallBasicInfoFromUri(stallUri: string): IMarketplaceStallBasicInfo {
+        const parts = stallUri.split(':');
+        return {
+            merchantId: Nip19.npubEncode(parts[1]),
+            stallId: parts[2]
         }
     }
 

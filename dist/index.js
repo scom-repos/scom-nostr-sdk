@@ -4203,6 +4203,13 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 communityId: parts[2]
             };
         }
+        static getMarketplaceStallBasicInfoFromUri(stallUri) {
+            const parts = stallUri.split(':');
+            return {
+                merchantId: index_1.Nip19.npubEncode(parts[1]),
+                stallId: parts[2]
+            };
+        }
         static extractCommunityInfo(event) {
             const communityId = event.tags.find(tag => tag[0] === 'd')?.[1];
             const description = event.tags.find(tag => tag[0] === 'description')?.[1];

@@ -1735,6 +1735,10 @@ declare module "@scom/scom-social-sdk/interfaces/marketplace.ts" {
         cryptoOptions: ICryptoPayoutOption[];
         stripeAccountId?: string;
     }
+    export interface IMarketplaceStallBasicInfo {
+        merchantId: string;
+        stallId: string;
+    }
     export interface IMarketplaceStall {
         id: string;
         name: string;
@@ -1816,7 +1820,7 @@ declare module "@scom/scom-social-sdk/interfaces/marketplace.ts" {
     }
     export interface IRetrievedBuyerOrder extends IRetrievedMarketplaceOrder {
         status: BuyerOrderStatus;
-        productDetails?: IMarketplaceProduct[];
+        productDetails?: ICommunityProductInfo[];
     }
     export interface IMarketplaceOrderPaymentOption {
         type: string;
@@ -2311,7 +2315,7 @@ declare module "@scom/scom-social-sdk/utils/geohash.ts" {
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/utilsManager.ts" />
 declare module "@scom/scom-social-sdk/managers/utilsManager.ts" {
-    import { ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityProductInfo, ICommunityStallInfo, INostrEvent, INostrMetadata, IPaymentActivityV2, IRetrievedMarketplaceOrder, IUserProfile } from "@scom/scom-social-sdk/interfaces/index.ts";
+    import { ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityProductInfo, ICommunityStallInfo, IMarketplaceStallBasicInfo, INostrEvent, INostrMetadata, IPaymentActivityV2, IRetrievedMarketplaceOrder, IUserProfile } from "@scom/scom-social-sdk/interfaces/index.ts";
     class SocialUtilsManager {
         static hexStringToUint8Array(hexString: string): Uint8Array;
         static base64ToUtf8(base64: string): string;
@@ -2330,6 +2334,7 @@ declare module "@scom/scom-social-sdk/managers/utilsManager.ts" {
         static getCommunityUri(creatorId: string, communityId: string): string;
         static getMarketplaceStallUri(merchantId: string, stallId: string): string;
         static getCommunityBasicInfoFromUri(communityUri: string): ICommunityBasicInfo;
+        static getMarketplaceStallBasicInfoFromUri(stallUri: string): IMarketplaceStallBasicInfo;
         static extractCommunityInfo(event: INostrEvent): ICommunityInfo;
         static extractCommunityStallInfo(event: INostrEvent): ICommunityStallInfo;
         static extractCommunityProductInfo(event: INostrEvent): ICommunityProductInfo;

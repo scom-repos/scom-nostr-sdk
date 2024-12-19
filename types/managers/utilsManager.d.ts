@@ -1,4 +1,4 @@
-import { ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityProductInfo, ICommunityStallInfo, INostrEvent, INostrMetadata, IPaymentActivityV2, IRetrievedMarketplaceOrder, IUserProfile } from "../interfaces";
+import { ICalendarEventInfo, IChannelInfo, ICommunityBasicInfo, ICommunityInfo, ICommunityProductInfo, ICommunityStallInfo, IMarketplaceStallBasicInfo, INostrEvent, INostrMetadata, IPaymentActivityV2, IRetrievedMarketplaceOrder, IUserProfile } from "../interfaces";
 declare class SocialUtilsManager {
     static hexStringToUint8Array(hexString: string): Uint8Array;
     static base64ToUtf8(base64: string): string;
@@ -12,6 +12,7 @@ declare class SocialUtilsManager {
     static getCommunityUri(creatorId: string, communityId: string): string;
     static getMarketplaceStallUri(merchantId: string, stallId: string): string;
     static getCommunityBasicInfoFromUri(communityUri: string): ICommunityBasicInfo;
+    static getMarketplaceStallBasicInfoFromUri(stallUri: string): IMarketplaceStallBasicInfo;
     static extractCommunityInfo(event: INostrEvent): ICommunityInfo;
     static extractCommunityStallInfo(event: INostrEvent): ICommunityStallInfo;
     static extractCommunityProductInfo(event: INostrEvent): ICommunityProductInfo;

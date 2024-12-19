@@ -30,6 +30,11 @@ export interface IPayoutSettings {
 	stripeAccountId?: string;
 }
 
+export interface IMarketplaceStallBasicInfo {
+	merchantId: string;
+	stallId: string;
+}
+
 export interface IMarketplaceStall {
 	id: string;
 	name: string;
@@ -121,7 +126,7 @@ export interface IRetrievedMarketplaceOrder extends IMarketplaceOrder {
 
 export interface IRetrievedBuyerOrder extends IRetrievedMarketplaceOrder {
 	status: BuyerOrderStatus;
-	productDetails?: IMarketplaceProduct[];
+	productDetails?: ICommunityProductInfo[];
 }
 
 export interface IMarketplaceOrderPaymentOption {
