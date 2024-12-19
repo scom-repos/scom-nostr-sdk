@@ -23,6 +23,7 @@ export interface ICryptoPayoutOption {
 }
 export interface IPayoutSettings {
     cryptoOptions: ICryptoPayoutOption[];
+    stripeAccountId?: string;
 }
 export interface IMarketplaceStallBasicInfo {
     merchantId: string;
