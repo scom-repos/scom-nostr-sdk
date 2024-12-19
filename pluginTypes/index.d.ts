@@ -1733,6 +1733,7 @@ declare module "@scom/scom-social-sdk/interfaces/marketplace.ts" {
     }
     export interface IPayoutSettings {
         cryptoOptions: ICryptoPayoutOption[];
+        stripeAccountId?: string;
     }
     export interface IMarketplaceStall {
         id: string;
