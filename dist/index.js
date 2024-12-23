@@ -10820,7 +10820,7 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
                 return null;
             const orderEvent = events.find(event => event.kind === 4 && event.tags.find(tag => tag[0] === 't')?.[1] === 'order');
             const order = await utilsManager_6.SocialUtilsManager.extractMarketplaceOrder(this._privateKey, orderEvent);
-            const paymentEvent = events.find(event => event.kind === 4 && event.tags.find(tag => tag[0] === 't')?.[1] === 'order');
+            const paymentEvent = events.find(event => event.kind === 4 && event.tags.find(tag => tag[0] === 't')?.[1] === 'payment');
             const paymentActivity = await utilsManager_6.SocialUtilsManager.extractPaymentActivity(this._privateKey, paymentEvent);
             const metadataEvent = events.find(event => event.kind === 10000113);
             const metadata = utilsManager_6.SocialUtilsManager.parseContent(metadataEvent.content);
