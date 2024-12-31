@@ -4600,6 +4600,28 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 return acc.concat(callback(item));
             }, []);
         }
+        static async getPollResult(readRelay, requestId, authHeader) {
+            const pollFunction = async () => {
+                const pollRequestInit = {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                };
+                if (authHeader) {
+                    pollRequestInit.headers['Authorization'] = authHeader;
+                }
+                const pollResponse = await fetch(`${readRelay}/poll/${requestId}`, pollRequestInit);
+                const pollResult = await pollResponse.json();
+                return pollResult;
+            };
+            const stopPolling = (pollResult) => {
+                return !!pollResult?.data;
+            };
+            const pollResult = await SocialUtilsManager.exponentialBackoffRetry(pollFunction, 10, 200, 10000, 2, stopPolling);
+            console.log('pollResult', pollResult);
+            return pollResult.data;
+        }
     }
     exports.SocialUtilsManager = SocialUtilsManager;
 });
@@ -4664,27 +4686,7 @@ define("@scom/scom-social-sdk/managers/communication.ts", ["require", "exports",
                 const response = await fetch(`${this._url}/${endpoint}`, requestInit);
                 let result = await response.json();
                 if (result.requestId) {
-                    let requestId = result.requestId;
-                    const pollFunction = async () => {
-                        const pollRequestInit = {
-                            method: 'GET',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            }
-                        };
-                        if (authHeader) {
-                            pollRequestInit.headers['Authorization'] = authHeader;
-                        }
-                        const pollResponse = await fetch(`${this._url}/poll/${requestId}`, pollRequestInit);
-                        const pollResult = await pollResponse.json();
-                        return pollResult;
-                    };
-                    const stopPolling = (pollResult) => {
-                        return !!pollResult?.data;
-                    };
-                    const pollResult = await utilsManager_1.SocialUtilsManager.exponentialBackoffRetry(pollFunction, 10, 200, 10000, 2, stopPolling);
-                    console.log('pollResult', pollResult);
-                    result = pollResult.data;
+                    result = await utilsManager_1.SocialUtilsManager.getPollResult(this._url, result.requestId, authHeader);
                 }
                 return result;
             }
@@ -8047,6 +8049,11 @@ define("@scom/scom-social-sdk/managers/dataManager/system.ts", ["require", "expo
                 }
             });
             let result = await response.json();
+            if (result.requestId) {
+                const { data } = await utilsManager_5.SocialUtilsManager.getPollResult(this._publicIndexingRelay, result.requestId, authHeader);
+                if (data)
+                    result.data = data;
+            }
             return result;
         }
         async fetchRegions() {
