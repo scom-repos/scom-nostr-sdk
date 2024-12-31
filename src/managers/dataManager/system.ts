@@ -28,6 +28,10 @@ export class SystemDataManager {
             }
         });
         let result = await response.json();
+        if (result.requestId) {
+            const { data } = await SocialUtilsManager.getPollResult(this._publicIndexingRelay, result.requestId, authHeader);
+            if (data) result.data = data;
+        }
         return result;
     }
 

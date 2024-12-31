@@ -2349,6 +2349,7 @@ declare module "@scom/scom-social-sdk/managers/utilsManager.ts" {
         static extractMarketplaceOrder(privateKey: string, event: INostrEvent): Promise<IRetrievedMarketplaceOrder>;
         static extractPaymentActivity(privateKey: string, event: INostrEvent): Promise<IPaymentActivityV2>;
         static flatMap<T, U>(array: T[], callback: (item: T) => U[]): U[];
+        static getPollResult(readRelay: string, requestId: string, authHeader?: string): Promise<any>;
     }
     export { SocialUtilsManager };
 }

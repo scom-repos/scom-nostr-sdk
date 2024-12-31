@@ -566,6 +566,36 @@ class SocialUtilsManager {
             return acc.concat(callback(item));
         }, [] as U[]);
     }
+
+    static async getPollResult(readRelay: string, requestId: string, authHeader?: string) {
+        const pollFunction = async () => {
+            const pollRequestInit = {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }
+            if (authHeader) {
+                pollRequestInit.headers['Authorization'] = authHeader;
+            }
+            const pollResponse = await fetch(`${readRelay}/poll/${requestId}`, pollRequestInit);
+            const pollResult = await pollResponse.json();
+            return pollResult;
+        }
+        const stopPolling = (pollResult: any) => {
+            return !!pollResult?.data;
+        }
+        const pollResult = await SocialUtilsManager.exponentialBackoffRetry(
+            pollFunction,
+            10, 
+            200, 
+            10000, 
+            2,
+            stopPolling
+        );
+        console.log('pollResult', pollResult);
+        return pollResult.data;
+    }
 }
 
 export {
