@@ -314,9 +314,10 @@ class SocialUtilsManager {
             quantity: data.quantity,
             specs: data.specs,
             shipping: data.shipping,
+            deliverable: data.deliverable,
             communityUri: communityUri,
             stallUri: stallUri,
-            eventData: event
+            eventData: event,
         };
         return communityProductInfo;
     }

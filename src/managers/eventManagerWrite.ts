@@ -933,7 +933,8 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
             price: product.price,
             quantity: product.quantity,
             specs: product.specs,
-            shipping: product.shipping
+            shipping: product.shipping,
+            deliverable: product.deliverable
         });
         let event = {
             "kind": 30018,
