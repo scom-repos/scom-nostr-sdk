@@ -1760,6 +1760,7 @@ declare module "@scom/scom-social-sdk/interfaces/marketplace.ts" {
         quantity: number;
         specs?: string[][];
         shipping?: IMarketplaceStallShipping[];
+        deliverable?: string;
     }
     export interface ICommunityStallInfo extends IMarketplaceStall {
         communityUri?: string;

@@ -4353,9 +4353,10 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 quantity: data.quantity,
                 specs: data.specs,
                 shipping: data.shipping,
+                deliverable: data.deliverable,
                 communityUri: communityUri,
                 stallUri: stallUri,
-                eventData: event
+                eventData: event,
             };
             return communityProductInfo;
         }
@@ -5735,7 +5736,8 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 price: product.price,
                 quantity: product.quantity,
                 specs: product.specs,
-                shipping: product.shipping
+                shipping: product.shipping,
+                deliverable: product.deliverable
             });
             let event = {
                 "kind": 30018,
