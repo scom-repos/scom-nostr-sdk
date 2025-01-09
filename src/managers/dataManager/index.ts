@@ -2972,6 +2972,19 @@ class SocialDataManager {
         return buyerOrder;
     }
 
+    async fetchMarketplaceProductDetails(stallId: string, productIds: string[]) {
+        const productEvents = await this._socialEventManagerRead.fetchMarketplaceProductDetails({
+            stallId: stallId,
+            productIds: productIds
+        });
+        let products: ICommunityProductInfo[] = [];
+        for (let event of productEvents) {
+            const productInfo = SocialUtilsManager.extractCommunityProductInfo(event);
+            products.push(productInfo);
+        }
+        return products;
+    }
+
     async fetchRegions() {
         return this.systemDataManager.fetchRegions();
     }

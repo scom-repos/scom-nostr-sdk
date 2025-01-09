@@ -10852,6 +10852,18 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
             };
             return buyerOrder;
         }
+        async fetchMarketplaceProductDetails(stallId, productIds) {
+            const productEvents = await this._socialEventManagerRead.fetchMarketplaceProductDetails({
+                stallId: stallId,
+                productIds: productIds
+            });
+            let products = [];
+            for (let event of productEvents) {
+                const productInfo = utilsManager_6.SocialUtilsManager.extractCommunityProductInfo(event);
+                products.push(productInfo);
+            }
+            return products;
+        }
         async fetchRegions() {
             return this.systemDataManager.fetchRegions();
         }
