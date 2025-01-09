@@ -50,7 +50,9 @@ export interface IMarketplaceProduct {
     quantity: number;
     specs?: string[][];
     shipping?: IMarketplaceStallShipping[];
-    deliverable?: string;
+    postPurchaseContent?: string;
+    gatekeeperPubkey?: string;
+    encryptedContentKey?: string;
 }
 export interface ICommunityStallInfo extends IMarketplaceStall {
     communityUri?: string;

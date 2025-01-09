@@ -1,5 +1,5 @@
 import { Nip19, Event, Keys } from "../../core/index";
-import { BuyerOrderStatus, CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityBasicInfo, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunityProductInfo, ICommunityStallInfo, ICommunityStats, ICommunitySubscription, IConversationPath, ICurrency, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, IFetchPaymentActivitiesOptions, ILocationCoordinates, ILongFormContentInfo, IMarketplaceOrder, IMarketplaceOrderUpdateInfo, IMarketplaceProduct, IMarketplaceStall, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INftSubscription, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunity, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPaymentActivityV2, IPostStats, IRegion, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IRetrievedBuyerOrder, IRetrievedMarketplaceOrder, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId, SellerOrderStatus, SocialDataManagerOptions } from "../../interfaces";
+import { BuyerOrderStatus, CalendarEventType, CommunityRole, ICalendarEventAttendee, ICalendarEventDetailInfo, ICalendarEventHost, ICalendarEventInfo, IChannelInfo, IChannelScpData, ICheckIfUserHasAccessToCommunityOptions, ICheckRelayStatusResult, ICommunity, ICommunityBasicInfo, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunityProductInfo, ICommunityStallInfo, ICommunityStats, ICommunitySubscription, IConversationPath, ICurrency, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, IFetchPaymentActivitiesOptions, ILocationCoordinates, ILongFormContentInfo, IMarketplaceOrder, IMarketplaceOrderUpdateInfo, IMarketplaceProduct, IMarketplaceStall, IMessageContactInfo, INewCalendarEventPostInfo, INewChannelMessageInfo, INewCommunityInfo, INewCommunityPostInfo, INftSubscription, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunity, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPaymentActivityV2, IPostStats, IRegion, IRelayConfig, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IRetrievedBuyerOrder, IRetrievedMarketplaceOrder, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, MembershipType, ProtectedMembershipPolicyType, ScpStandardId, SellerOrderStatus, SocialDataManagerOptions } from "../../interfaces";
 import {
     INostrCommunicationManager,
     INostrRestAPIManager,
@@ -1473,14 +1473,14 @@ class SocialDataManager {
         }
     }
 
-    private async encryptGroupMessage(privateKey: string, groupPublicKey: string, message: string) {
+    private async encryptMessageWithGeneratedKey(privateKey: string, theirPublicKey: string, message: string) {
         const messagePrivateKey = Keys.generatePrivateKey();
         const messagePublicKey = Keys.getPublicKey(messagePrivateKey);
-        const encryptedGroupKey = await SocialUtilsManager.encryptMessage(privateKey, groupPublicKey, messagePrivateKey);
+        const encryptedMessageKey = await SocialUtilsManager.encryptMessage(privateKey, theirPublicKey, messagePrivateKey);
         const encryptedMessage = await SocialUtilsManager.encryptMessage(privateKey, messagePublicKey, message);
         return {
             encryptedMessage,
-            encryptedGroupKey
+            encryptedMessageKey
         }
     }
 
@@ -1501,15 +1501,15 @@ class SocialDataManager {
         else {
             const {
                 encryptedMessage,
-                encryptedGroupKey
-            } = await this.encryptGroupMessage(this._privateKey, info.scpData.publicKey, JSON.stringify(messageContent));
+                encryptedMessageKey
+            } = await this.encryptMessageWithGeneratedKey(this._privateKey, info.scpData.publicKey, JSON.stringify(messageContent));
             newCommunityPostInfo = {
                 community: info,
                 message: encryptedMessage,
                 timestamp,
                 conversationPath,
                 scpData: {
-                    encryptedKey: encryptedGroupKey,
+                    encryptedKey: encryptedMessageKey,
                     communityUri: info.communityUri
                 }
             }
@@ -1652,14 +1652,14 @@ class SocialDataManager {
         }
         const {
             encryptedMessage,
-            encryptedGroupKey
-        } = await this.encryptGroupMessage(this._privateKey, communityPublicKey, JSON.stringify(messageContent));
+            encryptedMessageKey
+        } = await this.encryptMessageWithGeneratedKey(this._privateKey, communityPublicKey, JSON.stringify(messageContent));
         const newChannelMessageInfo: INewChannelMessageInfo = {
             channelId: channelId,
             message: encryptedMessage,
             conversationPath,
             scpData: {
-                encryptedKey: encryptedGroupKey,
+                encryptedKey: encryptedMessageKey,
                 channelId: channelId
             }
         }
@@ -2144,7 +2144,7 @@ class SocialDataManager {
         return result;
     }
 
-    async checkRelayStatus(pubkey: string, relayUrl?: string) {
+    async checkRelayStatus(pubkey: string, relayUrl?: string): Promise<ICheckRelayStatusResult> {
         if (!relayUrl) relayUrl = this._publicIndexingRelay;
         const authHeader = SocialUtilsManager.constructAuthHeader(this._privateKey);
         const data = {
@@ -2806,6 +2806,29 @@ class SocialDataManager {
     }
 
     async updateCommunityProduct(creatorId: string, communityId: string, product: IMarketplaceProduct) {
+        if (!product.gatekeeperPubkey) {
+            const relayStatusResult = await this.checkRelayStatus(this._selfPubkey);
+            if (relayStatusResult.success && relayStatusResult.npub) {
+                const decodedPubkey = Nip19.decode(relayStatusResult.npub).data as string;
+                product.gatekeeperPubkey = decodedPubkey;
+            }
+        }
+        if (product.gatekeeperPubkey) {
+            if (!product.encryptedContentKey) {
+                const {
+                    encryptedMessage,
+                    encryptedMessageKey
+                } = await this.encryptMessageWithGeneratedKey(this._privateKey, product.gatekeeperPubkey, product.postPurchaseContent);
+                product.postPurchaseContent = encryptedMessage;
+                product.encryptedContentKey = encryptedMessageKey;
+            }
+            else {
+                const messagePrivateKey = await SocialUtilsManager.decryptMessage(this._privateKey, product.gatekeeperPubkey, product.encryptedContentKey);
+                const messagePublicKey = Keys.getPublicKey(messagePrivateKey);
+                const encryptedMessage = await SocialUtilsManager.encryptMessage(this._privateKey, messagePublicKey, product.postPurchaseContent);
+                product.postPurchaseContent = encryptedMessage;
+            }
+        }
         const result = await this._socialEventManagerWrite.updateCommunityProduct(creatorId, communityId, product);
         return result;
     }

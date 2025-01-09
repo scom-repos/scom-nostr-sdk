@@ -4353,7 +4353,9 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 quantity: data.quantity,
                 specs: data.specs,
                 shipping: data.shipping,
-                deliverable: data.deliverable,
+                postPurchaseContent: data.postPurchaseContent,
+                gatekeeperPubkey: data.gatekeeperPubkey,
+                encryptedContentKey: data.encryptedContentKey,
                 communityUri: communityUri,
                 stallUri: stallUri,
                 eventData: event,
@@ -5737,7 +5739,9 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 quantity: product.quantity,
                 specs: product.specs,
                 shipping: product.shipping,
-                deliverable: product.deliverable
+                postPurchaseContent: product.postPurchaseContent,
+                gatekeeperPubkey: product.gatekeeperPubkey,
+                encryptedContentKey: product.encryptedContentKey
             });
             let event = {
                 "kind": 30018,
@@ -9431,14 +9435,14 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
                 await this._socialEventManagerWrite.updateUserBookmarkedChannels(channelEventIds);
             }
         }
-        async encryptGroupMessage(privateKey, groupPublicKey, message) {
+        async encryptMessageWithGeneratedKey(privateKey, theirPublicKey, message) {
             const messagePrivateKey = index_6.Keys.generatePrivateKey();
             const messagePublicKey = index_6.Keys.getPublicKey(messagePrivateKey);
-            const encryptedGroupKey = await utilsManager_6.SocialUtilsManager.encryptMessage(privateKey, groupPublicKey, messagePrivateKey);
+            const encryptedMessageKey = await utilsManager_6.SocialUtilsManager.encryptMessage(privateKey, theirPublicKey, messagePrivateKey);
             const encryptedMessage = await utilsManager_6.SocialUtilsManager.encryptMessage(privateKey, messagePublicKey, message);
             return {
                 encryptedMessage,
-                encryptedGroupKey
+                encryptedMessageKey
             };
         }
         async submitCommunityPost(message, info, conversationPath, timestamp, alt, isPublicPost = false) {
@@ -9456,14 +9460,14 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
                 };
             }
             else {
-                const { encryptedMessage, encryptedGroupKey } = await this.encryptGroupMessage(this._privateKey, info.scpData.publicKey, JSON.stringify(messageContent));
+                const { encryptedMessage, encryptedMessageKey } = await this.encryptMessageWithGeneratedKey(this._privateKey, info.scpData.publicKey, JSON.stringify(messageContent));
                 newCommunityPostInfo = {
                     community: info,
                     message: encryptedMessage,
                     timestamp,
                     conversationPath,
                     scpData: {
-                        encryptedKey: encryptedGroupKey,
+                        encryptedKey: encryptedMessageKey,
                         communityUri: info.communityUri
                     }
                 };
@@ -9591,13 +9595,13 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
                 channelId,
                 message,
             };
-            const { encryptedMessage, encryptedGroupKey } = await this.encryptGroupMessage(this._privateKey, communityPublicKey, JSON.stringify(messageContent));
+            const { encryptedMessage, encryptedMessageKey } = await this.encryptMessageWithGeneratedKey(this._privateKey, communityPublicKey, JSON.stringify(messageContent));
             const newChannelMessageInfo = {
                 channelId: channelId,
                 message: encryptedMessage,
                 conversationPath,
                 scpData: {
-                    encryptedKey: encryptedGroupKey,
+                    encryptedKey: encryptedMessageKey,
                     channelId: channelId
                 }
             };
@@ -10688,6 +10692,26 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
             return result;
         }
         async updateCommunityProduct(creatorId, communityId, product) {
+            if (!product.gatekeeperPubkey) {
+                const relayStatusResult = await this.checkRelayStatus(this._selfPubkey);
+                if (relayStatusResult.success && relayStatusResult.npub) {
+                    const decodedPubkey = index_6.Nip19.decode(relayStatusResult.npub).data;
+                    product.gatekeeperPubkey = decodedPubkey;
+                }
+            }
+            if (product.gatekeeperPubkey) {
+                if (!product.encryptedContentKey) {
+                    const { encryptedMessage, encryptedMessageKey } = await this.encryptMessageWithGeneratedKey(this._privateKey, product.gatekeeperPubkey, product.postPurchaseContent);
+                    product.postPurchaseContent = encryptedMessage;
+                    product.encryptedContentKey = encryptedMessageKey;
+                }
+                else {
+                    const messagePrivateKey = await utilsManager_6.SocialUtilsManager.decryptMessage(this._privateKey, product.gatekeeperPubkey, product.encryptedContentKey);
+                    const messagePublicKey = index_6.Keys.getPublicKey(messagePrivateKey);
+                    const encryptedMessage = await utilsManager_6.SocialUtilsManager.encryptMessage(this._privateKey, messagePublicKey, product.postPurchaseContent);
+                    product.postPurchaseContent = encryptedMessage;
+                }
+            }
             const result = await this._socialEventManagerWrite.updateCommunityProduct(creatorId, communityId, product);
             return result;
         }

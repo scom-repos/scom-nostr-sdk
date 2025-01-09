@@ -23,3 +23,11 @@ export interface ISocialDataManagerConfig {
 	mqttMessageCallback?: (topic: string, message: string) => void;
 	enableLightningWallet?: boolean;
 }
+
+export interface ICheckRelayStatusResult {
+	success: boolean, 
+	error?: string, 
+	npub?: string, 
+	userProfileExists?: boolean, 
+	isPrivate?: boolean
+}

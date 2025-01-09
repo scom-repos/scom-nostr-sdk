@@ -1,4 +1,4 @@
-import { BuyerOrderStatus, CommunityRole, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICheckIfUserHasAccessToCommunityOptions, ICommunity, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunityProductInfo, ICommunityStallInfo, ICommunitySubscription, IConversationPath, ICurrency, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, IFetchPaymentActivitiesOptions, ILocationCoordinates, ILongFormContentInfo, IMarketplaceOrder, IMarketplaceOrderUpdateInfo, IMarketplaceProduct, IMarketplaceStall, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPaymentActivityV2, IPostStats, IRegion, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IRetrievedBuyerOrder, IRetrievedMarketplaceOrder, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, SellerOrderStatus, SocialDataManagerOptions } from "../../interfaces";
+import { BuyerOrderStatus, CommunityRole, ICalendarEventDetailInfo, ICalendarEventInfo, IChannelInfo, ICheckIfUserHasAccessToCommunityOptions, ICheckRelayStatusResult, ICommunity, ICommunityDetailMetadata, ICommunityInfo, ICommunityLeaderboard, ICommunityMember, ICommunityPostScpData, ICommunityProductInfo, ICommunityStallInfo, ICommunitySubscription, IConversationPath, ICurrency, IDecryptPostPrivateKeyForCommunityOptions, IEthWalletAccountsInfo, IFetchPaymentActivitiesOptions, ILocationCoordinates, ILongFormContentInfo, IMarketplaceOrder, IMarketplaceOrderUpdateInfo, IMarketplaceProduct, IMarketplaceStall, IMessageContactInfo, INewCommunityInfo, INostrEvent, INostrMetadata, INostrMetadataContent, INoteActions, INoteCommunityInfo, INoteInfo, INoteInfoExtended, IPaymentActivityV2, IPostStats, IRegion, IRetrieveChannelMessageKeysOptions, IRetrieveCommunityPostKeysByNoteEventsOptions, IRetrieveCommunityPostKeysOptions, IRetrieveCommunityThreadPostKeysOptions, IRetrievedBuyerOrder, IRetrievedMarketplaceOrder, ISendTempMessageOptions, ISocialDataManagerConfig, ISocialEventManagerRead, ISocialEventManagerWrite, ITrendingCommunityInfo, IUpdateCalendarEventInfo, IUpdateCommunitySubscription, IUserActivityStats, IUserProfile, SellerOrderStatus, SocialDataManagerOptions } from "../../interfaces";
 declare class SocialDataManager {
     private _writeRelays;
     private _publicIndexingRelay;
@@ -144,7 +144,7 @@ declare class SocialDataManager {
     fetchUserRoleInCommunity(community: ICommunityInfo, pubKey: string): Promise<CommunityRole>;
     joinCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;
     leaveCommunity(community: ICommunityInfo, pubKey: string): Promise<void>;
-    private encryptGroupMessage;
+    private encryptMessageWithGeneratedKey;
     submitCommunityPost(message: string, info: ICommunityInfo, conversationPath?: IConversationPath, timestamp?: number, alt?: string, isPublicPost?: boolean): Promise<import("../../interfaces").ISocialEventManagerWriteResult>;
     fetchAllUserRelatedChannels(pubKey: string): Promise<IChannelInfo[]>;
     retrieveChannelMessages(channelId: string, since?: number, until?: number): Promise<INostrEvent[]>;
@@ -184,7 +184,7 @@ declare class SocialDataManager {
     submitLike(postEventData: INostrEvent): Promise<void>;
     submitRepost(postEventData: INostrEvent): Promise<void>;
     sendPingRequest(pubkey: string, relayUrl?: string): Promise<any>;
-    checkRelayStatus(pubkey: string, relayUrl?: string): Promise<any>;
+    checkRelayStatus(pubkey: string, relayUrl?: string): Promise<ICheckRelayStatusResult>;
     searchUsers(query: string): Promise<IUserProfile[]>;
     addRelay(url: string): Promise<void>;
     removeRelay(url: string): Promise<void>;
