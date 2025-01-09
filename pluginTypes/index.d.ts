@@ -3004,6 +3004,7 @@ declare module "@scom/scom-social-sdk/managers/dataManager/index.ts" {
         fetchCommunityOrders(creatorId: string, communityId: string, stallId?: string, status?: SellerOrderStatus): Promise<IRetrievedMarketplaceOrder[]>;
         fetchBuyerOrders(pubkey: string, status?: BuyerOrderStatus): Promise<IRetrievedBuyerOrder[]>;
         fetchMarketplaceOrderDetails(orderId: string): Promise<IRetrievedBuyerOrder>;
+        fetchMarketplaceProductDetails(stallId: string, productIds: string[]): Promise<ICommunityProductInfo[]>;
         fetchRegions(): Promise<IRegion[]>;
         fetchCurrencies(): Promise<ICurrency[]>;
         fetchCryptocurrencies(): Promise<import("@scom/scom-social-sdk/interfaces/marketplace.ts").ICryptocurrency[]>;
