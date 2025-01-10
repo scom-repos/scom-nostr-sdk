@@ -243,6 +243,7 @@ declare class SocialDataManager {
     fetchBuyerOrders(pubkey: string, status?: BuyerOrderStatus): Promise<IRetrievedBuyerOrder[]>;
     fetchMarketplaceOrderDetails(orderId: string): Promise<IRetrievedBuyerOrder>;
     fetchMarketplaceProductDetails(stallId: string, productIds: string[]): Promise<ICommunityProductInfo[]>;
+    fetchProductPostPurchaseContent(sellerPubkey: string, productId: string, postPurchaseContent: string): Promise<string>;
     fetchRegions(): Promise<IRegion[]>;
     fetchCurrencies(): Promise<ICurrency[]>;
     fetchCryptocurrencies(): Promise<import("../../interfaces").ICryptocurrency[]>;

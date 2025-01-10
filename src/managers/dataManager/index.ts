@@ -3008,6 +3008,32 @@ class SocialDataManager {
         return products;
     }
 
+    async fetchProductPostPurchaseContent(sellerPubkey: string, productId: string, postPurchaseContent: string) {
+        let contentKey: string;
+        const authHeader = SocialUtilsManager.constructAuthHeader(this._privateKey);
+        let bodyData = {
+            sellerPubkey: sellerPubkey,
+            productId: productId
+        };
+        let url = `${this._publicIndexingRelay}/gatekeeper/fetch-product-key`;
+        let response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': authHeader
+            },
+            body: JSON.stringify(bodyData)
+        });
+        let result = await response.json();
+        if (result.success) {
+            contentKey = result.data?.key;
+        }
+
+        const text = await SocialUtilsManager.decryptMessage(contentKey, sellerPubkey, postPurchaseContent);
+        return text;
+    }
+
     async fetchRegions() {
         return this.systemDataManager.fetchRegions();
     }
