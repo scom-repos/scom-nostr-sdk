@@ -3636,6 +3636,7 @@ define("@scom/scom-social-sdk/interfaces/marketplace.ts", ["require", "exports"]
         MarketplaceProductType["Ebook"] = "Ebook";
         MarketplaceProductType["Membership"] = "Membership";
         MarketplaceProductType["Bundle"] = "Bundle";
+        MarketplaceProductType["Reservation"] = "Reservation";
     })(MarketplaceProductType = exports.MarketplaceProductType || (exports.MarketplaceProductType = {}));
     var SellerOrderStatus;
     (function (SellerOrderStatus) {
@@ -4353,6 +4354,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 quantity: data.quantity,
                 specs: data.specs,
                 shipping: data.shipping,
+                reservation: data.reservation,
                 postPurchaseContent: data.postPurchaseContent,
                 gatekeeperPubkey: data.gatekeeperPubkey,
                 encryptedContentKey: data.encryptedContentKey,
@@ -5739,6 +5741,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                 quantity: product.quantity,
                 specs: product.specs,
                 shipping: product.shipping,
+                reservation: product.reservation,
                 postPurchaseContent: product.postPurchaseContent,
                 gatekeeperPubkey: product.gatekeeperPubkey,
                 encryptedContentKey: product.encryptedContentKey

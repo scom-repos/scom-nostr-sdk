@@ -7,7 +7,8 @@ export enum MarketplaceProductType {
 	Course = "Course",
 	Ebook = "Ebook",
 	Membership = "Membership",
-	Bundle = "Bundle"
+	Bundle = "Bundle",
+	Reservation = "Reservation",
 }
 
 export interface IMarketplaceStallShipping {
@@ -60,6 +61,29 @@ export interface IMarketplaceProduct {
 	postPurchaseContent?: string;
 	gatekeeperPubkey?: string;
 	encryptedContentKey?: string;
+	reservation?: IMarketplaceReservation;
+}
+
+export interface IMarketplaceWorkingHours {
+	checked?: boolean;
+	startTime?: number;
+	endTime?: number;
+}
+
+export interface IMarketplaceService {
+	id: string;
+	name: string;
+	duration: number;
+	durationUnit: string;
+	price: number;
+	currency: string;
+	capacity?: number;
+}
+
+export interface IMarketplaceReservation {
+	workingHours: { [key: string]: IMarketplaceWorkingHours };
+	providers: { id: string; name: string }[];
+	services: IMarketplaceService[];
 }
 
 export interface ICommunityStallInfo extends IMarketplaceStall {
