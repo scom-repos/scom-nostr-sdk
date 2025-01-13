@@ -2179,9 +2179,27 @@ declare module "@scom/scom-social-sdk/interfaces/dataManager.ts" {
     import { IMqttClientOptions } from "@scom/scom-social-sdk/interfaces/common.ts";
     import { ISocialEventManagerRead } from "@scom/scom-social-sdk/interfaces/eventManagerRead.ts";
     export namespace SocialDataManagerOptions {
-        interface IFetchUserEthWalletAccountsInfoOptions {
+        interface IFetchUserEthWalletAccountsInfo {
             walletHash?: string;
             pubKey?: string;
+        }
+        interface IFetchProductPostPurchaseContent {
+            sellerPubkey: string;
+            productId: string;
+            postPurchaseContent: string;
+            gatekeeperPubkey?: string;
+            encryptedContentKey?: string;
+        }
+        interface IFetchCommunityProducts {
+            creatorId: string;
+            communityId: string;
+            stallId?: string;
+            decryptPostPurchaseContent?: boolean;
+        }
+        interface IFetchMarketplaceProductDetails {
+            stallId: string;
+            productIds: string[];
+            decryptPostPurchaseContent?: boolean;
         }
     }
     export interface ISocialDataManagerConfig {
@@ -3022,14 +3040,14 @@ declare module "@scom/scom-social-sdk/managers/dataManager/index.ts" {
         removeBookmark(pubKey: string, eventId: string, isArticle?: boolean): Promise<void>;
         deleteEvents(eventIds: string[]): Promise<void>;
         fetchTrendingCommunities(): Promise<ITrendingCommunityInfo[]>;
-        fetchUserEthWalletAccountsInfo(options: SocialDataManagerOptions.IFetchUserEthWalletAccountsInfoOptions): Promise<IEthWalletAccountsInfo>;
+        fetchUserEthWalletAccountsInfo(options: SocialDataManagerOptions.IFetchUserEthWalletAccountsInfo): Promise<IEthWalletAccountsInfo>;
         updateUserEthWalletAccountsInfo(info: IEthWalletAccountsInfo, privateKey?: string): Promise<any>;
         fetchSubCommunities(creatorId: string, communityId: string): Promise<ICommunityInfo[]>;
         fetchCommunityDetailMetadata(creatorId: string, communityId: string): Promise<ICommunityDetailMetadata>;
         updateNoteStatus(noteId: string, status: string): Promise<import("@scom/scom-social-sdk/interfaces/eventManagerWrite.ts").ISocialEventManagerWriteResult>;
         updateCommunitySubscription(options: IUpdateCommunitySubscription): Promise<any>;
         fetchCommunityStalls(creatorId: string, communityId: string): Promise<ICommunityStallInfo[]>;
-        fetchCommunityProducts(creatorId: string, communityId: string, stallId?: string): Promise<ICommunityProductInfo[]>;
+        fetchCommunityProducts(options: SocialDataManagerOptions.IFetchCommunityProducts): Promise<ICommunityProductInfo[]>;
         updateCommunityStall(creatorId: string, communityId: string, stall: IMarketplaceStall): Promise<import("@scom/scom-social-sdk/interfaces/eventManagerWrite.ts").ISocialEventManagerWriteResult>;
         updateCommunityProduct(creatorId: string, communityId: string, product: IMarketplaceProduct): Promise<import("@scom/scom-social-sdk/interfaces/eventManagerWrite.ts").ISocialEventManagerWriteResult>;
         placeMarketplaceOrder(merchantId: string, stallId: string, order: IMarketplaceOrder): Promise<import("@scom/scom-social-sdk/interfaces/eventManagerWrite.ts").ISocialEventManagerWriteResult>;
@@ -3039,8 +3057,8 @@ declare module "@scom/scom-social-sdk/managers/dataManager/index.ts" {
         fetchCommunityOrders(creatorId: string, communityId: string, stallId?: string, status?: SellerOrderStatus): Promise<IRetrievedMarketplaceOrder[]>;
         fetchBuyerOrders(pubkey: string, status?: BuyerOrderStatus): Promise<IRetrievedBuyerOrder[]>;
         fetchMarketplaceOrderDetails(orderId: string): Promise<IRetrievedBuyerOrder>;
-        fetchMarketplaceProductDetails(stallId: string, productIds: string[]): Promise<ICommunityProductInfo[]>;
-        fetchProductPostPurchaseContent(sellerPubkey: string, productId: string, postPurchaseContent: string): Promise<string>;
+        fetchMarketplaceProductDetails(options: SocialDataManagerOptions.IFetchMarketplaceProductDetails): Promise<ICommunityProductInfo[]>;
+        fetchProductPostPurchaseContent(options: SocialDataManagerOptions.IFetchProductPostPurchaseContent): Promise<string>;
         fetchRegions(): Promise<IRegion[]>;
         fetchCurrencies(): Promise<ICurrency[]>;
         fetchCryptocurrencies(): Promise<import("@scom/scom-social-sdk/interfaces/marketplace.ts").ICryptocurrency[]>;

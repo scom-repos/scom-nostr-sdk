@@ -10672,7 +10672,8 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
             }
             return stalls;
         }
-        async fetchCommunityProducts(creatorId, communityId, stallId) {
+        async fetchCommunityProducts(options) {
+            const { creatorId, communityId, stallId, decryptPostPurchaseContent } = options;
             let products = [];
             try {
                 const events = await this._socialEventManagerRead.fetchCommunityProducts({
@@ -10682,6 +10683,15 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
                 });
                 for (let event of events) {
                     const communityProductInfo = utilsManager_6.SocialUtilsManager.extractCommunityProductInfo(event);
+                    if (decryptPostPurchaseContent) {
+                        communityProductInfo.postPurchaseContent = await this.fetchProductPostPurchaseContent({
+                            sellerPubkey: communityProductInfo.eventData.pubkey,
+                            productId: communityProductInfo.id,
+                            postPurchaseContent: communityProductInfo.postPurchaseContent,
+                            encryptedContentKey: communityProductInfo.encryptedContentKey,
+                            gatekeeperPubkey: communityProductInfo.gatekeeperPubkey,
+                        });
+                    }
                     products.push(communityProductInfo);
                 }
             }
@@ -10860,15 +10870,10 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
             const paymentActivity = await utilsManager_6.SocialUtilsManager.extractPaymentActivity(this._privateKey, paymentEvent);
             const metadataEvent = events.find(event => event.kind === 10000113);
             const metadata = utilsManager_6.SocialUtilsManager.parseContent(metadataEvent.content);
-            const productEvents = await this._socialEventManagerRead.fetchMarketplaceProductDetails({
+            let products = await this.fetchMarketplaceProductDetails({
                 stallId: metadata.stall_id,
                 productIds: order.items.map(v => v.productId)
             });
-            let products = [];
-            for (let event of productEvents) {
-                const productInfo = utilsManager_6.SocialUtilsManager.extractCommunityProductInfo(event);
-                products.push(productInfo);
-            }
             let buyerOrder = {
                 ...order,
                 stallId: metadata.stall_id,
@@ -10879,7 +10884,8 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
             };
             return buyerOrder;
         }
-        async fetchMarketplaceProductDetails(stallId, productIds) {
+        async fetchMarketplaceProductDetails(options) {
+            const { stallId, productIds, decryptPostPurchaseContent } = options;
             const productEvents = await this._socialEventManagerRead.fetchMarketplaceProductDetails({
                 stallId: stallId,
                 productIds: productIds
@@ -10887,30 +10893,47 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
             let products = [];
             for (let event of productEvents) {
                 const productInfo = utilsManager_6.SocialUtilsManager.extractCommunityProductInfo(event);
+                if (decryptPostPurchaseContent) {
+                    productInfo.postPurchaseContent = await this.fetchProductPostPurchaseContent({
+                        sellerPubkey: productInfo.eventData.pubkey,
+                        productId: productInfo.id,
+                        postPurchaseContent: productInfo.postPurchaseContent,
+                        encryptedContentKey: productInfo.encryptedContentKey,
+                        gatekeeperPubkey: productInfo.gatekeeperPubkey,
+                    });
+                }
                 products.push(productInfo);
             }
             return products;
         }
-        async fetchProductPostPurchaseContent(sellerPubkey, productId, postPurchaseContent) {
+        async fetchProductPostPurchaseContent(options) {
+            const { sellerPubkey, productId, postPurchaseContent, gatekeeperPubkey, encryptedContentKey } = options;
             let contentKey;
-            const authHeader = utilsManager_6.SocialUtilsManager.constructAuthHeader(this._privateKey);
-            let bodyData = {
-                sellerPubkey: sellerPubkey,
-                productId: productId
-            };
-            let url = `${this._publicIndexingRelay}/gatekeeper/fetch-product-key`;
-            let response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                    'Authorization': authHeader
-                },
-                body: JSON.stringify(bodyData)
-            });
-            let result = await response.json();
-            if (result.success) {
-                contentKey = result.data?.key;
+            if (!postPurchaseContent)
+                return '';
+            if (this._selfPubkey === sellerPubkey) {
+                contentKey = await utilsManager_6.SocialUtilsManager.decryptMessage(this._privateKey, gatekeeperPubkey, encryptedContentKey);
+            }
+            else {
+                const authHeader = utilsManager_6.SocialUtilsManager.constructAuthHeader(this._privateKey);
+                let bodyData = {
+                    sellerPubkey: sellerPubkey,
+                    productId: productId
+                };
+                let url = `${this._publicIndexingRelay}/gatekeeper/fetch-product-key`;
+                let response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'Authorization': authHeader
+                    },
+                    body: JSON.stringify(bodyData)
+                });
+                let result = await response.json();
+                if (result.success) {
+                    contentKey = result.data?.key;
+                }
             }
             const text = await utilsManager_6.SocialUtilsManager.decryptMessage(contentKey, sellerPubkey, postPurchaseContent);
             return text;

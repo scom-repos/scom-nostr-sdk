@@ -2,9 +2,27 @@ import { IMqttClientOptions } from "./common";
 import { ISocialEventManagerRead } from "./eventManagerRead";
 
 export namespace SocialDataManagerOptions {
-	export interface IFetchUserEthWalletAccountsInfoOptions {
+	export interface IFetchUserEthWalletAccountsInfo {
 		walletHash?: string;
 		pubKey?: string;
+	}
+	export interface IFetchProductPostPurchaseContent {
+		sellerPubkey: string;
+		productId: string;
+		postPurchaseContent: string;
+		gatekeeperPubkey?: string;
+		encryptedContentKey?: string;
+	}
+	export interface IFetchCommunityProducts {
+		creatorId: string;
+		communityId: string;
+		stallId?: string;
+		decryptPostPurchaseContent?: boolean;
+	}
+	export interface IFetchMarketplaceProductDetails {
+		stallId: string;
+		productIds: string[];
+		decryptPostPurchaseContent?: boolean;
 	}
 }
 

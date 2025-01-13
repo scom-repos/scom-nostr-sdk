@@ -2648,7 +2648,7 @@ class SocialDataManager {
         return communities;
     }
 
-    async fetchUserEthWalletAccountsInfo(options: SocialDataManagerOptions.IFetchUserEthWalletAccountsInfoOptions) {
+    async fetchUserEthWalletAccountsInfo(options: SocialDataManagerOptions.IFetchUserEthWalletAccountsInfo) {
         const { walletHash, pubKey } = options;
         const event = await this._socialEventManagerRead.fetchUserEthWalletAccountsInfo({ walletHash, pubKey });
         if (!event) return null;
@@ -2782,7 +2782,8 @@ class SocialDataManager {
         return stalls;
     }
 
-    async fetchCommunityProducts(creatorId: string, communityId: string, stallId?: string) {
+    async fetchCommunityProducts(options: SocialDataManagerOptions.IFetchCommunityProducts) {
+        const { creatorId, communityId, stallId, decryptPostPurchaseContent } = options;
         let products: ICommunityProductInfo[] = [];
         try {
             const events = await this._socialEventManagerRead.fetchCommunityProducts({
@@ -2792,6 +2793,15 @@ class SocialDataManager {
             });
             for (let event of events) {
                 const communityProductInfo = SocialUtilsManager.extractCommunityProductInfo(event);
+                if (decryptPostPurchaseContent) {
+                    communityProductInfo.postPurchaseContent = await this.fetchProductPostPurchaseContent({
+                        sellerPubkey: communityProductInfo.eventData.pubkey,
+                        productId: communityProductInfo.id,
+                        postPurchaseContent: communityProductInfo.postPurchaseContent,
+                        encryptedContentKey: communityProductInfo.encryptedContentKey,
+                        gatekeeperPubkey: communityProductInfo.gatekeeperPubkey,
+                    });
+                }
                 products.push(communityProductInfo);
             }
         } catch (error) {
@@ -2974,15 +2984,10 @@ class SocialDataManager {
         const paymentActivity = await SocialUtilsManager.extractPaymentActivity(this._privateKey, paymentEvent);
         const metadataEvent = events.find(event => event.kind === 10000113);
         const metadata = SocialUtilsManager.parseContent(metadataEvent.content);
-        const productEvents = await this._socialEventManagerRead.fetchMarketplaceProductDetails({
+        let products: ICommunityProductInfo[] = await this.fetchMarketplaceProductDetails({
             stallId: metadata.stall_id,
             productIds: order.items.map(v => v.productId)
         });
-        let products: IMarketplaceProduct[] = [];
-        for (let event of productEvents) {
-            const productInfo = SocialUtilsManager.extractCommunityProductInfo(event);
-            products.push(productInfo);
-        }
         let buyerOrder: IRetrievedBuyerOrder = {
             ...order,
             stallId: metadata.stall_id,
@@ -2995,7 +3000,8 @@ class SocialDataManager {
         return buyerOrder;
     }
 
-    async fetchMarketplaceProductDetails(stallId: string, productIds: string[]) {
+    async fetchMarketplaceProductDetails(options: SocialDataManagerOptions.IFetchMarketplaceProductDetails) {
+        const { stallId, productIds, decryptPostPurchaseContent } = options;
         const productEvents = await this._socialEventManagerRead.fetchMarketplaceProductDetails({
             stallId: stallId,
             productIds: productIds
@@ -3003,33 +3009,48 @@ class SocialDataManager {
         let products: ICommunityProductInfo[] = [];
         for (let event of productEvents) {
             const productInfo = SocialUtilsManager.extractCommunityProductInfo(event);
+            if (decryptPostPurchaseContent) {
+                productInfo.postPurchaseContent = await this.fetchProductPostPurchaseContent({
+                    sellerPubkey: productInfo.eventData.pubkey,
+                    productId: productInfo.id,
+                    postPurchaseContent: productInfo.postPurchaseContent,
+                    encryptedContentKey: productInfo.encryptedContentKey,
+                    gatekeeperPubkey: productInfo.gatekeeperPubkey,
+                });
+            }
             products.push(productInfo);
         }
         return products;
     }
 
-    async fetchProductPostPurchaseContent(sellerPubkey: string, productId: string, postPurchaseContent: string) {
+    async fetchProductPostPurchaseContent(options: SocialDataManagerOptions.IFetchProductPostPurchaseContent) {
+        const { sellerPubkey, productId, postPurchaseContent, gatekeeperPubkey, encryptedContentKey } = options;
         let contentKey: string;
-        const authHeader = SocialUtilsManager.constructAuthHeader(this._privateKey);
-        let bodyData = {
-            sellerPubkey: sellerPubkey,
-            productId: productId
-        };
-        let url = `${this._publicIndexingRelay}/gatekeeper/fetch-product-key`;
-        let response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': authHeader
-            },
-            body: JSON.stringify(bodyData)
-        });
-        let result = await response.json();
-        if (result.success) {
-            contentKey = result.data?.key;
+        if (!postPurchaseContent) return '';
+        if (this._selfPubkey === sellerPubkey) {
+            contentKey = await SocialUtilsManager.decryptMessage(this._privateKey, gatekeeperPubkey, encryptedContentKey);
         }
-
+        else {
+            const authHeader = SocialUtilsManager.constructAuthHeader(this._privateKey);
+            let bodyData = {
+                sellerPubkey: sellerPubkey,
+                productId: productId
+            };
+            let url = `${this._publicIndexingRelay}/gatekeeper/fetch-product-key`;
+            let response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+                body: JSON.stringify(bodyData)
+            });
+            let result = await response.json();
+            if (result.success) {
+                contentKey = result.data?.key;
+            }
+        }
         const text = await SocialUtilsManager.decryptMessage(contentKey, sellerPubkey, postPurchaseContent);
         return text;
     }
