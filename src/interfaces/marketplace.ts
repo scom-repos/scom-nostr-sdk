@@ -61,7 +61,17 @@ export interface IMarketplaceProduct {
 	postPurchaseContent?: string;
 	gatekeeperPubkey?: string;
 	encryptedContentKey?: string;
-	reservation?: IMarketplaceReservation;
+	reservations?: IMarketplaceReservation[];
+}
+
+export interface IMarketplaceReservation {
+	id: string;
+	time: number;
+	providerName: string;
+	serviceName: string;
+	duration: number;
+	durationUnit: string;
+	available: boolean;
 }
 
 export interface IMarketplaceWorkingHours {
@@ -80,7 +90,7 @@ export interface IMarketplaceService {
 	capacity?: number;
 }
 
-export interface IMarketplaceReservation {
+export interface IMarketplaceReservationV0 {
 	workingHours: { [key: string]: IMarketplaceWorkingHours };
 	providers: { id: string; name: string }[];
 	services: IMarketplaceService[];
