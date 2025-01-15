@@ -6,6 +6,10 @@ declare class SocialUtilsManager {
     static convertPrivateKeyToPubkey(privateKey: string): string;
     static encryptMessage(ourPrivateKey: string, theirPublicKey: string, text: string): Promise<string>;
     static decryptMessage(ourPrivateKey: string, theirPublicKey: string, encryptedData: string): Promise<string>;
+    static encryptMessageWithGeneratedKey(privateKey: string, theirPublicKey: string, message: string): Promise<{
+        encryptedMessage: string;
+        encryptedMessageKey: string;
+    }>;
     private static pad;
     static getGMTOffset(timezone: string): string;
     static exponentialBackoffRetry<T>(fn: () => Promise<T>, retries: number, delay: number, maxDelay: number, factor: number, stopCondition?: (data: T) => boolean): Promise<T>;
@@ -24,7 +28,7 @@ declare class SocialUtilsManager {
     static constructAuthHeader(privateKey: string): string;
     static constructUserProfile(metadata: INostrMetadata, followersCountMap?: Record<string, number>): IUserProfile;
     static extractCalendarEventInfo(event: INostrEvent): ICalendarEventInfo;
-    static extractMarketplaceOrder(privateKey: string, event: INostrEvent): Promise<IRetrievedMarketplaceOrder>;
+    static extractMarketplaceOrder(privateKey: string, event: INostrEvent, stallInfo: ICommunityStallInfo): Promise<IRetrievedMarketplaceOrder>;
     static extractPaymentActivity(privateKey: string, event: INostrEvent): Promise<IPaymentActivityV2>;
     static flatMap<T, U>(array: T[], callback: (item: T) => U[]): U[];
     static getPollResult(readRelay: string, requestId: string, authHeader?: string): Promise<any>;

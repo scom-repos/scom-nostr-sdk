@@ -3617,6 +3617,8 @@ define("@scom/scom-social-sdk/interfaces/misc.ts", ["require", "exports"], funct
         ScpStandardId["Channel"] = "3";
         ScpStandardId["ChannelMessage"] = "4";
         ScpStandardId["GroupKeys"] = "5";
+        ScpStandardId["CommerceStall"] = "6";
+        ScpStandardId["CommerceOrder"] = "7";
     })(ScpStandardId = exports.ScpStandardId || (exports.ScpStandardId = {}));
     var CalendarEventType;
     (function (CalendarEventType) {
@@ -4139,6 +4141,16 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             }
             return decryptedMessage;
         }
+        static async encryptMessageWithGeneratedKey(privateKey, theirPublicKey, message) {
+            const messagePrivateKey = index_1.Keys.generatePrivateKey();
+            const messagePublicKey = index_1.Keys.getPublicKey(messagePrivateKey);
+            const encryptedMessageKey = await SocialUtilsManager.encryptMessage(privateKey, theirPublicKey, messagePrivateKey);
+            const encryptedMessage = await SocialUtilsManager.encryptMessage(privateKey, messagePublicKey, message);
+            return {
+                encryptedMessage,
+                encryptedMessageKey
+            };
+        }
         static pad(number) {
             return number < 10 ? '0' + number : number.toString();
         }
@@ -4326,6 +4338,15 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 communityUri: communityUri,
                 eventData: event
             };
+            let scpData = this.extractScpData(event, interfaces_1.ScpStandardId.CommerceStall);
+            if (scpData) {
+                communityStallInfo = {
+                    ...communityStallInfo,
+                    encryptedStallSecret: scpData.encryptedKey,
+                    stallPublicKey: scpData.stallPublicKey,
+                    gatekeeperPubkey: scpData.gatekeeperPubkey
+                };
+            }
             return communityStallInfo;
         }
         static extractCommunityProductInfo(event) {
@@ -4521,19 +4542,37 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
             };
             return calendarEventInfo;
         }
-        static async extractMarketplaceOrder(privateKey, event) {
+        static async extractMarketplaceOrder(privateKey, event, stallInfo) {
             const encryptedContent = event.content;
             let order;
             try {
                 const selfPubKey = index_1.Keys.getPublicKey(privateKey);
                 const senderPubKey = event.pubkey;
                 const recipientPubKey = event.tags.find(tag => tag[0] === 'p')?.[1];
+                const gateKeeperPubKey = event.tags.find(tag => tag[0] === 'gatekeeper')?.[1];
                 let contentStr;
-                if (selfPubKey === senderPubKey) {
-                    contentStr = await SocialUtilsManager.decryptMessage(privateKey, recipientPubKey, encryptedContent);
+                let scpData = this.extractScpData(event, interfaces_1.ScpStandardId.CommerceOrder);
+                if (!scpData) {
+                    if (selfPubKey === senderPubKey) {
+                        contentStr = await SocialUtilsManager.decryptMessage(privateKey, recipientPubKey, encryptedContent);
+                    }
+                    else {
+                        contentStr = await SocialUtilsManager.decryptMessage(privateKey, senderPubKey, encryptedContent);
+                    }
                 }
-                else {
-                    contentStr = await SocialUtilsManager.decryptMessage(privateKey, senderPubKey, encryptedContent);
+                else if (selfPubKey === senderPubKey) {
+                    const contentKey = await SocialUtilsManager.decryptMessage(privateKey, stallInfo.stallPublicKey, scpData.encryptedKey);
+                    contentStr = await SocialUtilsManager.decryptMessage(contentKey, senderPubKey, encryptedContent);
+                }
+                else if (selfPubKey === recipientPubKey) {
+                    const stallSecretKey = await SocialUtilsManager.decryptMessage(privateKey, gateKeeperPubKey, stallInfo.encryptedStallSecret);
+                    const contentKey = await SocialUtilsManager.decryptMessage(stallSecretKey, senderPubKey, scpData.encryptedKey);
+                    contentStr = await SocialUtilsManager.decryptMessage(contentKey, senderPubKey, encryptedContent);
+                }
+                else if (selfPubKey === gateKeeperPubKey) {
+                    const stallSecretKey = await SocialUtilsManager.decryptMessage(privateKey, recipientPubKey, stallInfo.encryptedStallSecret);
+                    const contentKey = await SocialUtilsManager.decryptMessage(stallSecretKey, senderPubKey, scpData.encryptedKey);
+                    contentStr = await SocialUtilsManager.decryptMessage(contentKey, senderPubKey, encryptedContent);
                 }
                 if (!contentStr?.length)
                     return null;
@@ -5707,10 +5746,23 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
         }
         async updateCommunityStall(creatorId, communityId, stall) {
             const communityUri = utilsManager_2.SocialUtilsManager.getCommunityUri(creatorId, communityId);
+            let encodedScpData = utilsManager_2.SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify({
+                encryptedKey: stall.encryptedStallSecret,
+                stallPublicKey: stall.stallPublicKey,
+                gatekeeperPubkey: stall.gatekeeperPubkey
+            }));
+            let content = JSON.stringify({
+                id: stall.id,
+                name: stall.name,
+                description: stall.description,
+                currency: stall.currency,
+                shipping: stall.shipping,
+                payout: stall.payout
+            });
             let event = {
                 "kind": 30017,
                 "created_at": Math.round(Date.now() / 1000),
-                "content": JSON.stringify(stall),
+                "content": content,
                 "tags": [
                     [
                         "d",
@@ -5719,6 +5771,11 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     [
                         "a",
                         communityUri
+                    ],
+                    [
+                        "scp",
+                        interfaces_2.ScpStandardId.CommerceStall,
+                        encodedScpData
                     ]
                 ]
             };
@@ -5769,7 +5826,7 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             return result;
         }
         async placeMarketplaceOrder(options) {
-            const { merchantId, stallId, order, replyToEventId } = options;
+            const { merchantId, stallId, stallPublicKey, order, replyToEventId } = options;
             const stallUri = utilsManager_2.SocialUtilsManager.getMarketplaceStallUri(merchantId, stallId);
             const decodedMerchantPubkey = merchantId.startsWith('npub1') ? index_2.Nip19.decode(merchantId).data : merchantId;
             let orderItems = order.items.map(item => {
@@ -5799,7 +5856,11 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
             if (order.message) {
                 message['message'] = order.message;
             }
-            const encryptedMessage = await utilsManager_2.SocialUtilsManager.encryptMessage(this._privateKey, decodedMerchantPubkey, JSON.stringify(message));
+            const { encryptedMessage, encryptedMessageKey } = await utilsManager_2.SocialUtilsManager.encryptMessageWithGeneratedKey(this._privateKey, stallPublicKey, JSON.stringify(message));
+            // const encryptedMessage = await SocialUtilsManager.encryptMessage(this._privateKey, decodedMerchantPubkey, JSON.stringify(message));
+            let encodedScpData = utilsManager_2.SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify({
+                encryptedKey: encryptedMessageKey
+            }));
             let event = {
                 "kind": 4,
                 "created_at": Math.round(Date.now() / 1000),
@@ -5820,6 +5881,11 @@ define("@scom/scom-social-sdk/managers/eventManagerWrite.ts", ["require", "expor
                     [
                         "z",
                         order.id
+                    ],
+                    [
+                        "scp",
+                        interfaces_2.ScpStandardId.CommerceOrder,
+                        encodedScpData
                     ]
                 ]
             };
@@ -10701,6 +10767,20 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
             return products;
         }
         async updateCommunityStall(creatorId, communityId, stall) {
+            if (!stall.gatekeeperPubkey) {
+                const relayStatusResult = await this.checkRelayStatus(this._selfPubkey);
+                if (relayStatusResult.success && relayStatusResult.npub) {
+                    const decodedPubkey = index_6.Nip19.decode(relayStatusResult.npub).data;
+                    stall.gatekeeperPubkey = decodedPubkey;
+                }
+            }
+            if (stall.gatekeeperPubkey) {
+                if (!stall.encryptedStallSecret) {
+                    const stallPrivateKey = index_6.Keys.generatePrivateKey();
+                    stall.stallPublicKey = index_6.Keys.getPublicKey(stallPrivateKey);
+                    stall.encryptedStallSecret = await utilsManager_6.SocialUtilsManager.encryptMessage(this._privateKey, stall.gatekeeperPubkey, stallPrivateKey);
+                }
+            }
             const result = await this._socialEventManagerWrite.updateCommunityStall(creatorId, communityId, stall);
             return result;
         }
@@ -10728,10 +10808,12 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
             const result = await this._socialEventManagerWrite.updateCommunityProduct(creatorId, communityId, product);
             return result;
         }
-        async placeMarketplaceOrder(merchantId, stallId, order) {
+        async placeMarketplaceOrder(options) {
+            const { merchantId, stallId, stallPublicKey, order } = options;
             const result = await this._socialEventManagerWrite.placeMarketplaceOrder({
                 merchantId: merchantId,
                 stallId: stallId,
+                stallPublicKey: stallPublicKey,
                 order
             });
             return result;
@@ -10783,15 +10865,23 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
                 const content = utilsManager_6.SocialUtilsManager.parseContent(event.content);
                 orderIdToMetadataMap[content.order_id] = content;
             }
+            const stallEvents = events.filter(event => event.kind === 30017);
+            const stallIdToStallInfoMap = {};
+            for (let event of stallEvents) {
+                const stallInfo = utilsManager_6.SocialUtilsManager.extractCommunityStallInfo(event);
+                stallIdToStallInfoMap[stallInfo.id] = stallInfo;
+            }
             const orderEvents = events.filter(event => event.kind === 4);
             const orders = [];
             const pubKeys = [];
             const userProfileMap = {};
             for (let event of orderEvents) {
-                const order = await utilsManager_6.SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event);
+                const orderId = event.tags.find(tag => tag[0] === 'z')?.[1];
+                const metadata = orderIdToMetadataMap[orderId];
+                const stallInfo = stallIdToStallInfoMap[metadata.stall_id];
+                const order = await utilsManager_6.SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event, stallInfo);
                 if (!order)
                     continue;
-                const metadata = orderIdToMetadataMap[order.id];
                 if (metadata) {
                     order.stallId = metadata.stall_id;
                     order.stallName = metadata.stall_name;
@@ -10840,14 +10930,22 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
                 const orderId = paymentActivity.orderId;
                 orderIdToPaymentActivityMap[orderId] = paymentActivity;
             }
+            const stallEvents = events.filter(event => event.kind === 30017);
+            const stallIdToStallInfoMap = {};
+            for (let event of stallEvents) {
+                const stallInfo = utilsManager_6.SocialUtilsManager.extractCommunityStallInfo(event);
+                stallIdToStallInfoMap[stallInfo.id] = stallInfo;
+            }
             const orderEvents = events.filter(event => event.kind === 4 && event.tags.find(tag => tag[0] === 't')?.[1] === 'order');
             const orders = [];
             for (let event of orderEvents) {
-                const order = await utilsManager_6.SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event);
-                if (!order)
-                    continue;
-                const metadata = orderIdToMetadataMap[order.id];
+                const orderId = event.tags.find(tag => tag[0] === 'z')?.[1];
+                const metadata = orderIdToMetadataMap[orderId];
                 if (!metadata)
+                    continue;
+                const stallInfo = stallIdToStallInfoMap[metadata.stall_id];
+                const order = await utilsManager_6.SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event, stallInfo);
+                if (!order)
                     continue;
                 let buyerOrder = {
                     ...order,
@@ -10864,8 +10962,10 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
             const events = await this._socialEventManagerRead.fetchMarketplaceOrderDetails({ orderId });
             if (events.length === 0)
                 return null;
+            const stallEvent = events.find(event => event.kind === 30017);
+            const stallInfo = utilsManager_6.SocialUtilsManager.extractCommunityStallInfo(stallEvent);
             const orderEvent = events.find(event => event.kind === 4 && event.tags.find(tag => tag[0] === 't')?.[1] === 'order');
-            const order = await utilsManager_6.SocialUtilsManager.extractMarketplaceOrder(this._privateKey, orderEvent);
+            const order = await utilsManager_6.SocialUtilsManager.extractMarketplaceOrder(this._privateKey, orderEvent, stallInfo);
             const paymentEvent = events.find(event => event.kind === 4 && event.tags.find(tag => tag[0] === 't')?.[1] === 'payment');
             const paymentActivity = await utilsManager_6.SocialUtilsManager.extractPaymentActivity(this._privateKey, paymentEvent);
             const metadataEvent = events.find(event => event.kind === 10000113);

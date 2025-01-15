@@ -1,9 +1,16 @@
 import { IMqttClientOptions } from "./common";
 import { ISocialEventManagerRead } from "./eventManagerRead";
+import { IMarketplaceOrder } from "./marketplace";
 export declare namespace SocialDataManagerOptions {
     interface IFetchUserEthWalletAccountsInfo {
         walletHash?: string;
         pubKey?: string;
+    }
+    interface IPlaceMarketplaceOrder {
+        merchantId: string;
+        stallId: string;
+        stallPublicKey: string;
+        order: IMarketplaceOrder;
     }
     interface IFetchProductPostPurchaseContent {
         sellerPubkey: string;

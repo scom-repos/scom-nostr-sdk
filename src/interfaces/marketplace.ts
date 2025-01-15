@@ -43,6 +43,9 @@ export interface IMarketplaceStall {
 	currency: string;
 	shipping?: IMarketplaceStallShipping[];
 	payout?: IPayoutSettings;
+	stallPublicKey?: string;
+	encryptedStallSecret?: string;
+	gatekeeperPubkey?: string;
 }
 
 export interface IMarketplaceProduct {

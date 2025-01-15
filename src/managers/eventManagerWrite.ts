@@ -899,10 +899,23 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
 
     async updateCommunityStall(creatorId: string, communityId: string, stall: IMarketplaceStall) {
         const communityUri = SocialUtilsManager.getCommunityUri(creatorId, communityId);
+        let encodedScpData = SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify({
+            encryptedKey: stall.encryptedStallSecret,
+            stallPublicKey: stall.stallPublicKey,
+            gatekeeperPubkey: stall.gatekeeperPubkey
+        }));
+        let content = JSON.stringify({
+            id: stall.id,
+            name: stall.name,
+            description: stall.description,
+            currency: stall.currency,
+            shipping: stall.shipping,
+            payout: stall.payout
+        });
         let event = {
             "kind": 30017,
             "created_at": Math.round(Date.now() / 1000),
-            "content": JSON.stringify(stall),
+            "content": content,
             "tags": [
                 [
                     "d",
@@ -911,6 +924,11 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 [
                     "a",
                     communityUri
+                ],
+                [
+                    "scp",
+                    ScpStandardId.CommerceStall,
+                    encodedScpData
                 ]
             ]
         };
@@ -963,7 +981,7 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
     }
 
     async placeMarketplaceOrder(options: SocialEventManagerWriteOptions.IPlaceMarketplaceOrder) {
-        const { merchantId, stallId, order, replyToEventId } = options;
+        const { merchantId, stallId, stallPublicKey, order, replyToEventId } = options;
         const stallUri = SocialUtilsManager.getMarketplaceStallUri(merchantId, stallId);
         const decodedMerchantPubkey = merchantId.startsWith('npub1') ? Nip19.decode(merchantId).data as string : merchantId;
         let orderItems = order.items.map(item => {
@@ -993,7 +1011,15 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
         if (order.message) {
             message['message'] = order.message;
         }
-        const encryptedMessage = await SocialUtilsManager.encryptMessage(this._privateKey, decodedMerchantPubkey, JSON.stringify(message));
+        const {
+            encryptedMessage,
+            encryptedMessageKey
+        } = await SocialUtilsManager.encryptMessageWithGeneratedKey(this._privateKey, stallPublicKey, JSON.stringify(message));
+        // const encryptedMessage = await SocialUtilsManager.encryptMessage(this._privateKey, decodedMerchantPubkey, JSON.stringify(message));
+        let encodedScpData = SocialUtilsManager.utf8ToBase64('$scp:' + JSON.stringify({
+            encryptedKey: encryptedMessageKey
+        }));
+
         let event = {
             "kind": 4,
             "created_at": Math.round(Date.now() / 1000),
@@ -1014,6 +1040,11 @@ class NostrEventManagerWrite implements ISocialEventManagerWrite {
                 [
                     "z",
                     order.id
+                ],
+                [
+                    "scp",
+                    ScpStandardId.CommerceOrder,
+                    encodedScpData
                 ]
             ]
         }

@@ -2811,6 +2811,20 @@ class SocialDataManager {
     }
 
     async updateCommunityStall(creatorId: string, communityId: string, stall: IMarketplaceStall) {
+        if (!stall.gatekeeperPubkey) {
+            const relayStatusResult = await this.checkRelayStatus(this._selfPubkey);
+            if (relayStatusResult.success && relayStatusResult.npub) {
+                const decodedPubkey = Nip19.decode(relayStatusResult.npub).data as string;
+                stall.gatekeeperPubkey = decodedPubkey;
+            }
+        }
+        if (stall.gatekeeperPubkey) {
+            if (!stall.encryptedStallSecret) {
+                const stallPrivateKey = Keys.generatePrivateKey();
+                stall.stallPublicKey = Keys.getPublicKey(stallPrivateKey);
+                stall.encryptedStallSecret = await SocialUtilsManager.encryptMessage(this._privateKey, stall.gatekeeperPubkey, stallPrivateKey);
+            }
+        }
         const result = await this._socialEventManagerWrite.updateCommunityStall(creatorId, communityId, stall);
         return result;
     }
@@ -2843,10 +2857,12 @@ class SocialDataManager {
         return result;
     }
 
-    async placeMarketplaceOrder(merchantId: string, stallId: string, order: IMarketplaceOrder) {
+    async placeMarketplaceOrder(options: SocialDataManagerOptions.IPlaceMarketplaceOrder) {
+        const {merchantId, stallId, stallPublicKey, order} = options;
         const result = await this._socialEventManagerWrite.placeMarketplaceOrder({
             merchantId: merchantId,
             stallId: stallId,
+            stallPublicKey: stallPublicKey,
             order
         });
         return result;
@@ -2901,14 +2917,22 @@ class SocialDataManager {
             const content = SocialUtilsManager.parseContent(event.content);
             orderIdToMetadataMap[content.order_id] = content;
         }
+        const stallEvents = events.filter(event => event.kind === 30017);
+        const stallIdToStallInfoMap: Record<string, any> = {};
+        for (let event of stallEvents) {
+            const stallInfo = SocialUtilsManager.extractCommunityStallInfo(event);
+            stallIdToStallInfoMap[stallInfo.id] = stallInfo;
+        }
         const orderEvents = events.filter(event => event.kind === 4);
         const orders: IRetrievedMarketplaceOrder[] = [];
         const pubKeys: string[] = [];
         const userProfileMap: Record<string, IUserProfile> = {};
         for (let event of orderEvents) {
-            const order = await SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event);
+            const orderId = event.tags.find(tag => tag[0] === 'z')?.[1];
+            const metadata = orderIdToMetadataMap[orderId];
+            const stallInfo = stallIdToStallInfoMap[metadata.stall_id];
+            const order = await SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event, stallInfo);
             if (!order) continue;
-            const metadata = orderIdToMetadataMap[order.id];
             if (metadata) {
                 order.stallId = metadata.stall_id;
                 order.stallName = metadata.stall_name;
@@ -2956,13 +2980,21 @@ class SocialDataManager {
             const orderId = paymentActivity.orderId;
             orderIdToPaymentActivityMap[orderId] = paymentActivity;
         }
+        const stallEvents = events.filter(event => event.kind === 30017);
+        const stallIdToStallInfoMap: Record<string, any> = {};
+        for (let event of stallEvents) {
+            const stallInfo = SocialUtilsManager.extractCommunityStallInfo(event);
+            stallIdToStallInfoMap[stallInfo.id] = stallInfo;
+        }
         const orderEvents = events.filter(event => event.kind === 4 && event.tags.find(tag => tag[0] === 't')?.[1] === 'order');
         const orders: IRetrievedBuyerOrder[] = [];
         for (let event of orderEvents) {
-            const order = await SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event);
-            if (!order) continue;
-            const metadata = orderIdToMetadataMap[order.id];
+            const orderId = event.tags.find(tag => tag[0] === 'z')?.[1];
+            const metadata = orderIdToMetadataMap[orderId];
             if (!metadata) continue;
+            const stallInfo = stallIdToStallInfoMap[metadata.stall_id];
+            const order = await SocialUtilsManager.extractMarketplaceOrder(this._privateKey, event, stallInfo);
+            if (!order) continue;
             let buyerOrder: IRetrievedBuyerOrder = {
                 ...order,
                 stallId: metadata.stall_id,
@@ -2978,8 +3010,10 @@ class SocialDataManager {
     async fetchMarketplaceOrderDetails(orderId: string) {
         const events = await this._socialEventManagerRead.fetchMarketplaceOrderDetails({ orderId });
         if (events.length === 0) return null;
+        const stallEvent = events.find(event => event.kind === 30017);
+        const stallInfo = SocialUtilsManager.extractCommunityStallInfo(stallEvent);
         const orderEvent = events.find(event => event.kind === 4 && event.tags.find(tag => tag[0] === 't')?.[1] === 'order');
-        const order = await SocialUtilsManager.extractMarketplaceOrder(this._privateKey, orderEvent);
+        const order = await SocialUtilsManager.extractMarketplaceOrder(this._privateKey, orderEvent, stallInfo);
         const paymentEvent = events.find(event => event.kind === 4 && event.tags.find(tag => tag[0] === 't')?.[1] === 'payment');
         const paymentActivity = await SocialUtilsManager.extractPaymentActivity(this._privateKey, paymentEvent);
         const metadataEvent = events.find(event => event.kind === 10000113);

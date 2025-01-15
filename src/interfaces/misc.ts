@@ -51,6 +51,8 @@ export enum ScpStandardId {
 	Channel = '3',
 	ChannelMessage = '4',
 	GroupKeys = '5',
+	CommerceStall = '6',
+	CommerceOrder = '7',
 }
 
 export interface IMessageContactInfo {

@@ -92,6 +92,17 @@ class SocialUtilsManager {
         return decryptedMessage;
     }
 
+    static async encryptMessageWithGeneratedKey(privateKey: string, theirPublicKey: string, message: string) {
+        const messagePrivateKey = Keys.generatePrivateKey();
+        const messagePublicKey = Keys.getPublicKey(messagePrivateKey);
+        const encryptedMessageKey = await SocialUtilsManager.encryptMessage(privateKey, theirPublicKey, messagePrivateKey);
+        const encryptedMessage = await SocialUtilsManager.encryptMessage(privateKey, messagePublicKey, message);
+        return {
+            encryptedMessage,
+            encryptedMessageKey
+        }
+    }
+
     private static pad(number: number): string {
         return number < 10 ? '0' + number : number.toString();
     }
@@ -286,6 +297,15 @@ class SocialUtilsManager {
             communityUri: communityUri,
             eventData: event
         };
+        let scpData = this.extractScpData(event, ScpStandardId.CommerceStall);
+        if (scpData) {
+            communityStallInfo = {
+                ...communityStallInfo,
+                encryptedStallSecret: scpData.encryptedKey,
+                stallPublicKey: scpData.stallPublicKey,
+                gatekeeperPubkey: scpData.gatekeeperPubkey
+            }
+        }
         return communityStallInfo;
     }
 
@@ -486,19 +506,37 @@ class SocialUtilsManager {
         return calendarEventInfo;
     }
 
-    static async extractMarketplaceOrder(privateKey: string, event: INostrEvent) {
+    static async extractMarketplaceOrder(privateKey: string, event: INostrEvent, stallInfo: ICommunityStallInfo) {
         const encryptedContent = event.content;
         let order: IRetrievedMarketplaceOrder;
         try {
             const selfPubKey = Keys.getPublicKey(privateKey);
             const senderPubKey = event.pubkey;
             const recipientPubKey = event.tags.find(tag => tag[0] === 'p')?.[1];
+            const gateKeeperPubKey = event.tags.find(tag => tag[0] === 'gatekeeper')?.[1];
             let contentStr;
-            if (selfPubKey === senderPubKey) {
-                contentStr = await SocialUtilsManager.decryptMessage(privateKey, recipientPubKey, encryptedContent);
+            let scpData = this.extractScpData(event, ScpStandardId.CommerceOrder);
+            if (!scpData) {
+                if (selfPubKey === senderPubKey) {
+                    contentStr = await SocialUtilsManager.decryptMessage(privateKey, recipientPubKey, encryptedContent);
+                }
+                else {
+                    contentStr = await SocialUtilsManager.decryptMessage(privateKey, senderPubKey, encryptedContent);
+                }
             }
-            else {
-                contentStr = await SocialUtilsManager.decryptMessage(privateKey, senderPubKey, encryptedContent);
+            else if (selfPubKey === senderPubKey) {
+                const contentKey = await SocialUtilsManager.decryptMessage(privateKey, stallInfo.stallPublicKey, scpData.encryptedKey);
+                contentStr = await SocialUtilsManager.decryptMessage(contentKey, senderPubKey, encryptedContent);
+            }
+            else if (selfPubKey === recipientPubKey) {
+                const stallSecretKey = await SocialUtilsManager.decryptMessage(privateKey, gateKeeperPubKey, stallInfo.encryptedStallSecret);
+                const contentKey = await SocialUtilsManager.decryptMessage(stallSecretKey, senderPubKey, scpData.encryptedKey);
+                contentStr = await SocialUtilsManager.decryptMessage(contentKey, senderPubKey, encryptedContent);
+            }
+            else if (selfPubKey === gateKeeperPubKey) {
+                const stallSecretKey = await SocialUtilsManager.decryptMessage(privateKey, recipientPubKey, stallInfo.encryptedStallSecret);
+                const contentKey = await SocialUtilsManager.decryptMessage(stallSecretKey, senderPubKey, scpData.encryptedKey);
+                contentStr = await SocialUtilsManager.decryptMessage(contentKey, senderPubKey, encryptedContent);
             }
             if (!contentStr?.length) return null;
             const content = this.parseContent(contentStr);

@@ -25,6 +25,7 @@ export namespace SocialEventManagerWriteOptions {
     export interface IPlaceMarketplaceOrder {
         merchantId: string;
         stallId: string;
+        stallPublicKey: string;
         order: IMarketplaceOrder;
         replyToEventId?: string;
     }
