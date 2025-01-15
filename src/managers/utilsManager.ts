@@ -334,7 +334,7 @@ class SocialUtilsManager {
             quantity: data.quantity,
             specs: data.specs,
             shipping: data.shipping,
-            reservation: data.reservation,
+            reservations: data.reservations,
             postPurchaseContent: data.postPurchaseContent,
             gatekeeperPubkey: data.gatekeeperPubkey,
             encryptedContentKey: data.encryptedContentKey,
