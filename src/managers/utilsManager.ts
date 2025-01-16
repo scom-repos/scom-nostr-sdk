@@ -513,7 +513,7 @@ class SocialUtilsManager {
             const selfPubKey = Keys.getPublicKey(privateKey);
             const senderPubKey = event.pubkey;
             const recipientPubKey = event.tags.find(tag => tag[0] === 'p')?.[1];
-            const gateKeeperPubKey = event.tags.find(tag => tag[0] === 'gatekeeper')?.[1];
+            const gateKeeperPubKey = stallInfo.gatekeeperPubkey;
             let contentStr;
             let scpData = this.extractScpData(event, ScpStandardId.CommerceOrder);
             if (!scpData) {

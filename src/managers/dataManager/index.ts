@@ -2973,7 +2973,7 @@ class SocialDataManager {
             orderIdToMetadataMap[content.order_id] = content;
         }
         const orderIdToPaymentActivityMap: Record<string, IPaymentActivityV2> = {};
-        const paymentEvents = events.filter(event => event.kind === 4 && event.tags.find(tag => tag[0] === 't')?.[1] === 'order');
+        const paymentEvents = events.filter(event => event.kind === 4 && event.tags.find(tag => tag[0] === 't')?.[1] === 'payment');
         for (let event of paymentEvents) {
             const paymentActivity = await SocialUtilsManager.extractPaymentActivity(this._privateKey, event);
             if (!paymentActivity) continue;

@@ -4549,7 +4549,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
                 const selfPubKey = index_1.Keys.getPublicKey(privateKey);
                 const senderPubKey = event.pubkey;
                 const recipientPubKey = event.tags.find(tag => tag[0] === 'p')?.[1];
-                const gateKeeperPubKey = event.tags.find(tag => tag[0] === 'gatekeeper')?.[1];
+                const gateKeeperPubKey = stallInfo.gatekeeperPubkey;
                 let contentStr;
                 let scpData = this.extractScpData(event, interfaces_1.ScpStandardId.CommerceOrder);
                 if (!scpData) {
@@ -10922,7 +10922,7 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
                 orderIdToMetadataMap[content.order_id] = content;
             }
             const orderIdToPaymentActivityMap = {};
-            const paymentEvents = events.filter(event => event.kind === 4 && event.tags.find(tag => tag[0] === 't')?.[1] === 'order');
+            const paymentEvents = events.filter(event => event.kind === 4 && event.tags.find(tag => tag[0] === 't')?.[1] === 'payment');
             for (let event of paymentEvents) {
                 const paymentActivity = await utilsManager_6.SocialUtilsManager.extractPaymentActivity(this._privateKey, event);
                 if (!paymentActivity)
