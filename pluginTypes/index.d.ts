@@ -2211,6 +2211,10 @@ declare module "@scom/scom-social-sdk/interfaces/dataManager.ts" {
             gatekeeperPubkey?: string;
             encryptedContentKey?: string;
         }
+        interface IFetchProductPurchaseStatus {
+            sellerPubkey: string;
+            productId: string;
+        }
         interface IFetchCommunityProducts {
             creatorId: string;
             communityId: string;
@@ -3084,7 +3088,8 @@ declare module "@scom/scom-social-sdk/managers/dataManager/index.ts" {
         fetchBuyerOrders(pubkey: string, status?: BuyerOrderStatus): Promise<IRetrievedBuyerOrder[]>;
         fetchMarketplaceOrderDetails(orderId: string): Promise<IRetrievedBuyerOrder>;
         fetchMarketplaceProductDetails(options: SocialDataManagerOptions.IFetchMarketplaceProductDetails): Promise<ICommunityProductInfo[]>;
-        fetchProductPostPurchaseContent(options: SocialDataManagerOptions.IFetchProductPostPurchaseContent): Promise<string>;
+        fetchProductPostPurchaseContent(options: SocialDataManagerOptions.IFetchProductPostPurchaseContent): Promise<any>;
+        fetchProductPurchaseStatus(options: SocialDataManagerOptions.IFetchProductPurchaseStatus): Promise<boolean>;
         fetchRegions(): Promise<IRegion[]>;
         fetchCurrencies(): Promise<ICurrency[]>;
         fetchCryptocurrencies(): Promise<import("@scom/scom-social-sdk/interfaces/marketplace.ts").ICryptocurrency[]>;

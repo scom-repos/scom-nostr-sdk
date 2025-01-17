@@ -11035,8 +11035,35 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
                     contentKey = result.data?.key;
                 }
             }
-            const text = await utilsManager_6.SocialUtilsManager.decryptMessage(contentKey, sellerPubkey, postPurchaseContent);
+            let text;
+            if (contentKey) {
+                text = await utilsManager_6.SocialUtilsManager.decryptMessage(contentKey, sellerPubkey, postPurchaseContent);
+            }
             return text;
+        }
+        async fetchProductPurchaseStatus(options) {
+            const { sellerPubkey, productId } = options;
+            const authHeader = utilsManager_6.SocialUtilsManager.constructAuthHeader(this._privateKey);
+            let bodyData = {
+                sellerPubkey: sellerPubkey,
+                productId: productId
+            };
+            let url = `${this._publicIndexingRelay}/gatekeeper/check-product-purchase-status`;
+            let response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+                body: JSON.stringify(bodyData)
+            });
+            let isPurchased = false;
+            let result = await response.json();
+            if (result.success) {
+                isPurchased = result.data?.isPurchased;
+            }
+            return isPurchased;
         }
         async fetchRegions() {
             return this.systemDataManager.fetchRegions();

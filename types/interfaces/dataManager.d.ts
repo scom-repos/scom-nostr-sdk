@@ -19,6 +19,10 @@ export declare namespace SocialDataManagerOptions {
         gatekeeperPubkey?: string;
         encryptedContentKey?: string;
     }
+    interface IFetchProductPurchaseStatus {
+        sellerPubkey: string;
+        productId: string;
+    }
     interface IFetchCommunityProducts {
         creatorId: string;
         communityId: string;
