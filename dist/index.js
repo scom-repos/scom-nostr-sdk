@@ -4672,7 +4672,7 @@ define("@scom/scom-social-sdk/managers/utilsManager.ts", ["require", "exports", 
 define("@scom/scom-social-sdk/managers/communication.ts", ["require", "exports", "@scom/scom-social-sdk/managers/utilsManager.ts"], function (require, exports, utilsManager_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.NostrWebSocketManager = exports.NostrRestAPIManager = void 0;
+    exports.NostrWebSocketManager = exports.NostrRestAPIManager = exports.EventRetrievalCacheManager = void 0;
     function determineWebSocketType() {
         if (typeof window !== "undefined") {
             return WebSocket;
@@ -4685,8 +4685,34 @@ define("@scom/scom-social-sdk/managers/communication.ts", ["require", "exports",
         ;
     }
     ;
-    class NostrRestAPIManager {
+    class EventRetrievalCacheManager {
+        constructor() {
+            this.cache = new Map();
+        }
+        generateCacheKey(endpoint, msg) {
+            return `${endpoint}:${JSON.stringify(msg)}`;
+        }
+        async fetchWithCache(cacheKey, fetchFunction, cacheDuration = 1000) {
+            const currentTime = Date.now();
+            // Check if the result is in the cache and is less than cacheDuration old
+            if (this.cache.has(cacheKey)) {
+                const cached = this.cache.get(cacheKey);
+                if (cached && (currentTime - cached.timestamp < cacheDuration)) {
+                    return cached.result;
+                }
+            }
+            const fetchPromise = fetchFunction();
+            this.cache.set(cacheKey, { timestamp: currentTime, result: fetchPromise });
+            setTimeout(() => {
+                this.cache.delete(cacheKey);
+            }, cacheDuration);
+            return fetchPromise;
+        }
+    }
+    exports.EventRetrievalCacheManager = EventRetrievalCacheManager;
+    class NostrRestAPIManager extends EventRetrievalCacheManager {
         constructor(url) {
+            super();
             this.requestCallbackMap = {};
             this._url = url;
         }
@@ -4716,7 +4742,8 @@ define("@scom/scom-social-sdk/managers/communication.ts", ["require", "exports",
             }
         }
         async fetchEventsFromAPI(endpoint, msg, authHeader) {
-            try {
+            const cacheKey = this.generateCacheKey(endpoint, msg);
+            const fetchFunction = async () => {
                 const requestInit = {
                     method: 'POST',
                     headers: {
@@ -4725,7 +4752,10 @@ define("@scom/scom-social-sdk/managers/communication.ts", ["require", "exports",
                     body: JSON.stringify(msg)
                 };
                 if (authHeader) {
-                    requestInit.headers['Authorization'] = authHeader;
+                    requestInit.headers = {
+                        ...requestInit.headers,
+                        Authorization: authHeader
+                    };
                 }
                 const response = await fetch(`${this._url}/${endpoint}`, requestInit);
                 let result = await response.json();
@@ -4733,11 +4763,8 @@ define("@scom/scom-social-sdk/managers/communication.ts", ["require", "exports",
                     result = await utilsManager_1.SocialUtilsManager.getPollResult(this._url, result.requestId, authHeader);
                 }
                 return result;
-            }
-            catch (error) {
-                console.error('Error fetching events:', error);
-                throw error;
-            }
+            };
+            return this.fetchWithCache(cacheKey, fetchFunction);
         }
         async fetchCachedEvents(eventType, msg) {
             const events = await this.fetchEvents({
@@ -7063,6 +7090,12 @@ define("@scom/scom-social-sdk/managers/eventManagerRead.ts", ["require", "export
         async fetchPaymentActivities(options) {
             return []; // Not supported
         }
+        async fetchMarketplaceProductKey(options) {
+            return null; // Not supported
+        }
+        async fetchProductPurchaseStatus(options) {
+            return null; // Not supported
+        }
     }
     exports.NostrEventManagerRead = NostrEventManagerRead;
 });
@@ -7954,6 +7987,26 @@ define("@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts", ["require", "ex
                 msg.until = until;
             const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-payment-activities', msg);
             return fetchEventsResponse.events || [];
+        }
+        async fetchMarketplaceProductKey(options) {
+            const { sellerPubkey, productId } = options;
+            let msg = {
+                sellerPubkey: sellerPubkey,
+                productId: productId
+            };
+            const endpoint = 'gatekeeper/fetch-product-key';
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth(endpoint, msg);
+            return fetchEventsResponse.data?.key;
+        }
+        async fetchProductPurchaseStatus(options) {
+            const { sellerPubkey, productId } = options;
+            let msg = {
+                sellerPubkey: sellerPubkey,
+                productId: productId
+            };
+            const endpoint = 'gatekeeper/check-product-purchase-status';
+            const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth(endpoint, msg);
+            return fetchEventsResponse.data?.isPurchased;
         }
     }
     exports.NostrEventManagerReadV1o5 = NostrEventManagerReadV1o5;
@@ -11015,25 +11068,10 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
                 contentKey = await utilsManager_6.SocialUtilsManager.decryptMessage(this._privateKey, gatekeeperPubkey, encryptedContentKey);
             }
             else {
-                const authHeader = utilsManager_6.SocialUtilsManager.constructAuthHeader(this._privateKey);
-                let bodyData = {
+                contentKey = await this._socialEventManagerRead.fetchMarketplaceProductKey({
                     sellerPubkey: sellerPubkey,
                     productId: productId
-                };
-                let url = `${this._publicIndexingRelay}/gatekeeper/fetch-product-key`;
-                let response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        Accept: 'application/json',
-                        'Content-Type': 'application/json',
-                        'Authorization': authHeader
-                    },
-                    body: JSON.stringify(bodyData)
                 });
-                let result = await response.json();
-                if (result.success) {
-                    contentKey = result.data?.key;
-                }
             }
             let text;
             if (contentKey) {
@@ -11043,26 +11081,10 @@ define("@scom/scom-social-sdk/managers/dataManager/index.ts", ["require", "expor
         }
         async fetchProductPurchaseStatus(options) {
             const { sellerPubkey, productId } = options;
-            const authHeader = utilsManager_6.SocialUtilsManager.constructAuthHeader(this._privateKey);
-            let bodyData = {
+            let isPurchased = await this._socialEventManagerRead.fetchProductPurchaseStatus({
                 sellerPubkey: sellerPubkey,
                 productId: productId
-            };
-            let url = `${this._publicIndexingRelay}/gatekeeper/check-product-purchase-status`;
-            let response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                    'Authorization': authHeader
-                },
-                body: JSON.stringify(bodyData)
             });
-            let isPurchased = false;
-            let result = await response.json();
-            if (result.success) {
-                isPurchased = result.data?.isPurchased;
-            }
             return isPurchased;
         }
         async fetchRegions() {

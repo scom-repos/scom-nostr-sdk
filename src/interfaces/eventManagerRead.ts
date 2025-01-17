@@ -218,6 +218,15 @@ export namespace SocialEventManagerReadOptions {
 	}
 
 	export interface IFetchPaymentActivities extends IFetchPaymentActivitiesOptions {}
+
+	export interface IFetchMarketplaceProductKey {
+		sellerPubkey: string;
+		productId: string;
+	}
+	export interface IFetchProductPurchaseStatus {
+		sellerPubkey: string;
+		productId: string;	
+	}
 }
 
 export interface ISocialEventManagerReadResult {
@@ -285,6 +294,8 @@ export interface ISocialEventManagerRead {
 	fetchMarketplaceOrderDetails(options: SocialEventManagerReadOptions.IFetchMarketplaceOrderDetails): Promise<INostrEvent[]>;
 	fetchMarketplaceProductDetails(options: SocialEventManagerReadOptions.IFetchMarketplaceProductDetails): Promise<INostrEvent[]>;
 	fetchPaymentActivities(options: SocialEventManagerReadOptions.IFetchPaymentActivities): Promise<INostrEvent[]>;
+	fetchMarketplaceProductKey(options: SocialEventManagerReadOptions.IFetchMarketplaceProductKey): Promise<string>;
+	fetchProductPurchaseStatus(options: SocialEventManagerReadOptions.IFetchProductPurchaseStatus): Promise<boolean>;
 	// fetchMetadata(options: IFetchMetadataOptions): Promise<INostrEvent[]>;
     // fetchReplies(options: IFetchRepliesOptions): Promise<INostrEvent[]>;
     // fetchFollowing(npubs: string[]): Promise<INostrEvent[]>;

@@ -3065,25 +3065,10 @@ class SocialDataManager {
             contentKey = await SocialUtilsManager.decryptMessage(this._privateKey, gatekeeperPubkey, encryptedContentKey);
         }
         else {
-            const authHeader = SocialUtilsManager.constructAuthHeader(this._privateKey);
-            let bodyData = {
+            contentKey = await this._socialEventManagerRead.fetchMarketplaceProductKey({
                 sellerPubkey: sellerPubkey,
                 productId: productId
-            };
-            let url = `${this._publicIndexingRelay}/gatekeeper/fetch-product-key`;
-            let response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                    'Authorization': authHeader
-                },
-                body: JSON.stringify(bodyData)
-            });
-            let result = await response.json();
-            if (result.success) {
-                contentKey = result.data?.key;
-            }
+            })
         }
         let text;
         if (contentKey) {
@@ -3094,26 +3079,10 @@ class SocialDataManager {
 
     async fetchProductPurchaseStatus(options: SocialDataManagerOptions.IFetchProductPurchaseStatus) {
         const { sellerPubkey, productId } = options;
-        const authHeader = SocialUtilsManager.constructAuthHeader(this._privateKey);
-        let bodyData = {
+        let isPurchased = await this._socialEventManagerRead.fetchProductPurchaseStatus({
             sellerPubkey: sellerPubkey,
             productId: productId
-        };
-        let url = `${this._publicIndexingRelay}/gatekeeper/check-product-purchase-status`;
-        let response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': authHeader
-            },
-            body: JSON.stringify(bodyData)
-        });
-        let isPurchased = false;
-        let result = await response.json();
-        if (result.success) {
-            isPurchased = result.data?.isPurchased;
-        }
+        })
         return isPurchased;
     }
 

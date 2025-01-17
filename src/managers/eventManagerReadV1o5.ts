@@ -925,6 +925,28 @@ class NostrEventManagerReadV1o5 implements ISocialEventManagerRead {
         const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth('fetch-payment-activities', msg);
         return fetchEventsResponse.events || [];
     }
+
+    async fetchMarketplaceProductKey(options: SocialEventManagerReadOptions.IFetchMarketplaceProductKey) {
+        const {sellerPubkey, productId} = options;
+        let msg: any = {
+            sellerPubkey: sellerPubkey,
+            productId: productId
+        };
+        const endpoint = 'gatekeeper/fetch-product-key';
+        const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth(endpoint, msg);
+        return fetchEventsResponse.data?.key;
+    }
+
+    async fetchProductPurchaseStatus(options: SocialEventManagerReadOptions.IFetchProductPurchaseStatus) {
+        const {sellerPubkey, productId} = options;
+        let msg: any = {
+            sellerPubkey: sellerPubkey,
+            productId: productId
+        };
+        const endpoint = 'gatekeeper/check-product-purchase-status';
+        const fetchEventsResponse = await this.fetchEventsFromAPIWithAuth(endpoint, msg);
+        return fetchEventsResponse.data?.isPurchased;
+    }
 }
 
 export {

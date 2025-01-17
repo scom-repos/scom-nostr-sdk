@@ -2123,6 +2123,14 @@ declare module "@scom/scom-social-sdk/interfaces/eventManagerRead.ts" {
         }
         interface IFetchPaymentActivities extends IFetchPaymentActivitiesOptions {
         }
+        interface IFetchMarketplaceProductKey {
+            sellerPubkey: string;
+            productId: string;
+        }
+        interface IFetchProductPurchaseStatus {
+            sellerPubkey: string;
+            productId: string;
+        }
     }
     export interface ISocialEventManagerReadResult {
         error?: string;
@@ -2186,6 +2194,8 @@ declare module "@scom/scom-social-sdk/interfaces/eventManagerRead.ts" {
         fetchMarketplaceOrderDetails(options: SocialEventManagerReadOptions.IFetchMarketplaceOrderDetails): Promise<INostrEvent[]>;
         fetchMarketplaceProductDetails(options: SocialEventManagerReadOptions.IFetchMarketplaceProductDetails): Promise<INostrEvent[]>;
         fetchPaymentActivities(options: SocialEventManagerReadOptions.IFetchPaymentActivities): Promise<INostrEvent[]>;
+        fetchMarketplaceProductKey(options: SocialEventManagerReadOptions.IFetchMarketplaceProductKey): Promise<string>;
+        fetchProductPurchaseStatus(options: SocialEventManagerReadOptions.IFetchProductPurchaseStatus): Promise<boolean>;
     }
 }
 /// <amd-module name="@scom/scom-social-sdk/interfaces/dataManager.ts" />
@@ -2441,7 +2451,13 @@ declare module "@scom/scom-social-sdk/managers/utilsManager.ts" {
 declare module "@scom/scom-social-sdk/managers/communication.ts" {
     import { Event } from "@scom/scom-social-sdk/core/index.ts";
     import { INostrFetchEventsResponse, INostrSubmitResponse, INostrCommunicationManager, INostrRestAPIManager } from "@scom/scom-social-sdk/interfaces/index.ts";
-    class NostrRestAPIManager implements INostrRestAPIManager {
+    class EventRetrievalCacheManager {
+        private cache;
+        constructor();
+        protected generateCacheKey(endpoint: string, msg: any): string;
+        protected fetchWithCache(cacheKey: string, fetchFunction: () => Promise<INostrFetchEventsResponse>, cacheDuration?: number): Promise<INostrFetchEventsResponse>;
+    }
+    class NostrRestAPIManager extends EventRetrievalCacheManager implements INostrRestAPIManager {
         protected _url: string;
         protected requestCallbackMap: Record<string, (response: any) => void>;
         constructor(url: string);
@@ -2470,7 +2486,7 @@ declare module "@scom/scom-social-sdk/managers/communication.ts" {
         fetchCachedEvents(eventType: string, msg: any): Promise<INostrFetchEventsResponse>;
         submitEvent(event: Event.VerifiedEvent<number>): Promise<INostrSubmitResponse>;
     }
-    export { INostrCommunicationManager, INostrRestAPIManager, NostrRestAPIManager, NostrWebSocketManager };
+    export { INostrCommunicationManager, EventRetrievalCacheManager, INostrRestAPIManager, NostrRestAPIManager, NostrWebSocketManager };
 }
 /// <amd-module name="@scom/scom-social-sdk/managers/eventManagerWrite.ts" />
 declare module "@scom/scom-social-sdk/managers/eventManagerWrite.ts" {
@@ -2695,6 +2711,8 @@ declare module "@scom/scom-social-sdk/managers/eventManagerRead.ts" {
         fetchMarketplaceOrderDetails(options: SocialEventManagerReadOptions.IFetchMarketplaceOrderDetails): Promise<any[]>;
         fetchMarketplaceProductDetails(options: SocialEventManagerReadOptions.IFetchMarketplaceProductDetails): Promise<any[]>;
         fetchPaymentActivities(options: SocialEventManagerReadOptions.IFetchPaymentActivities): Promise<any[]>;
+        fetchMarketplaceProductKey(options: SocialEventManagerReadOptions.IFetchMarketplaceProductKey): Promise<any>;
+        fetchProductPurchaseStatus(options: SocialEventManagerReadOptions.IFetchProductPurchaseStatus): Promise<any>;
     }
     export { NostrEventManagerRead };
 }
@@ -2771,6 +2789,8 @@ declare module "@scom/scom-social-sdk/managers/eventManagerReadV1o5.ts" {
         fetchMarketplaceOrderDetails(options: SocialEventManagerReadOptions.IFetchMarketplaceOrderDetails): Promise<import("@scom/scom-social-sdk/interfaces/common.ts").INostrEvent[]>;
         fetchMarketplaceProductDetails(options: SocialEventManagerReadOptions.IFetchMarketplaceProductDetails): Promise<import("@scom/scom-social-sdk/interfaces/common.ts").INostrEvent[]>;
         fetchPaymentActivities(options: SocialEventManagerReadOptions.IFetchPaymentActivities): Promise<import("@scom/scom-social-sdk/interfaces/common.ts").INostrEvent[]>;
+        fetchMarketplaceProductKey(options: SocialEventManagerReadOptions.IFetchMarketplaceProductKey): Promise<any>;
+        fetchProductPurchaseStatus(options: SocialEventManagerReadOptions.IFetchProductPurchaseStatus): Promise<any>;
     }
     export { NostrEventManagerReadV1o5 };
 }

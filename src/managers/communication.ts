@@ -13,11 +13,45 @@ function determineWebSocketType() {
     };
 };
 
-class NostrRestAPIManager implements INostrRestAPIManager {
+class EventRetrievalCacheManager {
+    private cache: Map<string, { timestamp: number, result: Promise<INostrFetchEventsResponse> }>;
+
+    constructor() {
+        this.cache = new Map();
+    }
+
+    protected generateCacheKey(endpoint: string, msg: any): string {
+        return `${endpoint}:${JSON.stringify(msg)}`;
+    }
+
+    protected async fetchWithCache(cacheKey: string, fetchFunction: () => Promise<INostrFetchEventsResponse>, cacheDuration: number = 1000): Promise<INostrFetchEventsResponse> {
+        const currentTime = Date.now();
+
+        // Check if the result is in the cache and is less than cacheDuration old
+        if (this.cache.has(cacheKey)) {
+            const cached = this.cache.get(cacheKey);
+            if (cached && (currentTime - cached.timestamp < cacheDuration)) {
+                return cached.result;
+            }
+        }
+        const fetchPromise = fetchFunction();
+
+        this.cache.set(cacheKey, { timestamp: currentTime, result: fetchPromise });
+
+        setTimeout(() => {
+            this.cache.delete(cacheKey);
+        }, cacheDuration);
+
+        return fetchPromise;
+    }
+}
+
+class NostrRestAPIManager extends EventRetrievalCacheManager implements INostrRestAPIManager {
     protected _url: string;
     protected requestCallbackMap: Record<string, (response: any) => void> = {};
 
     constructor(url: string) {
+        super();
         this._url = url;
     }
 
@@ -47,17 +81,23 @@ class NostrRestAPIManager implements INostrRestAPIManager {
             throw error;
         }
     }
+
     async fetchEventsFromAPI(endpoint: string, msg: any, authHeader?: string): Promise<INostrFetchEventsResponse> {
-        try {
-            const requestInit = {
+        const cacheKey = this.generateCacheKey(endpoint, msg);
+
+        const fetchFunction = async () => {
+            const requestInit: RequestInit = {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(msg)
-            }
+            };
             if (authHeader) {
-                requestInit.headers['Authorization'] = authHeader;
+                requestInit.headers = {
+                    ...requestInit.headers,
+                    Authorization: authHeader
+                };
             }
             const response = await fetch(`${this._url}/${endpoint}`, requestInit);
             let result: INostrFetchEventsResponse = await response.json();
@@ -65,10 +105,9 @@ class NostrRestAPIManager implements INostrRestAPIManager {
                 result = await SocialUtilsManager.getPollResult(this._url, result.requestId, authHeader);
             }
             return result;
-        } catch (error) {
-            console.error('Error fetching events:', error);
-            throw error;
-        }
+        };
+
+        return this.fetchWithCache(cacheKey, fetchFunction);
     }
     async fetchCachedEvents(eventType: string, msg: any) {
         const events = await this.fetchEvents({
@@ -250,6 +289,7 @@ class NostrWebSocketManager implements INostrCommunicationManager {
 
 export {
     INostrCommunicationManager,
+    EventRetrievalCacheManager,
     INostrRestAPIManager,
     NostrRestAPIManager,
     NostrWebSocketManager
