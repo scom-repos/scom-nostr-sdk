@@ -1778,7 +1778,9 @@ declare module "@scom/scom-social-sdk/interfaces/marketplace.ts" {
         serviceName: string;
         duration: number;
         durationUnit: string;
-        available: boolean;
+        price: number;
+        currency: string;
+        capacity?: number;
     }
     export interface IMarketplaceWorkingHours {
         checked?: boolean;
